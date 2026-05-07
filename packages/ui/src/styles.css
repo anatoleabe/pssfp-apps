@@ -1,0 +1,14 @@
+:root {
+  --pssfp-primary: #6B2FA0;
+  --pssfp-primary-hover: #9B59B6;
+  --pssfp-surface: #EDE7F6;
+  --pssfp-accent: #C9A227;
+  --pssfp-background: #FFFFFF;
+  --pssfp-text: #333333;
+  --pssfp-text-muted: #666666;
+  --pssfp-surface-alt: #F5F5F5;
+  --pssfp-success: #2E7D32;
+  --pssfp-warning: #F9A825;
+  --pssfp-error: #C62828;
+  --pssfp-info: #1565C0;
+}
