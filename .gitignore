@@ -1,0 +1,100 @@
+# =====================================================
+# pssfp mono-repo — .gitignore racine
+# =====================================================
+
+# Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+
+# Node / pnpm
+node_modules/
+.pnpm-store/
+.pnp.*
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+.next/
+out/
+.vercel/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# PHP / Laravel
+/backend/vendor/
+/backend/node_modules/
+/backend/public/storage
+/backend/public/build
+/backend/storage/*.key
+/backend/storage/app/public/*
+/backend/storage/framework/cache/*
+/backend/storage/framework/sessions/*
+/backend/storage/framework/testing/*
+/backend/storage/framework/views/*
+/backend/storage/logs/*
+/backend/.phpunit.result.cache
+/backend/Homestead.json
+/backend/Homestead.yaml
+/backend/auth.json
+/backend/.env
+/backend/.env.backup
+/backend/.env.production
+
+# Filament
+/backend/storage/app/livewire-tmp/
+/backend/storage/app/filament/
+
+# Tests / coverage
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+playwright/.cache/
+
+# Build outputs
+dist/
+build/
+*.log
+
+# IDE / Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker volumes locaux
+infra/docker/data/
+
+# Lighthouse reports
+.lighthouseci/
+lhci-reports/
+
+# Sentry source maps
+.sentryclirc
+
+# Wireframes générés (peuvent être recréés)
+wireframes/.cache/
+
+# Backups locaux
+*.sql
+*.dump
+*.bak
+backups/
+!docs/**/*.sql
+
+# Misc
+*.tar
+*.tar.gz
+*.zip
+.cache/
+.tmp/
+tmp/
