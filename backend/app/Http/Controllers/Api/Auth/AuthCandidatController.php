@@ -39,12 +39,17 @@ final class AuthCandidatController extends Controller
 {
     /**
      * Abilities émises au token candidat standard (cf. spec §M4 + arbitrage A).
+     *
+     * `application:submit` séparée de `application:create` (cf. ajout 4 plan PR C) —
+     * permet à un assistant USI futur de créer/mettre à jour un dossier au nom
+     * d'un candidat sans pouvoir signer la soumission à sa place.
      */
     private const CANDIDAT_ABILITIES = [
         'profile:read',
         'profile:write',
         'application:create',
         'application:read',
+        'application:submit',
     ];
 
     private const CANDIDAT_TOKEN_TTL_DAYS = 7;
@@ -72,6 +77,7 @@ final class AuthCandidatController extends Controller
             'prenom' => (string) $request->input('prenom'),
             'nom' => (string) $request->input('nom'),
             'phone_country' => (string) $request->input('phone_country'),
+            'date_naissance' => (string) $request->input('date_naissance'),
         ]);
 
         $token = $user->createToken(

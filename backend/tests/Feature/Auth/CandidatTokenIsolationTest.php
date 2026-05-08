@@ -61,6 +61,7 @@ it('candidat abilities are exactly the four scoped ones, no extras', function ()
         'profile:write',
         'application:create',
         'application:read',
+        'application:submit',
     ]);
     expect($abilities)->not->toContain('admin.*');
     expect($abilities)->not->toContain('library:read:restricted');

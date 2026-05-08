@@ -33,7 +33,7 @@ final class CandidatUserService
      * Crée un User candidat. À utiliser uniquement après s'être assuré
      * qu'aucun User n'existe pour ce phone (sinon 409 côté controller).
      *
-     * @param  array{prenom: string, nom: string, phone_country: string}  $profile
+     * @param  array{prenom: string, nom: string, phone_country: string, date_naissance?: string}  $profile
      */
     public function createCandidat(string $phoneE164, string $pin, array $profile): User
     {
@@ -43,6 +43,7 @@ final class CandidatUserService
             'password' => Hash::make($pin),
             'phone_e164' => $phoneE164,
             'phone_country' => $profile['phone_country'],
+            'date_naissance' => $profile['date_naissance'] ?? null,
         ]);
 
         $user->assignRole('candidat');

@@ -10,6 +10,7 @@ use Filament\Models\Contracts\HasName;
 use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -38,6 +39,7 @@ final class User extends Authenticatable implements FilamentUser, HasName, MustV
         'password',
         'phone_e164',
         'phone_country',
+        'date_naissance',
     ];
 
     /**
@@ -59,6 +61,7 @@ final class User extends Authenticatable implements FilamentUser, HasName, MustV
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'date_naissance' => 'date',
         ];
     }
 
@@ -90,5 +93,10 @@ final class User extends Authenticatable implements FilamentUser, HasName, MustV
             ->logOnly(['name', 'email', 'phone_e164'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    public function candidatures(): HasMany
+    {
+        return $this->hasMany(Candidature::class);
     }
 }
