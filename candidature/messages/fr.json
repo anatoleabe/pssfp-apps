@@ -1,0 +1,28 @@
+{
+  "common": {
+    "appName": "Candidature PSSFP"
+  },
+  "home": {
+    "title": "Candidature 2026 — Promotion 14",
+    "intro": "Déposez votre candidature au PSSFP en quelques étapes guidées.",
+    "ctaCreateAccount": "Créer mon compte candidat",
+    "ctaLogin": "J'ai déjà un compte",
+    "feeNotice": "Frais de dossier : 25 000 FCFA payables en agence CCA après soumission."
+  },
+  "login": {
+    "title": "Connexion candidat",
+    "subtitle": "Identifiez-vous avec votre numéro de téléphone et votre PIN.",
+    "phoneLabel": "Numéro de téléphone (format international)",
+    "phonePlaceholder": "+237691234567",
+    "phoneHelp": "Format E.164 : indicatif pays puis numéro, sans espace.",
+    "pinLabel": "PIN à 6 chiffres",
+    "pinHelp": "PIN choisi à votre inscription. Ne le partagez avec personne.",
+    "submit": "Se connecter",
+    "forgotPin": "PIN oublié ?",
+    "todoNotice": "Authentification réelle implémentée lors du dev Module 5 (cf. ADR-0007)."
+  },
+  "nav": {
+    "home": "Accueil",
+    "login": "Connexion"
+  }
+}

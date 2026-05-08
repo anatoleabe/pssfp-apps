@@ -1,0 +1,20 @@
+{
+  "common": {
+    "appName": "Bibliothèque PSSFP"
+  },
+  "home": {
+    "title": "Bibliothèque virtuelle PSSFP",
+    "intro": "Recherchez parmi les thèses, articles, législation, cours et conférences.",
+    "searchPlaceholder": "Rechercher dans le catalogue…",
+    "apiHealthLabel": "État de l'API",
+    "apiHealthOk": "Connectée",
+    "apiHealthError": "Indisponible"
+  },
+  "nav": {
+    "home": "Accueil",
+    "theses": "Thèses",
+    "articles": "Articles",
+    "courses": "Cours",
+    "myAccount": "Mon espace"
+  }
+}

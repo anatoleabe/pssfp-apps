@@ -1,0 +1,113 @@
+# =====================================================
+# pssfp — docker-compose.yml (dev local uniquement)
+# =====================================================
+# Lancer : make dev-services (depuis racine repo)
+# Arrêter : make dev-stop
+# =====================================================
+
+name: pssfp
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pssfp_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pssfp
+      POSTGRES_USER: pssfp_admin
+      POSTGRES_PASSWORD: pssfp_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pssfp_admin -d pssfp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: pssfp_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.7
+    container_name: pssfp_meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: pssfp_dev_master_key_change_in_prod
+      MEILI_ENV: development
+      MEILI_NO_ANALYTICS: "true"
+    ports:
+      - "7700:7700"
+    volumes:
+      - ./data/meilisearch:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7700/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: pssfp_minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: pssfp_minio_admin
+      MINIO_ROOT_PASSWORD: pssfp_dev_minio_password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./data/minio:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: pssfp_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 pssfp_minio_admin pssfp_dev_minio_password;
+      mc mb -p local/pssfp-media || true;
+      mc mb -p local/pssfp-documents || true;
+      mc mb -p local/pssfp-candidatures || true;
+      mc anonymous set download local/pssfp-media;
+      echo 'Buckets MinIO initialisés.';
+      exit 0;
+      "
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: pssfp_mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATA_FILE: /data/mailpit.db
+    volumes:
+      - ./data/mailpit:/data
+
+# Volumes locaux gérés directement dans ./data/ (cf. .gitignore)
+# Pour repartir à zéro : make dev-stop && rm -rf infra/docker/data

@@ -1,0 +1,19 @@
+{
+  "common": {
+    "appName": "PSSFP",
+    "appTagline": "Programme Supérieur de Spécialisation en Finances Publiques"
+  },
+  "home": {
+    "title": "PSSFP — Programme Supérieur de Spécialisation en Finances Publiques",
+    "intro": "Bienvenue sur le site institutionnel du PSSFP, Campus de Messa, Yaoundé.",
+    "apiHealthLabel": "État de l'API",
+    "apiHealthOk": "Connectée",
+    "apiHealthError": "Indisponible"
+  },
+  "nav": {
+    "home": "Accueil",
+    "library": "Bibliothèque",
+    "candidature": "Candidature",
+    "foad": "FOAD"
+  }
+}

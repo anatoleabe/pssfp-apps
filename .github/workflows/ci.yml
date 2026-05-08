@@ -1,0 +1,152 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  # ===========================================================================
+  # Backend Laravel
+  # ===========================================================================
+  backend:
+    name: Backend (Laravel + Pest)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: pssfp_admin
+          POSTGRES_PASSWORD: pssfp_test_password
+          POSTGRES_DB: pssfp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pssfp_admin"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      meilisearch:
+        image: getmeili/meilisearch:v1.7
+        env:
+          MEILI_MASTER_KEY: test_master_key
+          MEILI_NO_ANALYTICS: "true"
+          MEILI_ENV: development
+        ports:
+          - 7700:7700
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pgsql, redis, gd, intl, bcmath, zip
+          coverage: pcov
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Copy .env.testing
+        working-directory: backend
+        run: cp .env.testing.example .env.testing 2>/dev/null || cp .env.example .env.testing
+
+      - name: Generate app key
+        working-directory: backend
+        run: php artisan key:generate --env=testing
+
+      - name: Run migrations
+        working-directory: backend
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: pssfp_test
+          DB_USERNAME: pssfp_admin
+          DB_PASSWORD: pssfp_test_password
+        run: php artisan migrate --env=testing --force
+
+      - name: Run Pest tests
+        working-directory: backend
+        run: ./vendor/bin/pest
+
+      - name: Lint with Pint
+        working-directory: backend
+        run: ./vendor/bin/pint --test
+
+  # ===========================================================================
+  # Frontends Next.js (matrix)
+  # ===========================================================================
+  frontends:
+    name: ${{ matrix.app }} (Next.js + Playwright)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [frontend, library, candidature]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        working-directory: ${{ matrix.app }}
+        run: pnpm lint
+
+      - name: Type check
+        working-directory: ${{ matrix.app }}
+        run: pnpm tsc --noEmit
+
+      - name: Build
+        working-directory: ${{ matrix.app }}
+        run: pnpm build
+
+      - name: Install Playwright browsers
+        working-directory: ${{ matrix.app }}
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        working-directory: ${{ matrix.app }}
+        run: pnpm test
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.app }}
+          path: ${{ matrix.app }}/playwright-report/
+          retention-days: 7
