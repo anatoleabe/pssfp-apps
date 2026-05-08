@@ -19,22 +19,22 @@ jobs:
         include:
           - app: frontend
             urls: |
-              http://localhost:3000/
+              http://localhost:6001/
             min_perf: 90
             min_a11y: 90
             min_seo: 90
             min_bp: 90
           - app: library
             urls: |
-              http://localhost:3001/
+              http://localhost:6002/
             min_perf: 85
             min_a11y: 90
             min_seo: 85
             min_bp: 85
           - app: candidature
             urls: |
-              http://localhost:3002/
-              http://localhost:3002/login
+              http://localhost:6003/
+              http://localhost:6003/login
             min_perf: 85
             min_a11y: 90
             min_seo: 85
@@ -64,9 +64,9 @@ jobs:
         working-directory: ${{ matrix.app }}
         run: |
           case "${{ matrix.app }}" in
-            frontend) PORT_FOR_APP=3000 ;;
-            library) PORT_FOR_APP=3001 ;;
-            candidature) PORT_FOR_APP=3002 ;;
+            frontend) PORT_FOR_APP=6001 ;;
+            library) PORT_FOR_APP=6002 ;;
+            candidature) PORT_FOR_APP=6003 ;;
           esac
           pnpm exec next start --port "$PORT_FOR_APP" >/tmp/next.log 2>&1 &
           for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do

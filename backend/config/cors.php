@@ -14,12 +14,12 @@ return [
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
     'allowed_origins' => array_filter([
-        env('APP_ENV') !== 'production' ? 'http://localhost:3000' : null,
-        env('APP_ENV') !== 'production' ? 'http://localhost:3001' : null,
-        env('APP_ENV') !== 'production' ? 'http://localhost:3002' : null,
-        env('APP_ENV') !== 'production' ? 'http://127.0.0.1:3000' : null,
-        env('APP_ENV') !== 'production' ? 'http://127.0.0.1:3001' : null,
-        env('APP_ENV') !== 'production' ? 'http://127.0.0.1:3002' : null,
+        env('APP_ENV') !== 'production' ? 'http://localhost:6001' : null,
+        env('APP_ENV') !== 'production' ? 'http://localhost:6002' : null,
+        env('APP_ENV') !== 'production' ? 'http://localhost:6003' : null,
+        env('APP_ENV') !== 'production' ? 'http://127.0.0.1:6001' : null,
+        env('APP_ENV') !== 'production' ? 'http://127.0.0.1:6002' : null,
+        env('APP_ENV') !== 'production' ? 'http://127.0.0.1:6003' : null,
         'https://pssfp.net',
         'https://www.pssfp.net',
         'https://bibliotheque.pssfp.net',

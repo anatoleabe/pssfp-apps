@@ -98,7 +98,7 @@ Playwright `tests/playwright/candidature-flow.spec.ts` couvre le parcours comple
 
 ```
 NEXT_PUBLIC_API_URL=http://localhost:8000/v1
-NEXT_PUBLIC_MAIN_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_MAIN_SITE_URL=http://localhost:6001
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=...
 NEXT_PUBLIC_SENTRY_DSN=...
 ```

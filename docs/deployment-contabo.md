@@ -100,9 +100,9 @@ server {
     access_log /var/log/nginx/pssfp.net.access.log;
     error_log /var/log/nginx/pssfp.net.error.log;
 
-    # Proxy vers Next.js frontend (port 3000 local)
+    # Proxy vers Next.js frontend (port 6001 local)
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:6001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -115,14 +115,14 @@ server {
 
     # Cache statique Next.js
     location /_next/static {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:6001;
         proxy_cache_valid 200 1y;
         add_header Cache-Control "public, max-age=31536000, immutable";
     }
 }
 ```
 
-Vhosts similaires pour `bibliotheque.pssfp.net` (port 3001), `candidature.pssfp.net` (port 3002), `api.pssfp.net` (PHP-FPM via fastcgi). Variations principales sur :
+Vhosts similaires pour `bibliotheque.pssfp.net` (port 6002), `candidature.pssfp.net` (port 6003), `api.pssfp.net` (PHP-FPM via fastcgi). Variations principales sur :
 
 - Origines CORS autorisées dans api.pssfp.net.
 - Path racine vers Laravel `public/` dans api.pssfp.net.
@@ -230,9 +230,9 @@ pm2 startup
 ```javascript
 module.exports = {
   apps: [
-    { name: 'pssfp-frontend', cwd: '/var/www/pssfp/frontend', script: 'pnpm', args: 'start', env: { PORT: 3000, NODE_ENV: 'production' } },
-    { name: 'pssfp-library', cwd: '/var/www/pssfp/library', script: 'pnpm', args: 'start', env: { PORT: 3001, NODE_ENV: 'production' } },
-    { name: 'pssfp-candidature', cwd: '/var/www/pssfp/candidature', script: 'pnpm', args: 'start', env: { PORT: 3002, NODE_ENV: 'production' } },
+    { name: 'pssfp-frontend', cwd: '/var/www/pssfp/frontend', script: 'pnpm', args: 'start', env: { PORT: 6001, NODE_ENV: 'production' } },
+    { name: 'pssfp-library', cwd: '/var/www/pssfp/library', script: 'pnpm', args: 'start', env: { PORT: 6002, NODE_ENV: 'production' } },
+    { name: 'pssfp-candidature', cwd: '/var/www/pssfp/candidature', script: 'pnpm', args: 'start', env: { PORT: 6003, NODE_ENV: 'production' } },
   ],
 };
 ```

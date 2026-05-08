@@ -42,20 +42,20 @@ dev-stop: ## Arrête les services Docker
 dev: dev-services ## Démarre tout l'environnement de dev (services + 4 apps en parallèle)
 	@echo "Démarre les 4 apps. Use Ctrl+C pour arrêter."
 	@(cd backend && php artisan serve --host=0.0.0.0 --port=8000) & \
-	(cd frontend && pnpm dev --port 3000) & \
-	(cd library && pnpm dev --port 3001) & \
-	(cd candidature && pnpm dev --port 3002) & \
+	(cd frontend && pnpm dev --port 6001) & \
+	(cd library && pnpm dev --port 6002) & \
+	(cd candidature && pnpm dev --port 6003) & \
 	wait
 
 # Démarrages individuels
 frontend: ## Démarre uniquement frontend
-	cd frontend && pnpm dev --port 3000
+	cd frontend && pnpm dev --port 6001
 
 library: ## Démarre uniquement library
-	cd library && pnpm dev --port 3001
+	cd library && pnpm dev --port 6002
 
 candidature: ## Démarre uniquement candidature
-	cd candidature && pnpm dev --port 3002
+	cd candidature && pnpm dev --port 6003
 
 backend: ## Démarre uniquement backend Laravel
 	cd backend && php artisan serve --port=8000

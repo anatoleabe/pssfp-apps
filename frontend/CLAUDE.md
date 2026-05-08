@@ -100,8 +100,8 @@ Ne jamais fetcher directement dans un composant — passer par `lib/api/`.
 
 ```
 NEXT_PUBLIC_API_URL=http://localhost:8000/v1
-NEXT_PUBLIC_LIBRARY_URL=http://localhost:3001
-NEXT_PUBLIC_CANDIDATURE_URL=http://localhost:3002
+NEXT_PUBLIC_LIBRARY_URL=http://localhost:6002
+NEXT_PUBLIC_CANDIDATURE_URL=http://localhost:6003
 NEXT_PUBLIC_FOAD_URL=https://foad.pssfp.net
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=...
 NEXT_PUBLIC_SENTRY_DSN=...

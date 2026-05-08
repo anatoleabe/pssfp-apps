@@ -141,12 +141,12 @@ Activer les alertes email Sentry sur : nouvelle erreur en production, taux d'err
 **Uptime Kuma** auto-hébergé sur le VPS Contabo, Docker, exposé sur `status.pssfp.net` (sous-domaine dédié, certificat Let's Encrypt). Free, open source, simple.
 
 ```
-docker run -d --restart=always -p 3001:3001 \
+docker run -d --restart=always -p 6010:3001 \
   -v uptime-kuma:/app/data \
   --name uptime-kuma louislam/uptime-kuma:1
 ```
 
-Accès admin protégé par mot de passe + 2FA optionnel.
+UI accessible sur `http://localhost:6010` en local (3001 reste le port natif d'Uptime Kuma *à l'intérieur* du conteneur ; on le mappe sur l'hôte vers 6010 pour respecter la convention ports projet 6000+). Accès admin protégé par mot de passe + 2FA optionnel.
 
 ### 3.2 Sondes à configurer
 
