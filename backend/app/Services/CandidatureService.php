@@ -1,0 +1,252 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Models\CampagneCandidature;
+use App\Models\Candidature;
+use App\Models\User;
+use Illuminate\Database\ConnectionInterface;
+use Illuminate\Support\Facades\Cache;
+use RuntimeException;
+
+/**
+ * Cycle de vie d'une candidature côté API (cf. spec module 5 §M3, §M5).
+ *
+ * - currentCampagne()    : campagne actuellement ouverte (ou null).
+ * - findForUser()        : récupère le dossier du candidat sur la campagne courante.
+ * - upsertForUser()      : trouve ou crée le dossier au statut postulant. Idempotent.
+ * - updateDraft()        : update partiel des champs profil tant que statut == postulant.
+ * - submit()             : transition postulant -> candidat, génère le PDF, stocke,
+ *                          honore X-Idempotency-Key (cache Redis 5 min).
+ *
+ * Le service ne fait pas la validation HTTP — celle-ci reste dans les FormRequests.
+ * Il garde la cohérence métier et l'audit trail (activity_log).
+ */
+final class CandidatureService
+{
+    private const SUBMIT_IDEMPOTENCY_TTL_SECONDS = 300; // 5 min
+
+    public function __construct(
+        private readonly ConnectionInterface $db,
+        private readonly RecipisseService $recipisse,
+    ) {}
+
+    public function currentCampagne(): ?CampagneCandidature
+    {
+        return CampagneCandidature::query()->currentlyOpen()->first();
+    }
+
+    public function findForUser(User $user, CampagneCandidature $campagne): ?Candidature
+    {
+        return Candidature::query()
+            ->where('user_id', $user->id)
+            ->where('campagne_id', $campagne->id)
+            ->first();
+    }
+
+    /**
+     * Idempotent : retourne la Candidature existante du couple (user, campagne)
+     * ou en crée une nouvelle au statut postulant (numero_dossier auto via observer).
+     *
+     * @param  array<string, mixed>  $initialFields  champs additionnels à set à la création
+     */
+    public function upsertForUser(User $user, CampagneCandidature $campagne, array $initialFields = []): Candidature
+    {
+        $existing = $this->findForUser($user, $campagne);
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        return $this->db->transaction(function () use ($user, $campagne, $initialFields): Candidature {
+            return Candidature::create(array_merge([
+                'campagne_id' => $campagne->id,
+                'user_id' => $user->id,
+                'phone_e164' => $user->phone_e164 ?? throw new RuntimeException('User has no phone_e164'),
+                'phone_country' => $user->phone_country ?? 'CM',
+                'nom' => $this->extractLastName($user->name ?? ''),
+                'prenom' => $this->extractFirstName($user->name ?? ''),
+                'date_naissance' => $user->date_naissance,
+                'statut' => Candidature::STATUT_POSTULANT,
+                'frais_paye' => false,
+            ], $initialFields));
+        });
+    }
+
+    /**
+     * Update partiel d'une candidature en draft. Refuse si elle a déjà été soumise.
+     *
+     * @param  array<string, mixed>  $fields
+     */
+    public function updateDraft(Candidature $candidature, array $fields): Candidature
+    {
+        if ($candidature->statut !== Candidature::STATUT_POSTULANT) {
+            throw new RuntimeException(
+                'Cannot update a candidature that has already been submitted (statut: '
+                .$candidature->statut.').'
+            );
+        }
+
+        // Empêche la modification de champs systèmes via le body PUT.
+        $forbidden = ['id', 'uuid', 'numero_dossier', 'campagne_id', 'user_id',
+            'statut', 'submitted_at', 'reviewed_at', 'decided_at', 'withdrawn_at',
+            'frais_paye', 'mode_paiement', 'reference_paiement', 'date_paiement',
+            'recipisse_pdf_path', 'recipisse_hash_sha256',
+            'created_at', 'updated_at', 'deleted_at',
+        ];
+        $clean = array_diff_key($fields, array_flip($forbidden));
+
+        $candidature->fill($clean)->save();
+
+        return $candidature->refresh();
+    }
+
+    /**
+     * Vérifie qu'une Candidature peut être soumise. Retourne un dictionnaire
+     * `{champ => message}` des erreurs (vide si tout OK).
+     *
+     * Combine :
+     *  - Champs profil obligatoires (cf. spec §M6) qui doivent tous être remplis.
+     *  - Règles métier (cf. ajout 3 PR C) : annee_diplome cohérente, region/dept
+     *    obligatoires si pays_residence == CM, specialite dans la liste blanche.
+     *
+     * @return array<string, string>
+     */
+    public function checkSubmittable(Candidature $candidature): array
+    {
+        $errors = [];
+
+        $required = [
+            'civilite', 'nom', 'prenom', 'date_naissance', 'lieu_naissance',
+            'genre', 'statut_matrimonial', 'nationalite', 'pays_origine',
+            'pays_residence', 'adresse', 'ville_residence',
+            'indicatif1', 'telephone1',
+            'specialite', 'type_etude', 'premiere_langue',
+            'diplome_obtenu', 'institut', 'specialite_diplome', 'annee_diplome',
+            'statut_actuel', 'engagement_nom',
+        ];
+
+        foreach ($required as $field) {
+            $value = $candidature->{$field};
+            if ($value === null || $value === '') {
+                $errors[$field] = "Champ obligatoire manquant pour la soumission : {$field}.";
+            }
+        }
+
+        if ($candidature->annee_diplome !== null && $candidature->annee_diplome > now()->year) {
+            $errors['annee_diplome'] = "L'année du diplôme ne peut pas être dans le futur.";
+        }
+
+        if ($candidature->date_naissance !== null && $candidature->annee_diplome !== null) {
+            $diff = $candidature->annee_diplome - (int) $candidature->date_naissance->format('Y');
+            if ($diff < 18) {
+                $errors['annee_diplome'] = "L'écart entre la date de naissance et l'année du diplôme doit être d'au moins 18 ans.";
+            }
+        }
+
+        if ($candidature->pays_residence === 'CM') {
+            if (empty($candidature->region)) {
+                $errors['region'] = 'La région est obligatoire pour un candidat résidant au Cameroun.';
+            }
+            if (empty($candidature->departement)) {
+                $errors['departement'] = 'Le département est obligatoire pour un candidat résidant au Cameroun.';
+            }
+        }
+
+        $allowed = array_values((array) config('specialites', []));
+        if (! empty($candidature->specialite) && ! in_array($candidature->specialite, $allowed, true)) {
+            $errors['specialite'] = 'La spécialité demandée n\'est pas reconnue.';
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Transition postulant -> candidat. Génère le PDF récépissé, hash SHA256,
+     * stocke dans MinIO, log dans activity_log.
+     *
+     * Idempotent via X-Idempotency-Key : un même UUID re-joué dans la fenêtre
+     * de 5 min retourne le résultat précédent sans régénérer le PDF.
+     *
+     * @return array{candidature: Candidature, pdf_url: string}
+     */
+    public function submit(Candidature $candidature, ?string $idempotencyKey = null): array
+    {
+        if ($idempotencyKey !== null) {
+            $cacheKey = $this->idempotencyCacheKey($candidature, $idempotencyKey);
+            $cached = Cache::get($cacheKey);
+            if ($cached !== null) {
+                return [
+                    'candidature' => $candidature->refresh(),
+                    'pdf_url' => $cached['pdf_url'],
+                ];
+            }
+        }
+
+        if ($candidature->statut !== Candidature::STATUT_POSTULANT) {
+            throw new RuntimeException(
+                'Cannot submit a candidature already at statut '.$candidature->statut.'.'
+            );
+        }
+
+        $result = $this->db->transaction(function () use ($candidature): array {
+            $pdf = $this->recipisse->generate($candidature);
+
+            $candidature->update([
+                'statut' => Candidature::STATUT_CANDIDAT,
+                'submitted_at' => now(),
+                'recipisse_pdf_path' => $pdf['path'],
+                'recipisse_hash_sha256' => $pdf['hash'],
+            ]);
+
+            activity('candidatures')
+                ->causedBy(auth()->user())
+                ->performedOn($candidature)
+                ->withProperties([
+                    'ip' => request()?->ip(),
+                    'pdf_path' => $pdf['path'],
+                    'pdf_hash' => $pdf['hash'],
+                ])
+                ->event('candidature_submitted')
+                ->log('Candidature soumise (postulant -> candidat)');
+
+            return ['path' => $pdf['path'], 'url' => $this->recipisse->signedUrl($pdf['path'])];
+        });
+
+        if ($idempotencyKey !== null) {
+            Cache::put(
+                $this->idempotencyCacheKey($candidature, $idempotencyKey),
+                ['pdf_url' => $result['url']],
+                self::SUBMIT_IDEMPOTENCY_TTL_SECONDS
+            );
+        }
+
+        return [
+            'candidature' => $candidature->refresh(),
+            'pdf_url' => $result['url'],
+        ];
+    }
+
+    private function idempotencyCacheKey(Candidature $candidature, string $key): string
+    {
+        return "candidature:submit:{$candidature->uuid}:".sha1($key);
+    }
+
+    private function extractFirstName(string $fullName): string
+    {
+        $parts = preg_split('/\s+/', trim($fullName));
+
+        return $parts[0] ?? '';
+    }
+
+    private function extractLastName(string $fullName): string
+    {
+        $parts = preg_split('/\s+/', trim($fullName));
+        if (count($parts) <= 1) {
+            return '';
+        }
+
+        return implode(' ', array_slice($parts, 1));
+    }
+}

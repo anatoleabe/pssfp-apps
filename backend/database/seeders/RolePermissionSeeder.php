@@ -44,6 +44,10 @@ final class RolePermissionSeeder extends Seeder
             'profile.write',
             'application.create',
             'application.read',
+            // application.submit séparée de application.create : Phase II pourra
+            // donner create/update à un assistant USI tout en réservant submit
+            // au candidat lui-même (signature engagement). En V1 le candidat a les deux.
+            'application.submit',
         ];
 
         foreach ($candidatPermissions as $permission) {

@@ -60,6 +60,50 @@ return [
             'report' => false,
         ],
 
+        // MinIO local (S3-compatible). Buckets créés par infra/docker minio-init :
+        // - pssfp-media        : public read (logos, photos institutionnelles)
+        // - pssfp-documents    : private (PDF biblio module 3)
+        // - pssfp-candidatures : private (récépissés PDF + photos candidat module 5)
+        //
+        // Trois disks distincts plutôt qu'un disk générique pour éviter les
+        // confusions de bucket et profiter de la signature URL spécifique.
+        'minio_media' => [
+            'driver' => 's3',
+            'key' => env('MINIO_KEY'),
+            'secret' => env('MINIO_SECRET'),
+            'region' => env('MINIO_REGION', 'us-east-1'),
+            'bucket' => 'pssfp-media',
+            'endpoint' => env('MINIO_ENDPOINT', 'http://127.0.0.1:9000'),
+            'use_path_style_endpoint' => env('MINIO_USE_PATH_STYLE_ENDPOINT', true),
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        'minio_documents' => [
+            'driver' => 's3',
+            'key' => env('MINIO_KEY'),
+            'secret' => env('MINIO_SECRET'),
+            'region' => env('MINIO_REGION', 'us-east-1'),
+            'bucket' => 'pssfp-documents',
+            'endpoint' => env('MINIO_ENDPOINT', 'http://127.0.0.1:9000'),
+            'use_path_style_endpoint' => env('MINIO_USE_PATH_STYLE_ENDPOINT', true),
+            'throw' => false,
+            'report' => false,
+        ],
+
+        'minio_candidatures' => [
+            'driver' => 's3',
+            'key' => env('MINIO_KEY'),
+            'secret' => env('MINIO_SECRET'),
+            'region' => env('MINIO_REGION', 'us-east-1'),
+            'bucket' => 'pssfp-candidatures',
+            'endpoint' => env('MINIO_ENDPOINT', 'http://127.0.0.1:9000'),
+            'use_path_style_endpoint' => env('MINIO_USE_PATH_STYLE_ENDPOINT', true),
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*

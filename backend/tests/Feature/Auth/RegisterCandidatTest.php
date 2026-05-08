@@ -36,7 +36,8 @@ it('registers a new candidat and returns a Sanctum token with candidat abilities
         'expires_at',
     ]);
     expect($response->json('abilities'))->toEqual([
-        'profile:read', 'profile:write', 'application:create', 'application:read',
+        'profile:read', 'profile:write',
+        'application:create', 'application:read', 'application:submit',
     ]);
     expect($response->json('user.roles'))->toContain('candidat');
 
