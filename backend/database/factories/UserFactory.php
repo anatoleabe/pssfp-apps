@@ -42,4 +42,23 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Crée un User candidat (pas d'email, phone E.164, PIN par défaut 472816).
+     * À combiner avec ->afterCreating(fn ($u) => $u->assignRole('candidat')) si besoin
+     * via la closure factory(), ou utiliser le helper candidatWithRole() du test.
+     */
+    public function candidat(?string $pin = null): static
+    {
+        return $this->state(fn () => [
+            'name' => fake()->firstName().' '.fake()->lastName(),
+            'email' => null,
+            'email_verified_at' => null,
+            'password' => Hash::make($pin ?? '472816'),
+            'phone_e164' => '+237'.fake()->numerify('6########'),
+            'phone_country' => 'CM',
+        ])->afterCreating(function (User $user): void {
+            $user->assignRole('candidat');
+        });
+    }
 }

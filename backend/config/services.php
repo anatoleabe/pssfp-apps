@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    'sms' => [
+        // Provider actif : 'fake' (logs) ou 'africas_talking' (Phase prod).
+        'provider' => env('SMS_PROVIDER', 'fake'),
+    ],
+
+    'africas_talking' => [
+        'username' => env('AFRICAS_TALKING_USERNAME'),
+        'api_key' => env('AFRICAS_TALKING_API_KEY'),
+        'sender_id' => env('AFRICAS_TALKING_SENDER_ID', 'PSSFP'),
+    ],
+
 ];

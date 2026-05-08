@@ -18,6 +18,11 @@ pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
 
+// Les services unitaires utilisent souvent config() / app() et nécessitent
+// le bootstrap Laravel — sans `RefreshDatabase` (pas d'accès DB normalement).
+pest()->extend(TestCase::class)
+    ->in('Unit/Services');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations
