@@ -35,7 +35,9 @@ Architecture d'authentification à **deux pistes complémentaires** sous **Larav
 - `application:read` — consultation de son propre dossier (candidat).
 - `profile:read` / `profile:write` — gestion de son profil.
 
-Le token est obtenu via `POST /v1/auth/login` (email + mot de passe + éventuel TOTP), retourné en clair une seule fois, stocké côté Next.js dans un **cookie httpOnly Secure SameSite=Lax** émis par le backend Laravel (pas de localStorage — vulnérable XSS). Durée de vie 24h pour les rôles auditeur/candidat, 8h pour enseignant. Refresh token rotatif (cf. `tymon/jwt-auth` patterns mais implémenté nativement avec Sanctum).
+Le token est obtenu via `POST /v1/auth/login` (email + mot de passe + éventuel TOTP), retourné en clair une seule fois, stocké côté Next.js dans un **cookie httpOnly Secure SameSite=Lax** émis par le backend Laravel (pas de localStorage — vulnérable XSS). Durée de vie 24h pour le rôle auditeur, 8h pour enseignant. Refresh token rotatif (cf. `tymon/jwt-auth` patterns mais implémenté nativement avec Sanctum).
+
+**Dérogation candidat (ajout PR B M5, 2026-05-08)** : durée de vie portée à **7 jours** pour le rôle `candidat`. Justification : un candidat consulte son dossier ~1 fois par semaine sur la durée d'une campagne (3-4 mois). Un TTL 24h obligerait un re-login + saisie PIN à chaque visite, friction prohibitive pour le public cible (cf. ADR-0007). Le périmètre des abilities candidat reste étroitement scopé (`profile:read`, `profile:write`, `application:create`, `application:read`) — le risque de compromission est cantonné aux propres données du candidat. Reset PIN révoque tous les tokens du User (mesure compensatoire).
 
 **Politique de mots de passe** : minimum 12 caractères, complexité testée à l'inscription (zxcvbn score ≥ 3), rotation non imposée (recommandation NIST 2024). Hashage Argon2id (défaut Laravel 11).
 
