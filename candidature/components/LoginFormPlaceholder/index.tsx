@@ -73,8 +73,6 @@ export function LoginFormPlaceholder({ labels }: LoginFormPlaceholderProps) {
           inputMode="numeric"
           autoComplete="one-time-code"
           required
-          minLength={6}
-          maxLength={6}
           pattern="^\d{6}$"
           value={pin}
           onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 6))}
