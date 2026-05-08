@@ -4,10 +4,33 @@
   },
   "home": {
     "title": "Candidature 2026 — Promotion 14",
-    "intro": "Déposez votre candidature au PSSFP en quelques étapes guidées.",
+    "introOpen": "Déposez votre candidature au PSSFP en quelques étapes guidées. Comptez 10 à 15 minutes pour finaliser votre dossier en ligne.",
+    "introClosed": "La campagne actuelle est clôturée. Une nouvelle session ouvrira prochainement.",
+    "campaignClosedNotice": "Aucune campagne n'est ouverte actuellement. Surveillez le site institutionnel ou les réseaux sociaux PSSFP pour la prochaine ouverture.",
     "ctaCreateAccount": "Créer mon compte candidat",
     "ctaLogin": "J'ai déjà un compte",
-    "feeNotice": "Frais de dossier : 25 000 FCFA payables en agence CCA après soumission."
+    "countdownAria": "Temps restant avant clôture",
+    "feeTitle": "Frais de dossier",
+    "feeNotice": "25 000 FCFA payables en agence Crédit Communautaire d'Afrique (CCA) après soumission. Aucun paiement requis avant la création de votre compte.",
+    "whyHeading": "Pourquoi choisir le PSSFP",
+    "pillars": {
+      "excellence": {
+        "title": "Excellence académique",
+        "body": "Programme de Master spécialisé en Finances Publiques reconnu CAMES, encadré par des praticiens et universitaires."
+      },
+      "partenariats": {
+        "title": "Partenariats internationaux",
+        "body": "Conventions avec MINFI, MINESUP, FMI, Expertise France, Université de Yaoundé II et instituts régionaux."
+      },
+      "debouches": {
+        "title": "Débouchés professionnels",
+        "body": "Accès direct aux carrières en finances publiques, fiscalité, audit, contrôle de gestion publique."
+      },
+      "foad": {
+        "title": "FOAD disponible",
+        "body": "Formation à distance pour les fonctionnaires en activité, avec accès à la plateforme Moodle PSSFP."
+      }
+    }
   },
   "login": {
     "title": "Connexion candidat",
@@ -20,6 +43,10 @@
     "submit": "Se connecter",
     "forgotPin": "PIN oublié ?",
     "todoNotice": "Authentification réelle implémentée lors du dev Module 5 (cf. ADR-0007)."
+  },
+  "inscription": {
+    "title": "Créer mon compte candidat",
+    "subtitle": "Quatre étapes guidées : identité, coordonnées, diplôme, engagement. Vos données sont enregistrées localement entre les étapes."
   },
   "nav": {
     "home": "Accueil",
