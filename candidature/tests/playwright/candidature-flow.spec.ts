@@ -30,7 +30,7 @@ test.describe('Candidature login (scaffold)', () => {
 
     await expect(pin).toBeVisible();
     await expect(pin).toHaveAttribute('inputmode', 'numeric');
-    await expect(pin).toHaveAttribute('maxlength', '6');
+    await expect(pin).toHaveAttribute('pattern', '^\\d{6}$');
     await expect(pin).toHaveAttribute('autocomplete', 'one-time-code');
   });
 
