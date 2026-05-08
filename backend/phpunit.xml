@@ -22,8 +22,12 @@
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
+        <!--
+            DB_CONNECTION volontairement non forcé : les migrations Module 5
+            utilisent pg_advisory_xact_lock + SUBSTRING regex + CHECK constraints,
+            donc tous les tests tournent sur PostgreSQL. La config DB est lue
+            depuis .env.testing (cf. .env.testing.example).
+        -->
         <env name="REDIS_CLIENT" value="phpredis"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
