@@ -1182,7 +1182,7 @@ Headers de réponse `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-R
 
 ### 12.2 CORS
 
-Origins autorisés : `https://pssfp.net`, `https://www.pssfp.net`, `https://bibliotheque.pssfp.net`, `https://candidature.pssfp.net`. En développement : `http://localhost:6000`, `http://localhost:6001`, `http://localhost:6002` (les trois apps Next.js sur ports différents).
+Origins autorisés : `https://pssfp.net`, `https://www.pssfp.net`, `https://bibliotheque.pssfp.net`, `https://candidature.pssfp.net`. En développement : `http://localhost:6001`, `http://localhost:6002`, `http://localhost:6003` (les trois apps Next.js sur ports différents).
 
 Headers exposés au frontend : `Content-Language`, `X-RateLimit-*`, `X-Request-ID`.
 

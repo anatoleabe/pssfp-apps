@@ -37,9 +37,9 @@ make dev
 
 Les apps tournent ensuite sur :
 
-- `http://localhost:6000` — frontend (site institutionnel)
-- `http://localhost:6001` — library (bibliothèque)
-- `http://localhost:6002` — candidature
+- `http://localhost:6001` — frontend (site institutionnel)
+- `http://localhost:6002` — library (bibliothèque)
+- `http://localhost:6003` — candidature
 - `http://localhost:8000` — backend Laravel API + Filament admin
 
 Accès Filament admin : `http://localhost:8000/admin` (créer un user admin via `php artisan make:filament-user`).

@@ -86,7 +86,7 @@ Lighthouse ≥ 85 sur les 4 dimensions. La biblio est plus interactive que le si
 
 ```
 NEXT_PUBLIC_API_URL=http://localhost:8000/v1
-NEXT_PUBLIC_MAIN_SITE_URL=http://localhost:6000
+NEXT_PUBLIC_MAIN_SITE_URL=http://localhost:6001
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=...
 NEXT_PUBLIC_SENTRY_DSN=...
 ```
