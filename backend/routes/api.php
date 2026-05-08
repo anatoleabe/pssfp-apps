@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\Applications\CandidatureController;
+use App\Http\Controllers\Api\Applications\QrCandidatureController;
 use App\Http\Controllers\Api\Auth\AuthCandidatController;
+use App\Http\Controllers\Api\Reference\ReferenceController;
 use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 
@@ -35,3 +38,47 @@ Route::prefix('auth/candidat')->name('auth.candidat.')->group(function (): void 
         ->middleware('auth:sanctum')
         ->name('logout');
 });
+
+/*
+ * Référentiels publics (cache 24h Redis).
+ */
+Route::prefix('reference')->name('reference.')->group(function (): void {
+    Route::get('/pays', [ReferenceController::class, 'pays'])->name('pays');
+    Route::get('/regions-cameroun', [ReferenceController::class, 'regions'])->name('regions');
+    Route::get('/departements-cameroun', [ReferenceController::class, 'departements'])->name('departements');
+    Route::get('/specialites', [ReferenceController::class, 'specialites'])->name('specialites');
+});
+
+/*
+ * Applications candidat (auth Sanctum + abilities scoped).
+ *
+ * - currentCampaign : public (le frontend l'affiche aussi avant login).
+ * - me / update / submit / recipisse : auth + abilities.
+ */
+Route::prefix('applications')->name('applications.')->group(function (): void {
+    Route::get('/campaigns/current', [CandidatureController::class, 'currentCampaign'])
+        ->name('campaigns.current');
+
+    Route::middleware(['auth:sanctum'])->group(function (): void {
+        Route::get('/me', [CandidatureController::class, 'me'])
+            ->middleware('ability:application:read')
+            ->name('me.show');
+
+        Route::put('/me', [CandidatureController::class, 'update'])
+            ->middleware('ability:application:create,profile:write')
+            ->name('me.update');
+
+        Route::post('/me/submit', [CandidatureController::class, 'submit'])
+            ->middleware('ability:application:submit')
+            ->name('me.submit');
+
+        Route::get('/me/recipisse', [CandidatureController::class, 'recipisse'])
+            ->middleware('ability:application:read')
+            ->name('me.recipisse');
+    });
+});
+
+/*
+ * Page publique fallback du QR scanné depuis le PDF récépissé (cf. ajout 1 PR C).
+ */
+Route::get('/c/{uuid}/qr', QrCandidatureController::class)->name('candidature.qr');
