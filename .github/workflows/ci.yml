@@ -52,10 +52,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup PHP 8.3
+      - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: pgsql, redis, gd, intl, bcmath, zip
           coverage: pcov
 
@@ -71,7 +71,7 @@ jobs:
 
       - name: Copy .env.testing
         working-directory: backend
-        run: cp .env.testing.example .env.testing || cp .env.example .env.testing
+        run: cp .env.testing.example .env.testing 2>/dev/null || cp .env.example .env.testing
 
       - name: Generate app key
         working-directory: backend
@@ -86,11 +86,11 @@ jobs:
           DB_DATABASE: pssfp_test
           DB_USERNAME: pssfp_admin
           DB_PASSWORD: pssfp_test_password
-        run: php artisan migrate --env=testing
+        run: php artisan migrate --env=testing --force
 
       - name: Run Pest tests
         working-directory: backend
-        run: ./vendor/bin/pest --parallel
+        run: ./vendor/bin/pest
 
       - name: Lint with Pint
         working-directory: backend
@@ -111,19 +111,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      - name: Install ${{ matrix.app }} dependencies
-        working-directory: ${{ matrix.app }}
+      - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Lint
