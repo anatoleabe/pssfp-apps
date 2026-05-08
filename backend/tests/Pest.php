@@ -18,6 +18,10 @@ pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
 
+// Le helper `livewire()` du plugin Pest est exposé directement par le trait
+// `InteractsWithLivewire` ajouté dans Tests\TestCase.php. Tous les tests Feature
+// (incluant Feature/Filament) en profitent automatiquement.
+
 // Les services unitaires utilisent souvent config() / app() et nécessitent
 // le bootstrap Laravel — sans `RefreshDatabase` (pas d'accès DB normalement).
 pest()->extend(TestCase::class)
