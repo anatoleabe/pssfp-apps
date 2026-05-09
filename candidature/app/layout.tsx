@@ -4,6 +4,8 @@ import { getLocale, getMessages, getTranslations } from 'next-intl/server';
 import { Playfair_Display, Inter, DM_Sans } from 'next/font/google';
 import { Logo } from '@pssfp/ui';
 import Link from 'next/link';
+import { logoutAction } from './dossier/actions';
+import { getCandidatToken } from '@/lib/auth/session';
 import './globals.css';
 
 const playfair = Playfair_Display({ subsets: ['latin'], display: 'swap', variable: '--font-heading', weight: ['400', '700'] });
@@ -19,6 +21,8 @@ export const metadata: Metadata = {
 
 async function CandidatureHeader() {
   const t = await getTranslations('nav');
+  const isLoggedIn = (await getCandidatToken()) !== null;
+
   return (
     <header className="border-b border-gray-200 bg-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
@@ -28,7 +32,28 @@ async function CandidatureHeader() {
         </Link>
         <nav aria-label="Navigation candidature" className="flex items-center gap-6 text-sm">
           <Link href="/" className="text-[#333333] hover:text-[#6B2FA0]">{t('home')}</Link>
-          <Link href="/login" className="text-[#333333] hover:text-[#6B2FA0]">{t('login')}</Link>
+          {isLoggedIn ? (
+            <>
+              <Link
+                href="/dossier"
+                data-testid="nav-dossier"
+                className="text-[#333333] hover:text-[#6B2FA0]"
+              >
+                Mon dossier
+              </Link>
+              <form action={logoutAction}>
+                <button
+                  type="submit"
+                  data-testid="nav-logout"
+                  className="text-[#333333] hover:text-[#6B2FA0]"
+                >
+                  Se déconnecter
+                </button>
+              </form>
+            </>
+          ) : (
+            <Link href="/login" className="text-[#333333] hover:text-[#6B2FA0]">{t('login')}</Link>
+          )}
         </nav>
       </div>
     </header>
