@@ -27,12 +27,12 @@ export function SiteFooter(): JSX.Element {
             {t('navTitle')}
           </h2>
           <ul className="mt-3 space-y-2 text-sm">
-            <li><Link href="/" className="text-[#333] hover:text-[#6B2FA0]">{tNav('home')}</Link></li>
-            <li><Link href="/pssfp" className="text-[#333] hover:text-[#6B2FA0]">{tNav('pssfp')}</Link></li>
-            <li><Link href="/formations" className="text-[#333] hover:text-[#6B2FA0]">{tNav('formations')}</Link></li>
-            <li><Link href="/vie-academique" className="text-[#333] hover:text-[#6B2FA0]">{tNav('vie')}</Link></li>
-            <li><Link href="/actualites" className="text-[#333] hover:text-[#6B2FA0]">{tNav('actualites')}</Link></li>
-            <li><Link href="/contact" className="text-[#333] hover:text-[#6B2FA0]">{tNav('contact')}</Link></li>
+            <li><Link href="/" className="inline-block py-1 text-[#333] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded">{tNav('home')}</Link></li>
+            <li><Link href="/pssfp" className="inline-block py-1 text-[#333] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded">{tNav('pssfp')}</Link></li>
+            <li><Link href="/formations" className="inline-block py-1 text-[#333] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded">{tNav('formations')}</Link></li>
+            <li><Link href="/vie-academique" className="inline-block py-1 text-[#333] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded">{tNav('vie')}</Link></li>
+            <li><Link href="/actualites" className="inline-block py-1 text-[#333] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded">{tNav('actualites')}</Link></li>
+            <li><Link href="/contact" className="inline-block py-1 text-[#333] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded">{tNav('contact')}</Link></li>
           </ul>
         </section>
 
@@ -44,7 +44,7 @@ export function SiteFooter(): JSX.Element {
             <li>
               <a
                 href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
-                className="text-[#333] hover:text-[#6B2FA0]"
+                className="inline-block py-1 text-[#333] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded"
               >
                 {t('servicesCandidature')}
               </a>
@@ -52,7 +52,7 @@ export function SiteFooter(): JSX.Element {
             <li>
               <a
                 href={process.env.NEXT_PUBLIC_LIBRARY_URL ?? '#'}
-                className="text-[#333] hover:text-[#6B2FA0]"
+                className="inline-block py-1 text-[#333] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded"
               >
                 {t('servicesLibrary')}
               </a>
@@ -62,7 +62,7 @@ export function SiteFooter(): JSX.Element {
                 href={process.env.NEXT_PUBLIC_FOAD_URL ?? 'https://foad.pssfp.net'}
                 rel="noopener noreferrer"
                 target="_blank"
-                className="text-[#333] hover:text-[#6B2FA0]"
+                className="inline-block py-1 text-[#333] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded"
               >
                 {t('servicesFoad')}
               </a>
@@ -81,13 +81,13 @@ export function SiteFooter(): JSX.Element {
             </li>
             <li className="flex items-start gap-2">
               <Phone size={14} className="mt-1 shrink-0 text-[#6B2FA0]" aria-hidden="true" />
-              <a href="tel:+237222234567" className="hover:text-[#6B2FA0]">
+              <a href="tel:+237222234567" className="inline-block py-1 hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded">
                 +237 222 23 45 67
               </a>
             </li>
             <li className="flex items-start gap-2">
               <Mail size={14} className="mt-1 shrink-0 text-[#6B2FA0]" aria-hidden="true" />
-              <a href="mailto:contact@pssfp.net" className="hover:text-[#6B2FA0]">
+              <a href="mailto:contact@pssfp.net" className="inline-block py-1 hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded">
                 contact@pssfp.net
               </a>
             </li>
@@ -96,23 +96,23 @@ export function SiteFooter(): JSX.Element {
       </div>
 
       <div className="border-t border-[#EDE7F6]">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-4 text-xs text-[#666]">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-4 text-xs text-[#555]">
           <p>
             © {year} {t('copyright')}
           </p>
           <ul className="flex flex-wrap gap-4">
             <li>
-              <Link href="/mentions-legales" className="hover:text-[#6B2FA0]">
+              <Link href="/mentions-legales" className="inline-block py-1 hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded">
                 {t('legal')}
               </Link>
             </li>
             <li>
-              <Link href="/confidentialite" className="hover:text-[#6B2FA0]">
+              <Link href="/confidentialite" className="inline-block py-1 hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded">
                 {t('privacy')}
               </Link>
             </li>
             <li>
-              <Link href="/plan-du-site" className="hover:text-[#6B2FA0]">
+              <Link href="/plan-du-site" className="inline-block py-1 hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded">
                 {t('sitemap')}
               </Link>
             </li>
