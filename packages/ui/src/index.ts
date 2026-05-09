@@ -2,6 +2,8 @@ export { Button, buttonVariants } from './components/Button';
 export type { ButtonProps } from './components/Button';
 export { Logo } from './components/Logo';
 export type { LogoProps } from './components/Logo';
+export { PssfpLogo } from './components/PssfpLogo';
+export type { PssfpLogoProps } from './components/PssfpLogo';
 
 export { cn } from './utils/cn';
 

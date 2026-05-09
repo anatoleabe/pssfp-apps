@@ -1,19 +1,79 @@
 {
   "common": {
     "appName": "PSSFP",
-    "appTagline": "Programme Supérieur de Spécialisation en Finances Publiques"
+    "appTagline": "Programme Supérieur de Spécialisation en Finances Publiques",
+    "skipToMain": "Aller au contenu principal"
+  },
+  "nav": {
+    "skip": "Aller au contenu principal",
+    "home": "Accueil",
+    "pssfp": "Le PSSFP",
+    "formations": "Formations",
+    "vie": "Vie académique",
+    "actualites": "Actualités",
+    "contact": "Contact",
+    "library": "Bibliothèque",
+    "candidature": "Candidater",
+    "foad": "FOAD",
+    "menuOpen": "Ouvrir le menu",
+    "menuClose": "Fermer le menu"
+  },
+  "footer": {
+    "aboutTitle": "À propos",
+    "aboutBody": "Le PSSFP, hébergé au Campus de Messa à Yaoundé, forme depuis plus de dix ans les cadres supérieurs des finances publiques du Cameroun et d'Afrique centrale.",
+    "navTitle": "Navigation",
+    "servicesTitle": "Services numériques",
+    "servicesCandidature": "Candidater en ligne",
+    "servicesLibrary": "Bibliothèque virtuelle",
+    "servicesFoad": "Plateforme FOAD",
+    "contactTitle": "Contact",
+    "contactAddress": "Campus de Messa, Yaoundé, Cameroun",
+    "copyright": "PSSFP — Tous droits réservés.",
+    "legal": "Mentions légales",
+    "privacy": "Confidentialité",
+    "sitemap": "Plan du site"
+  },
+  "cookies": {
+    "title": "Cookies et statistiques",
+    "body": "Nous utilisons une mesure d'audience anonyme (Matomo) pour améliorer le site. Aucun traceur publicitaire. Vous pouvez refuser sans impact sur votre navigation.",
+    "learnMore": "En savoir plus",
+    "accept": "Accepter",
+    "refuse": "Refuser"
   },
   "home": {
-    "title": "PSSFP — Programme Supérieur de Spécialisation en Finances Publiques",
+    "title": "Programme Supérieur de Spécialisation en Finances Publiques",
     "intro": "Bienvenue sur le site institutionnel du PSSFP, Campus de Messa, Yaoundé.",
     "apiHealthLabel": "État de l'API",
     "apiHealthOk": "Connectée",
     "apiHealthError": "Indisponible"
   },
-  "nav": {
-    "home": "Accueil",
-    "library": "Bibliothèque",
-    "candidature": "Candidature",
-    "foad": "FOAD"
+  "legal": {
+    "title": "Mentions légales",
+    "publisher": "Éditeur du site",
+    "publisherBody": "Programme Supérieur de Spécialisation en Finances Publiques (PSSFP), Campus de Messa, Yaoundé, Cameroun. Représenté par sa direction.",
+    "hosting": "Hébergement",
+    "hostingBody": "VPS Contabo (Allemagne) — sauvegardes Scaleway (France).",
+    "intellectual": "Propriété intellectuelle",
+    "intellectualBody": "L'ensemble des contenus de ce site (textes, images, vidéos, logos, charte graphique) est la propriété du PSSFP, sauf mention contraire. Toute reproduction sans autorisation préalable est interdite."
+  },
+  "privacy": {
+    "title": "Politique de confidentialité",
+    "intro": "Le PSSFP s'engage à protéger les données personnelles de ses utilisateurs conformément aux principes du RGPD et à la législation camerounaise en vigueur (loi n° 2010/012 du 21 décembre 2010).",
+    "dataTitle": "Données collectées",
+    "dataBody": "Aucune donnée personnelle n'est collectée à votre seule visite des pages publiques du site. Nous ne déposons aucun cookie publicitaire. Une mesure d'audience anonyme via Matomo peut être activée si vous donnez votre consentement.",
+    "rightsTitle": "Vos droits",
+    "rightsBody": "Vous disposez d'un droit d'accès, de rectification et de suppression de vos données. Adressez votre demande à privacy@pssfp.net."
+  },
+  "sitemap": {
+    "title": "Plan du site",
+    "intro": "Tous les espaces et pages publiques accessibles depuis pssfp.net.",
+    "main": "Pages principales",
+    "transversal": "Pages transversales",
+    "external": "Espaces partenaires"
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "body": "La page que vous cherchez n'existe pas ou a été déplacée.",
+    "back": "Retour à l'accueil"
   }
 }
