@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\Applications\CandidatureController;
 use App\Http\Controllers\Api\Applications\QrCandidatureController;
 use App\Http\Controllers\Api\Auth\AuthCandidatController;
+use App\Http\Controllers\Api\Pages\PageController;
 use App\Http\Controllers\Api\Reference\ReferenceController;
 use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
@@ -98,3 +99,21 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
  * Page publique fallback du QR scanné depuis le PDF récépissé (cf. ajout 1 PR C).
  */
 Route::get('/c/{uuid}/qr', QrCandidatureController::class)->name('candidature.qr');
+
+/*
+ * Pages institutionnelles éditables via Filament (cf. spec module 1 PR K).
+ *
+ * - GET /v1/pages          : liste, filtres ?parent_slug=, ?in_menu=true
+ * - GET /v1/pages/{slug}   : détail (slug peut contenir des slashs URL-encodés)
+ * - GET /v1/menu           : structure de navigation prête à consommer côté frontend
+ */
+Route::prefix('pages')->name('pages.')->group(function (): void {
+    Route::get('/', [PageController::class, 'index'])->name('index');
+    // Le slug peut contenir des slashs encodés — pattern .* pour matcher tout
+    // (ex: pssfp%2Fpresentation ou pssfp/presentation).
+    Route::get('/{slug}', [PageController::class, 'show'])
+        ->where('slug', '.*')
+        ->name('show');
+});
+
+Route::get('/menu', [PageController::class, 'menu'])->name('menu');
