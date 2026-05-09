@@ -142,5 +142,12 @@
     "title": "Page introuvable",
     "body": "La page que vous cherchez n'existe pas ou a été déplacée.",
     "back": "Retour à l'accueil"
+  },
+  "actualites": {
+    "facebook": {
+      "title": "Suivez @pssfpcameroun",
+      "body": "Le flux Facebook officiel du PSSFP n'est chargé qu'après votre consentement (RGPD). Aucun cookie tiers Facebook n'est déposé tant que vous n'avez pas accepté.",
+      "accept": "Charger le flux Facebook"
+    }
   }
 }
