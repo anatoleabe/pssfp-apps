@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Calendar, Pin } from 'lucide-react';
 import type { Metadata } from 'next';
+import { JsonLd, articleJsonLd } from '@/components/JsonLd';
 import { PageRenderer } from '@/components/PageRenderer';
 import { getArticleBySlug } from '@/lib/api/articles';
 
@@ -55,6 +56,14 @@ export default async function ActualiteDetailPage({ params }: PageProps): Promis
 
   return (
     <article className="mx-auto max-w-3xl px-6 py-12 md:py-16">
+      <JsonLd
+        data={articleJsonLd({
+          title: article.title,
+          description: article.excerpt ?? article.title,
+          slug: article.slug,
+          datePublished: article.published_at,
+        })}
+      />
       <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666]">
         <Link href="/" className="hover:text-[#6B2FA0]">Accueil</Link>
         <span aria-hidden="true"> / </span>
