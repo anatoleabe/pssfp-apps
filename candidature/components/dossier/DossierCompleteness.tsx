@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { submitDossierAction } from '@/app/dossier/actions';
@@ -88,14 +89,19 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
       ) : (
         <>
           <p className="mt-3 text-sm text-[#666]">
-            Les éléments suivants restent à compléter (édition disponible prochainement
-            depuis ce tableau de bord) :
+            Les éléments suivants restent à compléter — cliquez pour ouvrir le formulaire
+            d'édition à la bonne section :
           </p>
           <ul className="mt-3 space-y-1 text-sm text-amber-800" data-testid="dossier-missing-fields">
             {result.missing.map((field) => (
               <li key={field} className="flex items-center gap-2">
                 <span aria-hidden>•</span>
-                <span>{FIELD_LABELS_FR[field] ?? field}</span>
+                <Link
+                  href={`/dossier/edition?focus=${encodeURIComponent(field)}`}
+                  className="underline hover:text-[#6B2FA0]"
+                >
+                  {FIELD_LABELS_FR[field] ?? field}
+                </Link>
               </li>
             ))}
             {Object.entries(result.errors)
@@ -103,7 +109,12 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
               .map(([k, msg]) => (
                 <li key={k} className="flex items-center gap-2">
                   <span aria-hidden>⚠</span>
-                  <span>{msg}</span>
+                  <Link
+                    href={`/dossier/edition?focus=${encodeURIComponent(k)}`}
+                    className="underline hover:text-amber-900"
+                  >
+                    {msg}
+                  </Link>
                 </li>
               ))}
           </ul>

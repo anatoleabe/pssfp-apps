@@ -13,7 +13,7 @@ export const metadata = {
 };
 
 interface DossierPageProps {
-  searchParams: Promise<{ profile_pending?: string }>;
+  searchParams: Promise<{ profile_pending?: string; reason?: string }>;
 }
 
 export default async function DossierPage({ searchParams }: DossierPageProps): Promise<JSX.Element> {
@@ -22,7 +22,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
     redirect('/login?reason=session_expired');
   }
 
-  const { profile_pending } = await searchParams;
+  const { profile_pending, reason } = await searchParams;
   const result = await getMyCandidature(token);
 
   if (!result.ok) {
@@ -79,6 +79,17 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
         <div role="status" className="mb-6 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           Votre compte a bien été créé, mais certaines informations de profil n'ont pas
           pu être enregistrées. Vous pouvez compléter votre dossier ci-dessous.
+        </div>
+      )}
+
+      {reason === 'locked' && (
+        <div
+          role="status"
+          data-testid="dossier-locked-banner"
+          className="mb-6 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
+        >
+          Votre dossier est verrouillé : il a déjà été soumis (ou retiré) et ne peut plus être
+          modifié. Consultez votre suivi pour plus d'informations.
         </div>
       )}
 
