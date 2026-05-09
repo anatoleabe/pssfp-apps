@@ -77,7 +77,7 @@ async function apiCall<T>(
     return {
       ok: false,
       status: 0,
-      message: error instanceof Error ? error.message : 'Network error',
+      message: error instanceof Error ? error.message : 'Erreur réseau',
     };
   }
 }
@@ -180,6 +180,8 @@ export interface MyCandidature extends CandidatureProfile {
   reference_paiement: string | null;
   date_paiement: string | null;
   recipisse_available: boolean;
+  has_photo: boolean;
+  photo_url: string | null;
   campagne: { slug: string; nom: string; closes_at: string | null } | null;
 }
 
@@ -201,4 +203,91 @@ export function submitMyCandidature(
 
 export function withdrawMyCandidature(token: string): Promise<ApiResult<unknown>> {
   return apiPost('/applications/me/withdraw', { confirmation: true }, { token });
+}
+
+export interface UploadPhotoResponse {
+  photo_path: string;
+  photo_url: string;
+}
+
+/**
+ * POST /v1/applications/me/photo (multipart/form-data).
+ *
+ * Délègue à fetch directement (pas via apiCall — JSON.stringify détruirait le FormData).
+ * Pas de Content-Type set : le browser/Node fetch déduit `multipart/form-data; boundary=...`.
+ */
+export async function uploadPhoto(
+  file: File | Blob,
+  token: string,
+): Promise<ApiResult<UploadPhotoResponse>> {
+  const fd = new FormData();
+  fd.append('photo', file);
+
+  const url = `${API_BASE_URL}/applications/me/photo`;
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Accept-Language': 'fr',
+    Authorization: `Bearer ${token}`,
+  };
+
+  try {
+    const response = await fetch(url, { method: 'POST', headers, body: fd });
+    let payload: unknown = null;
+    if (response.status !== 204) {
+      try {
+        payload = await response.json();
+      } catch {
+        payload = null;
+      }
+    }
+    if (!response.ok) {
+      const errorPayload = (payload ?? {}) as { message?: string; errors?: Record<string, string[]> };
+      return {
+        ok: false,
+        status: response.status,
+        message: errorPayload.message ?? `API ${response.status}`,
+        errors: errorPayload.errors,
+      };
+    }
+    const data = (payload as { data?: UploadPhotoResponse })?.data ?? (payload as UploadPhotoResponse);
+    return { ok: true, data };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      message: error instanceof Error ? error.message : 'Erreur réseau',
+    };
+  }
+}
+
+export async function deleteMyPhoto(token: string): Promise<ApiResult<null>> {
+  const url = `${API_BASE_URL}/applications/me/photo`;
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      let message = `API ${response.status}`;
+      try {
+        const body = (await response.json()) as { message?: string };
+        if (body?.message) {
+          message = body.message;
+        }
+      } catch {
+        // ignore
+      }
+      return { ok: false, status: response.status, message };
+    }
+    return { ok: true, data: null };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      message: error instanceof Error ? error.message : 'Erreur réseau',
+    };
+  }
 }
