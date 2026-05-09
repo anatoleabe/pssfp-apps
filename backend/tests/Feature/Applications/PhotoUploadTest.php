@@ -6,6 +6,7 @@ use App\Jobs\ScanUploadedPhotoJob;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\User;
+use App\Services\Scanner\PhotoScannerInterface;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
@@ -229,7 +230,7 @@ it('quarantines an EICAR file via ScanUploadedPhotoJob (Noop scanner detects EIC
 
     // On crée un fichier image valide en validation (200x200) puis on
     // remplace son contenu par la signature EICAR via le disk MinIO fake.
-    Bus::fake([\App\Jobs\ScanUploadedPhotoJob::class]);
+    Bus::fake([ScanUploadedPhotoJob::class]);
 
     $file = UploadedFile::fake()->image('me.jpg', 400, 400);
     $this->withHeader('Authorization', "Bearer {$token}")
@@ -245,7 +246,7 @@ it('quarantines an EICAR file via ScanUploadedPhotoJob (Noop scanner detects EIC
     Bus::assertDispatched(ScanUploadedPhotoJob::class);
 
     // Run the job manually for the test
-    (new ScanUploadedPhotoJob($cand->uuid, $path))->handle(app(\App\Services\Scanner\PhotoScannerInterface::class));
+    (new ScanUploadedPhotoJob($cand->uuid, $path))->handle(app(PhotoScannerInterface::class));
 
     expect($cand->refresh()->photo_path)->toBeNull();
     Storage::disk('minio_candidatures')->assertMissing($path);
