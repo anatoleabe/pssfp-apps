@@ -7,10 +7,13 @@ namespace App\Http\Controllers\Api\Applications;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Applications\SubmitCandidatureRequest;
 use App\Http\Requests\Applications\UpdateCandidatureRequest;
+use App\Http\Requests\Applications\UploadPhotoRequest;
 use App\Http\Requests\Applications\WithdrawCandidatureRequest;
 use App\Http\Resources\CampagneCandidatureResource;
 use App\Http\Resources\CandidatureResource;
+use App\Models\Candidature;
 use App\Services\CandidatureService;
+use App\Services\PhotoUploadService;
 use App\Services\RecipisseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -31,6 +34,7 @@ final class CandidatureController extends Controller
     public function __construct(
         private readonly CandidatureService $service,
         private readonly RecipisseService $recipisse,
+        private readonly PhotoUploadService $photo,
     ) {}
 
     public function currentCampaign(): JsonResponse
@@ -151,6 +155,81 @@ final class CandidatureController extends Controller
         $url = $this->recipisse->signedUrl($candidature->recipisse_pdf_path);
 
         return redirect()->away($url, 302);
+    }
+
+    public function uploadPhoto(UploadPhotoRequest $request): JsonResponse
+    {
+        $campagne = $this->service->currentCampagne();
+        if ($campagne === null) {
+            return response()->json([
+                'message' => 'Aucune campagne ouverte.',
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $candidature = $this->service->upsertForUser($request->user(), $campagne);
+
+        if ($candidature->statut !== Candidature::STATUT_POSTULANT) {
+            return response()->json([
+                'message' => 'Le dossier est verrouillé : la photo ne peut plus être modifiée.',
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $path = $this->photo->upload($request->file('photo'), $candidature);
+
+        return response()->json([
+            'data' => [
+                'photo_path' => $path,
+                'photo_url' => $this->photo->signedUrl($path),
+            ],
+        ], Response::HTTP_CREATED);
+    }
+
+    public function showPhoto(Request $request): RedirectResponse|JsonResponse
+    {
+        $campagne = $this->service->currentCampagne();
+        if ($campagne === null) {
+            return response()->json([
+                'message' => 'Aucune campagne ouverte.',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $candidature = $this->service->findForUser($request->user(), $campagne);
+        if ($candidature === null || $candidature->photo_path === null) {
+            return response()->json([
+                'message' => 'Aucune photo disponible.',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $url = $this->photo->signedUrl($candidature->photo_path);
+
+        return redirect()->away($url, 302);
+    }
+
+    public function deletePhoto(Request $request): JsonResponse
+    {
+        $campagne = $this->service->currentCampagne();
+        if ($campagne === null) {
+            return response()->json([
+                'message' => 'Aucune campagne ouverte.',
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $candidature = $this->service->findForUser($request->user(), $campagne);
+        if ($candidature === null || $candidature->photo_path === null) {
+            return response()->json([
+                'message' => 'Aucune photo à supprimer.',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($candidature->statut !== Candidature::STATUT_POSTULANT) {
+            return response()->json([
+                'message' => 'Le dossier est verrouillé : la photo ne peut plus être supprimée.',
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $this->photo->delete($candidature);
+
+        return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 
     public function withdraw(WithdrawCandidatureRequest $request): JsonResponse
