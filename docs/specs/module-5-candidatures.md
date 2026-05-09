@@ -172,7 +172,7 @@ Structure :
 - Section « Pourquoi le PSSFP » : 4 raisons (excellence académique, partenariats internationaux, débouchés, FOAD).
 - Section « Calendrier » : ouverture, clôture, résultats.
 - Section « Ce que vous devez fournir » : checklist des pièces requises.
-- Section « Frais de dossier » : 25 000 FCFA payables en agence CCA, instructions claires.
+- Section « Frais de dossier » : 50 000 FCFA payables en agence CREMINCAM, instructions claires.
 - CTA principal : « Créer mon compte candidat » (vers `/inscription`).
 - Lien « J'ai déjà un compte » (vers `/login`).
 
@@ -188,7 +188,7 @@ Détail des pièces à fournir avec exemples et formats acceptés. Permet au can
 
 ### `/faq`
 
-Questions fréquentes : « Puis-je modifier mon dossier après soumission ? », « Combien de temps pour recevoir une réponse ? », « Comment payer les frais à CCA ? », etc.
+Questions fréquentes : « Puis-je modifier mon dossier après soumission ? », « Combien de temps pour recevoir une réponse ? », « Comment payer les frais à CREMINCAM ? », etc.
 
 ### `/contact`
 
@@ -314,7 +314,7 @@ Au clic sur Soumettre :
 3. Bascule statut `draft` → `submitted`, alimente `submitted_at`.
 4. Génère le PDF de récépissé via `barryvdh/laravel-dompdf` ou similaire — template `resources/views/pdf/candidature-recipisse.blade.php`.
 5. Stocke le PDF dans MinIO bucket `pssfp-candidatures`, met à jour `recipisse_pdf_id` sur la candidature.
-6. Envoie email de confirmation au candidat avec lien de téléchargement du récépissé et instructions paiement frais CCA.
+6. Envoie email de confirmation au candidat avec lien de téléchargement du récépissé et instructions paiement frais CREMINCAM.
 7. Notifie le comité d'admission par email (résumé du dossier + lien vers Filament).
 8. Redirige le candidat vers `/candidature/{numero}/suivi`.
 
@@ -360,8 +360,8 @@ Vœux exprimés :
 Pièces fournies : [N]/[Y]
 
 Pour valider votre candidature, veuillez vous acquitter
-des frais de dossier de 25 000 FCFA en agence Crédit Communautaire
-d'Afrique (CCA), en mentionnant le numéro de dossier ci-dessus.
+des frais de dossier de 50 000 FCFA en agence CREMINCAM,
+en mentionnant le numéro de dossier ci-dessus.
 
 [Tampon numérique PSSFP]
 
@@ -394,7 +394,7 @@ Tous les emails portent l'identité visuelle PSSFP, sont en français, contienne
 Couvert par la spec module 6 §3.6 (Filament `CandidatureResource`). Récap des actions :
 
 1. **Réception** : nouveau dossier soumis arrive avec statut `submitted`. Email automatique au comité.
-2. **Marquage frais payés** : quand le candidat passe à CCA, le bibliothécaire ou un admin saisit dans Filament le mode `cca_agence`, la référence du récépissé bancaire, et la date. `frais_paye` calculé automatiquement.
+2. **Marquage frais payés** : quand le candidat passe à CREMINCAM, le bibliothécaire ou un admin saisit dans Filament le mode `cremincam_agence`, la référence du récépissé bancaire, et la date. `frais_paye` calculé automatiquement.
 3. **Examen** : un membre du comité ouvre le dossier dans Filament, consulte les pièces, lit le projet, le motivation. Peut écrire des commentaires internes. Bouton « Examiner » bascule à `under_review`.
 4. **Demande complément** : si pièce manquante ou information incomplète, action « Demander complément » avec textarea du motif. Bascule à `complement_requested`. Email automatique au candidat. Le candidat peut alors modifier son dossier et le re-soumettre.
 5. **Décision** : action « Accepter » ou « Refuser » (avec motif obligatoire pour refus). Bascule au statut final. Email automatique au candidat.
@@ -402,22 +402,22 @@ Couvert par la spec module 6 §3.6 (Filament `CandidatureResource`). Récap des 
 
 Tous les changements sont tracés dans `candidature_status_history` (audit trail) et `activity_log` (Spatie).
 
-## 8. Frais de candidature 25 000 FCFA
+## 8. Frais de candidature 50 000 FCFA
 
-Payés en agence CCA, pas de paiement en ligne en V1.
+Payés en agence CREMINCAM, pas de paiement en ligne en V1.
 
 Procédure pour le candidat :
 
 1. Soumet sa candidature en ligne.
 2. Reçoit email de confirmation avec son numéro `C-2026-XXXX`.
-3. Se rend dans une agence CCA avec son numéro.
-4. Paie 25 000 FCFA en espèces ou par virement.
-5. Reçoit un récépissé bancaire CCA.
+3. Se rend dans une agence CREMINCAM avec son numéro.
+4. Paie 50 000 FCFA en espèces ou par virement.
+5. Reçoit un récépissé bancaire CREMINCAM.
 6. Le récépissé est validé par UAAF qui marque manuellement `frais_paye` dans Filament avec la référence du récépissé.
 
 Le frais payé n'est **pas bloquant** pour l'examen — un dossier peut être examiné avant paiement, mais l'admission finale en cas d'acceptation suppose que les frais soient payés.
 
-À documenter dans une page `/candidature/frais` claire avec instructions étape par étape, photo de la fiche de versement type CCA, contact UAAF en cas de problème.
+À documenter dans une page `/candidature/frais` claire avec instructions étape par étape, photo de la fiche de versement type CREMINCAM, contact UAAF en cas de problème.
 
 ## 9. Migration depuis l'ancien formulaire Joomla
 

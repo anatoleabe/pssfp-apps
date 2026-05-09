@@ -348,7 +348,7 @@ class CandidatureResource extends Resource
                         ->visible(fn (Candidature $r) => auth()->user()?->can('candidature.mark_paid') && ! $r->frais_paye)
                         ->form([
                             Forms\Components\Select::make('mode_paiement')->required()->options([
-                                'cca_agence' => 'Agence CCA',
+                                'cremincam_agence' => 'Agence CREMINCAM',
                                 'virement' => 'Virement bancaire',
                                 'especes' => 'Espèces',
                             ]),
@@ -398,7 +398,7 @@ class CandidatureResource extends Resource
                     ->visible(fn () => auth()->user()?->can('candidature.mark_paid'))
                     ->form([
                         Forms\Components\Select::make('mode_paiement')->required()->options([
-                            'cca_agence' => 'Agence CCA', 'virement' => 'Virement', 'especes' => 'Espèces',
+                            'cremincam_agence' => 'Agence CREMINCAM', 'virement' => 'Virement', 'especes' => 'Espèces',
                         ]),
                         Forms\Components\DatePicker::make('date_paiement')->required()->native(false),
                     ])

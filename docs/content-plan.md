@@ -119,7 +119,7 @@ L'unité la plus chargée en livrables critiques.
 | Convention tripartite 2013 | PDF scanné HD | 2026-05-22 | MOYENNE | À demander |
 | Mentions légales — statut juridique, accréditations, responsable de publication | docx | 2026-05-22 | HAUTE | À rédiger conjointement USI + UAAF |
 | Politique de confidentialité et gestion des cookies | docx | 2026-05-29 | HAUTE | À rédiger conjointement |
-| Modalités de paiement frais candidature (procédure CCA) | docx — étapes pour candidat | 2026-05-29 | HAUTE | À cadrer avec CCA |
+| Modalités de paiement frais candidature (procédure CREMINCAM) | docx — étapes pour candidat | 2026-05-29 | HAUTE | À cadrer avec CREMINCAM |
 | Validation tarifs formation continue (table 4995/500/250 kFCFA) | Note de service | 2026-05-22 | HAUTE | À demander |
 
 ### 3.6 Centre de Documentation — M. BENOH BENOH Pierre Tanguy

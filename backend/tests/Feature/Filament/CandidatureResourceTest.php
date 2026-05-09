@@ -148,14 +148,14 @@ it('marks frais payés with mode + reference + date and writes an activity entry
     $this->actingAs($this->admissionCommittee);
     $this->livewire(ListCandidatures::class)
         ->callTableAction('markPaid', $cand, [
-            'mode_paiement' => 'cca_agence',
-            'reference_paiement' => 'CCA-2026-0042',
+            'mode_paiement' => 'cremincam_agence',
+            'reference_paiement' => 'CREMINCAM-2026-0042',
             'date_paiement' => now()->toDateString(),
         ]);
 
     $cand->refresh();
     expect($cand->frais_paye)->toBeTrue();
-    expect($cand->reference_paiement)->toBe('CCA-2026-0042');
+    expect($cand->reference_paiement)->toBe('CREMINCAM-2026-0042');
 
     $log = Activity::latest('id')->first();
     expect($log->event)->toBe('frais_marked_paid');

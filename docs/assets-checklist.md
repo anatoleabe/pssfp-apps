@@ -190,7 +190,7 @@ Action UDCFC (Dr. MBALLA ZAMBO).
 Action UAAF (M. MBA Pierre).
 
 - [ ] `divers/frais-scolarite-2026.docx`
-- [ ] `divers/modalites-paiement-cca.docx` — procédure pour les candidats (étape par étape avec capture du formulaire CCA)
+- [ ] `divers/modalites-paiement-cca.docx` — procédure pour les candidats (étape par étape avec capture du formulaire CREMINCAM)
 
 ### 5.3 Photos officielles équipe direction
 
@@ -219,7 +219,7 @@ Format : portrait HD ≥ 800×1000 px, fond neutre.
 | 3 | 13 photos promotions | 2026-06-08 | `/vie-academique/promotions` |
 | 3 | Bios + photos 15-25 enseignants | 2026-06-08 | `/vie-academique/corps-enseignant` |
 | 4 | Catalogue FC 2026 | 2026-05-22 | `/formations/continue` |
-| 4 | Frais + modalités CCA | 2026-05-22 | Module 5 candidature + `/formations/frais-de-scolarite` |
+| 4 | Frais + modalités CREMINCAM | 2026-05-22 | Module 5 candidature + `/formations/frais-de-scolarite` |
 | 4 | 7 photos direction | 2026-05-29 | `/pssfp/gouvernance` |
 
 ## 7. Note sur les images du système actuel

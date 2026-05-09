@@ -21,12 +21,12 @@ Ces décisions du Chef USI **prévalent** sur les sections détaillées ci-desso
 
 **O2 — Slug unique global, mono-locale.** Tous les slugs deviennent `TEXT NOT NULL UNIQUE` (un seul slug par entité, identique dans toutes les locales). L'URL `/presentation` est la même en FR, EN, AR — seul le contenu (titre, body) est traduit. Plus simple, plus SEO-friendly. Tables impactées : `pages`, `articles`, `categories`, `tags`, `specialites`, `formations_continues`, `certifications`, `evenements`. Les colonnes existantes en JSONB sont à corriger en `TEXT` lors de la rédaction des migrations Laravel.
 
-**O4 — Frais de candidature payables sur site à CCA (Crédit Communautaire d'Afrique).** Pas de paiement en ligne en V1 — le candidat se rend en agence CCA avec son numéro de candidature, paie en espèces, rapporte le récépissé bancaire. L'admin marque le paiement reçu dans Filament. Trois colonnes ajoutées à `candidatures` :
+**O4 — Frais de candidature payables sur site à CREMINCAM (CREMINCAM).** Pas de paiement en ligne en V1 — le candidat se rend en agence CREMINCAM avec son numéro de candidature, paie en espèces, rapporte le récépissé bancaire. L'admin marque le paiement reçu dans Filament. Trois colonnes ajoutées à `candidatures` :
 
 | Colonne | Type | Notes |
 |---|---|---|
-| frais_paiement_mode | TEXT NULL | CHECK IN ('cca_agence','en_ligne','autre') — V1 uniquement 'cca_agence' utilisé |
-| frais_paiement_reference | TEXT NULL | N° de récépissé bancaire CCA |
+| frais_paiement_mode | TEXT NULL | CHECK IN ('cremincam_agence','en_ligne','autre') — V1 uniquement 'cremincam_agence' utilisé |
+| frais_paiement_reference | TEXT NULL | N° de récépissé bancaire CREMINCAM |
 | frais_paiement_date | DATE NULL | Date du versement |
 
 `frais_paye` (BOOLEAN) reste — devient un dérivé `(frais_paiement_reference IS NOT NULL AND frais_paiement_date IS NOT NULL)`. Saisie manuelle par l'admin Filament.
@@ -983,7 +983,7 @@ Le user `pssfp_app` a uniquement les droits `CONNECT, USAGE, SELECT, INSERT, UPD
 | O1 | Tronc commun comme spécialité ? | **Non** — tronc commun = année 1 obligatoire, 5 spécialités = année 2. UE et documents avec `specialite_id` NULLABLE. |
 | O2 | Slugs par locale ou global ? | **Global** — `TEXT NOT NULL UNIQUE`, un seul slug par entité, identique dans toutes les locales. |
 | O3 | Événements récurrents ? | **Reporté Phase II** — un événement = une instance en V1. Si besoin émerge, ajout colonne `rrule` RFC 5545 plus tard. |
-| O4 | `frais_paye` sur candidatures ? | **Conservé** — paiement en agence CCA, saisie manuelle Filament. 3 colonnes ajoutées (mode, référence, date). |
+| O4 | `frais_paye` sur candidatures ? | **Conservé** — paiement en agence CREMINCAM, saisie manuelle Filament. 3 colonnes ajoutées (mode, référence, date). |
 | O5 | Stockage PDF biblio ? | **MinIO local primaire + Scaleway backup**. Détails dans la section « Mises à jour v1.1 » en haut du document. |
 
 Toutes les décisions structurantes du modèle de données sont fermées pour V1. Les migrations Laravel peuvent être rédigées sur cette base lors du Sprint B.

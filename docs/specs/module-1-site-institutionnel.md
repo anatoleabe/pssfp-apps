@@ -278,7 +278,7 @@ Conditions d'admission complètes : niveau de diplôme requis, public cible, cal
 
 ### `/formations/frais-de-scolarite`
 
-Frais 1 185 000 FCFA/an avec décomposition (inscription, scolarité, matériel pédagogique). Modalités de paiement (échéancier, agence CCA, etc.). Frais de candidature 25 000 FCFA. Frais formation continue (table 4995/500/250 kFCFA).
+Frais 1 185 000 FCFA/an avec décomposition (inscription, scolarité, matériel pédagogique). Modalités de paiement (échéancier, agence CREMINCAM, etc.). Frais de candidature 50 000 FCFA. Frais formation continue (table 4995/500/250 kFCFA).
 
 ### Critères d'acceptation section Formations
 
