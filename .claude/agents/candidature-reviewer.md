@@ -28,7 +28,7 @@ Tu vérifies la conformité avec la spec module 5 (`docs/specs/module-5-candidat
 - Génération `numero` (`C-2026-XXXX`) atomique.
 
 ### PDF récépissé
-- Template complet : numero, candidat, campagne, vœux, date, instructions CCA.
+- Template complet : numero, candidat, campagne, vœux, date, instructions CREMINCAM.
 - Logo PSSFP.
 - Hash SHA256 imprimé.
 - Stocké MinIO `pssfp-candidatures` privé.
@@ -58,8 +58,8 @@ Tu vérifies la conformité avec la spec module 5 (`docs/specs/module-5-candidat
 - `PUT /v1/applications/profile` idempotent.
 - Indicateur visuel UX obligatoire.
 
-### Frais CCA
-- Saisie manuelle Filament : mode `cca_agence`, référence, date.
+### Frais CREMINCAM
+- Saisie manuelle Filament : mode `cremincam_agence`, référence, date.
 - Email `payment-received` auto.
 - `frais_paye` dérivé.
 

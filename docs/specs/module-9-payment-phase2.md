@@ -15,7 +15,7 @@ Trois raisons concourent à reporter ce module après le lancement V1 :
 
 2. **Pas de monétisation premium en V1**. Le contenu mis en ligne au lancement (thèses, articles, textes de loi) est majoritairement public ou réservé aux auditeurs authentifiés via leur compte `@pssfp.net`. Le besoin de paiement n'apparaît que pour les ouvrages premium et certifications FOAD (CDC v2.0 §C.2), qui ne sont pas eux-mêmes prêts à être commercialisés en V1.
 
-3. **Frais candidature payés à CCA en agence**. Le seul flux de paiement potentiellement nécessaire en V1 (frais de candidature 25 kFCFA) est traité via paiement en agence CCA et saisie manuelle dans Filament — décision Anatole du 5 mai 2026. Pas besoin d'intégration en ligne pour ce flux.
+3. **Frais candidature payés à CREMINCAM en agence**. Le seul flux de paiement potentiellement nécessaire en V1 (frais de candidature 50 kFCFA) est traité via paiement en agence CREMINCAM et saisie manuelle dans Filament — décision Anatole du 5 mai 2026. Pas besoin d'intégration en ligne pour ce flux.
 
 ## 2. Périmètre cadré pour Phase II
 
@@ -72,6 +72,6 @@ Conservés du CDC bibliothèque v2.0 §K.1 :
 - Pawapay (agrégateur Afrique) : https://pawapay.io/
 - Campay (agrégateur Cameroun) : https://campay.net/
 - Stripe : https://stripe.com/africa
-- Discussion CCA pour le canal frais candidature en agence : à initier UAAF.
+- Discussion CREMINCAM pour le canal frais candidature en agence : à initier UAAF.
 
 Ce document est à mettre à jour quand le go Phase II sera donné par le Comité de Pilotage.

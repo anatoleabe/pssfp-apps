@@ -354,7 +354,7 @@ Ajouter un widget Filament dans le dashboard `Candidatures` :
 - Numéro candidat
 - Spécialité choisie
 - Lien vers la page de suivi `https://candidature.pssfp.net/c/{numero}`
-- Instructions pour le dépôt physique au PSSFP (adresse, horaires, frais 25 000 FCFA à CCA)
+- Instructions pour le dépôt physique au PSSFP (adresse, horaires, frais 50 000 FCFA à CREMINCAM)
 - Pièces à apporter
 - BCC vers `admissions@pssfp.net`
 

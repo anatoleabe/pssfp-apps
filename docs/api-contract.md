@@ -899,7 +899,7 @@ Campagnes de candidature visibles publiquement. Statuts `open`, `results_publish
       "results_at": "2026-08-15T10:00:00+01:00",
       "status": "open",
       "is_currently_open": true,
-      "frais_candidature": 25000,
+      "frais_candidature": 50000,
       "max_voeux": 3,
       "pieces_requises": [
         { "type": "cv", "label": "CV détaillé", "required": true },

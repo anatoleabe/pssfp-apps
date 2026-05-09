@@ -7,7 +7,7 @@
 ## Surface livrée
 
 Pages :
-- **`/`** enrichie : fetch SSR `getCurrentCampaign()`, hero adapté (ouvert/fermé), `<CountdownToClose>` live polling 1s, 4 piliers PSSFP, encart frais 25 000 FCFA. Fallback élégant si backend indisponible.
+- **`/`** enrichie : fetch SSR `getCurrentCampaign()`, hero adapté (ouvert/fermé), `<CountdownToClose>` live polling 1s, 4 piliers PSSFP, encart frais 50 000 FCFA. Fallback élégant si backend indisponible.
 - **`/inscription`** : Server Component fin qui pré-fetch pays + spécialités, redirige vers `/dossier` si déjà connecté, monte `<WizardContainer />` côté client.
 
 Wizard 4 étapes :

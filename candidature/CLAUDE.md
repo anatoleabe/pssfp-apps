@@ -39,7 +39,7 @@ app/
 │   │   ├── pieces/page.tsx       # Upload pièces
 │   │   ├── soumettre/page.tsx    # Récap final + soumission
 │   │   └── suivi/page.tsx        # Statut + frise
-│   └── frais/page.tsx            # Instructions paiement CCA
+│   └── frais/page.tsx            # Instructions paiement CREMINCAM
 └── not-found.tsx
 ```
 

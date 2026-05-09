@@ -74,7 +74,7 @@ Dans `backend/resources/views/emails/` :
 | `applications/profile-required.blade.php` | Inscription candidat | Candidat (rappel compléter profil) |
 | `applications/submitted-confirmation.blade.php` | Soumission candidature | Candidat |
 | `applications/status-changed.blade.php` | Changement statut candidature | Candidat |
-| `applications/payment-received.blade.php` | Réception paiement frais CCA | Candidat |
+| `applications/payment-received.blade.php` | Réception paiement frais CREMINCAM | Candidat |
 | `applications/decision-accepted.blade.php` | Acceptation candidature | Candidat |
 | `applications/decision-rejected.blade.php` | Refus candidature | Candidat |
 | `library/document-restricted-warning.blade.php` | Tentative accès document restreint sans droit | (informational, optionnel) |
