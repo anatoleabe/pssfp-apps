@@ -11,15 +11,19 @@
     "test": "playwright test"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@pssfp/ui": "workspace:*",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "lucide-react": "^0.453.0",
     "next": "^14.2.15",
     "next-intl": "^3.20.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tailwind-merge": "^2.5.2"
+    "react-hook-form": "^7.75.0",
+    "tailwind-merge": "^2.5.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.0",
@@ -36,9 +40,20 @@
     "typescript": "^5.5.4"
   },
   "eslintConfig": {
-    "extends": ["next/core-web-vitals", "plugin:jsx-a11y/recommended"],
-    "plugins": ["jsx-a11y"],
-    "rules": { "react/no-unescaped-entities": "off" },
-    "ignorePatterns": ["tests/playwright/**", "playwright-report/**", ".next/**"]
+    "extends": [
+      "next/core-web-vitals",
+      "plugin:jsx-a11y/recommended"
+    ],
+    "plugins": [
+      "jsx-a11y"
+    ],
+    "rules": {
+      "react/no-unescaped-entities": "off"
+    },
+    "ignorePatterns": [
+      "tests/playwright/**",
+      "playwright-report/**",
+      ".next/**"
+    ]
   }
 }
