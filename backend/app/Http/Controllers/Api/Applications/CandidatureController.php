@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\Applications;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Applications\SubmitCandidatureRequest;
 use App\Http\Requests\Applications\UpdateCandidatureRequest;
+use App\Http\Requests\Applications\WithdrawCandidatureRequest;
 use App\Http\Resources\CampagneCandidatureResource;
 use App\Http\Resources\CandidatureResource;
 use App\Services\CandidatureService;
@@ -150,5 +151,43 @@ final class CandidatureController extends Controller
         $url = $this->recipisse->signedUrl($candidature->recipisse_pdf_path);
 
         return redirect()->away($url, 302);
+    }
+
+    public function withdraw(WithdrawCandidatureRequest $request): JsonResponse
+    {
+        $campagne = $this->service->currentCampagne();
+        if ($campagne === null) {
+            return response()->json([
+                'message' => 'Aucune campagne ouverte.',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $candidature = $this->service->findForUser($request->user(), $campagne);
+        if ($candidature === null) {
+            return response()->json([
+                'message' => 'Aucune candidature à retirer.',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $this->service->withdraw($candidature);
+        } catch (\RuntimeException $e) {
+            $message = match ($e->getMessage()) {
+                'already_withdrawn' => 'Candidature déjà retirée.',
+                'already_decided' => 'Cette candidature a déjà été décidée par le comité, le retrait administratif ne peut plus être fait par le candidat.',
+                default => $e->getMessage(),
+            };
+
+            return response()->json([
+                'message' => $message,
+                'kind' => $e->getMessage(),
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $candidature->load(['campagne', 'paysNationalite', 'regionRel', 'departementRel']);
+
+        return CandidatureResource::make($candidature)
+            ->response()
+            ->setStatusCode(Response::HTTP_OK);
     }
 }

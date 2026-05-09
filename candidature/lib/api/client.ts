@@ -131,9 +131,74 @@ export function registerCandidat(
   return apiPost<RegisterCandidatResponse>('/auth/candidat/register', payload);
 }
 
+export function loginCandidat(payload: {
+  phone_e164: string;
+  pin: string;
+}): Promise<ApiResult<RegisterCandidatResponse>> {
+  return apiPost<RegisterCandidatResponse>('/auth/candidat/login', payload);
+}
+
+export function forgotPin(payload: { phone_e164: string }): Promise<ApiResult<unknown>> {
+  return apiPost<unknown>('/auth/candidat/forgot-pin', payload);
+}
+
+export function verifyOtp(payload: {
+  phone_e164: string;
+  code: string;
+}): Promise<ApiResult<{ pin_reset_token: string; expires_at: string | null }>> {
+  return apiPost('/auth/candidat/verify-otp', payload);
+}
+
+export function resetPin(
+  payload: { pin: string; pin_confirmation: string },
+  pinResetToken: string,
+): Promise<ApiResult<unknown>> {
+  return apiPost<unknown>('/auth/candidat/reset-pin', payload, { token: pinResetToken });
+}
+
+export function logoutCandidat(token: string): Promise<ApiResult<unknown>> {
+  return apiPost<unknown>('/auth/candidat/logout', {}, { token });
+}
+
 export function putApplicationsMe(
   body: CandidatureProfile,
   token: string,
 ): Promise<ApiResult<unknown>> {
   return apiPut<unknown>('/applications/me', body, { token });
+}
+
+export interface MyCandidature extends CandidatureProfile {
+  uuid: string;
+  numero_dossier: string;
+  statut: 'postulant' | 'candidat' | 'accepte' | 'refuse';
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  decided_at: string | null;
+  withdrawn_at: string | null;
+  frais_paye: boolean;
+  mode_paiement: string | null;
+  reference_paiement: string | null;
+  date_paiement: string | null;
+  recipisse_available: boolean;
+  campagne: { slug: string; nom: string; closes_at: string | null } | null;
+}
+
+export function getMyCandidature(token: string): Promise<ApiResult<MyCandidature>> {
+  return apiGet<MyCandidature>('/applications/me', { token });
+}
+
+export function submitMyCandidature(
+  token: string,
+  idempotencyKey?: string,
+): Promise<ApiResult<{ recipisse_url?: string }>> {
+  const headers = idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : undefined;
+  return apiPost(
+    '/applications/me/submit',
+    { confirmation_engagement: true },
+    { token, headers },
+  );
+}
+
+export function withdrawMyCandidature(token: string): Promise<ApiResult<unknown>> {
+  return apiPost('/applications/me/withdraw', { confirmation: true }, { token });
 }

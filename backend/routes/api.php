@@ -75,6 +75,10 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
         Route::get('/me/recipisse', [CandidatureController::class, 'recipisse'])
             ->middleware('ability:application:read')
             ->name('me.recipisse');
+
+        Route::post('/me/withdraw', [CandidatureController::class, 'withdraw'])
+            ->middleware('ability:application:create')
+            ->name('me.withdraw');
     });
 });
 

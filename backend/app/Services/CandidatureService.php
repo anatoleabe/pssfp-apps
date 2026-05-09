@@ -249,4 +249,35 @@ final class CandidatureService
 
         return implode(' ', array_slice($parts, 1));
     }
+
+    /**
+     * Retrait par le candidat lui-même (cf. PR F endpoint).
+     *
+     * Refusé si la candidature est déjà décidée (accepte/refuse) ou
+     * déjà retirée. Set withdrawn_at + activity_log.
+     *
+     * @throws RuntimeException avec un kind ('already_decided' | 'already_withdrawn')
+     */
+    public function withdraw(Candidature $candidature): void
+    {
+        if ($candidature->withdrawn_at !== null) {
+            throw new RuntimeException('already_withdrawn');
+        }
+
+        if (in_array($candidature->statut, [Candidature::STATUT_ACCEPTE, Candidature::STATUT_REFUSE], true)) {
+            throw new RuntimeException('already_decided');
+        }
+
+        $candidature->update(['withdrawn_at' => now()]);
+
+        activity('candidatures')
+            ->causedBy(auth()->user())
+            ->performedOn($candidature)
+            ->withProperties([
+                'ip' => request()?->ip(),
+                'previous_statut' => $candidature->statut,
+            ])
+            ->event('candidature_withdrawn_self')
+            ->log('Candidature retirée par le candidat lui-même');
+    }
 }
