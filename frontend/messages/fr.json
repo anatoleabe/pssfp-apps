@@ -41,6 +41,73 @@
     "refuse": "Refuser"
   },
   "home": {
+    "hero": {
+      "eyebrow": "Campus de Messa, Yaoundé",
+      "title": "Former l'excellence des finances publiques en Afrique centrale",
+      "subtitle": "Le Programme Supérieur de Spécialisation en Finances Publiques (PSSFP) prépare depuis plus de dix ans les cadres supérieurs de l'administration financière camerounaise et africaine.",
+      "ctaPrimary": "Candidater à la promotion 14",
+      "ctaSecondary": "Explorer les formations",
+      "campusEyebrow": "Campagne en cours",
+      "campusName": "Promotion 14 — 2026",
+      "campusBody": "Inscriptions ouvertes pour la rentrée académique 2026. 5 spécialités, présentiel ou distanciel.",
+      "promoLabel": "Promotion",
+      "campusCity": "Lieu"
+    },
+    "stats": {
+      "heading": "Nos chiffres clés",
+      "promotions": "Promotions formées",
+      "specialites": "Spécialités",
+      "diplomes": "Diplômés",
+      "years": "Années d'expertise"
+    },
+    "specialites": {
+      "eyebrow": "5 spécialités",
+      "title": "Nos formations supérieures",
+      "intro": "Cinq parcours d'excellence en master, accessibles aux titulaires d'une licence ou équivalent, en présentiel à Yaoundé ou en distanciel.",
+      "readMore": "Découvrir",
+      "spec1": "Économie et gestion publique",
+      "spec1Body": "Tronc commun et fondamentaux de l'analyse économique appliquée à la gestion publique.",
+      "spec2": "Fiscalité, finance, comptabilité publique",
+      "spec2Body": "Droit fiscal, comptabilité publique, ingénierie budgétaire — la spécialité phare.",
+      "spec3": "Gouvernance territoriale et finances publiques locales",
+      "spec3Body": "Décentralisation, finances locales, gouvernance des collectivités.",
+      "spec4": "Marchés publics et partenariats public-privé",
+      "spec4Body": "Procédures, négociation, contractualisation et suivi des grands projets.",
+      "spec5": "Audit et contrôle des finances publiques",
+      "spec5Body": "Cour des comptes, contrôle interne, audit de performance et de régularité."
+    },
+    "actualites": {
+      "eyebrow": "Actualités",
+      "title": "À la une du PSSFP",
+      "seeAll": "Toutes les actualités",
+      "readMore": "Lire la suite",
+      "placeholder": "Articles d'illustration — la section sera alimentée dynamiquement depuis le CMS Filament dès la PR N (Module 2 — Actualités).",
+      "catEvenement": "Événement",
+      "catCooperation": "Coopération",
+      "catVie": "Vie académique",
+      "article1": "Rentrée académique 2026 — Promotion 14",
+      "article1Body": "Calendrier d'admission, journée d'intégration et programme de la première semaine.",
+      "article2": "Convention de coopération renouvelée avec le FMI",
+      "article2Body": "Modules de formation conjoints sur la soutenabilité budgétaire et la gestion de la dette.",
+      "article3": "Soutenances de mémoires — Promotion 13",
+      "article3Body": "Retour en images et palmarès des meilleures soutenances de l'année académique."
+    },
+    "partenaires": {
+      "eyebrow": "Partenaires",
+      "title": "Soutenus par les institutions de référence",
+      "intro": "Le PSSFP s'appuie sur un réseau de partenaires nationaux et internationaux engagés dans la formation des élites des finances publiques."
+    },
+    "access": {
+      "title": "Accès rapides",
+      "intro": "Trois espaces numériques au service de la communauté PSSFP.",
+      "open": "Accéder",
+      "foadTitle": "Plateforme FOAD",
+      "foadBody": "Cours en ligne, supports pédagogiques, devoirs déposés et suivi des notes.",
+      "biblioTitle": "Bibliothèque virtuelle",
+      "biblioBody": "Catalogue numérique d'ouvrages, thèses, rapports et abonnements en finances publiques.",
+      "candidatureTitle": "Candidater en ligne",
+      "candidatureBody": "Soumettez votre dossier en moins de 15 minutes pour la promotion 14."
+    },
     "title": "Programme Supérieur de Spécialisation en Finances Publiques",
     "intro": "Bienvenue sur le site institutionnel du PSSFP, Campus de Messa, Yaoundé.",
     "apiHealthLabel": "État de l'API",
