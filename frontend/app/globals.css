@@ -25,4 +25,57 @@
     outline: 2px solid var(--pssfp-primary);
     outline-offset: 2px;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Hiérarchie typographique forte (PR Q § B.4) */
+  .pssfp-h1 {
+    @apply font-heading font-bold text-pssfp-h1 text-[#333];
+  }
+  .pssfp-h2 {
+    @apply font-heading font-bold text-pssfp-h2 text-[#333];
+  }
+  .pssfp-h3 {
+    @apply font-heading font-bold text-pssfp-h3 text-[#333];
+  }
+  .pssfp-eyebrow {
+    @apply font-ui text-xs uppercase tracking-[0.18em] text-[#C9A227];
+  }
+  .pssfp-lead {
+    @apply font-body text-pssfp-lead text-[#555];
+  }
+  .pssfp-body {
+    @apply font-body text-pssfp-body text-[#333];
+  }
+
+  /* Section padding institutionnel */
+  .pssfp-section {
+    @apply py-16 md:py-20 lg:py-24;
+  }
+  .pssfp-section-tight {
+    @apply py-12 md:py-16;
+  }
+
+  /* Text gradient (titres mis en avant) */
+  .pssfp-text-gradient-violet-or {
+    background: linear-gradient(135deg, #6B2FA0 0%, #C9A227 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* Container institutionnel */
+  .pssfp-container {
+    @apply mx-auto max-w-7xl px-6;
+  }
 }

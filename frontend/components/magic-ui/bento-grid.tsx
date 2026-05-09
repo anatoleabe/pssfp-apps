@@ -1,0 +1,75 @@
+import type { ReactNode } from 'react';
+import { cn } from '../../lib/cn';
+
+export interface BentoGridProps {
+  className?: string;
+  children: ReactNode;
+}
+
+export interface BentoCardProps {
+  className?: string;
+  /** Span colonnes desktop (1-3). */
+  colSpan?: 1 | 2 | 3;
+  /** Span lignes desktop (1-2). */
+  rowSpan?: 1 | 2;
+  /** Variante visuelle. */
+  variant?: 'default' | 'gradient' | 'lavande' | 'or';
+  children: ReactNode;
+}
+
+const colSpanMap: Record<NonNullable<BentoCardProps['colSpan']>, string> = {
+  1: 'lg:col-span-1',
+  2: 'lg:col-span-2',
+  3: 'lg:col-span-3',
+};
+
+const rowSpanMap: Record<NonNullable<BentoCardProps['rowSpan']>, string> = {
+  1: 'lg:row-span-1',
+  2: 'lg:row-span-2',
+};
+
+const variantMap: Record<NonNullable<BentoCardProps['variant']>, string> = {
+  default:
+    'bg-white border border-[#EDE7F6] shadow-pssfp-soft hover:shadow-pssfp-elevated',
+  gradient:
+    'bg-gradient-violet-or text-white border border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
+  lavande:
+    'bg-gradient-lavande-blanc border border-[#EDE7F6] shadow-pssfp-soft hover:shadow-pssfp-elevated',
+  or:
+    'bg-gradient-or-soft text-[#1A0A2E] border border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
+};
+
+export function BentoGrid({ className, children }: BentoGridProps): JSX.Element {
+  return (
+    <div
+      className={cn(
+        'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:auto-rows-[minmax(180px,auto)]',
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function BentoCard({
+  className,
+  colSpan = 1,
+  rowSpan = 1,
+  variant = 'default',
+  children,
+}: BentoCardProps): JSX.Element {
+  return (
+    <div
+      className={cn(
+        'group relative flex flex-col overflow-hidden rounded-pssfp-card p-6 transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1',
+        colSpanMap[colSpan],
+        rowSpanMap[rowSpan],
+        variantMap[variant],
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
