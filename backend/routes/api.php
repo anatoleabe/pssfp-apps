@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\Applications\CandidatureController;
 use App\Http\Controllers\Api\Applications\QrCandidatureController;
+use App\Http\Controllers\Api\Articles\ArticleController;
 use App\Http\Controllers\Api\Auth\AuthCandidatController;
 use App\Http\Controllers\Api\Pages\PageController;
 use App\Http\Controllers\Api\Reference\ReferenceController;
@@ -117,3 +118,14 @@ Route::prefix('pages')->name('pages.')->group(function (): void {
 });
 
 Route::get('/menu', [PageController::class, 'menu'])->name('menu');
+
+/*
+ * Articles d'actualités (cf. spec module 1 PR N).
+ *
+ * - GET /v1/articles          : liste publiée paginée 9/page, filtres ?category= ?featured=
+ * - GET /v1/articles/{slug}   : détail d'un article
+ */
+Route::prefix('articles')->name('articles.')->group(function (): void {
+    Route::get('/', [ArticleController::class, 'index'])->name('index');
+    Route::get('/{slug}', [ArticleController::class, 'show'])->name('show');
+});
