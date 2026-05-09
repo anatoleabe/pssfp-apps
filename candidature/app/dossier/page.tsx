@@ -89,7 +89,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
         )}
         <DossierCompleteness candidature={candidature} />
         <DossierFraisCard candidature={candidature} />
-        <DossierPhotoCard />
+        <DossierPhotoCard candidature={candidature} />
         <DossierActionsCard candidature={candidature} />
       </div>
     </div>

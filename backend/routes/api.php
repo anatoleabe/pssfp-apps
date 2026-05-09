@@ -79,6 +79,18 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
         Route::post('/me/withdraw', [CandidatureController::class, 'withdraw'])
             ->middleware('ability:application:create')
             ->name('me.withdraw');
+
+        Route::post('/me/photo', [CandidatureController::class, 'uploadPhoto'])
+            ->middleware('ability:application:create')
+            ->name('me.photo.upload');
+
+        Route::get('/me/photo', [CandidatureController::class, 'showPhoto'])
+            ->middleware('ability:application:read')
+            ->name('me.photo.show');
+
+        Route::delete('/me/photo', [CandidatureController::class, 'deletePhoto'])
+            ->middleware('ability:application:create')
+            ->name('me.photo.delete');
     });
 });
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\Candidature;
+use App\Services\PhotoUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -67,8 +68,12 @@ final class CandidatureResource extends JsonResource
             'engagement_nom' => $this->engagement_nom,
             'moyen_connaissance' => $this->moyen_connaissance,
 
-            // Pièces / PDF
-            'photo_path' => $this->photo_path,
+            // Pièces / PDF — photo_path interne pas exposé (chemin MinIO privé) ;
+            // seul photo_url signée 30 min + has_photo bool sont remontés au client.
+            'has_photo' => $this->photo_path !== null,
+            'photo_url' => $this->photo_path !== null
+                ? app(PhotoUploadService::class)->signedUrl($this->photo_path)
+                : null,
             'recipisse_available' => $this->recipisse_pdf_path !== null,
 
             // Frais (informatif candidat)
