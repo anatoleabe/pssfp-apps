@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { JsonLd, programJsonLd } from '@/components/JsonLd';
 import { PageRenderer } from '@/components/PageRenderer';
 import { getPageBySlug } from '@/lib/api/pages';
 
@@ -47,9 +48,20 @@ export default async function FormationsCatchallPage({ params }: PageProps): Pro
   }
 
   const page = result.data;
+  const isSpecialty =
+    page.slug.startsWith('formations/specialites/') && page.slug !== 'formations/specialites';
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 md:py-16">
+      {isSpecialty && (
+        <JsonLd
+          data={programJsonLd({
+            name: page.title,
+            description: page.excerpt ?? page.title,
+            slug: page.slug,
+          })}
+        />
+      )}
       <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666]">
         <Link href="/" className="hover:text-[#6B2FA0]">Accueil</Link>
         <span aria-hidden="true"> / </span>

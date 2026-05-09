@@ -4,6 +4,7 @@ import { HomeHero } from '@/components/HomeHero';
 import { HomePartenaires } from '@/components/HomePartenaires';
 import { HomeSpecialites } from '@/components/HomeSpecialites';
 import { HomeStats } from '@/components/HomeStats';
+import { JsonLd, organizationJsonLd } from '@/components/JsonLd';
 
 export const revalidate = 300; // ISR 5 min — les actualités featured peuvent changer.
 
@@ -16,6 +17,7 @@ export const metadata = {
 export default async function HomePage(): Promise<JSX.Element> {
   return (
     <>
+      <JsonLd data={organizationJsonLd()} />
       <HomeHero />
       <HomeStats />
       <HomeSpecialites />
