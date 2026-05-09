@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Applications\CandidatureController;
 use App\Http\Controllers\Api\Applications\QrCandidatureController;
 use App\Http\Controllers\Api\Articles\ArticleController;
 use App\Http\Controllers\Api\Auth\AuthCandidatController;
+use App\Http\Controllers\Api\Contact\ContactController;
 use App\Http\Controllers\Api\Pages\PageController;
 use App\Http\Controllers\Api\Reference\ReferenceController;
 use App\Http\Controllers\HealthController;
@@ -129,3 +130,10 @@ Route::prefix('articles')->name('articles.')->group(function (): void {
     Route::get('/', [ArticleController::class, 'index'])->name('index');
     Route::get('/{slug}', [ArticleController::class, 'show'])->name('show');
 });
+
+/*
+ * Contact (cf. spec module 1 PR O).
+ *
+ * Rate-limit 5 messages / IP / heure côté serveur.
+ */
+Route::post('/contact', [ContactController::class, 'send'])->name('contact.send');
