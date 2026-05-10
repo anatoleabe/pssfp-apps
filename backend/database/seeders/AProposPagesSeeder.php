@@ -17,8 +17,8 @@ use Illuminate\Database\Seeder;
  *     * docs/sources/content/mot-president.md
  *     * docs/sources/content/presentation-pssfp.md
  *     * docs/sources/content/organigramme.md
- *   - terminologie corrigée : Pr. BASAHAG = Président du Comité de
- *     Pilotage (PCP), PAS Directeur Général (il n'y a pas de DG au PSSFP).
+ *   - terminologie corrigée : Dr. BASAHAG Achile Nestor =
+ *     Président du Comité de Pilotage (PCP).
  *
  * Idempotent : updateOrCreate par slug.
  */
@@ -63,7 +63,7 @@ class AProposPagesSeeder extends Seeder
                 'is_in_menu' => true,
                 'menu_label' => 'Mot du Président',
                 'title' => 'Mot du Président',
-                'excerpt' => 'Pr. BASAHAG Achile Nestor, Président du Comité de Pilotage du PSSFP, vous accueille sur le site officiel.',
+                'excerpt' => 'Dr. BASAHAG Achile Nestor, Président du Comité de Pilotage du PSSFP, vous accueille sur le site officiel.',
                 'body' => $this->motPresidentBody(),
             ],
             [
@@ -83,7 +83,7 @@ class AProposPagesSeeder extends Seeder
                 'is_in_menu' => true,
                 'menu_label' => 'Comité de Pilotage',
                 'title' => 'Comité de Pilotage',
-                'excerpt' => 'Le PSSFP est dirigé par un Comité de Pilotage présidé par le Pr. BASAHAG Achile Nestor — pas par un Directeur Général.',
+                'excerpt' => 'Le PSSFP est dirigé par un Comité de Pilotage présidé par le Dr. BASAHAG Achile Nestor.',
                 'body' => $this->comitePilotageBody(),
             ],
             [
@@ -168,7 +168,7 @@ Je tiens à saluer l'engagement des équipes pédagogiques, des partenaires inst
 
 ---
 
-**Pr. BASAHAG Achile Nestor**
+**Dr. BASAHAG Achile Nestor**
 *Président du Comité de Pilotage du Programme Supérieur de Spécialisation en Finances Publiques (PSSFP)*
 MD;
     }
@@ -212,14 +212,14 @@ Sessions de 3 à 5 jours pour les administrations, individus et étudiants du PS
 - **Bibliothèque hybride** physique + virtuelle
 - Étudiants issus de **FEICOM, Assemblée Nationale, MINFI, MINDEF, MINEPAT** et autres structures publiques
 
-Le programme doit son bon fonctionnement au **leadership du Président du Comité de Pilotage**, Pr. BASAHAG Achile Nestor, ainsi qu'à l'esprit d'équipe qui anime le personnel.
+Le programme doit son bon fonctionnement au **leadership du Président du Comité de Pilotage**, Dr. BASAHAG Achile Nestor, ainsi qu'à l'esprit d'équipe qui anime le personnel.
 MD;
     }
 
     private function comitePilotageBody(): string
     {
         return <<<'MD'
-Le PSSFP est dirigé par un **Comité de Pilotage (COPIL)** — il n'existe pas de poste de Directeur Général.
+Le PSSFP est dirigé par un **Comité de Pilotage (COPIL)** présidé par le **Dr. BASAHAG Achile Nestor**.
 
 ## Missions du Comité de Pilotage
 
@@ -231,7 +231,7 @@ Le PSSFP est dirigé par un **Comité de Pilotage (COPIL)** — il n'existe pas 
 
 | Fonction | Personne |
 |---|---|
-| **Président du Comité de Pilotage (PCP)** | **Pr. BASAHAG Achile Nestor** |
+| **Président du Comité de Pilotage (PCP)** | **Dr. BASAHAG Achile Nestor** |
 | Conseiller juridique | Pr. ABANE ENGOLO Patrick |
 | Conseiller technique | Dr. BANOCK BAMBOCK Eric Vincent |
 | Contrôleur de Gestion | M. MOLLO Davy Claude Aubin |
@@ -252,7 +252,7 @@ MD;
         return <<<'MD'
 ## 1. Comité de Pilotage
 
-- **Président** : Pr. BASAHAG Achile Nestor
+- **Président** : Dr. BASAHAG Achile Nestor
 - **Conseiller juridique** : Pr. ABANE ENGOLO Patrick
 - **Conseiller technique** : Dr. BANOCK BAMBOCK Eric Vincent
 - **Contrôleur de Gestion** : M. MOLLO Davy Claude Aubin
@@ -382,9 +382,9 @@ Pour répondre à ce besoin, le **MINFI**, le **MINESUP** et l'**Université de 
 
 ## Direction historique
 
-Le PSSFP a toujours été dirigé par un **Comité de Pilotage** présidé par un universitaire ou cadre de l'administration des finances. Depuis sa création, le programme est piloté collégialement par cette instance, sans poste de Directeur Général unique.
+Le PSSFP a toujours été dirigé par un **Comité de Pilotage** présidé par un universitaire ou cadre de l'administration des finances. Depuis sa création, le programme est piloté collégialement par cette instance.
 
-Le **Pr. BASAHAG Achile Nestor** assure aujourd'hui la présidence de ce Comité de Pilotage.
+Le **Dr. BASAHAG Achile Nestor** assure aujourd'hui la présidence de ce Comité de Pilotage.
 MD;
     }
 

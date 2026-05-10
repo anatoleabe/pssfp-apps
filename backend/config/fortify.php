@@ -130,7 +130,9 @@ return [
     |
     */
 
-    'views' => true,
+    // PSSFP : pas de vues Blade Fortify (auth candidat = SPA Next.js + Sanctum tokens).
+    // Évite l'erreur « Target [Laravel\Fortify\Contracts\RegisterViewResponse] is not instantiable. »
+    'views' => false,
 
     /*
     |--------------------------------------------------------------------------

@@ -134,6 +134,10 @@
       transform: none;
       transition: none;
     }
+    /* Sprint S5 PR Y : carrousel HomeShowcase Embla, désactiver autoplay */
+    [data-testid="home-showcase"] [data-embla-container] {
+      animation: none !important;
+    }
   }
 }
 

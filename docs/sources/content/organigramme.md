@@ -1,6 +1,6 @@
 # Organigramme du PSSFP
 ## 1. Comité de Pilotage
-• Président : Pr. BASAHAG Achile Nestor
+• Président : Dr. BASAHAG Achile Nestor
 • Conseiller juridique : Pr. ABANE ENGOLO Patrick
 • Conseiller technique : Dr. BANOCK BAMBOCK Eric Vincent
 • Contrôleur de Gestion : M. MOLLO Davy Claude Aubin
