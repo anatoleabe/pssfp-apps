@@ -67,7 +67,7 @@ export async function HomeHero(): Promise<JSX.Element> {
             <a
               href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
               data-testid="hero-cta-candidature"
-              className="group relative inline-flex h-13 items-center gap-2 overflow-hidden rounded-pssfp-button bg-gradient-violet-or px-7 text-base font-semibold text-white shadow-pssfp-floating transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:shadow-pssfp-glow-or focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] focus-visible:ring-offset-2"
+              className="group relative inline-flex h-14 items-center gap-2 overflow-hidden rounded-pssfp-button bg-gradient-violet-or px-7 text-base font-semibold text-white shadow-pssfp-floating transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:shadow-pssfp-glow-or focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] focus-visible:ring-offset-2"
             >
               <span
                 aria-hidden="true"
@@ -82,7 +82,7 @@ export async function HomeHero(): Promise<JSX.Element> {
             </a>
             <Link
               href="/formations"
-              className="inline-flex h-13 items-center gap-2 rounded-pssfp-button border-2 border-[#6B2FA0] bg-white/80 px-7 text-base font-semibold text-[#6B2FA0] backdrop-blur-2xs transition-all duration-200 ease-pssfp-out-expo hover:bg-[#6B2FA0] hover:text-white hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+              className="inline-flex h-14 items-center gap-2 rounded-pssfp-button border-2 border-[#6B2FA0] bg-white/80 px-7 text-base font-semibold text-[#6B2FA0] backdrop-blur-2xs transition-all duration-200 ease-pssfp-out-expo hover:bg-[#6B2FA0] hover:text-white hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
             >
               {t('ctaSecondary')}
             </Link>

@@ -1,6 +1,3 @@
-'use client';
-
-import { useReducedMotion } from 'framer-motion';
 import { cn } from '../../lib/cn';
 
 export interface AnimatedBeamProps {
@@ -12,15 +9,15 @@ export interface AnimatedBeamProps {
 }
 
 /**
- * Faisceaux décoratifs animés pour le hero. Pure SVG/CSS, pas de Framer Motion DOM —
- * léger et performant. Désactivé sur prefers-reduced-motion.
+ * Faisceaux décoratifs animés pour le hero. Pure SVG/CSS, server-renderable —
+ * pas de Framer Motion, pas de hook navigateur. Désactivé via @media
+ * prefers-reduced-motion dans le <style> embarqué.
  */
 export function AnimatedBeam({
   className,
   color = '#9B59B6',
   accentColor = '#C9A227',
 }: AnimatedBeamProps): JSX.Element {
-  const reduceMotion = useReducedMotion();
   return (
     <div
       aria-hidden="true"
@@ -51,13 +48,7 @@ export function AnimatedBeam({
           </radialGradient>
         </defs>
 
-        <g
-          style={
-            reduceMotion
-              ? undefined
-              : { transformOrigin: '50% 50%', animation: 'pssfp-beam-pulse 8s ease-in-out infinite' }
-          }
-        >
+        <g className="pssfp-beam-group" style={{ transformOrigin: '50% 50%' }}>
           <path
             d="M -100 100 C 200 250, 600 150, 900 280 C 1100 360, 1300 200, 1400 350"
             stroke="url(#beam-gradient-1)"
@@ -77,9 +68,15 @@ export function AnimatedBeam({
       </svg>
 
       <style>{`
+        .pssfp-beam-group {
+          animation: pssfp-beam-pulse 8s ease-in-out infinite;
+        }
         @keyframes pssfp-beam-pulse {
           0%, 100% { transform: scale(1) translateX(0); opacity: 1; }
           50% { transform: scale(1.04) translateX(-12px); opacity: 0.85; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .pssfp-beam-group { animation: none !important; }
         }
       `}</style>
     </div>
