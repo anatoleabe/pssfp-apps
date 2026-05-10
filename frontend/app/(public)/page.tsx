@@ -14,6 +14,13 @@ const HomeStats = dynamic(() =>
   import('@/components/HomeStats').then((m) => ({ default: m.HomeStats })),
 );
 
+// Sprint S5 PR Y : carrousel hero 5 slides (Embla). Chargé dynamiquement
+// car Embla est `'use client'` (hooks navigateur). Activable via env :
+//   NEXT_PUBLIC_HERO_VARIANT=showcase (défaut) | legacy
+const HomeShowcase = dynamic(() =>
+  import('@/components/HomeShowcase').then((m) => ({ default: m.HomeShowcase })),
+);
+
 export const revalidate = 300; // ISR 5 min — les actualités featured peuvent changer.
 
 export const metadata = {
@@ -23,10 +30,12 @@ export const metadata = {
 };
 
 export default async function HomePage(): Promise<JSX.Element> {
+  const heroVariant = process.env.NEXT_PUBLIC_HERO_VARIANT ?? 'showcase';
+
   return (
     <>
       <JsonLd data={organizationJsonLd()} />
-      <HomeHero />
+      {heroVariant === 'legacy' ? <HomeHero /> : <HomeShowcase />}
       <HomeStats />
       <HomeSpecialites />
       <HomeActualites />

@@ -11,7 +11,9 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: 'api.pssfp.net' },
       { protocol: 'https', hostname: 'cdn.pssfp.net' },
+      { protocol: 'https', hostname: 'media.pssfp.net' },
       { protocol: 'http', hostname: 'localhost' },
+      { protocol: 'http', hostname: '127.0.0.1' },
     ],
   },
   experimental: {
