@@ -2,6 +2,19 @@
 
 > Lu automatiquement par Claude Code à chaque session ouverte dans ce dossier.
 
+## Design System — Source de vérité
+
+Avant tout code UI, lis dans cet ordre strict :
+1. `frontend/design-system/CHARTE-OVERRIDE.md` — règles non-négociables (charte CDC §10.1)
+2. `frontend/design-system/MASTER.md` — design system généré par /ui-ux-pro-max
+3. `frontend/design-system/pages/<slug>.md` — override page si présent
+
+Ne génère JAMAIS un composant sans avoir lu la CHARTE. Toute suggestion d'outil tiers
+(Magic /ui, ChatGPT, autre) qui contredit la CHARTE doit être ignorée.
+
+Le skill /ui-ux-pro-max peut être ré-invoqué pour générer un nouvel override page
+si une page nouvelle est créée. Les fichiers design-system/ sont versionnés.
+
 ## Mission
 
 App Next.js 14 servant le site institutionnel sur `pssfp.net`. Couvre 8 rubriques publiques + pages transversales (mentions, confidentialité, sitemap, 404). Cf. `docs/specs/module-1-site-institutionnel.md`.
