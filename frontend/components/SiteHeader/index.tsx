@@ -3,68 +3,32 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Menu, X, ExternalLink, ArrowRight, ChevronDown } from 'lucide-react';
+import { ArrowRight, ChevronDown, ExternalLink, Menu, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { PssfpLogo } from '@pssfp/ui';
 import { cn } from '../../lib/cn';
 import { ThemeToggle } from '../ThemeToggle';
-
-interface NavLinkChild {
-  href: string;
-  key: string;
-}
-
-interface NavLink {
-  href: string;
-  key: string;
-  children?: NavLinkChild[];
-}
-
-const NAV_LINKS: readonly NavLink[] = [
-  { href: '/', key: 'home' },
-  {
-    href: '/a-propos',
-    key: 'apropos',
-    children: [
-      { href: '/a-propos/mot-president', key: 'aproposMotPresident' },
-      { href: '/a-propos/presentation', key: 'aproposPresentation' },
-      { href: '/a-propos/comite-pilotage', key: 'aproposComitePilotage' },
-      { href: '/a-propos/organigramme', key: 'aproposOrganigramme' },
-      { href: '/a-propos/convention-tripartite', key: 'aproposConvention' },
-      { href: '/a-propos/histoire', key: 'aproposHistoire' },
-      { href: '/a-propos/infrastructure', key: 'aproposInfrastructure' },
-      { href: '/a-propos/partenaires', key: 'aproposPartenaires' },
-      { href: '/a-propos/conformite-cames', key: 'aproposCames' },
-    ],
-  },
-  {
-    href: '/formations',
-    key: 'formations',
-    children: [
-      { href: '/formations/master', key: 'formationsMaster' },
-      { href: '/formations/formation-continue', key: 'formationsContinue' },
-      { href: '/formations/certifications', key: 'formationsCertifications' },
-      { href: '/formations/seminaires', key: 'formationsSeminaires' },
-      { href: '/formations/admission', key: 'formationsAdmission' },
-      { href: '/formations/frais-de-scolarite', key: 'formationsFrais' },
-    ],
-  },
-  { href: '/vie-academique', key: 'vie' },
-  { href: '/actualites', key: 'actualites' },
-  { href: '/contact', key: 'contact' },
-] as const;
+import { MegaMenu } from './MegaMenu';
+import { MobileDrawer } from './MobileDrawer';
+import { NAV_LINKS } from './nav-config';
 
 export function SiteHeader(): JSX.Element {
   const t = useTranslations('nav');
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
   const submenuTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
 
   useEffect(() => {
-    const onScroll = (): void => setScrolled(window.scrollY > 8);
+    const onScroll = (): void => {
+      const y = window.scrollY;
+      setScrolled(y > 8);
+      const docH = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(docH > 0 ? Math.min(100, Math.max(0, (y / docH) * 100)) : 0);
+    };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -98,14 +62,19 @@ export function SiteHeader(): JSX.Element {
     submenuTimer.current = setTimeout(() => setOpenSubmenu(null), 200);
   };
 
+  const handleMobileToggle = (key: string): void => {
+    setMobileExpanded((prev) => (prev === key ? null : key));
+  };
+
   return (
+    <>
     <header
       data-testid="site-header"
       className={cn(
-        'sticky top-0 z-40 w-full transition-all duration-300 ease-pssfp-out-expo',
+        'sticky top-0 z-40 w-full transition-all duration-500 ease-pssfp-out-expo',
         scrolled
-          ? 'border-b border-[#EDE7F6] bg-white/80 shadow-pssfp-soft backdrop-blur-2xl dark:border-[#3A2A55] dark:bg-[#14091F]/85'
-          : 'border-b border-transparent bg-white/95 backdrop-blur-2xs dark:bg-[#14091F]/80',
+          ? 'border-b border-[#C9A040]/40 bg-white/70 shadow-pssfp-elevated backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/55 dark:border-[#C9A040]/25 dark:bg-[#2D1454]/60 dark:supports-[backdrop-filter]:bg-[#2D1454]/45'
+          : 'border-b border-transparent bg-white/95 backdrop-blur-2xs dark:bg-[#14101A]/80',
       )}
     >
       <a
@@ -114,6 +83,7 @@ export function SiteHeader(): JSX.Element {
       >
         {t('skip')}
       </a>
+
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3 md:py-4">
         <Link
           href="/"
@@ -154,7 +124,7 @@ export function SiteHeader(): JSX.Element {
                     aria-expanded={hasChildren ? isSubmenuOpen : undefined}
                     onFocus={hasChildren ? () => handleSubmenuOpen(link.key) : undefined}
                     className={cn(
-                      'relative inline-flex h-10 items-center gap-1 rounded-md px-3 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:focus-visible:ring-[#E8C868]',
+                      'group/nav relative inline-flex h-10 items-center gap-1 rounded-md px-3 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:focus-visible:ring-[#E8C868]',
                       active
                         ? 'font-semibold text-[#6B2FA0] dark:text-[#B084E8]'
                         : 'text-[#333] hover:text-[#6B2FA0] dark:text-[#F5EFE3] dark:hover:text-[#B084E8]',
@@ -166,53 +136,29 @@ export function SiteHeader(): JSX.Element {
                         size={14}
                         aria-hidden="true"
                         className={cn(
-                          'transition-transform duration-200',
+                          'transition-transform duration-300 ease-pssfp-out-expo',
                           isSubmenuOpen && 'rotate-180',
                         )}
                       />
                     )}
-                    {active && (
-                      <span
-                        aria-hidden="true"
-                        className="absolute inset-x-2 bottom-1 h-0.5 rounded-full bg-gradient-violet-or"
-                      />
-                    )}
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        'pointer-events-none absolute inset-x-2 bottom-1 h-0.5 origin-left rounded-full bg-[linear-gradient(90deg,#6B2FA0_0%,#9B59B6_50%,#C9A040_100%)] transition-transform duration-300 ease-pssfp-out-expo motion-reduce:transition-none',
+                        active
+                          ? 'scale-x-100'
+                          : 'scale-x-0 group-hover/nav:scale-x-100 group-focus-visible/nav:scale-x-100',
+                      )}
+                    />
                   </Link>
 
                   {hasChildren && isSubmenuOpen && (
-                    <div
-                      role="menu"
-                      tabIndex={-1}
-                      aria-label={t('aproposMenuLabel')}
-                      data-testid={`nav-submenu-${link.key}`}
-                      className="absolute left-0 top-full z-50 mt-1 min-w-[280px] origin-top rounded-pssfp-card border border-[#EDE7F6] bg-white shadow-pssfp-elevated dark:border-[#3A2A55] dark:bg-[#1F0E2E]"
-                      onMouseEnter={() => handleSubmenuOpen(link.key)}
-                      onMouseLeave={handleSubmenuClose}
-                    >
-                      <ul className="py-2">
-                        {link.children!.map((child) => {
-                          const childActive = pathname === child.href;
-                          return (
-                            <li key={child.href} role="none">
-                              <Link
-                                href={child.href}
-                                role="menuitem"
-                                aria-current={childActive ? 'page' : undefined}
-                                data-testid={`nav-submenu-item-${child.key}`}
-                                className={cn(
-                                  'block px-4 py-2.5 text-sm transition-colors',
-                                  childActive
-                                    ? 'bg-[#EDE7F6] font-semibold text-[#6B2FA0] dark:bg-[#3A2A55]/50 dark:text-[#B084E8]'
-                                    : 'text-[#333] hover:bg-[#EDE7F6]/50 hover:text-[#6B2FA0] dark:text-[#F5EFE3] dark:hover:bg-[#3A2A55]/30 dark:hover:text-[#B084E8]',
-                                )}
-                              >
-                                {t(child.key)}
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
+                    <MegaMenu
+                      link={link}
+                      pathname={pathname}
+                      onItemFocus={() => handleSubmenuOpen(link.key)}
+                      onItemBlur={handleSubmenuClose}
+                    />
                   )}
                 </li>
               );
@@ -224,28 +170,38 @@ export function SiteHeader(): JSX.Element {
           <ThemeToggle testId="theme-toggle" />
           <a
             href={process.env.NEXT_PUBLIC_LIBRARY_URL ?? '#'}
-            className="inline-flex h-10 items-center gap-1.5 rounded-pssfp-button border border-[#EDE7F6] bg-white px-3.5 text-sm text-[#333] transition-all duration-200 hover:border-[#6B2FA0] hover:text-[#6B2FA0] hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:border-[#3A2A55] dark:bg-[#1F0E2E] dark:text-[#F5EFE3] dark:hover:border-[#B084E8] dark:hover:text-[#B084E8]"
+            className="inline-flex h-10 items-center gap-1.5 rounded-pssfp-button border border-[#E4D8B7] bg-white px-3.5 text-sm text-[#333] transition-all duration-200 hover:border-[#6B2FA0] hover:text-[#6B2FA0] hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:border-[#3A2F48] dark:bg-[#1F1A28] dark:text-[#F5EFE3] dark:hover:border-[#B084E8] dark:hover:text-[#B084E8]"
             data-testid="nav-library"
           >
             {t('library')}
             <ExternalLink size={14} aria-hidden="true" />
           </a>
-          <a
-            href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
-            className="group relative inline-flex h-10 items-center gap-1.5 overflow-hidden rounded-pssfp-button bg-gradient-violet-or px-4 text-sm font-medium text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] focus-visible:ring-offset-2"
-            data-testid="nav-candidature"
-          >
+          <span className="group/cta relative inline-flex">
             <span
               aria-hidden="true"
-              className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full"
+              className="pointer-events-none absolute -inset-1 rounded-pssfp-button bg-[radial-gradient(circle_at_50%_50%,rgba(201,160,64,0.55)_0%,rgba(107,47,160,0.35)_45%,transparent_70%)] opacity-0 blur-lg transition-opacity duration-500 ease-pssfp-out-expo motion-reduce:transition-none group-hover/cta:opacity-100 group-focus-within/cta:opacity-100"
             />
-            <span className="relative">{t('candidature')}</span>
-            <ArrowRight
-              size={14}
-              aria-hidden="true"
-              className="relative transition-transform duration-200 group-hover:translate-x-0.5"
-            />
-          </a>
+            <a
+              href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
+              className="group relative inline-flex h-10 items-center gap-1.5 overflow-hidden rounded-pssfp-button bg-[linear-gradient(135deg,#2D1454_0%,#6B2FA0_55%,#C9A040_100%)] bg-[length:200%_200%] px-4 text-sm font-medium text-white shadow-pssfp-elevated transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-0.5 hover:bg-[position:100%_100%] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A040] focus-visible:ring-offset-2 motion-reduce:transition-none"
+              data-testid="nav-candidature"
+            >
+              <span
+                aria-hidden="true"
+                className="absolute -inset-px rounded-pssfp-button opacity-0 ring-1 ring-inset ring-[#C9A040]/40 transition-opacity duration-300 group-hover:opacity-100"
+              />
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full"
+              />
+              <span className="relative">{t('candidature')}</span>
+              <ArrowRight
+                size={14}
+                aria-hidden="true"
+                className="relative transition-transform duration-200 group-hover:translate-x-0.5"
+              />
+            </a>
+          </span>
         </div>
 
         <div className="flex items-center gap-2 lg:hidden">
@@ -257,98 +213,32 @@ export function SiteHeader(): JSX.Element {
             aria-expanded={open}
             aria-controls="mobile-menu"
             data-testid="nav-toggle"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#EDE7F6] text-[#333] transition-colors hover:border-[#6B2FA0] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:border-[#3A2A55] dark:text-[#F5EFE3] dark:hover:border-[#B084E8] dark:hover:text-[#B084E8]"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#E4D8B7] text-[#333] transition-colors hover:border-[#6B2FA0] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:border-[#3A2F48] dark:text-[#F5EFE3] dark:hover:border-[#B084E8] dark:hover:text-[#B084E8]"
           >
             {open ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
           </button>
         </div>
       </div>
 
-      {open && (
-        <nav
-          id="mobile-menu"
-          data-testid="mobile-menu"
-          aria-label="Navigation mobile"
-          className="border-t border-[#EDE7F6] bg-white/95 backdrop-blur-2xl dark:border-[#3A2A55] dark:bg-[#14091F]/95 lg:hidden"
-        >
-          <ul className="mx-auto max-w-7xl divide-y divide-[#EDE7F6] px-6 py-2 text-base dark:divide-[#3A2A55]">
-            {NAV_LINKS.map((link) => {
-              const hasChildren = (link.children ?? []).length > 0;
-              const expanded = mobileExpanded === link.key;
-              return (
-                <li key={link.href}>
-                  <div className="flex items-center justify-between">
-                    <Link
-                      href={link.href}
-                      aria-current={isActive(link.href) ? 'page' : undefined}
-                      className={cn(
-                        'block flex-1 rounded px-2 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] dark:focus-visible:ring-[#E8C868]',
-                        isActive(link.href)
-                          ? 'font-semibold text-[#6B2FA0] dark:text-[#B084E8]'
-                          : 'text-[#333] hover:text-[#6B2FA0] dark:text-[#F5EFE3] dark:hover:text-[#B084E8]',
-                      )}
-                    >
-                      {t(link.key)}
-                    </Link>
-                    {hasChildren && (
-                      <button
-                        type="button"
-                        onClick={() => setMobileExpanded(expanded ? null : link.key)}
-                        aria-expanded={expanded}
-                        aria-label={`Déplier ${t(link.key)}`}
-                        data-testid={`nav-mobile-toggle-${link.key}`}
-                        className="ml-2 inline-flex h-10 w-10 items-center justify-center rounded text-[#333] transition-colors hover:text-[#6B2FA0] dark:text-[#F5EFE3] dark:hover:text-[#B084E8]"
-                      >
-                        <ChevronDown
-                          size={18}
-                          aria-hidden="true"
-                          className={cn(
-                            'transition-transform duration-200',
-                            expanded && 'rotate-180',
-                          )}
-                        />
-                      </button>
-                    )}
-                  </div>
-                  {hasChildren && expanded && (
-                    <ul className="mb-2 ml-4 border-l border-[#EDE7F6] pl-3 dark:border-[#3A2A55]">
-                      {link.children!.map((child) => (
-                        <li key={child.href}>
-                          <Link
-                            href={child.href}
-                            aria-current={pathname === child.href ? 'page' : undefined}
-                            className="block rounded px-2 py-2 text-sm text-[#555] hover:text-[#6B2FA0] dark:text-[#B5A8C8] dark:hover:text-[#B084E8]"
-                          >
-                            {t(child.key)}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              );
-            })}
-            <li>
-              <a
-                href={process.env.NEXT_PUBLIC_LIBRARY_URL ?? '#'}
-                className="flex items-center justify-between rounded px-2 py-3 text-[#333] hover:text-[#6B2FA0] dark:text-[#F5EFE3] dark:hover:text-[#B084E8]"
-              >
-                {t('library')}
-                <ExternalLink size={14} aria-hidden="true" />
-              </a>
-            </li>
-            <li>
-              <a
-                href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
-                className="mt-2 flex items-center justify-between rounded-pssfp-button bg-gradient-violet-or px-3 py-3 font-medium text-white shadow-pssfp-elevated"
-              >
-                {t('candidature')}
-                <ArrowRight size={14} aria-hidden="true" />
-              </a>
-            </li>
-          </ul>
-        </nav>
-      )}
+      <div
+        aria-hidden="true"
+        className={cn(
+          'pointer-events-none h-px origin-left bg-[linear-gradient(90deg,#2D1454_0%,#6B2FA0_45%,#C9A040_100%)] transition-opacity duration-300 motion-reduce:transition-none',
+          scrolled ? 'opacity-100' : 'opacity-0',
+        )}
+        style={{ transform: `scaleX(${scrollProgress / 100})` }}
+      />
+
     </header>
+    {open && (
+      <MobileDrawer
+        open={open}
+        pathname={pathname}
+        expandedKey={mobileExpanded}
+        onClose={() => setOpen(false)}
+        onToggleSection={handleMobileToggle}
+      />
+    )}
+    </>
   );
 }
