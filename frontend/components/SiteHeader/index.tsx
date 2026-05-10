@@ -182,6 +182,7 @@ export function SiteHeader(): JSX.Element {
                   {hasChildren && isSubmenuOpen && (
                     <div
                       role="menu"
+                      tabIndex={-1}
                       aria-label={t('aproposMenuLabel')}
                       data-testid={`nav-submenu-${link.key}`}
                       className="absolute left-0 top-full z-50 mt-1 min-w-[280px] origin-top rounded-pssfp-card border border-[#EDE7F6] bg-white shadow-pssfp-elevated dark:border-[#3A2A55] dark:bg-[#1F0E2E]"
