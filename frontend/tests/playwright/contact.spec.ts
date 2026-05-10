@@ -11,7 +11,9 @@ import AxeBuilder from '@axe-core/playwright';
 test.describe('/contact — page', () => {
   test('renders the h1 + form fields + coordonnees', async ({ page }) => {
     await page.goto('/contact');
-    await expect(page.getByRole('heading', { level: 1, name: /Contact/i })).toBeVisible();
+    // Vise l'id stable `contact-heading` (h1) — robuste au wording éditorial
+    // (refonte page contact : H1 = "Nous sommes à votre écoute").
+    await expect(page.locator('h1#contact-heading')).toBeVisible();
     await expect(page.getByTestId('contact-form')).toBeVisible();
     await expect(page.getByTestId('contact-nom')).toBeVisible();
     await expect(page.getByTestId('contact-email')).toBeVisible();

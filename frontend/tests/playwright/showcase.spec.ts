@@ -42,6 +42,11 @@ test.describe('HomeShowcase — structure', () => {
 
   test('clicking next dot advances the carousel', async ({ page }) => {
     await page.goto('/');
+    // Hover sur le showcase pause l'autoplay (stopOnMouseEnter: true) et
+    // garantit que React est hydraté avant les interactions. Sans ce hover,
+    // l'autoplay (6s) peut faire avancer l'index pendant le test sur une
+    // page dense (HomeStats / HomeSpecialites post-S5).
+    await page.getByTestId('home-showcase').hover();
     const dot1 = page.getByTestId('showcase-dot-1');
     await dot1.click();
     await expect(dot1).toHaveAttribute('aria-selected', 'true');
@@ -49,9 +54,8 @@ test.describe('HomeShowcase — structure', () => {
 
   test('next button advances the carousel to slide 2', async ({ page }) => {
     await page.goto('/');
-    // Click next — équivalent à ArrowRight pour tester l'avancement.
-    // Le keyboard ArrowRight focus() est flaky en headless Chromium ;
-    // le bouton next garantit le même comportement et est plus stable.
+    // Même pattern : hover → autoplay pausé → click déterministe.
+    await page.getByTestId('home-showcase').hover();
     await page.getByTestId('showcase-next').click();
     await expect(page.getByTestId('showcase-dot-1')).toHaveAttribute('aria-selected', 'true');
   });
