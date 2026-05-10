@@ -17,6 +17,7 @@
     "@types/sanitize-html": "^2.16.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
     "lucide-react": "^0.453.0",
     "marked": "^14.1.4",
     "next": "^14.2.15",

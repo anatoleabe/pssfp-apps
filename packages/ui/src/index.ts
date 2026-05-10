@@ -1,5 +1,15 @@
 export { Button, buttonVariants } from './components/Button';
 export type { ButtonProps } from './components/Button';
+export {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+  cardVariants,
+} from './components/Card';
+export type { CardProps } from './components/Card';
 export { Logo } from './components/Logo';
 export type { LogoProps } from './components/Logo';
 export { PssfpLogo } from './components/PssfpLogo';
