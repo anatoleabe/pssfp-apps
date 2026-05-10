@@ -14,7 +14,10 @@ import AxeBuilder from '@axe-core/playwright';
  * - Reduced-motion bypass
  */
 
-test.describe('Home UX Boost — Hero', () => {
+// Sprint S5 PR Y a remplacé HomeHero (legacy) par HomeShowcase (carrousel)
+// par défaut. Ces tests ne s'appliquent plus à NEXT_PUBLIC_HERO_VARIANT=showcase.
+// Pour les ré-activer : NEXT_PUBLIC_HERO_VARIANT=legacy.
+test.describe.skip('Home UX Boost — Hero (legacy variant only)', () => {
   test('renders hero with sparkles wrapping "excellence"', async ({ page }) => {
     await page.goto('/');
     const sparkles = page.locator('.pssfp-sparkles').first();
@@ -94,10 +97,12 @@ test.describe('Home UX Boost — Mobile', () => {
     expect(bodyWidth).toBeLessThanOrEqual(viewportWidth + 1);
   });
 
+  // Sprint S5 PR Y : retargeté de hero-cta-candidature (legacy) vers
+  // showcase-cta-primary-identite (nouveau showcase 5 slides).
   test('CTA candidature is visible and tappable on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/');
-    const cta = page.getByTestId('hero-cta-candidature');
+    const cta = page.getByTestId('showcase-cta-primary-identite');
     await expect(cta).toBeVisible();
     const box = await cta.boundingBox();
     expect(box).not.toBeNull();
