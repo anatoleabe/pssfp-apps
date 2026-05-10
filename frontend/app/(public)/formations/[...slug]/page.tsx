@@ -24,6 +24,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+function eyebrowFor(slug: string): string {
+  if (slug === 'formations/master') return 'Master Professionnel';
+  if (slug === 'formations/formation-continue') return 'Formation continue';
+  if (slug === 'formations/certifications') return 'Certifications internationales';
+  if (slug === 'formations/seminaires') return 'Séminaires & voyages d\'étude';
+  if (slug === 'formations/admission') return 'Admission';
+  if (slug === 'formations/frais-de-scolarite') return 'Frais de scolarité';
+  if (slug.startsWith('formations/specialites/')) return 'Master — Spécialité';
+  if (slug.startsWith('formations/formation-continue/')) return 'Formation continue — Module';
+  return 'Formations';
+}
+
 export default async function FormationsCatchallPage({ params }: PageProps): Promise<JSX.Element> {
   const { slug } = await params;
   const fullSlug = `formations/${slug.join('/')}`;
@@ -52,7 +64,7 @@ export default async function FormationsCatchallPage({ params }: PageProps): Pro
     page.slug.startsWith('formations/specialites/') && page.slug !== 'formations/specialites';
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12 md:py-16">
+    <>
       {isSpecialty && (
         <JsonLd
           data={programJsonLd({
@@ -62,28 +74,45 @@ export default async function FormationsCatchallPage({ params }: PageProps): Pro
           })}
         />
       )}
-      <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666]">
-        <Link href="/" className="hover:text-[#6B2FA0]">Accueil</Link>
-        <span aria-hidden="true"> / </span>
-        <Link href="/formations" className="hover:text-[#6B2FA0]">Formations</Link>
-        <span aria-hidden="true"> / </span>
-        <span className="text-[#333]" data-testid="breadcrumb-current">
-          {page.menu_label ?? page.title}
-        </span>
-      </nav>
 
-      <header className="mb-8">
-        <h1 className="font-heading text-3xl font-bold text-[#6B2FA0] md:text-4xl">
-          {page.title}
-        </h1>
-        {page.excerpt && (
-          <p className="mt-3 text-lg text-[#555]" data-testid="page-excerpt">
-            {page.excerpt}
-          </p>
-        )}
+      {/* Hero éditorial */}
+      <header className="relative overflow-hidden border-b border-[#EDE7F6] bg-gradient-lavande-blanc py-12 md:py-16 dark:border-[#3A2A55] dark:bg-[#1A0A2E] dark:bg-none">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-0 opacity-50 dark:opacity-30">
+          <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-[#9B59B6]/15 blur-3xl dark:bg-[#B084E8]/10" />
+          <div className="absolute -bottom-32 -left-16 h-[28rem] w-[28rem] rounded-full bg-[#C9A227]/10 blur-3xl dark:bg-[#E8C868]/10" />
+        </div>
+        <div className="relative mx-auto max-w-5xl px-6">
+          <p className="pssfp-eyebrow text-[#C9A227]">{eyebrowFor(page.slug)}</p>
+          <h1 className="mt-3 font-heading text-3xl font-bold leading-tight text-[#6B2FA0] md:text-5xl dark:text-[#B084E8]">
+            {page.title}
+          </h1>
+          {page.excerpt && (
+            <p className="mt-4 max-w-3xl text-lg text-[#555] dark:text-[#B5A8C8]" data-testid="page-excerpt">
+              {page.excerpt}
+            </p>
+          )}
+        </div>
       </header>
 
-      {page.body && <PageRenderer body={page.body} />}
-    </div>
+      <div className="mx-auto max-w-4xl px-6 pt-6">
+        <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666] dark:text-[#B5A8C8]">
+          <Link href="/" className="hover:text-[#6B2FA0] dark:hover:text-[#B084E8]">Accueil</Link>
+          <span aria-hidden="true"> / </span>
+          <Link href="/formations" className="hover:text-[#6B2FA0] dark:hover:text-[#B084E8]">Formations</Link>
+          <span aria-hidden="true"> / </span>
+          <span className="text-[#333] dark:text-[#F5EFE3]" data-testid="breadcrumb-current">
+            {page.menu_label ?? page.title}
+          </span>
+        </nav>
+      </div>
+
+      <div className="mx-auto max-w-4xl px-6 pb-12 md:pb-16">
+        {page.body && (
+          <div className="prose prose-pssfp max-w-none text-justify hyphens-auto leading-relaxed [&_blockquote]:border-l-4 [&_blockquote]:border-[#C9A227] [&_blockquote]:bg-[#FFFBEA] [&_blockquote]:px-6 [&_blockquote]:py-4 [&_blockquote]:not-italic [&_blockquote]:text-[#444] [&_h2]:mt-10 [&_h2]:font-heading [&_h2]:text-2xl [&_h2]:text-[#6B2FA0] [&_h3]:mt-6 [&_h3]:font-heading [&_h3]:text-xl [&_table]:overflow-hidden [&_table]:rounded-pssfp-card [&_table]:border [&_table]:border-[#EDE7F6] [&_th]:bg-[#EDE7F6] [&_th]:p-3 [&_td]:p-3 [&_td]:border-t [&_td]:border-[#EDE7F6]">
+            <PageRenderer body={page.body} className="!p-0" />
+          </div>
+        )}
+      </div>
+    </>
   );
 }
