@@ -13,7 +13,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const fullSlug = `pssfp/${slug.join('/')}`;
+  const fullSlug = `a-propos/${slug.join('/')}`;
   const result = await getPageBySlug(fullSlug);
   if (!result.ok) {
     return { title: 'Page introuvable' };
@@ -24,9 +24,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function PssfpPage({ params }: PageProps): Promise<JSX.Element> {
+export default async function AProposPage({ params }: PageProps): Promise<JSX.Element> {
   const { slug } = await params;
-  const fullSlug = `pssfp/${slug.join('/')}`;
+  const fullSlug = `a-propos/${slug.join('/')}`;
   const result = await getPageBySlug(fullSlug);
 
   if (!result.ok) {
@@ -48,14 +48,14 @@ export default async function PssfpPage({ params }: PageProps): Promise<JSX.Elem
   }
 
   const page = result.data;
-  const isCames = page.slug === 'pssfp/conformite-cames';
+  const isCames = page.slug === 'a-propos/conformite-cames';
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 md:py-16">
       <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666] dark:text-[#B5A8C8]">
         <Link href="/" className="hover:text-[#6B2FA0] dark:hover:text-[#B084E8]">Accueil</Link>
         <span aria-hidden="true"> / </span>
-        <Link href="/pssfp" className="hover:text-[#6B2FA0] dark:hover:text-[#B084E8]">Le PSSFP</Link>
+        <Link href="/a-propos" className="hover:text-[#6B2FA0] dark:hover:text-[#B084E8]">À propos de nous</Link>
         <span aria-hidden="true"> / </span>
         <span className="text-[#333] dark:text-[#F5EFE3]" data-testid="breadcrumb-current">
           {page.menu_label ?? page.title}

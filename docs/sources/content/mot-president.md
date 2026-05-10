@@ -1,0 +1,12 @@
+**Mot du Président**
+Bienvenue sur le site officiel du Programme Supérieur de Spécialisation en Finances Publiques (PSSFP).
+Créé sous l’égide du Ministère des Finances du Cameroun, le PSSFP s’est imposé comme un cadre d’excellence dédié à la formation, au renforcement des capacités et à la professionnalisation des acteurs des finances publiques. Notre ambition est de contribuer activement à la modernisation de l’action publique à travers une offre de formation spécialisée, adaptée aux enjeux contemporains de gouvernance, de performance et de développement.
+Dans un environnement marqué par l’évolution rapide des politiques publiques, la transformation numérique et les exigences accrues en matière de transparence et d’efficacité, le PSSFP entend former une nouvelle génération de cadres capables d’accompagner durablement les réformes de l’État et des collectivités territoriales. Nos formations couvrent des domaines stratégiques tels que l’audit et le contrôle des finances publiques, la fiscalité, la gouvernance territoriale, les marchés publics ainsi que l’économie et la gestion publiques.
+Le PSSFP place également l’innovation pédagogique au cœur de son action. À travers le développement de son dispositif de Formation Ouverte et À Distance (FOAD), nous avons engagé une dynamique de digitalisation visant à améliorer l’accessibilité, la flexibilité et la qualité des enseignements. Cette orientation traduit notre volonté de bâtir un environnement académique moderne, inclusif et résolument tourné vers l’avenir.
+Au-delà des enseignements, le PSSFP constitue un espace d’échanges, de collaboration et de production intellectuelle au service de la performance publique. Nous croyons fermement que le renforcement des compétences, l’intégrité professionnelle et la culture de résultats représentent des leviers essentiels pour une gestion saine et efficace des ressources publiques.
+Je tiens à saluer l’engagement des équipes pédagogiques, des partenaires institutionnels, des experts et des apprenants qui participent quotidiennement au rayonnement de notre programme. Grâce à leur implication, le PSSFP continue de consolider sa position comme référence académique et professionnelle en matière de finances publiques.
+À toutes celles et ceux qui découvrent notre institution, je souhaite la bienvenue et vous invite à parcourir ce site afin de mieux connaître nos missions, nos formations et nos perspectives.
+
+
+**  Dr BASAHAG ****Achile**** Nestor**
+Président du Comité de Pilotage du Programme Supérieur de Spécialisation en Finances Publiques (PSSFP)

@@ -29,7 +29,7 @@ test.describe('SEO — sitemap.xml', () => {
     expect(body).toContain('<urlset');
     expect(body).toMatch(/<loc>https?:\/\/[^<]+<\/loc>/);
     // Au moins les routes statiques principales
-    expect(body).toMatch(/\/pssfp/);
+    expect(body).toMatch(/\/a-propos/);
     expect(body).toMatch(/\/formations/);
     expect(body).toMatch(/\/actualites/);
     expect(body).toMatch(/\/contact/);

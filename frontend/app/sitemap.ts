@@ -6,7 +6,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pssfp.net';
 
 const STATIC_ROUTES: ReadonlyArray<{ path: string; changeFrequency: 'daily' | 'weekly' | 'monthly' | 'yearly'; priority: number }> = [
   { path: '/', changeFrequency: 'weekly', priority: 1.0 },
-  { path: '/pssfp', changeFrequency: 'monthly', priority: 0.9 },
+  { path: '/a-propos', changeFrequency: 'monthly', priority: 0.9 },
   { path: '/formations', changeFrequency: 'monthly', priority: 0.9 },
   { path: '/vie-academique', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/actualites', changeFrequency: 'daily', priority: 0.9 },
@@ -21,7 +21,7 @@ const STATIC_ROUTES: ReadonlyArray<{ path: string; changeFrequency: 'daily' | 'w
  *
  * Inclut :
  *  - 9 routes statiques (home, sections, transversales)
- *  - Toutes les pages CMS in_menu via /v1/menu (pssfp/*, formations/*, vie-academique/*)
+ *  - Toutes les pages CMS in_menu via /v1/menu (a-propos/*, formations/*, vie-academique/*)
  *  - Tous les articles publiés via /v1/articles?per_page=100
  *
  * Robuste à un backend down : retourne au moins les routes statiques.
@@ -49,7 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       };
       walk(menu.data);
       for (const node of flat) {
-        // Évite les doublons des routes statiques (/pssfp, /formations, etc.)
+        // Évite les doublons des routes statiques (/a-propos, /formations, etc.)
         const url = `${BASE_URL}/${node.slug}`;
         if (!entries.some((e) => e.url === url)) {
           entries.push({

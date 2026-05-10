@@ -2,12 +2,12 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 /**
- * PR U — UX boost phase 2 : dark mode + refonte /pssfp.
+ * PR U — UX boost phase 2 : dark mode + refonte /a-propos (ex /pssfp, renommé en S5 PR W).
  *
  * Couvre :
  *  - Toggle thème visible + ARIA
  *  - Toggle ajoute la classe `dark` sur <html> et persiste en localStorage
- *  - Refonte /pssfp : eyebrow, 3 piliers, CTA candidature, scroll-reveal hooks
+ *  - Refonte /a-propos : eyebrow, 3 piliers, CTA candidature, scroll-reveal hooks
  *  - A11y dark mode (axe-core, sans violation `critical`)
  */
 
@@ -47,17 +47,17 @@ test.describe('Theme toggle — chrome', () => {
   });
 });
 
-test.describe('/pssfp — refonte storytelling (PR U)', () => {
+test.describe('/a-propos — refonte storytelling (PR U + S5 PR W)', () => {
   test('renders the new editorial hero (eyebrow + display title + lead)', async ({ page }) => {
-    await page.goto('/pssfp');
+    await page.goto('/a-propos');
     // Eyebrow institutionnel
     await expect(page.getByText('Le Programme', { exact: true }).first()).toBeVisible();
     // H1 conservé pour SEO / a11y
-    await expect(page.getByRole('heading', { level: 1, name: /Le PSSFP/i })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: /À propos de nous/i })).toBeVisible();
   });
 
   test('renders the 3 piliers section with H2 + 3 cards', async ({ page }) => {
-    await page.goto('/pssfp');
+    await page.goto('/a-propos');
     await expect(page.getByRole('heading', { level: 2, name: /Recherche, formation, accompagnement/i })).toBeVisible();
     // 3 cards (h3) attendues
     const piliers = page.locator('h3', { hasText: /Excellence académique|Coopération internationale|Ancrage public/ });
@@ -65,19 +65,19 @@ test.describe('/pssfp — refonte storytelling (PR U)', () => {
   });
 
   test('renders the candidature CTA at the bottom of the page', async ({ page }) => {
-    await page.goto('/pssfp');
-    const cta = page.getByTestId('pssfp-cta-candidature');
+    await page.goto('/a-propos');
+    const cta = page.getByTestId('apropos-cta-candidature');
     await expect(cta).toBeVisible();
     await expect(cta).toHaveAttribute('href', /.+/);
   });
 });
 
-test.describe('A11y — dark mode sur /pssfp et /', () => {
-  test('/pssfp en dark mode n\'a pas de violation critical (axe-core)', async ({ page }) => {
+test.describe('A11y — dark mode sur /a-propos et /', () => {
+  test('/a-propos en dark mode n\'a pas de violation critical (axe-core)', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('pssfp-theme', 'dark');
     });
-    await page.goto('/pssfp');
+    await page.goto('/a-propos');
     await expect(page.locator('html')).toHaveClass(/dark/);
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
