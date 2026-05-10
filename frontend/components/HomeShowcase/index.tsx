@@ -196,12 +196,18 @@ export function HomeShowcase(): JSX.Element {
                 className="absolute inset-0 bg-gradient-to-t from-[#1A0A2E]/95 via-[#14091F]/60 to-transparent"
               />
 
-              {/* Contenu */}
+              {/* Contenu — seule la 1re slide a un h1 (SEO + a11y heading-order) */}
               <div className="relative mx-auto flex h-full max-w-7xl flex-col justify-end px-6 pb-20 md:pb-28">
                 <p className="pssfp-eyebrow text-[#E8C868]">{slide.eyebrow}</p>
-                <h1 className="mt-3 max-w-3xl font-heading text-pssfp-h1 font-bold leading-[1.05] tracking-tight text-white md:text-[clamp(2.5rem,1rem+5vw,5rem)]">
-                  {slide.title}
-                </h1>
+                {index === 0 ? (
+                  <h1 className="mt-3 max-w-3xl font-heading text-pssfp-h1 font-bold leading-[1.05] tracking-tight text-white md:text-[clamp(2.5rem,1rem+5vw,5rem)]">
+                    {slide.title}
+                  </h1>
+                ) : (
+                  <h2 className="mt-3 max-w-3xl font-heading text-pssfp-h1 font-bold leading-[1.05] tracking-tight text-white md:text-[clamp(2.5rem,1rem+5vw,5rem)]">
+                    {slide.title}
+                  </h2>
+                )}
                 <p className="mt-5 max-w-2xl text-pssfp-lead text-white/85">
                   {slide.subtitle}
                 </p>

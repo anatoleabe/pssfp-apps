@@ -8,14 +8,16 @@ import AxeBuilder from '@axe-core/playwright';
  * partenaires, accès rapides. ISR 5 min.
  */
 
-test.describe('Home — hero', () => {
-  test('renders the hero with h1 + 2 CTAs', async ({ page }) => {
+test.describe('Home — hero (Sprint S5 PR Y : showcase carrousel)', () => {
+  test('renders the showcase hero with h1 + 2 CTAs on slide 1', async ({ page }) => {
     await page.goto('/');
     const hero = page.getByRole('heading', { level: 1 });
     await expect(hero).toBeVisible();
-    await expect(hero).toContainText(/excellence des finances publiques/i);
-    await expect(page.getByTestId('hero-cta-candidature')).toBeVisible();
-    await expect(page.getByRole('link', { name: /Explorer les formations/i })).toBeVisible();
+    // Sprint S5 PR Y : titre slide 1 = "Former l'élite des finances publiques"
+    await expect(hero).toContainText(/finances publiques/i);
+    // Nouveaux testids du HomeShowcase
+    await expect(page.getByTestId('showcase-cta-primary-identite')).toBeVisible();
+    await expect(page.getByTestId('showcase-cta-secondary-identite')).toBeVisible();
   });
 });
 
@@ -43,13 +45,18 @@ test.describe('Home — sections', () => {
     );
   });
 
-  test('renders 3 featured actualites with placeholder note', async ({ page }) => {
+  test('renders 3 featured actualites OR placeholder note (Sprint S5 PR Z)', async ({ page }) => {
     await page.goto('/');
     const news = page.getByTestId('home-actualites');
     await news.scrollIntoViewIfNeeded();
     await expect(news).toBeVisible();
-    await expect(news.getByRole('note')).toContainText(/PR N/i);
-    await expect(news.locator('article, li').first()).toBeVisible();
+    // Sprint S5 PR Z : fetch réel /v1/articles?featured=true.
+    // En CI sans backend, on a le placeholder. Avec backend, 3 cards d'articles.
+    const placeholder = news.locator('[data-testid="home-actualites-placeholder"]');
+    const articleCards = news.locator('article');
+    const hasPlaceholder = (await placeholder.count()) > 0;
+    const hasArticles = (await articleCards.count()) > 0;
+    expect(hasPlaceholder || hasArticles).toBeTruthy();
   });
 
   test('renders partner logos block', async ({ page }) => {
@@ -81,9 +88,10 @@ test.describe('Home — a11y & performance', () => {
     expect(results.violations.filter((v) => v.impact === 'critical')).toEqual([]);
   });
 
-  test('reduces critical heading-order issues', async ({ page }) => {
+  test('home has exactly 1 h1 (showcase slide 1 title) — Sprint S5 PR Y', async ({ page }) => {
     await page.goto('/');
-    // Vérifie qu'il y a exactement 1 h1 sur la home
+    // Sprint S5 PR Y : le HomeShowcase rend 5 slides en DOM mais seul le 1er
+    // a un h1 ; les autres ont un h2 pour respecter la hiérarchie SEO.
     const h1Count = await page.locator('h1').count();
     expect(h1Count).toBe(1);
   });
