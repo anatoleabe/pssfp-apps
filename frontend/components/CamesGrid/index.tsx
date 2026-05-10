@@ -12,17 +12,17 @@ import { CheckCircle2 } from 'lucide-react';
  * est stable et issue du référentiel CAMES.
  */
 const REQUIREMENTS = [
-  { id: 1, label: 'Mission et identité institutionnelle', linkSlug: 'pssfp/presentation' },
-  { id: 2, label: 'Gouvernance et organes de pilotage', linkSlug: 'pssfp/gouvernance' },
+  { id: 1, label: 'Mission et identité institutionnelle', linkSlug: 'a-propos/presentation' },
+  { id: 2, label: 'Gouvernance et organes de pilotage', linkSlug: 'a-propos/comite-pilotage' },
   { id: 3, label: 'Programmes pédagogiques et curriculum', linkSlug: 'formations' },
   { id: 4, label: 'Corps enseignant et qualifications', linkSlug: 'vie-academique/corps-enseignant' },
   { id: 5, label: 'Étudiants et conditions d\'admission', linkSlug: 'formations/admission' },
-  { id: 6, label: 'Recherche et activités scientifiques', linkSlug: 'pssfp/conventions' },
-  { id: 7, label: 'Coopération nationale et internationale', linkSlug: 'pssfp/partenaires' },
-  { id: 8, label: 'Infrastructure et équipements', linkSlug: 'pssfp/infrastructure' },
-  { id: 9, label: 'Ressources documentaires (bibliothèque)', linkSlug: 'pssfp/infrastructure' },
-  { id: 10, label: 'Système d\'information et numérique pédagogique', linkSlug: 'pssfp/organigramme' },
-  { id: 11, label: 'Démarche qualité et auto-évaluation', linkSlug: 'pssfp/gouvernance' },
+  { id: 6, label: 'Recherche et activités scientifiques', linkSlug: 'a-propos/convention-tripartite' },
+  { id: 7, label: 'Coopération nationale et internationale', linkSlug: 'a-propos/partenaires' },
+  { id: 8, label: 'Infrastructure et équipements', linkSlug: 'a-propos/infrastructure' },
+  { id: 9, label: 'Ressources documentaires (bibliothèque)', linkSlug: 'a-propos/infrastructure' },
+  { id: 10, label: 'Système d\'information et numérique pédagogique', linkSlug: 'a-propos/organigramme' },
+  { id: 11, label: 'Démarche qualité et auto-évaluation', linkSlug: 'a-propos/comite-pilotage' },
   { id: 12, label: 'Insertion professionnelle des diplômés', linkSlug: 'vie-academique/promotions' },
 ] as const;
 

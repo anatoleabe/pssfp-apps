@@ -7,7 +7,17 @@
   "nav": {
     "skip": "Aller au contenu principal",
     "home": "Accueil",
-    "pssfp": "Le PSSFP",
+    "apropos": "À propos de nous",
+    "aproposMenuLabel": "Sous-menu À propos de nous",
+    "aproposMotPresident": "Mot du Président",
+    "aproposPresentation": "Présentation du PSSFP",
+    "aproposComitePilotage": "Comité de Pilotage",
+    "aproposOrganigramme": "Organigramme",
+    "aproposConvention": "Convention tripartite",
+    "aproposHistoire": "Histoire",
+    "aproposInfrastructure": "Infrastructure",
+    "aproposPartenaires": "Partenaires",
+    "aproposCames": "Conformité CAMES",
     "formations": "Formations",
     "vie": "Vie académique",
     "actualites": "Actualités",
@@ -44,9 +54,9 @@
     "switchToDark": "Basculer en mode sombre",
     "switchToLight": "Basculer en mode clair"
   },
-  "pssfpIndex": {
+  "aproposIndex": {
     "eyebrow": "Le Programme",
-    "title": "Le PSSFP",
+    "title": "À propos de nous",
     "titleAccent": "former l'élite des finances publiques",
     "lead": "Hébergé au Campus de Messa à Yaoundé, le Programme Supérieur de Spécialisation en Finances Publiques prépare depuis plus d'une décennie les cadres de l'administration financière camerounaise et africaine — au service de l'État, des collectivités et des institutions partenaires.",
     "missionEyebrow": "Mission institutionnelle",

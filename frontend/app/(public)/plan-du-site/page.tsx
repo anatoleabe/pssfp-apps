@@ -15,7 +15,7 @@ export default async function PlanDuSitePage(): Promise<JSX.Element> {
       key: 'main' as const,
       links: [
         { href: '/', label: tNav('home') },
-        { href: '/pssfp', label: tNav('pssfp') },
+        { href: '/a-propos', label: tNav('apropos') },
         { href: '/formations', label: tNav('formations') },
         { href: '/vie-academique', label: tNav('vie') },
         { href: '/actualites', label: tNav('actualites') },

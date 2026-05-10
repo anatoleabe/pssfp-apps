@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Page;
-use Database\Seeders\PssfpPagesSeeder;
+use Database\Seeders\AProposPagesSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Database\QueryException;
 
@@ -18,49 +18,49 @@ it('returns 404 when no page matches the slug', function (): void {
 });
 
 it('returns 404 when page exists but is in draft status', function (): void {
-    Page::factory()->draft()->create(['slug' => 'pssfp/draft-only']);
+    Page::factory()->draft()->create(['slug' => 'a-propos/draft-only']);
 
-    $this->getJson('/v1/pages/pssfp%2Fdraft-only')->assertStatus(404);
+    $this->getJson('/v1/pages/a-propos%2Fdraft-only')->assertStatus(404);
 });
 
 it('returns 200 with page payload when slug matches a published page', function (): void {
     Page::factory()->published()->create([
-        'slug' => 'pssfp/presentation',
-        'parent_slug' => 'pssfp',
+        'slug' => 'a-propos/presentation',
+        'parent_slug' => 'a-propos',
         'title' => ['fr' => 'Présentation du PSSFP'],
         'body' => ['fr' => "## Notre mission\n\nFormer les cadres."],
     ]);
 
-    $response = $this->getJson('/v1/pages/pssfp%2Fpresentation');
+    $response = $this->getJson('/v1/pages/a-propos%2Fpresentation');
 
     $response->assertOk();
-    $response->assertJsonPath('data.slug', 'pssfp/presentation');
+    $response->assertJsonPath('data.slug', 'a-propos/presentation');
     $response->assertJsonPath('data.title', 'Présentation du PSSFP');
     $response->assertJsonPath('data.body', "## Notre mission\n\nFormer les cadres.");
-    $response->assertJsonPath('data.parent_slug', 'pssfp');
+    $response->assertJsonPath('data.parent_slug', 'a-propos');
 });
 
 it('respects the published_at gate (future-dated pages are not visible)', function (): void {
     Page::factory()->create([
-        'slug' => 'pssfp/future-page',
+        'slug' => 'a-propos/future-page',
         'status' => Page::STATUS_PUBLISHED,
         'published_at' => now()->addDay(),
     ]);
 
-    $this->getJson('/v1/pages/pssfp%2Ffuture-page')->assertStatus(404);
+    $this->getJson('/v1/pages/a-propos%2Ffuture-page')->assertStatus(404);
 });
 
-it('GET /v1/pages?parent_slug=pssfp returns only children of pssfp', function (): void {
-    $this->seed(PssfpPagesSeeder::class);
+it('GET /v1/pages?parent_slug=a-propos returns only children of a-propos', function (): void {
+    $this->seed(AProposPagesSeeder::class);
     Page::factory()->published()->create(['slug' => 'foo', 'parent_slug' => null]);
     Page::factory()->published()->create(['slug' => 'bar/baz', 'parent_slug' => 'bar']);
 
-    $response = $this->getJson('/v1/pages?parent_slug=pssfp');
+    $response = $this->getJson('/v1/pages?parent_slug=a-propos');
 
     $response->assertOk();
     $slugs = collect($response->json('data'))->pluck('slug')->all();
-    expect($slugs)->toContain('pssfp/presentation');
-    expect($slugs)->toContain('pssfp/conformite-cames');
+    expect($slugs)->toContain('a-propos/presentation');
+    expect($slugs)->toContain('a-propos/conformite-cames');
     expect($slugs)->not->toContain('foo');
     expect($slugs)->not->toContain('bar/baz');
 });
@@ -81,17 +81,17 @@ it('GET /v1/pages?in_menu=true returns only menu pages sorted by order', functio
 });
 
 it('GET /v1/menu returns the nested menu structure (parent + children)', function (): void {
-    Page::factory()->published()->inMenu(10, 'Le PSSFP')->create([
-        'slug' => 'pssfp',
+    Page::factory()->published()->inMenu(10, 'À propos de nous')->create([
+        'slug' => 'a-propos',
         'parent_slug' => null,
     ]);
     Page::factory()->published()->inMenu(10, 'Présentation')->create([
-        'slug' => 'pssfp/presentation',
-        'parent_slug' => 'pssfp',
+        'slug' => 'a-propos/presentation',
+        'parent_slug' => 'a-propos',
     ]);
     Page::factory()->published()->inMenu(20, 'Mot du Président')->create([
-        'slug' => 'pssfp/mot-president',
-        'parent_slug' => 'pssfp',
+        'slug' => 'a-propos/mot-president',
+        'parent_slug' => 'a-propos',
     ]);
 
     $response = $this->getJson('/v1/menu');
@@ -99,8 +99,8 @@ it('GET /v1/menu returns the nested menu structure (parent + children)', functio
     $response->assertOk();
     $data = $response->json('data');
     expect($data)->toHaveCount(1);
-    expect($data[0]['slug'])->toBe('pssfp');
-    expect($data[0]['label'])->toBe('Le PSSFP');
+    expect($data[0]['slug'])->toBe('a-propos');
+    expect($data[0]['label'])->toBe('À propos de nous');
     expect($data[0]['children'])->toHaveCount(2);
     expect($data[0]['children'][0]['label'])->toBe('Présentation');
     expect($data[0]['children'][1]['label'])->toBe('Mot du Président');
@@ -136,28 +136,41 @@ it('orphan menu children (parent absent) are surfaced at root level', function (
     expect($slugs)->toContain('orphan-child');
 });
 
-it('PssfpPagesSeeder seeds 8 pages all published and in_menu', function (): void {
-    $this->seed(PssfpPagesSeeder::class);
+it('AProposPagesSeeder seeds 9 pages all published and in_menu', function (): void {
+    $this->seed(AProposPagesSeeder::class);
 
-    $count = Page::query()->where('parent_slug', 'pssfp')->count();
-    expect($count)->toBe(8);
+    $count = Page::query()->where('parent_slug', 'a-propos')->count();
+    expect($count)->toBe(9);
 
-    $allPublished = Page::query()->where('parent_slug', 'pssfp')
+    $allPublished = Page::query()->where('parent_slug', 'a-propos')
         ->where('status', '!=', Page::STATUS_PUBLISHED)
         ->doesntExist();
     expect($allPublished)->toBeTrue();
 
-    $allInMenu = Page::query()->where('parent_slug', 'pssfp')
+    $allInMenu = Page::query()->where('parent_slug', 'a-propos')
         ->where('is_in_menu', false)
         ->doesntExist();
     expect($allInMenu)->toBeTrue();
 });
 
-it('PssfpPagesSeeder is idempotent — running twice does not duplicate', function (): void {
-    $this->seed(PssfpPagesSeeder::class);
-    $this->seed(PssfpPagesSeeder::class);
+it('AProposPagesSeeder is idempotent — running twice does not duplicate', function (): void {
+    $this->seed(AProposPagesSeeder::class);
+    $this->seed(AProposPagesSeeder::class);
 
-    expect(Page::query()->where('parent_slug', 'pssfp')->count())->toBe(8);
+    expect(Page::query()->where('parent_slug', 'a-propos')->count())->toBe(9);
+});
+
+it('AProposPagesSeeder seeds the mot-president page with PCP terminology (not DG)', function (): void {
+    $this->seed(AProposPagesSeeder::class);
+
+    $page = Page::query()->where('slug', 'a-propos/mot-president')->first();
+    expect($page)->not->toBeNull();
+
+    $body = $page->getTranslation('body', 'fr');
+    expect($body)->toContain('Président du Comité de Pilotage')
+        ->and($body)->toContain('BASAHAG')
+        ->and($body)->not->toContain('Directeur Général')
+        ->and($body)->not->toContain(' DG ');
 });
 
 it('rejects unknown status values via CHECK constraint', function (): void {

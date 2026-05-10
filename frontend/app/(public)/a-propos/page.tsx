@@ -8,22 +8,23 @@ import { RevealOnScroll } from '@/components/RevealOnScroll';
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'Le PSSFP',
+  title: 'À propos de nous',
   description:
     "Découvrez le Programme Supérieur de Spécialisation en Finances Publiques — mission, gouvernance, partenaires et conformité CAMES.",
 };
 
 /**
- * /pssfp — page d'accueil de la rubrique institutionnelle.
+ * /a-propos — page d'accueil de la rubrique institutionnelle.
  *
+ * Sprint S5 PR W : rubrique renommée « À propos de nous » (ex « Le PSSFP »).
  * PR U (UX Boost Phase 2) : refonte storytelling avec hero éditorial,
  * 3 piliers, scroll reveal des sous-pages CMS, CTA candidature.
  */
-export default async function PssfpIndexPage(): Promise<JSX.Element> {
-  const t = await getTranslations('pssfpIndex');
+export default async function AProposIndexPage(): Promise<JSX.Element> {
+  const t = await getTranslations('aproposIndex');
   const result = await getMenu();
   const children = result.ok
-    ? (result.data.find((node) => node.slug === 'pssfp')?.children ?? [])
+    ? (result.data.find((node) => node.slug === 'a-propos')?.children ?? [])
     : [];
 
   return (
@@ -143,7 +144,7 @@ export default async function PssfpIndexPage(): Promise<JSX.Element> {
             <p
               role="alert"
               className="mt-10 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
-              data-testid="pssfp-empty"
+              data-testid="apropos-empty"
             >
               Le contenu institutionnel sera publié dès l'activation du CMS Filament en production.
             </p>
@@ -157,7 +158,7 @@ export default async function PssfpIndexPage(): Promise<JSX.Element> {
                 >
                   <Link
                     href={`/${child.slug}`}
-                    data-testid={`pssfp-card-${child.slug.split('/').pop()}`}
+                    data-testid={`apropos-card-${child.slug.split('/').pop()}`}
                     className="group flex h-full items-center justify-between gap-4 rounded-pssfp-card border border-[var(--pssfp-border)] bg-[var(--pssfp-bg-elevated)] p-5 transition-all hover:-translate-y-0.5 hover:border-[#9B59B6] hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:hover:border-[#B084E8] dark:focus-visible:ring-[#E8C868]"
                   >
                     <span className="font-heading text-lg font-semibold text-[var(--pssfp-text-strong)] group-hover:text-[var(--pssfp-primary)]">
@@ -196,7 +197,7 @@ export default async function PssfpIndexPage(): Promise<JSX.Element> {
                 </div>
                 <a
                   href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
-                  data-testid="pssfp-cta-candidature"
+                  data-testid="apropos-cta-candidature"
                   className="inline-flex items-center gap-2 rounded-pssfp-button bg-[#C9A227] px-5 py-3 font-medium text-[#1F1A24] shadow-pssfp-elevated transition-all hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#6B2FA0]"
                 >
                   {t('ctaButton')}
