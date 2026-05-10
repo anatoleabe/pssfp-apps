@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { CamesGrid } from '@/components/CamesGrid';
+import { OrganigrammeChart } from '@/components/OrganigrammeChart';
 import { PageRenderer } from '@/components/PageRenderer';
 import { getPageBySlug } from '@/lib/api/pages';
 import { mediaUrl } from '@/lib/media';
@@ -24,6 +25,50 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: result.data.meta_title ?? result.data.title,
     description: result.data.meta_description ?? result.data.excerpt ?? undefined,
   };
+}
+
+function Breadcrumb({ pageLabel }: { pageLabel: string }): JSX.Element {
+  return (
+    <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666] dark:text-[#B5A8C8]">
+      <Link href="/" className="hover:text-[#6B2FA0] dark:hover:text-[#B084E8]">Accueil</Link>
+      <span aria-hidden="true"> / </span>
+      <Link href="/a-propos" className="hover:text-[#6B2FA0] dark:hover:text-[#B084E8]">À propos de nous</Link>
+      <span aria-hidden="true"> / </span>
+      <span className="text-[#333] dark:text-[#F5EFE3]" data-testid="breadcrumb-current">
+        {pageLabel}
+      </span>
+    </nav>
+  );
+}
+
+function PageHero({
+  eyebrow,
+  title,
+  excerpt,
+}: {
+  eyebrow?: string;
+  title: string;
+  excerpt?: string | null;
+}): JSX.Element {
+  return (
+    <header className="relative overflow-hidden border-b border-[#EDE7F6] bg-gradient-lavande-blanc py-12 md:py-16 dark:border-[#3A2A55] dark:bg-[#1A0A2E] dark:bg-none">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-0 opacity-50 dark:opacity-30">
+        <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-[#9B59B6]/15 blur-3xl dark:bg-[#B084E8]/10" />
+        <div className="absolute -bottom-32 -left-16 h-[28rem] w-[28rem] rounded-full bg-[#C9A227]/10 blur-3xl dark:bg-[#E8C868]/10" />
+      </div>
+      <div className="relative mx-auto max-w-5xl px-6">
+        {eyebrow && <p className="pssfp-eyebrow text-[#C9A227]">{eyebrow}</p>}
+        <h1 className="mt-3 font-heading text-3xl font-bold leading-tight text-[#6B2FA0] md:text-5xl dark:text-[#B084E8]">
+          {title}
+        </h1>
+        {excerpt && (
+          <p className="mt-4 max-w-3xl text-lg text-[#555] dark:text-[#B5A8C8]" data-testid="page-excerpt">
+            {excerpt}
+          </p>
+        )}
+      </div>
+    </header>
+  );
 }
 
 export default async function AProposPage({ params }: PageProps): Promise<JSX.Element> {
@@ -52,90 +97,105 @@ export default async function AProposPage({ params }: PageProps): Promise<JSX.El
   const page = result.data;
   const isCames = page.slug === 'a-propos/conformite-cames';
   const isMotPresident = page.slug === 'a-propos/mot-president';
+  const isOrganigramme = page.slug === 'a-propos/organigramme';
 
   // Layout spécial Mot du Président : photo + texte justifié, allure éditoriale.
   if (isMotPresident) {
     return (
-      <div className="mx-auto max-w-5xl px-6 py-12 md:py-16">
-        <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666] dark:text-[#B5A8C8]">
-          <Link href="/" className="hover:text-[#6B2FA0] dark:hover:text-[#B084E8]">Accueil</Link>
-          <span aria-hidden="true"> / </span>
-          <Link href="/a-propos" className="hover:text-[#6B2FA0] dark:hover:text-[#B084E8]">À propos de nous</Link>
-          <span aria-hidden="true"> / </span>
-          <span className="text-[#333] dark:text-[#F5EFE3]" data-testid="breadcrumb-current">
-            {page.menu_label ?? page.title}
-          </span>
-        </nav>
+      <>
+        <div className="mx-auto max-w-5xl px-6 pt-6">
+          <Breadcrumb pageLabel={page.menu_label ?? page.title} />
+        </div>
+        <div className="mx-auto max-w-5xl px-6 pb-12 md:pb-16">
+          <header className="mb-10">
+            <p className="pssfp-eyebrow text-[#C9A227]">Le Comité de Pilotage</p>
+            <h1 className="mt-3 font-heading text-3xl font-bold text-[#6B2FA0] md:text-5xl dark:text-[#B084E8]">
+              {page.title}
+            </h1>
+          </header>
 
-        <header className="mb-10">
-          <p className="pssfp-eyebrow text-[#C9A227]">Le Comité de Pilotage</p>
-          <h1 className="mt-3 font-heading text-3xl font-bold text-[#6B2FA0] md:text-5xl dark:text-[#B084E8]">
-            {page.title}
-          </h1>
-        </header>
+          <div className="grid gap-10 md:grid-cols-[260px_1fr] md:gap-12 lg:grid-cols-[320px_1fr]">
+            <aside className="md:sticky md:top-24 md:self-start">
+              <figure className="overflow-hidden rounded-pssfp-card border border-[#EDE7F6] bg-white shadow-pssfp-elevated dark:border-[#3A2A55] dark:bg-[#1F0E2E]">
+                <div className="relative aspect-[4/5] w-full">
+                  <Image
+                    src={mediaUrl('photos/direction/dr-basahag-achile.webp')}
+                    alt="Portrait officiel du Dr. BASAHAG Achile Nestor"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 320px"
+                    className="object-cover object-center"
+                    priority
+                  />
+                </div>
+                <figcaption className="border-t border-[#EDE7F6] bg-gradient-lavande-blanc px-5 py-4 text-center dark:border-[#3A2A55] dark:bg-[#2A1640]">
+                  <p className="font-heading text-base font-bold text-[#6B2FA0] dark:text-[#B084E8]">
+                    Dr. BASAHAG Achile Nestor
+                  </p>
+                  <p className="mt-1 text-xs text-[#555] dark:text-[#B5A8C8]">
+                    Président du Comité de Pilotage
+                  </p>
+                </figcaption>
+              </figure>
+            </aside>
 
-        <div className="grid gap-10 md:grid-cols-[260px_1fr] md:gap-12 lg:grid-cols-[320px_1fr]">
-          <aside className="md:sticky md:top-24 md:self-start">
-            <figure className="overflow-hidden rounded-pssfp-card border border-[#EDE7F6] bg-white shadow-pssfp-elevated dark:border-[#3A2A55] dark:bg-[#1F0E2E]">
-              <div className="relative aspect-[4/5] w-full">
-                <Image
-                  src={mediaUrl('photos/direction/dr-basahag-achile.webp')}
-                  alt="Portrait officiel du Dr. BASAHAG Achile Nestor"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 320px"
-                  className="object-cover object-center"
-                  priority
-                />
-              </div>
-              <figcaption className="border-t border-[#EDE7F6] bg-gradient-lavande-blanc px-5 py-4 text-center dark:border-[#3A2A55] dark:bg-[#2A1640]">
-                <p className="font-heading text-base font-bold text-[#6B2FA0] dark:text-[#B084E8]">
-                  Dr. BASAHAG Achile Nestor
-                </p>
-                <p className="mt-1 text-xs text-[#555] dark:text-[#B5A8C8]">
-                  Président du Comité de Pilotage
-                </p>
-              </figcaption>
-            </figure>
-          </aside>
-
-          <div className="prose prose-pssfp max-w-none text-justify hyphens-auto leading-relaxed [&_blockquote]:border-l-4 [&_blockquote]:border-[#C9A227] [&_blockquote]:bg-[#FFFBEA] [&_blockquote]:px-6 [&_blockquote]:py-4 [&_blockquote]:not-italic [&_blockquote]:text-[#444] [&_hr]:my-8 [&_hr]:border-[#C9A227]/40 [&_p]:mb-5">
-            {page.body && <PageRenderer body={page.body} className="!p-0" />}
+            <div className="prose prose-pssfp max-w-none text-justify hyphens-auto leading-relaxed [&_blockquote]:border-l-4 [&_blockquote]:border-[#C9A227] [&_blockquote]:bg-[#FFFBEA] [&_blockquote]:px-6 [&_blockquote]:py-4 [&_blockquote]:not-italic [&_blockquote]:text-[#444] [&_hr]:my-8 [&_hr]:border-[#C9A227]/40 [&_p]:mb-5">
+              {page.body && <PageRenderer body={page.body} className="!p-0" />}
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
-  return (
-    <div className="mx-auto max-w-3xl px-6 py-12 md:py-16">
-      <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666] dark:text-[#B5A8C8]">
-        <Link href="/" className="hover:text-[#6B2FA0] dark:hover:text-[#B084E8]">Accueil</Link>
-        <span aria-hidden="true"> / </span>
-        <Link href="/a-propos" className="hover:text-[#6B2FA0] dark:hover:text-[#B084E8]">À propos de nous</Link>
-        <span aria-hidden="true"> / </span>
-        <span className="text-[#333] dark:text-[#F5EFE3]" data-testid="breadcrumb-current">
-          {page.menu_label ?? page.title}
-        </span>
-      </nav>
-
-      <header className="mb-8">
-        <h1 className="font-heading text-3xl font-bold text-[#6B2FA0] md:text-4xl dark:text-[#B084E8]">
-          {page.title}
-        </h1>
-        {page.excerpt && (
-          <p className="mt-3 text-lg text-[#555] dark:text-[#B5A8C8]" data-testid="page-excerpt">
-            {page.excerpt}
-          </p>
-        )}
-      </header>
-
-      {page.body && <PageRenderer body={page.body} />}
-
-      {isCames && (
-        <div className="mt-12">
-          <CamesGrid />
+  // Layout spécial Organigramme : graphe hiérarchique
+  if (isOrganigramme) {
+    return (
+      <>
+        <PageHero eyebrow="Structure organisationnelle" title={page.title} excerpt={page.excerpt} />
+        <div className="mx-auto max-w-7xl px-6 pt-6">
+          <Breadcrumb pageLabel={page.menu_label ?? page.title} />
         </div>
-      )}
-    </div>
+        <div className="mx-auto max-w-7xl px-6 pb-12 md:pb-16">
+          <OrganigrammeChart />
+          {page.body && (
+            <details className="mt-12 rounded-pssfp-card border border-[#EDE7F6] bg-white p-6 dark:border-[#3A2A55] dark:bg-[#1F0E2E]">
+              <summary className="cursor-pointer font-heading font-semibold text-[#6B2FA0] dark:text-[#B084E8]">
+                Voir la liste textuelle complète
+              </summary>
+              <div className="mt-4">
+                <PageRenderer body={page.body} />
+              </div>
+            </details>
+          )}
+        </div>
+      </>
+    );
+  }
+
+  // Layout par défaut : hero + prose
+  return (
+    <>
+      <PageHero
+        eyebrow={isCames ? 'Accréditation' : 'À propos de nous'}
+        title={page.title}
+        excerpt={page.excerpt}
+      />
+      <div className="mx-auto max-w-4xl px-6 pt-6">
+        <Breadcrumb pageLabel={page.menu_label ?? page.title} />
+      </div>
+      <div className="mx-auto max-w-4xl px-6 pb-12 md:pb-16">
+        {page.body && (
+          <div className="prose prose-pssfp max-w-none text-justify hyphens-auto leading-relaxed [&_blockquote]:border-l-4 [&_blockquote]:border-[#C9A227] [&_blockquote]:bg-[#FFFBEA] [&_blockquote]:px-6 [&_blockquote]:py-4 [&_blockquote]:not-italic [&_blockquote]:text-[#444] [&_h2]:mt-10 [&_h2]:font-heading [&_h2]:text-2xl [&_h2]:text-[#6B2FA0] [&_h3]:mt-6 [&_h3]:font-heading [&_h3]:text-xl [&_table]:overflow-hidden [&_table]:rounded-pssfp-card [&_table]:border [&_table]:border-[#EDE7F6] [&_th]:bg-[#EDE7F6] [&_th]:p-3 [&_td]:p-3 [&_td]:border-t [&_td]:border-[#EDE7F6]">
+            <PageRenderer body={page.body} className="!p-0" />
+          </div>
+        )}
+
+        {isCames && (
+          <div className="mt-12">
+            <CamesGrid />
+          </div>
+        )}
+      </div>
+    </>
   );
 }

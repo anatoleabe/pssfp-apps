@@ -107,16 +107,14 @@ it('list endpoint omits body to keep response payload small', function (): void 
     expect($response->json('data.0.body'))->toBeNull();
 });
 
-it('ArticlesSeeder seeds 4 new + 6 legacy articles (10 total) avec 2 nouveaux drafts (S5 PR Z)', function (): void {
+it('ArticlesSeeder seeds 4 new + 6 legacy articles (10 total), tous publiés', function (): void {
     $this->seed(ArticlesSeeder::class);
 
-    // 4 nouveaux articles : 2 publiés + 2 drafts (Centre Pasteur, Assemblée Nationale).
-    // 6 anciens articles : tous publiés.
+    // 4 nouveaux articles validés Anatole + 6 anciens articles : tous publiés.
     expect(Article::query()->count())->toBe(10);
-    expect(Article::query()->where('status', 'published')->count())->toBe(8);
-    expect(Article::query()->where('status', 'draft')->count())->toBe(2);
-    // 2 nouveaux articles publiés sont pinned (formation continue + appel P14).
-    expect(Article::query()->where('is_pinned', true)->where('status', 'published')->count())->toBe(2);
+    expect(Article::query()->where('status', 'published')->count())->toBe(10);
+    // 4 articles featured pinned : formation continue, appel P14, Centre Pasteur, Assemblée Nationale.
+    expect(Article::query()->where('is_pinned', true)->where('status', 'published')->count())->toBe(4);
 });
 
 it('ArticlesSeeder is idempotent', function (): void {
@@ -139,11 +137,11 @@ it('ArticlesSeeder seeds the 4 new S5 articles validés par Anatole', function (
             ->toBeTrue("Article {$slug} must be seeded");
     }
 
-    // Drafts (validation Anatole pending)
+    // Tous publiés (les drafts ont été promus comme exemples)
     expect(Article::query()->where('slug', 'formation-centre-pasteur-yaounde')->value('status'))
-        ->toBe('draft');
+        ->toBe('published');
     expect(Article::query()->where('slug', 'formation-assemblee-nationale-cameroun')->value('status'))
-        ->toBe('draft');
+        ->toBe('published');
 });
 
 it('rejects invalid status via CHECK constraint', function (): void {

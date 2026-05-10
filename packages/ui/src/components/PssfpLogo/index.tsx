@@ -9,12 +9,11 @@ export interface PssfpLogoProps {
 }
 
 /**
- * Logo PSSFP officiel. Pointe sur l'asset SVG du dossier public/logos.
+ * Logo PSSFP officiel. Pointe sur l'asset PNG du dossier public/logos.
  *
- * Frontend (pssfp.net) le sert depuis /logos/pssfp.svg.
- * Bibliothèque et candidature peuvent le servir aussi depuis leur public/.
- *
- * Pour utiliser ailleurs, copier le SVG dans le public/logos/ de l'app.
+ * Frontend (pssfp.net) le sert depuis /logos/pssfp.png — version PNG transparente
+ * préférée au SVG (le SVG officiel a un fond blanc qui rend mal en dark mode).
+ * Bibliothèque et candidature le servent aussi depuis leur public/.
  */
 export function PssfpLogo({
   size = 40,
@@ -29,7 +28,7 @@ export function PssfpLogo({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/logos/pssfp.svg"
+        src="/logos/pssfp.png"
         alt=""
         height={size}
         style={{ height: size, width: 'auto' }}

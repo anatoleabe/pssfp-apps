@@ -77,8 +77,8 @@ class ArticlesSeeder extends Seeder
                 'slug' => 'formation-centre-pasteur-yaounde',
                 'category' => 'cooperation',
                 'is_pinned' => true,
-                // Status DRAFT — validation Anatole requise sur la rédaction
-                'status' => Article::STATUS_DRAFT,
+                // Publié comme exemple démo — texte final éditable via Filament admin
+                'status' => Article::STATUS_PUBLISHED,
                 'days_ago' => 30,
                 'featured_image_path' => 'photos/evenements/dsc-0466.webp',
                 'title' => 'Le PSSFP forme les cadres du Centre Pasteur de Yaoundé',
@@ -89,8 +89,8 @@ class ArticlesSeeder extends Seeder
                 'slug' => 'formation-assemblee-nationale-cameroun',
                 'category' => 'cooperation',
                 'is_pinned' => true,
-                // Status DRAFT — validation Anatole requise sur la rédaction
-                'status' => Article::STATUS_DRAFT,
+                // Publié comme exemple démo — texte final éditable via Filament admin
+                'status' => Article::STATUS_PUBLISHED,
                 'days_ago' => 45,
                 'featured_image_path' => 'photos/evenements/dsc-0274.webp',
                 'title' => "Le PSSFP à l'Assemblée Nationale du Cameroun : formation des cadres parlementaires",
