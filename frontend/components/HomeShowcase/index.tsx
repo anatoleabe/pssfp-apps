@@ -291,14 +291,7 @@ export function HomeShowcase(): JSX.Element {
         })}
       </div>
 
-      {/* Désactiver l'autoplay si prefers-reduced-motion */}
-      <style>{`
-        @media (prefers-reduced-motion: reduce) {
-          [data-testid="home-showcase"] [data-embla-container] {
-            animation: none !important;
-          }
-        }
-      `}</style>
+      {/* Désactiver l'autoplay si prefers-reduced-motion : géré dans globals.css */}
     </section>
   );
 }

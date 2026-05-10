@@ -160,7 +160,7 @@ it('AProposPagesSeeder is idempotent — running twice does not duplicate', func
     expect(Page::query()->where('parent_slug', 'a-propos')->count())->toBe(9);
 });
 
-it('AProposPagesSeeder seeds the mot-president page with PCP terminology (not DG)', function (): void {
+it('AProposPagesSeeder seeds the mot-president page with Dr. BASAHAG + PCP terminology', function (): void {
     $this->seed(AProposPagesSeeder::class);
 
     $page = Page::query()->where('slug', 'a-propos/mot-president')->first();
@@ -168,9 +168,9 @@ it('AProposPagesSeeder seeds the mot-president page with PCP terminology (not DG
 
     $body = $page->getTranslation('body', 'fr');
     expect($body)->toContain('Président du Comité de Pilotage')
-        ->and($body)->toContain('BASAHAG')
-        ->and($body)->not->toContain('Directeur Général')
-        ->and($body)->not->toContain(' DG ');
+        ->and($body)->toContain('Dr. BASAHAG')
+        ->and($body)->not->toContain('Pr. BASAHAG')
+        ->and($body)->not->toContain('Directeur Général');
 });
 
 it('rejects unknown status values via CHECK constraint', function (): void {

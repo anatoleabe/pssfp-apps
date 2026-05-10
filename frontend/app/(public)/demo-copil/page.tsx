@@ -17,7 +17,7 @@ import {
  * (cf. spec sprint S5 PR AA).
  *
  * URL non listée dans le sitemap, exclue de robots.txt.
- * Sert de tour guidé pour la présentation au Pr. BASAHAG et au COPIL.
+ * Sert de tour guidé pour la présentation au Dr. BASAHAG et au COPIL.
  */
 export const metadata: Metadata = {
   title: 'Démo COPIL — Sprint S5',
@@ -54,7 +54,7 @@ const PRS: ReadonlyArray<PrStatus> = [
     description:
       "Renomme la rubrique « Le PSSFP » en « À propos de nous » avec dropdown sub-menu, corrige la terminologie (PCP au lieu de DG) et seede 9 pages avec le contenu réel des DOCX d'Anatole.",
     highlights: [
-      'Mot du Président (texte officiel Pr. BASAHAG)',
+      'Mot du Président (texte officiel Dr. BASAHAG)',
       'Organigramme complet (~50 noms, 9 sections)',
       'Convention tripartite (MINFI · MINESUP · UY2)',
       'Histoire 2007-2026, Comité de Pilotage, Infrastructure',
@@ -139,7 +139,7 @@ export default function DemoCopilPage(): JSX.Element {
         <p className="mt-4 text-lg text-[#555]">
           Récapitulatif des 6 livrables du Sprint S5 pour la présentation au{' '}
           <strong>Comité de Pilotage</strong> présidé par le{' '}
-          <strong>Pr. BASAHAG Achile Nestor</strong>.
+          <strong>Dr. BASAHAG Achile Nestor</strong>.
         </p>
         <p className="mt-2 text-sm text-[#888]" data-testid="demo-copil-internal">
           Page interne — non indexée, non listée dans le sitemap.
