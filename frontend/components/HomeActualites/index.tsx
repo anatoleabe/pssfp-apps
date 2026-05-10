@@ -1,44 +1,28 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Calendar } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import { listArticles, type ApiArticle } from '@/lib/api/articles';
+import { mediaUrl } from '@/lib/media';
 
 /**
- * Bloc « 3 actualités à la une » — refonte PR R.
+ * Bloc « 3 actualités à la une » — refonte PR R + Sprint S5 PR Z.
  *
- * Cards avec image header gradient + animation reveal au hover, badge catégorie
- * en pill, footer avec read-more arrow animé.
+ * Cards avec image header (photo MinIO ou gradient fallback) + animation
+ * reveal au hover, badge catégorie en pill, footer avec read-more.
  *
- * V1 : seed mock (3 articles placeholders) tant que la table `articles` /
- * Resource Filament `ArticleResource` n'est pas créée (cf. PR N).
- *
- * <!-- TODO replace MOCK_ARTICLES with fetch /v1/articles?featured=true (PR N) -->
+ * Sprint S5 PR Z : remplace les MOCK_ARTICLES par un fetch réel sur
+ * `/v1/articles?featured=true`. Si l'API est down ou retourne 0 articles,
+ * fallback sur le bloc placeholder.
  */
-const MOCK_ARTICLES = [
-  {
-    slug: 'rentree-academique-2026',
-    dateIso: '2026-09-20',
-    categoryKey: 'catEvenement',
-    titleKey: 'article1',
-    excerptKey: 'article1Body',
-    accent: 'violet' as const,
-  },
-  {
-    slug: 'partenariat-fmi-2026',
-    dateIso: '2026-04-15',
-    categoryKey: 'catCooperation',
-    titleKey: 'article2',
-    excerptKey: 'article2Body',
-    accent: 'or' as const,
-  },
-  {
-    slug: 'soutenances-promotion-13',
-    dateIso: '2026-02-10',
-    categoryKey: 'catVie',
-    titleKey: 'article3',
-    excerptKey: 'article3Body',
-    accent: 'lavande' as const,
-  },
-] as const;
+
+const ACCENT_BY_CATEGORY: Record<string, 'violet' | 'or' | 'lavande'> = {
+  evenement: 'violet',
+  cooperation: 'or',
+  'vie-academique': 'lavande',
+  communique: 'violet',
+  partenariat: 'or',
+};
 
 function formatDateFr(iso: string): string {
   return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }).format(
@@ -54,6 +38,12 @@ export async function HomeActualites(): Promise<JSX.Element> {
     or: 'bg-gradient-violet-or',
     lavande: 'bg-gradient-lavande-blanc',
   } as const;
+
+  const articlesResult = await listArticles({ featured: true });
+  const realArticles: ApiArticle[] = articlesResult.ok
+    ? articlesResult.data.data.slice(0, 3)
+    : [];
+  const hasRealArticles = realArticles.length > 0;
 
   return (
     <section
@@ -85,77 +75,81 @@ export async function HomeActualites(): Promise<JSX.Element> {
           </Link>
         </header>
 
-        {/* Bandeau placeholder — à retirer quand PR N est mergée */}
-        <p
-          role="note"
-          className="mb-8 rounded-pssfp-card border border-amber-300 bg-amber-50 p-4 text-xs leading-relaxed text-amber-900"
-        >
-          {t('placeholder')}
-        </p>
+        {/* Bandeau placeholder visible uniquement si l'API retourne 0 article featured */}
+        {!hasRealArticles && (
+          <p
+            role="note"
+            data-testid="home-actualites-placeholder"
+            className="mb-8 rounded-pssfp-card border border-amber-300 bg-amber-50 p-4 text-xs leading-relaxed text-amber-900"
+          >
+            {t('placeholder')}
+          </p>
+        )}
 
         <ul className="grid gap-6 md:grid-cols-3">
-          {MOCK_ARTICLES.map((article) => (
-            <li key={article.slug}>
-              <article className="group flex h-full flex-col overflow-hidden rounded-pssfp-card border border-[#EDE7F6] bg-white shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-[#9B59B6]/40 hover:shadow-pssfp-elevated">
-                {/* Header image avec gradient + pattern */}
-                <div
-                  aria-hidden="true"
-                  className={`relative h-48 overflow-hidden ${accentBg[article.accent]}`}
-                >
-                  {/* Pattern grille */}
-                  <div
-                    className="absolute inset-0 opacity-[0.08]"
-                    style={{
-                      backgroundImage:
-                        'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)',
-                      backgroundSize: '32px 32px',
-                    }}
-                  />
-                  {/* Halo radial */}
-                  <div
-                    className="absolute inset-0 transition-transform duration-700 ease-pssfp-out-expo group-hover:scale-110"
-                    style={{
-                      background:
-                        article.accent === 'lavande'
-                          ? 'radial-gradient(circle at 70% 30%, rgba(107, 47, 160, 0.18) 0%, transparent 60%)'
-                          : 'radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.25) 0%, transparent 60%)',
-                    }}
-                  />
-                </div>
-
-                <div className="flex grow flex-col p-6">
-                  <p className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="inline-flex items-center gap-1 text-[#666]">
-                      <Calendar size={12} aria-hidden="true" />
-                      <time dateTime={article.dateIso}>{formatDateFr(article.dateIso)}</time>
-                    </span>
-                    <span
-                      className="inline-flex items-center rounded-full bg-[#EDE7F6] px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-[#6B2FA0]"
+          {hasRealArticles
+            ? realArticles.map((article) => {
+                const accent = ACCENT_BY_CATEGORY[article.category ?? ''] ?? 'violet';
+                const dateIso = article.published_at ?? new Date().toISOString();
+                return (
+                  <li key={article.uuid}>
+                    <article
+                      data-testid={`home-actualites-card-${article.slug}`}
+                      className="group flex h-full flex-col overflow-hidden rounded-pssfp-card border border-[#EDE7F6] bg-white shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-[#9B59B6]/40 hover:shadow-pssfp-elevated"
                     >
-                      {t(article.categoryKey)}
-                    </span>
-                  </p>
-                  <h3 className="mt-4 grow font-heading text-pssfp-h3 font-bold leading-snug text-[#1A0A2E]">
-                    {t(article.titleKey)}
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-[#555]">
-                    {t(article.excerptKey)}
-                  </p>
-                  <Link
-                    href={`/actualites/${article.slug}`}
-                    className="mt-5 inline-flex items-center gap-1.5 self-start rounded text-sm font-semibold text-[#6B2FA0] transition-all duration-200 hover:gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
-                  >
-                    {t('readMore')}
-                    <ArrowRight
-                      size={14}
-                      aria-hidden="true"
-                      className="transition-transform duration-200 group-hover:translate-x-0.5"
-                    />
-                  </Link>
-                </div>
-              </article>
-            </li>
-          ))}
+                      {/* Header image MinIO ou gradient fallback */}
+                      <div
+                        aria-hidden="true"
+                        className={`relative h-48 overflow-hidden ${accentBg[accent]}`}
+                      >
+                        {article.featured_image_path && (
+                          <Image
+                            src={mediaUrl(article.featured_image_path)}
+                            alt=""
+                            fill
+                            sizes="(max-width: 768px) 100vw, 33vw"
+                            className="object-cover transition-transform duration-700 ease-pssfp-out-expo group-hover:scale-105"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                      </div>
+
+                      <div className="flex grow flex-col p-6">
+                        <p className="flex flex-wrap items-center gap-2 text-xs">
+                          <span className="inline-flex items-center gap-1 text-[#666]">
+                            <Calendar size={12} aria-hidden="true" />
+                            <time dateTime={dateIso}>{formatDateFr(dateIso)}</time>
+                          </span>
+                          <span className="inline-flex items-center rounded-full bg-[#EDE7F6] px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-[#6B2FA0]">
+                            {article.category_label ?? article.category ?? ''}
+                          </span>
+                        </p>
+                        <h3 className="mt-4 grow font-heading text-pssfp-h3 font-bold leading-snug text-[#1A0A2E]">
+                          {article.title}
+                        </h3>
+                        {article.excerpt && (
+                          <p className="mt-3 text-sm leading-relaxed text-[#555]">
+                            {article.excerpt}
+                          </p>
+                        )}
+                        <Link
+                          href={`/actualites/${article.slug}`}
+                          data-testid={`home-actualites-link-${article.slug}`}
+                          className="mt-5 inline-flex items-center gap-1.5 self-start rounded text-sm font-semibold text-[#6B2FA0] transition-all duration-200 hover:gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+                        >
+                          {t('readMore')}
+                          <ArrowRight
+                            size={14}
+                            aria-hidden="true"
+                            className="transition-transform duration-200 group-hover:translate-x-0.5"
+                          />
+                        </Link>
+                      </div>
+                    </article>
+                  </li>
+                );
+              })
+            : null}
         </ul>
       </div>
     </section>
