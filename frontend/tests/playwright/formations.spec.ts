@@ -38,7 +38,7 @@ test.describe('/formations/[...slug] — error fallback', () => {
   });
 
   test('specialty page renders fallback when SSR fetch fails', async ({ page }) => {
-    const response = await page.goto('/formations/specialites/fiscalite-finance-comptabilite-publique');
+    const response = await page.goto('/formations/specialites/metiers-fiscalite-comptabilite');
     if (response?.status() === 404) {
       await expect(page.getByRole('heading', { level: 1, name: '404' })).toBeVisible();
     } else {
