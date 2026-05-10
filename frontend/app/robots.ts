@@ -13,7 +13,9 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/'],
+        // /demo-copil : page interne pour la démonstration au Comité de Pilotage,
+        // exclue de l'indexation (cf. spec sprint S5 PR AA).
+        disallow: ['/api/', '/demo-copil'],
       },
     ],
     sitemap: `${BASE_URL}/sitemap.xml`,
