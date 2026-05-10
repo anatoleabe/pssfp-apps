@@ -8,6 +8,7 @@ const config: Config = {
     './lib/**/*.{ts,tsx}',
     '../packages/ui/src/**/*.{ts,tsx}',
   ],
+  darkMode: sharedTheme.darkMode,
   theme: sharedTheme.theme,
   plugins: sharedTheme.plugins,
 };

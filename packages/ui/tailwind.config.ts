@@ -1,7 +1,8 @@
 import type { Config } from 'tailwindcss';
 import { colors, fonts, fontSizes, spacing, breakpoints, radius } from './src/tokens';
 
-const config: Pick<Config, 'theme' | 'plugins'> = {
+const config: Pick<Config, 'darkMode' | 'theme' | 'plugins'> = {
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {

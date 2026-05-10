@@ -7,6 +7,7 @@ import { Menu, X, ExternalLink, ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { PssfpLogo } from '@pssfp/ui';
 import { cn } from '../../lib/cn';
+import { ThemeToggle } from '../ThemeToggle';
 
 const NAV_LINKS = [
   { href: '/', key: 'home' },
@@ -52,8 +53,8 @@ export function SiteHeader(): JSX.Element {
       className={cn(
         'sticky top-0 z-40 w-full transition-all duration-300 ease-pssfp-out-expo',
         scrolled
-          ? 'border-b border-[#EDE7F6] bg-white/80 shadow-pssfp-soft backdrop-blur-2xl'
-          : 'border-b border-transparent bg-white/95 backdrop-blur-2xs',
+          ? 'border-b border-[#EDE7F6] bg-white/80 shadow-pssfp-soft backdrop-blur-2xl dark:border-[#3A2A55] dark:bg-[#14091F]/85'
+          : 'border-b border-transparent bg-white/95 backdrop-blur-2xs dark:bg-[#14091F]/80',
       )}
     >
       <a
@@ -76,7 +77,7 @@ export function SiteHeader(): JSX.Element {
             />
             <PssfpLogo size={48} />
           </span>
-          <span className="hidden font-heading text-base font-bold text-[#6B2FA0] sm:block">
+          <span className="hidden font-heading text-base font-bold text-[#6B2FA0] dark:text-[#B084E8] sm:block">
             PSSFP
           </span>
         </Link>
@@ -92,10 +93,10 @@ export function SiteHeader(): JSX.Element {
                     data-testid={`nav-${link.key}`}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
-                      'relative inline-flex h-10 items-center rounded-md px-3 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2',
+                      'relative inline-flex h-10 items-center rounded-md px-3 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:focus-visible:ring-[#E8C868]',
                       active
-                        ? 'font-semibold text-[#6B2FA0]'
-                        : 'text-[#333] hover:text-[#6B2FA0]',
+                        ? 'font-semibold text-[#6B2FA0] dark:text-[#B084E8]'
+                        : 'text-[#333] hover:text-[#6B2FA0] dark:text-[#F5EFE3] dark:hover:text-[#B084E8]',
                     )}
                   >
                     {t(link.key)}
@@ -113,9 +114,10 @@ export function SiteHeader(): JSX.Element {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
+          <ThemeToggle testId="theme-toggle" />
           <a
             href={process.env.NEXT_PUBLIC_LIBRARY_URL ?? '#'}
-            className="inline-flex h-10 items-center gap-1.5 rounded-pssfp-button border border-[#EDE7F6] bg-white px-3.5 text-sm text-[#333] transition-all duration-200 hover:border-[#6B2FA0] hover:text-[#6B2FA0] hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+            className="inline-flex h-10 items-center gap-1.5 rounded-pssfp-button border border-[#EDE7F6] bg-white px-3.5 text-sm text-[#333] transition-all duration-200 hover:border-[#6B2FA0] hover:text-[#6B2FA0] hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:border-[#3A2A55] dark:bg-[#1F0E2E] dark:text-[#F5EFE3] dark:hover:border-[#B084E8] dark:hover:text-[#B084E8]"
             data-testid="nav-library"
           >
             {t('library')}
@@ -139,6 +141,8 @@ export function SiteHeader(): JSX.Element {
           </a>
         </div>
 
+        <div className="flex items-center gap-2 lg:hidden">
+          <ThemeToggle testId="theme-toggle-mobile" />
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -146,10 +150,11 @@ export function SiteHeader(): JSX.Element {
           aria-expanded={open}
           aria-controls="mobile-menu"
           data-testid="nav-toggle"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#EDE7F6] text-[#333] transition-colors hover:border-[#6B2FA0] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 lg:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#EDE7F6] text-[#333] transition-colors hover:border-[#6B2FA0] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:border-[#3A2A55] dark:text-[#F5EFE3] dark:hover:border-[#B084E8] dark:hover:text-[#B084E8]"
         >
           {open ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
         </button>
+        </div>
       </div>
 
       {open && (
@@ -157,19 +162,19 @@ export function SiteHeader(): JSX.Element {
           id="mobile-menu"
           data-testid="mobile-menu"
           aria-label="Navigation mobile"
-          className="border-t border-[#EDE7F6] bg-white/95 backdrop-blur-2xl lg:hidden"
+          className="border-t border-[#EDE7F6] bg-white/95 backdrop-blur-2xl dark:border-[#3A2A55] dark:bg-[#14091F]/95 lg:hidden"
         >
-          <ul className="mx-auto max-w-7xl divide-y divide-[#EDE7F6] px-6 py-2 text-base">
+          <ul className="mx-auto max-w-7xl divide-y divide-[#EDE7F6] px-6 py-2 text-base dark:divide-[#3A2A55]">
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
                 <Link
                   href={link.href}
                   aria-current={isActive(link.href) ? 'page' : undefined}
                   className={cn(
-                    'block rounded px-2 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0]',
+                    'block rounded px-2 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] dark:focus-visible:ring-[#E8C868]',
                     isActive(link.href)
-                      ? 'font-semibold text-[#6B2FA0]'
-                      : 'text-[#333] hover:text-[#6B2FA0]',
+                      ? 'font-semibold text-[#6B2FA0] dark:text-[#B084E8]'
+                      : 'text-[#333] hover:text-[#6B2FA0] dark:text-[#F5EFE3] dark:hover:text-[#B084E8]',
                   )}
                 >
                   {t(link.key)}
@@ -179,7 +184,7 @@ export function SiteHeader(): JSX.Element {
             <li>
               <a
                 href={process.env.NEXT_PUBLIC_LIBRARY_URL ?? '#'}
-                className="flex items-center justify-between rounded px-2 py-3 text-[#333] hover:text-[#6B2FA0]"
+                className="flex items-center justify-between rounded px-2 py-3 text-[#333] hover:text-[#6B2FA0] dark:text-[#F5EFE3] dark:hover:text-[#B084E8]"
               >
                 {t('library')}
                 <ExternalLink size={14} aria-hidden="true" />

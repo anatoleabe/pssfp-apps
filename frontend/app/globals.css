@@ -8,8 +8,32 @@
     --pssfp-primary-hover: #9B59B6;
     --pssfp-surface: #EDE7F6;
     --pssfp-accent: #C9A227;
+    --pssfp-bg: #FFFFFF;
+    --pssfp-bg-elevated: #FFFFFF;
+    --pssfp-bg-subtle: #FAF8F5;
+    --pssfp-border: #EDE7F6;
     --pssfp-text: #333333;
+    --pssfp-text-strong: #1F1A24;
     --pssfp-text-muted: #666666;
+    --pssfp-text-on-primary: #FFFFFF;
+    color-scheme: light;
+  }
+
+  /* PR U — palette dark institutionnelle */
+  .dark {
+    --pssfp-primary: #B084E8;          /* Violet clair pour contraste WCAG sur fond sombre */
+    --pssfp-primary-hover: #C9A0F0;
+    --pssfp-surface: #2A1F40;          /* Surface élevée violette sombre */
+    --pssfp-accent: #E8C868;           /* Or éclairci pour contraste */
+    --pssfp-bg: #14091F;               /* Violet 950 (un peu plus profond que #1A0A2E) */
+    --pssfp-bg-elevated: #1F0E2E;
+    --pssfp-bg-subtle: #1A0A2E;
+    --pssfp-border: #3A2A55;
+    --pssfp-text: #F5EFE3;             /* Crème */
+    --pssfp-text-strong: #FAF8F5;
+    --pssfp-text-muted: #B5A8C8;
+    --pssfp-text-on-primary: #14091F;
+    color-scheme: dark;
   }
 
   html {
@@ -18,11 +42,12 @@
 
   body {
     color: var(--pssfp-text);
-    background: #FFFFFF;
+    background: var(--pssfp-bg);
+    transition: background-color 200ms ease, color 200ms ease;
   }
 
   *:focus-visible {
-    outline: 2px solid var(--pssfp-primary);
+    outline: 2px solid var(--pssfp-accent);
     outline-offset: 2px;
   }
 
@@ -39,22 +64,28 @@
 @layer components {
   /* Hiérarchie typographique forte (PR Q § B.4) */
   .pssfp-h1 {
-    @apply font-heading font-bold text-pssfp-h1 text-[#333];
+    @apply font-heading font-bold text-pssfp-h1;
+    color: var(--pssfp-text-strong);
   }
   .pssfp-h2 {
-    @apply font-heading font-bold text-pssfp-h2 text-[#333];
+    @apply font-heading font-bold text-pssfp-h2;
+    color: var(--pssfp-text-strong);
   }
   .pssfp-h3 {
-    @apply font-heading font-bold text-pssfp-h3 text-[#333];
+    @apply font-heading font-bold text-pssfp-h3;
+    color: var(--pssfp-text-strong);
   }
   .pssfp-eyebrow {
-    @apply font-ui text-xs uppercase tracking-[0.18em] text-[#C9A227];
+    @apply font-ui text-xs uppercase tracking-[0.18em];
+    color: var(--pssfp-accent);
   }
   .pssfp-lead {
-    @apply font-body text-pssfp-lead text-[#555];
+    @apply font-body text-pssfp-lead;
+    color: var(--pssfp-text-muted);
   }
   .pssfp-body {
-    @apply font-body text-pssfp-body text-[#333];
+    @apply font-body text-pssfp-body;
+    color: var(--pssfp-text);
   }
 
   /* Section padding institutionnel */
@@ -73,9 +104,44 @@
     -webkit-text-fill-color: transparent;
     color: transparent;
   }
+  .dark .pssfp-text-gradient-violet-or {
+    background: linear-gradient(135deg, #B084E8 0%, #E8C868 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
 
   /* Container institutionnel */
   .pssfp-container {
     @apply mx-auto max-w-7xl px-6;
   }
+
+  /* PR U — scroll-reveal (révèle au passage dans le viewport) */
+  .pssfp-reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .pssfp-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pssfp-reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+}
+
+::selection {
+  background: #C9A227;
+  color: #1F1A24;
+}
+.dark ::selection {
+  background: #E8C868;
+  color: #14091F;
 }

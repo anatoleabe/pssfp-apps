@@ -52,7 +52,15 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className={`${playfair.variable} ${inter.variable} ${dmSans.variable}`}>
+    <html lang={locale} className={`${playfair.variable} ${inter.variable} ${dmSans.variable}`} suppressHydrationWarning>
+      <head>
+        {/* No-flash dark mode init — runs before paint to set html.dark from localStorage / prefers-color-scheme */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem('pssfp-theme');var p=window.matchMedia('(prefers-color-scheme: dark)').matches;var d=s==='dark'||(s==null&&p);if(d){document.documentElement.classList.add('dark')}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="font-body antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
