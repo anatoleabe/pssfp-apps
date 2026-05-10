@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { cn } from '@/lib/cn';
 
 export interface PinInputProps {
   value: string;
@@ -12,8 +13,12 @@ export interface PinInputProps {
 }
 
 /**
- * 6 cases auto-focus chainées. Backspace remonte au champ précédent.
- * Chaque case ne reçoit qu'un chiffre.
+ * 6 cases auto-focus chainées — refonte UX.
+ *
+ * - Cases plus grandes (h-14 w-12)
+ * - Animation subtle scale au focus + ring violet
+ * - Border emerald quand toutes remplies
+ * - Backspace remonte au champ précédent
  */
 export function PinInput({ value, onChange, ariaLabel, testId, noAutoFocus }: PinInputProps): JSX.Element {
   const refs = useRef<Array<HTMLInputElement | null>>([]);
@@ -36,46 +41,59 @@ export function PinInput({ value, onChange, ariaLabel, testId, noAutoFocus }: Pi
     onChange(next.join(''));
   };
 
+  const allFilled = chars.every((c) => c !== '');
+
   return (
     <div
       role="group"
       aria-label={ariaLabel}
       data-testid={testId}
-      className="flex gap-2"
+      className="inline-flex gap-2"
     >
-      {chars.map((char, idx) => (
-        <input
-          key={idx}
-          ref={(el) => {
-            refs.current[idx] = el;
-          }}
-          type="text"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          aria-label={`${ariaLabel} — chiffre ${idx + 1}`}
-          maxLength={1}
-          value={char}
-          onChange={(e) => {
-            const v = e.target.value.replace(/\D/g, '').slice(-1);
-            updateAt(idx, v);
-            if (v && idx < 5) {
-              refs.current[idx + 1]?.focus();
-            }
-          }}
-          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-            if (e.key === 'Backspace' && !chars[idx] && idx > 0) {
-              refs.current[idx - 1]?.focus();
-            }
-            if (e.key === 'ArrowLeft' && idx > 0) {
-              refs.current[idx - 1]?.focus();
-            }
-            if (e.key === 'ArrowRight' && idx < 5) {
-              refs.current[idx + 1]?.focus();
-            }
-          }}
-          className="h-12 w-10 rounded-md border border-gray-300 text-center text-xl font-medium text-[#333333] focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
-        />
-      ))}
+      {chars.map((char, idx) => {
+        const isFilled = char !== '';
+        return (
+          <input
+            key={idx}
+            ref={(el) => {
+              refs.current[idx] = el;
+            }}
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            aria-label={`${ariaLabel} — chiffre ${idx + 1}`}
+            maxLength={1}
+            value={char}
+            onChange={(e) => {
+              const v = e.target.value.replace(/\D/g, '').slice(-1);
+              updateAt(idx, v);
+              if (v && idx < 5) {
+                refs.current[idx + 1]?.focus();
+              }
+            }}
+            onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+              if (e.key === 'Backspace' && !chars[idx] && idx > 0) {
+                refs.current[idx - 1]?.focus();
+              }
+              if (e.key === 'ArrowLeft' && idx > 0) {
+                refs.current[idx - 1]?.focus();
+              }
+              if (e.key === 'ArrowRight' && idx < 5) {
+                refs.current[idx + 1]?.focus();
+              }
+            }}
+            className={cn(
+              'h-14 w-12 rounded-pssfp-button border-2 text-center font-heading text-2xl font-bold tabular-nums transition-all duration-200 ease-pssfp-out-expo',
+              'focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30',
+              isFilled
+                ? 'border-[#6B2FA0] bg-[#FAF7FF] text-[#6B2FA0] shadow-pssfp-soft'
+                : 'border-[#EDE7F6] bg-white text-[#333]',
+              'focus:scale-105 focus:border-[#6B2FA0] focus:shadow-pssfp-glow-violet',
+              allFilled && 'border-emerald-400 bg-emerald-50/40 text-emerald-700',
+            )}
+          />
+        );
+      })}
     </div>
   );
 }

@@ -3,6 +3,15 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --pssfp-primary: #6B2FA0;
+    --pssfp-primary-hover: #9B59B6;
+    --pssfp-surface: #EDE7F6;
+    --pssfp-accent: #C9A227;
+    --pssfp-text: #333333;
+    --pssfp-text-muted: #666666;
+  }
+
   body {
     color: #333333;
     background: #FFFFFF;
@@ -11,5 +20,48 @@
   *:focus-visible {
     outline: 2px solid #6B2FA0;
     outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .pssfp-h1 {
+    @apply font-heading font-bold text-pssfp-h1 text-[#1A0A2E];
+  }
+  .pssfp-h2 {
+    @apply font-heading font-bold text-pssfp-h2 text-[#1A0A2E];
+  }
+  .pssfp-h3 {
+    @apply font-heading font-bold text-pssfp-h3 text-[#1A0A2E];
+  }
+  .pssfp-eyebrow {
+    @apply font-ui text-xs uppercase tracking-[0.18em] text-[#C9A227];
+  }
+  .pssfp-lead {
+    @apply font-body text-pssfp-lead text-[#555];
+  }
+  .pssfp-body {
+    @apply font-body text-pssfp-body text-[#333];
+  }
+  .pssfp-section {
+    @apply py-12 md:py-16;
+  }
+  .pssfp-text-gradient-violet-or {
+    background: linear-gradient(135deg, #6B2FA0 0%, #C9A227 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .pssfp-container {
+    @apply mx-auto max-w-5xl px-6;
   }
 }

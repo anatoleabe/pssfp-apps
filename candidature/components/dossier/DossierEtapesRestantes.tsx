@@ -1,9 +1,11 @@
+import { Check, Circle, Clock, AlertCircle } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
 import { formatDateFr } from '@/lib/format/date';
 
 interface Etape {
   done: boolean;
   label: string;
+  current?: boolean;
 }
 
 export function DossierEtapesRestantes({ candidature }: { candidature: MyCandidature }): JSX.Element {
@@ -20,8 +22,9 @@ export function DossierEtapesRestantes({ candidature }: { candidature: MyCandida
       label: 'Régler les frais 50 000 FCFA en agence CREMINCAM',
     },
     {
-      done: false, // V1 : pas de tracking dépôt physique côté candidat
-      label: 'Apporter au PSSFP : récépissé CREMINCAM + dossier physique (CV, copies diplômes, lettre, photo, pièce d\'identité, relevés)',
+      done: false,
+      label:
+        'Apporter au PSSFP : récépissé CREMINCAM + dossier physique (CV, copies diplômes, lettre, photo, pièce d\'identité, relevés)',
     },
     {
       done: candidature.decided_at !== null,
@@ -31,41 +34,103 @@ export function DossierEtapesRestantes({ candidature }: { candidature: MyCandida
     },
   ];
 
+  // Marquer la première étape non-faite comme "current"
+  const firstNotDone = etapes.findIndex((e) => !e.done);
+  if (firstNotDone >= 0) {
+    const target = etapes[firstNotDone];
+    if (target) {
+      etapes[firstNotDone] = { done: target.done, label: target.label, current: true };
+    }
+  }
+
   const closesAt = candidature.campagne?.closes_at;
+  const totalSteps = etapes.length;
+  const doneSteps = etapes.filter((e) => e.done).length;
+  const progress = Math.round((doneSteps / totalSteps) * 100);
 
   return (
     <section
       aria-labelledby="etapes-heading"
-      className="rounded-lg border border-[#EDE7F6] bg-[#FAF7FF] p-6"
+      className="relative overflow-hidden rounded-pssfp-card border border-[#EDE7F6] bg-gradient-lavande-blanc p-6 md:p-7"
     >
-      <h2 id="etapes-heading" className="font-heading text-lg font-bold text-[#6B2FA0]">
-        Étapes restantes pour finaliser votre candidature
-      </h2>
+      {/* Halo décoratif */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full opacity-25 blur-3xl"
+        style={{ background: 'radial-gradient(circle, rgba(201, 162, 39, 0.4) 0%, transparent 70%)' }}
+      />
 
-      <ul
+      <div className="relative flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="pssfp-eyebrow">Parcours</p>
+          <h2
+            id="etapes-heading"
+            className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A0A2E]"
+          >
+            Étapes restantes
+          </h2>
+        </div>
+        <div className="rounded-full border border-[#EDE7F6] bg-white px-3 py-1 text-xs font-semibold text-[#6B2FA0]">
+          {doneSteps} / {totalSteps} ·{' '}
+          <span className="pssfp-text-gradient-violet-or">{progress}%</span>
+        </div>
+      </div>
+
+      {/* Barre de progression */}
+      <div className="relative mt-5 h-2 w-full overflow-hidden rounded-full bg-white/80">
+        <div
+          aria-hidden="true"
+          className="h-full rounded-full bg-gradient-violet-or transition-all duration-700 ease-pssfp-out-expo"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
+      <ol
         data-testid="dossier-etapes"
-        className="mt-4 space-y-2 text-sm text-[#333]"
+        className="relative mt-6 space-y-3 text-sm"
       >
         {etapes.map((e, idx) => (
-          <li key={idx} className="flex items-start gap-3">
+          <li
+            key={idx}
+            className={`flex items-start gap-3 rounded-xl border p-3 transition-all ${
+              e.done
+                ? 'border-emerald-200 bg-emerald-50/60'
+                : e.current
+                ? 'border-[#9B59B6]/40 bg-white shadow-pssfp-soft'
+                : 'border-transparent bg-white/40'
+            }`}
+          >
             <span
-              aria-hidden
-              className={`mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border text-xs ${
+              aria-hidden="true"
+              className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
                 e.done
-                  ? 'border-emerald-500 bg-emerald-100 text-emerald-700'
-                  : 'border-gray-300 bg-white text-gray-400'
+                  ? 'bg-emerald-500 text-white'
+                  : e.current
+                  ? 'bg-gradient-violet-or text-white shadow-pssfp-glow-or animate-pssfp-pulse-violet'
+                  : 'border-2 border-gray-300 bg-white text-gray-400'
               }`}
             >
-              {e.done ? '✓' : ''}
+              {e.done ? <Check size={14} /> : e.current ? <Clock size={14} /> : <Circle size={10} />}
             </span>
-            <span className={e.done ? 'text-[#333]' : 'text-[#555]'}>{e.label}</span>
+            <span
+              className={`leading-relaxed ${
+                e.done
+                  ? 'text-emerald-900'
+                  : e.current
+                  ? 'font-semibold text-[#1A0A2E]'
+                  : 'text-[#555]'
+              }`}
+            >
+              {e.label}
+            </span>
           </li>
         ))}
-      </ul>
+      </ol>
 
       {closesAt && (
-        <p className="mt-4 text-xs text-gray-500">
-          Date limite de candidature : <strong>{formatDateFr(closesAt)}</strong>.
+        <p className="relative mt-5 inline-flex items-center gap-2 rounded-pssfp-button bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <AlertCircle size={12} aria-hidden="true" />
+          Date limite de candidature : <strong>{formatDateFr(closesAt)}</strong>
         </p>
       )}
     </section>
