@@ -153,6 +153,14 @@ export function HomeShowcase(): JSX.Element {
       data-testid="home-showcase"
       className="relative isolate overflow-hidden bg-[#1A0A2E]"
     >
+      {/*
+        Carrousel WAI-ARIA APG pattern : track focusable + ARIA roledescription
+        `carrousel`. ESLint signale `tabIndex` sur élément non-interactif et
+        `onKeyDown` sur élément non-interactif, mais ce pattern est documenté
+        et indispensable pour la navigation clavier (← →) sur le carrousel.
+        Ref: https://www.w3.org/WAI/ARIA/apg/patterns/carousel/
+      */}
+      {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
       <div
         ref={emblaRef}
         className="overflow-hidden"
@@ -161,6 +169,7 @@ export function HomeShowcase(): JSX.Element {
         aria-roledescription="carrousel"
         onKeyDown={onKeyDown}
       >
+      {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
         <div className="flex">
           {SLIDES.map((slide, index) => (
             <div

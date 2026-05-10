@@ -73,7 +73,7 @@ class AProposPagesSeeder extends Seeder
                 'is_in_menu' => true,
                 'menu_label' => 'Présentation du PSSFP',
                 'title' => 'Présentation du PSSFP',
-                'excerpt' => "Programme Supérieur de Spécialisation en Finances Publiques — institut du Ministère des Finances créé le 9 octobre 2013.",
+                'excerpt' => 'Programme Supérieur de Spécialisation en Finances Publiques — institut du Ministère des Finances créé le 9 octobre 2013.',
                 'body' => $this->presentationBody(),
             ],
             [
@@ -83,7 +83,7 @@ class AProposPagesSeeder extends Seeder
                 'is_in_menu' => true,
                 'menu_label' => 'Comité de Pilotage',
                 'title' => 'Comité de Pilotage',
-                'excerpt' => "Le PSSFP est dirigé par un Comité de Pilotage présidé par le Pr. BASAHAG Achile Nestor — pas par un Directeur Général.",
+                'excerpt' => 'Le PSSFP est dirigé par un Comité de Pilotage présidé par le Pr. BASAHAG Achile Nestor — pas par un Directeur Général.',
                 'body' => $this->comitePilotageBody(),
             ],
             [
