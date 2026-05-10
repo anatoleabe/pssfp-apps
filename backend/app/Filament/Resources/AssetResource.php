@@ -152,6 +152,7 @@ class AssetResource extends Resource
                         if (empty($data['value'])) {
                             return $query;
                         }
+
                         return $query->whereJsonContains('tags', $data['value']);
                     }),
             ])

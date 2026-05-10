@@ -8,8 +8,8 @@ use App\Models\Asset;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use SplFileInfo;
 use Spatie\Image\Image;
+use SplFileInfo;
 use Symfony\Component\Finder\Finder;
 
 /**
@@ -74,6 +74,7 @@ class AssetImportService
 
                 if ($mapping === null) {
                     $this->report['skipped']++;
+
                     continue;
                 }
 
@@ -86,6 +87,7 @@ class AssetImportService
                     if ($progress !== null) {
                         $progress($file->getFilename(), 'skipped');
                     }
+
                     continue;
                 }
 
@@ -122,7 +124,7 @@ class AssetImportService
      */
     private function collectFiles(): iterable
     {
-        return (new Finder())
+        return (new Finder)
             ->files()
             ->in($this->sourceDir)
             ->name('/\.(svg|png|jpg|jpeg|webp|pdf)$/i')
@@ -281,6 +283,7 @@ class AssetImportService
                 $tags[] = 'centre-pasteur';
                 $tags[] = 'formation-continue';
             }
+
             return ['subcategory' => $subcategory, 'tags' => $tags];
         }
 
@@ -296,6 +299,7 @@ class AssetImportService
                     }
                 }
             }
+
             return ['subcategory' => 'evenements', 'tags' => $tags];
         }
         if (Str::contains($normalized, 'marches sportives')) {
@@ -303,6 +307,7 @@ class AssetImportService
             if ($sub2 !== null && preg_match('/^P(\d+)/i', $sub2, $m) === 1) {
                 $tags[] = 'promo-'.$m[1];
             }
+
             return ['subcategory' => 'evenements', 'tags' => $tags];
         }
         if (Str::contains($normalized, 'amicale')) {
@@ -313,6 +318,7 @@ class AssetImportService
             if (preg_match('/promotion (\d+)/i', $rawSub, $m) === 1) {
                 $tags[] = 'promo-'.$m[1];
             }
+
             return ['subcategory' => 'evenements', 'tags' => $tags];
         }
         if (Str::contains($normalized, ['reunion', 'réunion'])) {
@@ -351,7 +357,7 @@ class AssetImportService
     }
 
     /**
-     * @param array{category: string, subcategory: ?string, tags: array<int, string>, disk: string, path: string} $mapping
+     * @param  array{category: string, subcategory: ?string, tags: array<int, string>, disk: string, path: string}  $mapping
      */
     private function importFile(SplFileInfo $file, array $mapping): Asset
     {

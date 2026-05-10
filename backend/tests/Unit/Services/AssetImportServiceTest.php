@@ -5,10 +5,11 @@ declare(strict_types=1);
 use App\Models\Asset;
 use App\Services\AssetImportService;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Filesystem\Filesystem;
 
 beforeEach(function (): void {
     // Refresh DB for test isolation (Unit/Services dir doesn't have RefreshDatabase by default)
-    \Artisan::call('migrate:fresh');
+    Artisan::call('migrate:fresh');
 
     Storage::fake(AssetImportService::MEDIA_DISK);
     Storage::fake(AssetImportService::DOCUMENTS_DISK);
@@ -40,10 +41,10 @@ beforeEach(function (): void {
 
 afterEach(function (): void {
     if (isset($this->sourceDir) && is_dir($this->sourceDir)) {
-        \Symfony\Component\Filesystem\Filesystem::class;
-        $files = (new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($this->sourceDir, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::CHILD_FIRST
+        Filesystem::class;
+        $files = (new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($this->sourceDir, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
         ));
         foreach ($files as $file) {
             $file->isDir() ? @rmdir($file->getRealPath()) : @unlink($file->getRealPath());
