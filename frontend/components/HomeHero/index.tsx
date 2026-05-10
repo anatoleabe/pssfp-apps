@@ -1,86 +1,135 @@
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Sparkles as SparklesIcon, MapPin } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import { AnimatedBeam } from '../magic-ui/animated-beam';
+import { Sparkles } from '../magic-ui/sparkles';
 
 /**
- * Hero d'accueil pssfp.net.
+ * Hero d'accueil pssfp.net — refonte PR R.
  *
- * Composition sans photo de fond (assets `photos/campus/` non encore livrés
- * — cf. docs/assets-checklist.md §2). Direction visuelle : gradient violet
- * institutionnel + formes abstraites SVG + typographie editoriale.
+ * Direction visuelle : background gradient lavande→blanc subtil + faisceaux
+ * SVG animés (AnimatedBeam) + sparkles or sur le mot clé "excellence" +
+ * CTA gradient violet→or avec shadow floating + carte campus en glass card.
  *
  * <!-- TODO replace background with assets-source/photos/campus/facade-messa-1.jpg -->
  */
 export async function HomeHero(): Promise<JSX.Element> {
   const t = await getTranslations('home.hero');
+
+  // On découpe le titre pour insérer Sparkles sur "excellence".
+  const title = t('title');
+  const splitMatch = title.match(/^(.*?)(excellence)(.*)$/i);
+  const titleNodes = splitMatch
+    ? (
+        <>
+          {splitMatch[1]}
+          <Sparkles color="#C9A227" count={6}>
+            <span className="pssfp-text-gradient-violet-or">{splitMatch[2]}</span>
+          </Sparkles>
+          {splitMatch[3]}
+        </>
+      )
+    : title;
+
   return (
     <section
       aria-labelledby="hero-heading"
-      className="relative isolate overflow-hidden bg-gradient-to-br from-[#6B2FA0] via-[#7B3DAD] to-[#9B59B6] text-white"
+      className="relative isolate overflow-hidden bg-gradient-lavande-blanc"
     >
-      {/* Formes abstraites décoratives, aria-hidden */}
-      <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-        <svg viewBox="0 0 1440 720" preserveAspectRatio="xMidYMid slice" className="h-full w-full opacity-30">
-          <defs>
-            <radialGradient id="halo" cx="80%" cy="20%" r="60%">
-              <stop offset="0%" stopColor="#C9A227" stopOpacity="0.55" />
-              <stop offset="100%" stopColor="#C9A227" stopOpacity="0" />
-            </radialGradient>
-            <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-              <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#FFFFFF" strokeOpacity="0.06" strokeWidth="1" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-          <rect width="100%" height="100%" fill="url(#halo)" />
-          <circle cx="1100" cy="480" r="220" fill="#FFFFFF" fillOpacity="0.04" />
-          <circle cx="220" cy="120" r="80" fill="#FFFFFF" fillOpacity="0.08" />
-        </svg>
-      </div>
+      {/* Faisceaux décoratifs animés (aria-hidden) */}
+      <AnimatedBeam className="opacity-70" />
 
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-20 md:grid-cols-[3fr_2fr] md:py-28 lg:py-32">
-        <div>
-          <p className="font-ui text-sm uppercase tracking-widest text-[#FFE9B0]">
+      {/* Grain léger pour atmosphère */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.025]"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 1px 1px, #6B2FA0 1px, transparent 0)',
+          backgroundSize: '24px 24px',
+        }}
+      />
+
+      <div className="mx-auto grid max-w-7xl gap-12 px-6 py-20 md:grid-cols-[3fr_2fr] md:py-28 lg:py-32">
+        <div className="relative">
+          <p className="pssfp-eyebrow inline-flex items-center gap-2">
+            <SparklesIcon size={14} aria-hidden="true" className="text-[#C9A227]" />
             {t('eyebrow')}
           </p>
           <h1
             id="hero-heading"
-            className="mt-3 font-heading text-4xl font-bold leading-tight md:text-6xl"
+            className="mt-4 font-heading font-bold text-pssfp-h1 text-[#1A0A2E]"
           >
-            {t('title')}
+            {titleNodes}
           </h1>
-          <p className="mt-5 max-w-2xl text-lg text-white/90">{t('subtitle')}</p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <p className="mt-6 max-w-2xl pssfp-lead">{t('subtitle')}</p>
+          <div className="mt-10 flex flex-wrap gap-3">
             <a
               href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
               data-testid="hero-cta-candidature"
-              className="inline-flex h-12 items-center gap-2 rounded-md bg-[#C9A227] px-6 text-base font-medium text-[#1A0A2E] hover:bg-[#D9B237] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#6B2FA0]"
+              className="group relative inline-flex h-13 items-center gap-2 overflow-hidden rounded-pssfp-button bg-gradient-violet-or px-7 text-base font-semibold text-white shadow-pssfp-floating transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:shadow-pssfp-glow-or focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] focus-visible:ring-offset-2"
             >
-              {t('ctaPrimary')}
-              <ArrowRight size={16} aria-hidden="true" />
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full"
+              />
+              <span className="relative">{t('ctaPrimary')}</span>
+              <ArrowRight
+                size={18}
+                aria-hidden="true"
+                className="relative transition-transform duration-200 group-hover:translate-x-0.5"
+              />
             </a>
             <Link
               href="/formations"
-              className="inline-flex h-12 items-center gap-2 rounded-md border border-white/40 bg-white/10 px-6 text-base font-medium text-white hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#6B2FA0]"
+              className="inline-flex h-13 items-center gap-2 rounded-pssfp-button border-2 border-[#6B2FA0] bg-white/80 px-7 text-base font-semibold text-[#6B2FA0] backdrop-blur-2xs transition-all duration-200 ease-pssfp-out-expo hover:bg-[#6B2FA0] hover:text-white hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
             >
               {t('ctaSecondary')}
             </Link>
           </div>
+
+          {/* Trust signals léger */}
+          <ul className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-3 text-xs text-[#666]">
+            <li className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-[#2E7D32] animate-pssfp-pulse-violet" aria-hidden="true" />
+              <span className="font-medium">Inscriptions P14 ouvertes</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span aria-hidden="true">·</span>
+              <span>Accréditation CAMES</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span aria-hidden="true">·</span>
+              <span>13 promotions formées</span>
+            </li>
+          </ul>
         </div>
 
-        {/* Carte d'identité campus (lieu / promotion en cours) */}
+        {/* Carte campus en glass-card */}
         <div className="hidden md:flex md:items-end md:justify-end">
-          <div className="rounded-2xl border border-white/20 bg-white/10 p-6 backdrop-blur-sm">
-            <p className="text-xs uppercase tracking-widest text-[#FFE9B0]">{t('campusEyebrow')}</p>
-            <p className="mt-2 font-heading text-2xl font-semibold">{t('campusName')}</p>
-            <p className="mt-3 text-sm text-white/80">{t('campusBody')}</p>
-            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <div className="relative w-full max-w-sm rounded-pssfp-card border border-white/40 bg-white/60 p-7 shadow-pssfp-floating backdrop-blur-2xl">
+            {/* Halo or derrière la card */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -inset-1 -z-10 rounded-pssfp-card opacity-30 blur-xl"
+              style={{ background: 'radial-gradient(circle, #C9A227 0%, transparent 70%)' }}
+            />
+            <p className="pssfp-eyebrow">{t('campusEyebrow')}</p>
+            <p className="mt-3 font-heading text-pssfp-h3 font-bold text-[#1A0A2E]">
+              {t('campusName')}
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-[#555]">{t('campusBody')}</p>
+            <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-[#EDE7F6] pt-5 text-sm">
               <div>
-                <dt className="text-white/60">{t('promoLabel')}</dt>
-                <dd className="font-semibold">P14 / 2026</dd>
+                <dt className="text-xs uppercase tracking-wider text-[#666]">{t('promoLabel')}</dt>
+                <dd className="mt-1 font-heading font-bold text-[#6B2FA0]">P14 / 2026</dd>
               </div>
               <div>
-                <dt className="text-white/60">{t('campusCity')}</dt>
-                <dd className="font-semibold">Yaoundé, CM</dd>
+                <dt className="text-xs uppercase tracking-wider text-[#666]">{t('campusCity')}</dt>
+                <dd className="mt-1 inline-flex items-center gap-1 font-heading font-bold text-[#6B2FA0]">
+                  <MapPin size={12} aria-hidden="true" />
+                  Yaoundé, CM
+                </dd>
               </div>
             </dl>
           </div>

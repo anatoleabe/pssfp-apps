@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import { Marquee } from '../magic-ui/marquee';
 
 interface Partenaire {
   slug: string;
@@ -7,8 +8,11 @@ interface Partenaire {
 }
 
 /**
- * Logos partenaires — V1, copiés depuis assets-source/logos/institutions-coop/
- * dans frontend/public/logos/partners/. Si manque (placeholder), badge texte.
+ * Logos partenaires — refonte PR R en Marquee défilant.
+ *
+ * Logos en niveaux de gris au repos, couleur au hover. Auto-scroll lent
+ * (45s pour faire le tour complet). Ralenti au survol pour lecture
+ * (`pauseOnHover`). Désactivé en prefers-reduced-motion.
  *
  * <!-- TODO ajouter MINFI SVG officiel + AFD logo + EDX logo + IFM logo
  *      quand reçus, cf. docs/assets-checklist.md §2.2 -->
@@ -29,41 +33,64 @@ export async function HomePartenaires(): Promise<JSX.Element> {
     <section
       aria-labelledby="partenaires-heading"
       data-testid="home-partenaires"
-      className="bg-[#FAF7FF]"
+      className="relative overflow-hidden bg-white"
     >
-      <div className="mx-auto max-w-7xl px-6 py-16 md:py-20">
-        <header className="mb-10 max-w-3xl">
-          <p className="font-ui text-sm uppercase tracking-widest text-[#C9A227]">
-            {t('eyebrow')}
-          </p>
+      <div className="mx-auto max-w-7xl px-6 py-20 md:py-24">
+        <header className="mb-12 max-w-3xl">
+          <p className="pssfp-eyebrow">{t('eyebrow')}</p>
           <h2
             id="partenaires-heading"
-            className="mt-2 font-heading text-3xl font-bold text-[#6B2FA0] md:text-4xl"
+            className="mt-3 font-heading font-bold text-pssfp-h2 text-[#1A0A2E]"
           >
             {t('title')}
           </h2>
-          <p className="mt-3 text-[#555]">{t('intro')}</p>
+          <p className="mt-4 pssfp-lead">{t('intro')}</p>
         </header>
+      </div>
 
-        <ul className="grid grid-cols-2 items-center gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
+      {/* Marquee infinie en pleine largeur, ml-cap fade sur les bords */}
+      <div className="relative pb-20 md:pb-24">
+        {/* Fade gauche/droite pour bord propre */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-white to-transparent"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-white to-transparent"
+        />
+
+        <Marquee pauseOnHover duration={45} className="[--gap:2.5rem]">
           {PARTENAIRES.map((p) => (
-            <li
-              key={p.slug}
-              className="flex h-24 items-center justify-center rounded-lg border border-[#EDE7F6] bg-white p-4 transition-all hover:border-[#9B59B6]"
-              title={p.name}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={p.logo}
-                alt={p.name}
-                loading="lazy"
-                decoding="async"
-                className="max-h-12 max-w-full object-contain opacity-90 transition-opacity hover:opacity-100"
-              />
-            </li>
+            <PartnerLogo key={p.slug} partner={p} />
+          ))}
+        </Marquee>
+
+        {/* Liste a11y cachée pour AT et tests */}
+        <ul className="sr-only" aria-label="Liste des partenaires">
+          {PARTENAIRES.map((p) => (
+            <li key={p.slug}>{p.name}</li>
           ))}
         </ul>
       </div>
     </section>
+  );
+}
+
+function PartnerLogo({ partner }: { partner: Partenaire }): JSX.Element {
+  return (
+    <div
+      className="group flex h-24 w-44 shrink-0 items-center justify-center rounded-pssfp-card border border-[#EDE7F6] bg-white p-5 shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-0.5 hover:border-[#9B59B6]/40 hover:shadow-pssfp-elevated"
+      title={partner.name}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={partner.logo}
+        alt={partner.name}
+        loading="lazy"
+        decoding="async"
+        className="max-h-12 max-w-full object-contain grayscale transition-all duration-300 ease-pssfp-out-expo group-hover:scale-105 group-hover:grayscale-0"
+      />
+    </div>
   );
 }
