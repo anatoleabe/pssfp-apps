@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { getMenu } from '@/lib/api/pages';
 import { RevealOnScroll } from '@/components/RevealOnScroll';
+import { BackgroundPaths } from '@/components/magic-ui/background-paths';
 
 export const revalidate = 300;
 
@@ -35,18 +36,8 @@ export default async function AProposIndexPage(): Promise<JSX.Element> {
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-0 opacity-50 dark:opacity-30">
           <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-[#9B59B6]/15 blur-3xl dark:bg-[#B084E8]/10" />
           <div className="absolute -bottom-32 -left-16 h-[28rem] w-[28rem] rounded-full bg-[#C9A227]/10 blur-3xl dark:bg-[#E8C868]/10" />
-          <svg
-            className="absolute right-6 top-10 hidden h-72 w-72 text-[#6B2FA0]/10 dark:text-[#B084E8]/15 md:block"
-            viewBox="0 0 200 200"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path d="M10 150 Q 50 100 100 130 T 190 80" stroke="currentColor" strokeWidth="1.5" fill="none" />
-            <path d="M10 170 Q 60 120 110 150 T 190 110" stroke="currentColor" strokeWidth="1" fill="none" />
-            <circle cx="40" cy="140" r="3" fill="currentColor" />
-            <circle cx="100" cy="130" r="3" fill="currentColor" />
-            <circle cx="160" cy="95" r="3" fill="currentColor" />
-          </svg>
+          {/* Courbes flottantes animées (respecte prefers-reduced-motion) */}
+          <BackgroundPaths className="opacity-70 dark:opacity-50" />
         </div>
 
         <div className="relative mx-auto max-w-5xl px-6 py-20 md:py-28">

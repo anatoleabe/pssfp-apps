@@ -51,19 +51,32 @@ const config: Pick<Config, 'darkMode' | 'theme' | 'plugins'> = {
           'linear-gradient(180deg, #EDE7F6 0%, #FFFFFF 100%)',
         'gradient-or-soft':
           'linear-gradient(135deg, #C9A227 0%, #E8C868 100%)',
+        // Editorial Senate (refonte) — purple est l'accent, pas le décor
+        'gradient-ink-deep':
+          'linear-gradient(135deg, #14101A 0%, #2A1E3A 60%, #3F2A55 100%)',
+        'gradient-forest':
+          'linear-gradient(135deg, #0E4D3F 0%, #1B6E5A 100%)',
+        'gradient-forest-or':
+          'linear-gradient(135deg, #0E4D3F 0%, #C9A227 100%)',
+        'gradient-cream-warm':
+          'linear-gradient(180deg, #FBF7EE 0%, #F4ECDC 100%)',
+        'gradient-sand-cream':
+          'linear-gradient(180deg, #EFE6CE 0%, #FBF7EE 100%)',
       },
       boxShadow: {
-        // Shadows multi-layer institutionnels (PR Q § A.3)
+        // Shadows neutres/warm — moins de tint violet
         'pssfp-soft':
-          '0 1px 2px 0 rgba(107, 47, 160, 0.04), 0 1px 3px 0 rgba(107, 47, 160, 0.06)',
+          '0 1px 2px 0 rgba(20, 16, 26, 0.04), 0 1px 3px 0 rgba(20, 16, 26, 0.06)',
         'pssfp-elevated':
-          '0 4px 6px -1px rgba(107, 47, 160, 0.08), 0 10px 20px -3px rgba(107, 47, 160, 0.10), 0 2px 4px -2px rgba(107, 47, 160, 0.04)',
+          '0 4px 6px -1px rgba(20, 16, 26, 0.06), 0 10px 20px -3px rgba(20, 16, 26, 0.08), 0 2px 4px -2px rgba(20, 16, 26, 0.04)',
         'pssfp-floating':
-          '0 12px 24px -6px rgba(107, 47, 160, 0.18), 0 24px 48px -12px rgba(107, 47, 160, 0.22)',
+          '0 12px 24px -6px rgba(20, 16, 26, 0.14), 0 24px 48px -12px rgba(20, 16, 26, 0.18)',
         'pssfp-glow-violet':
-          '0 8px 24px -4px rgba(107, 47, 160, 0.35)',
+          '0 8px 24px -4px rgba(107, 47, 160, 0.30)',
         'pssfp-glow-or':
           '0 8px 24px -4px rgba(201, 162, 39, 0.35)',
+        'pssfp-glow-forest':
+          '0 8px 24px -4px rgba(14, 77, 63, 0.32)',
       },
       backdropBlur: {
         '2xs': '4px',

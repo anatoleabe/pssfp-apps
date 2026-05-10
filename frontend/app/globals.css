@@ -3,36 +3,67 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+   * Editorial Senate palette (refonte M1) — purple est l'accent, pas le décor.
+   *
+   * Les surfaces passent du lavande au cream/sand chaud. L'ink chaud (#1B1620)
+   * sert de couleur de texte et de surface dark. Le violet PSSFP reste mais
+   * uniquement pour les CTA principaux et les moments de marque. Une couleur
+   * secondaire forest (#0E4D3F) ancre les sections institutionnelles, le gold
+   * (#C9A227) reste l'accent éditorial.
+   */
   :root {
+    /* Brand */
     --pssfp-primary: #6B2FA0;
-    --pssfp-primary-hover: #9B59B6;
-    --pssfp-surface: #EDE7F6;
-    --pssfp-accent: #C9A227;
-    --pssfp-bg: #FFFFFF;
-    --pssfp-bg-elevated: #FFFFFF;
-    --pssfp-bg-subtle: #FAF8F5;
-    --pssfp-border: #EDE7F6;
-    --pssfp-text: #333333;
-    --pssfp-text-strong: #1F1A24;
-    --pssfp-text-muted: #666666;
+    --pssfp-primary-hover: #5A2587;
+    --pssfp-secondary: #0E4D3F;          /* forest emerald, ancrage institutionnel */
+    --pssfp-secondary-hover: #0A3D32;
+    --pssfp-accent: #C9A227;              /* gold burnished */
+    --pssfp-accent-hover: #B0901E;
+
+    /* Surfaces (warm cream) */
+    --pssfp-bg: #FBF7EE;                  /* cream chaud — page */
+    --pssfp-bg-elevated: #FFFFFF;         /* cards proéminentes restent blanches */
+    --pssfp-bg-subtle: #F4ECDC;           /* ivory pour bandes alternées */
+    --pssfp-surface: #EFE6CE;             /* sand pour pastilles, badges, fills doux */
+    --pssfp-surface-soft: #F8F1DF;        /* sand très clair pour hovers */
+    --pssfp-secondary-soft: #DCE8E0;      /* forest soft pour pastilles emerald */
+    --pssfp-primary-soft: #ECE0F2;        /* violet soft (sparingly) */
+
+    /* Borders + ink */
+    --pssfp-border: #E4D8B7;              /* sand-darker pour rythme */
+    --pssfp-border-soft: #EFE6CE;
+    --pssfp-text: #2A2230;                /* ink chaud, légère teinte violette */
+    --pssfp-text-strong: #14101A;         /* deep ink pour titres */
+    --pssfp-text-muted: #6B6378;
     --pssfp-text-on-primary: #FFFFFF;
+
     color-scheme: light;
   }
 
-  /* PR U — palette dark institutionnelle */
+  /* Dark — warm ink + lavender accent (plus de wall-of-violet) */
   .dark {
-    --pssfp-primary: #B084E8;          /* Violet clair pour contraste WCAG sur fond sombre */
+    --pssfp-primary: #B084E8;
     --pssfp-primary-hover: #C9A0F0;
-    --pssfp-surface: #2A1F40;          /* Surface élevée violette sombre */
-    --pssfp-accent: #E8C868;           /* Or éclairci pour contraste */
-    --pssfp-bg: #14091F;               /* Violet 950 (un peu plus profond que #1A0A2E) */
-    --pssfp-bg-elevated: #1F0E2E;
-    --pssfp-bg-subtle: #1A0A2E;
-    --pssfp-border: #3A2A55;
-    --pssfp-text: #F5EFE3;             /* Crème */
-    --pssfp-text-strong: #FAF8F5;
-    --pssfp-text-muted: #B5A8C8;
-    --pssfp-text-on-primary: #14091F;
+    --pssfp-secondary: #6FBDA0;           /* emerald lighten pour contraste dark */
+    --pssfp-secondary-hover: #88CFB3;
+    --pssfp-accent: #E8C868;
+    --pssfp-accent-hover: #F0D687;
+
+    --pssfp-bg: #14101A;                  /* warm deep ink, pas violet pur */
+    --pssfp-bg-elevated: #1F1A28;
+    --pssfp-bg-subtle: #1A1622;
+    --pssfp-surface: #2A2235;
+    --pssfp-surface-soft: #251E30;
+    --pssfp-secondary-soft: #1F3A30;
+    --pssfp-primary-soft: #2D2240;
+
+    --pssfp-border: #3A2F48;
+    --pssfp-border-soft: #2A2235;
+    --pssfp-text: #F0E8D8;
+    --pssfp-text-strong: #FAF5E8;
+    --pssfp-text-muted: #B5ACBF;
+    --pssfp-text-on-primary: #14101A;
     color-scheme: dark;
   }
 
@@ -62,7 +93,7 @@
 }
 
 @layer components {
-  /* Hiérarchie typographique forte (PR Q § B.4) */
+  /* Hiérarchie typographique éditoriale */
   .pssfp-h1 {
     @apply font-heading font-bold text-pssfp-h1;
     color: var(--pssfp-text-strong);
@@ -88,7 +119,6 @@
     color: var(--pssfp-text);
   }
 
-  /* Section padding institutionnel */
   .pssfp-section {
     @apply py-16 md:py-20 lg:py-24;
   }
@@ -96,7 +126,7 @@
     @apply py-12 md:py-16;
   }
 
-  /* Text gradient (titres mis en avant) */
+  /* Title gradient — accent éditorial, à utiliser sur 1 mot par section max */
   .pssfp-text-gradient-violet-or {
     background: linear-gradient(135deg, #6B2FA0 0%, #C9A227 100%);
     -webkit-background-clip: text;
@@ -111,13 +141,31 @@
     -webkit-text-fill-color: transparent;
     color: transparent;
   }
+  .pssfp-text-gradient-forest-or {
+    background: linear-gradient(135deg, #0E4D3F 0%, #C9A227 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .dark .pssfp-text-gradient-forest-or {
+    background: linear-gradient(135deg, #6FBDA0 0%, #E8C868 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
 
-  /* Container institutionnel */
+  /* Editorial gold hairline — séparateur subtil */
+  .pssfp-hairline-gold {
+    background: linear-gradient(90deg, transparent 0%, #C9A22760 30%, #C9A22760 70%, transparent 100%);
+    height: 1px;
+  }
+
   .pssfp-container {
     @apply mx-auto max-w-7xl px-6;
   }
 
-  /* PR U — scroll-reveal (révèle au passage dans le viewport) */
   .pssfp-reveal {
     opacity: 0;
     transform: translateY(20px);
@@ -134,18 +182,29 @@
       transform: none;
       transition: none;
     }
-    /* Sprint S5 PR Y : carrousel HomeShowcase Embla, désactiver autoplay */
     [data-testid="home-showcase"] [data-embla-container] {
       animation: none !important;
     }
+  }
+
+  /* Paper-grain texture overlay — atmosphère éditoriale */
+  .pssfp-paper-grain {
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(20, 16, 26, 0.025) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(201, 162, 39, 0.04) 0%, transparent 50%);
+  }
+  .dark .pssfp-paper-grain {
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(232, 200, 104, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(176, 132, 232, 0.05) 0%, transparent 50%);
   }
 }
 
 ::selection {
   background: #C9A227;
-  color: #1F1A24;
+  color: #14101A;
 }
 .dark ::selection {
   background: #E8C868;
-  color: #14091F;
+  color: #14101A;
 }

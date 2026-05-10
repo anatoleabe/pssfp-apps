@@ -10,3 +10,5 @@ export { BlurFade } from './blur-fade';
 export type { BlurFadeProps } from './blur-fade';
 export { Sparkles } from './sparkles';
 export type { SparklesProps } from './sparkles';
+export { BackgroundPaths } from './background-paths';
+export type { BackgroundPathsProps } from './background-paths';
