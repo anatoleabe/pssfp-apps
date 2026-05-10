@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages, getTranslations } from 'next-intl/server';
 import { Playfair_Display, Inter, DM_Sans } from 'next/font/google';
-import { Logo } from '@pssfp/ui';
+import { PssfpLogo } from '@pssfp/ui';
+import { LogOut, FileText, Home } from 'lucide-react';
 import Link from 'next/link';
 import { logoutAction } from './dossier/actions';
 import { getCandidatToken } from '@/lib/auth/session';
@@ -24,35 +25,66 @@ async function CandidatureHeader() {
   const isLoggedIn = (await getCandidatToken()) !== null;
 
   return (
-    <header className="border-b border-gray-200 bg-white">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-        <Link href="/" aria-label="Candidature PSSFP — Accueil" className="flex items-center gap-3">
-          <Logo variant="mark" />
-          <span className="font-heading text-lg font-bold text-[#6B2FA0]">Candidature</span>
+    <header className="sticky top-0 z-40 w-full border-b border-[#EDE7F6] bg-white/80 shadow-pssfp-soft backdrop-blur-2xl">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
+        <Link
+          href="/"
+          aria-label="Candidature PSSFP — Accueil"
+          className="group flex items-center gap-3 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+        >
+          <span className="relative inline-flex transition-transform duration-300 ease-pssfp-out-expo group-hover:scale-105">
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 -z-10 rounded-full opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-60"
+              style={{ background: 'radial-gradient(circle, #9B59B6 0%, transparent 70%)' }}
+            />
+            <PssfpLogo size={40} />
+          </span>
+          <span className="hidden font-heading text-lg font-bold sm:block">
+            <span className="text-[#1A0A2E]">PSSFP</span>
+            <span className="ml-1.5 text-[#6B2FA0]">/ Candidature</span>
+          </span>
         </Link>
-        <nav aria-label="Navigation candidature" className="flex items-center gap-6 text-sm">
-          <Link href="/" className="text-[#333333] hover:text-[#6B2FA0]">{t('home')}</Link>
+        <nav aria-label="Navigation candidature" className="flex items-center gap-1 text-sm">
+          <Link
+            href="/"
+            className="inline-flex h-10 items-center gap-1.5 rounded-pssfp-button px-3 text-[#333] transition-all duration-200 hover:bg-[#EDE7F6] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+          >
+            <Home size={14} aria-hidden="true" className="hidden sm:inline" />
+            {t('home')}
+          </Link>
           {isLoggedIn ? (
             <>
               <Link
                 href="/dossier"
                 data-testid="nav-dossier"
-                className="text-[#333333] hover:text-[#6B2FA0]"
+                className="inline-flex h-10 items-center gap-1.5 rounded-pssfp-button px-3 text-[#333] transition-all duration-200 hover:bg-[#EDE7F6] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
               >
+                <FileText size={14} aria-hidden="true" className="hidden sm:inline" />
                 Mon dossier
               </Link>
               <form action={logoutAction}>
                 <button
                   type="submit"
                   data-testid="nav-logout"
-                  className="text-[#333333] hover:text-[#6B2FA0]"
+                  className="inline-flex h-10 items-center gap-1.5 rounded-pssfp-button border border-[#EDE7F6] bg-white px-3 text-[#333] transition-all duration-200 hover:border-[#6B2FA0] hover:text-[#6B2FA0] hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
                 >
+                  <LogOut size={14} aria-hidden="true" />
                   Se déconnecter
                 </button>
               </form>
             </>
           ) : (
-            <Link href="/login" className="text-[#333333] hover:text-[#6B2FA0]">{t('login')}</Link>
+            <Link
+              href="/login"
+              className="group relative inline-flex h-10 items-center gap-1.5 overflow-hidden rounded-pssfp-button bg-gradient-violet-or px-4 text-sm font-medium text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] focus-visible:ring-offset-2"
+            >
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full"
+              />
+              <span className="relative">{t('login')}</span>
+            </Link>
           )}
         </nav>
       </div>
