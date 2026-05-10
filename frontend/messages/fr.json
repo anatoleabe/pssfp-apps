@@ -40,6 +40,33 @@
     "accept": "Accepter",
     "refuse": "Refuser"
   },
+  "theme": {
+    "switchToDark": "Basculer en mode sombre",
+    "switchToLight": "Basculer en mode clair"
+  },
+  "pssfpIndex": {
+    "eyebrow": "Le Programme",
+    "title": "Le PSSFP",
+    "titleAccent": "former l'élite des finances publiques",
+    "lead": "Hébergé au Campus de Messa à Yaoundé, le Programme Supérieur de Spécialisation en Finances Publiques prépare depuis plus d'une décennie les cadres de l'administration financière camerounaise et africaine — au service de l'État, des collectivités et des institutions partenaires.",
+    "missionEyebrow": "Mission institutionnelle",
+    "missionTitle": "Une école de l'État, ouverte sur l'Afrique",
+    "missionBody": "Le PSSFP rassemble les expertises de l'Université de Yaoundé II-Soa, du Ministère des Finances et d'institutions partenaires bilatérales et multilatérales. Notre vocation : porter l'excellence des finances publiques en Afrique francophone, en présentiel comme à distance, par la recherche, la formation initiale et la formation continue.",
+    "pillarsEyebrow": "Trois piliers",
+    "pillarsTitle": "Recherche, formation, accompagnement",
+    "pillar1Title": "Excellence académique",
+    "pillar1Body": "Master 2 spécialisé sur 4 semestres, 5 spécialités sectorielles, accréditation CAMES en cours.",
+    "pillar2Title": "Coopération internationale",
+    "pillar2Body": "Conventions actives avec l'Institut des Finances Basil Fuleihan, FMI Institute, Expertise France, Assemblée Nationale du Cameroun.",
+    "pillar3Title": "Ancrage public",
+    "pillar3Body": "Partenariat structurant avec MINFI, MINESUP et UY2 — contribution directe à la gouvernance financière de l'État.",
+    "exploreEyebrow": "Explorer",
+    "exploreTitle": "Naviguer le Programme",
+    "exploreLead": "Découvrez la gouvernance, les conventions, la conformité CAMES, la vocation et l'histoire institutionnelle du PSSFP.",
+    "ctaTitle": "Rejoindre la promotion 14",
+    "ctaBody": "Les candidatures sont ouvertes pour la rentrée académique 2026.",
+    "ctaButton": "Candidater en ligne"
+  },
   "home": {
     "hero": {
       "eyebrow": "Campus de Messa, Yaoundé",

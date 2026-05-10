@@ -52,22 +52,22 @@ export default async function PssfpPage({ params }: PageProps): Promise<JSX.Elem
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 md:py-16">
-      <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666]">
-        <Link href="/" className="hover:text-[#6B2FA0]">Accueil</Link>
+      <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666] dark:text-[#B5A8C8]">
+        <Link href="/" className="hover:text-[#6B2FA0] dark:hover:text-[#B084E8]">Accueil</Link>
         <span aria-hidden="true"> / </span>
-        <Link href="/pssfp" className="hover:text-[#6B2FA0]">Le PSSFP</Link>
+        <Link href="/pssfp" className="hover:text-[#6B2FA0] dark:hover:text-[#B084E8]">Le PSSFP</Link>
         <span aria-hidden="true"> / </span>
-        <span className="text-[#333]" data-testid="breadcrumb-current">
+        <span className="text-[#333] dark:text-[#F5EFE3]" data-testid="breadcrumb-current">
           {page.menu_label ?? page.title}
         </span>
       </nav>
 
       <header className="mb-8">
-        <h1 className="font-heading text-3xl font-bold text-[#6B2FA0] md:text-4xl">
+        <h1 className="font-heading text-3xl font-bold text-[#6B2FA0] md:text-4xl dark:text-[#B084E8]">
           {page.title}
         </h1>
         {page.excerpt && (
-          <p className="mt-3 text-lg text-[#555]" data-testid="page-excerpt">
+          <p className="mt-3 text-lg text-[#555] dark:text-[#B5A8C8]" data-testid="page-excerpt">
             {page.excerpt}
           </p>
         )}
