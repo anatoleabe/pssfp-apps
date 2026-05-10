@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Menu, X, ExternalLink, ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { motion, useReducedMotion } from 'framer-motion';
 import { PssfpLogo } from '@pssfp/ui';
 import { cn } from '../../lib/cn';
 
@@ -21,7 +20,6 @@ const NAV_LINKS = [
 export function SiteHeader(): JSX.Element {
   const t = useTranslations('nav');
   const pathname = usePathname();
-  const reduceMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -101,15 +99,7 @@ export function SiteHeader(): JSX.Element {
                     )}
                   >
                     {t(link.key)}
-                    {active && !reduceMotion && (
-                      <motion.span
-                        layoutId="nav-underline"
-                        aria-hidden="true"
-                        className="absolute inset-x-2 bottom-1 h-0.5 rounded-full bg-gradient-violet-or"
-                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                      />
-                    )}
-                    {active && reduceMotion && (
+                    {active && (
                       <span
                         aria-hidden="true"
                         className="absolute inset-x-2 bottom-1 h-0.5 rounded-full bg-gradient-violet-or"
