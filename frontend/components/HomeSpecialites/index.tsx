@@ -20,39 +20,41 @@ interface Specialite {
   featured?: boolean;
 }
 
+// Slugs alignés avec FormationsPagesSeeder (Sprint S5 PR X) : « metiers-* »
+// conformes au catalogue officiel PSSFP.
 const SPECS: ReadonlyArray<Specialite> = [
   // Card phare en colonne 1-2 / ligne 1-2 (bento large)
   {
-    slug: 'fiscalite-finance-comptabilite-publique',
-    number: '02',
+    slug: 'metiers-fiscalite-comptabilite',
+    number: '04',
     titleKey: 'spec2',
     bodyKey: 'spec2Body',
     Icon: Calculator,
     featured: true,
   },
   {
-    slug: 'economie-publique-gestion-publique',
+    slug: 'metiers-budgetaires',
     number: '01',
     titleKey: 'spec1',
     bodyKey: 'spec1Body',
     Icon: TrendingUp,
   },
   {
-    slug: 'gouvernance-territoriale-finances-publiques-locales',
-    number: '03',
+    slug: 'metiers-gouvernance-territoriale-decentralisation',
+    number: '02',
     titleKey: 'spec3',
     bodyKey: 'spec3Body',
     Icon: Building2,
   },
   {
-    slug: 'marches-publics-partenariats-public-prive',
-    number: '04',
+    slug: 'metiers-commande-publique',
+    number: '03',
     titleKey: 'spec4',
     bodyKey: 'spec4Body',
     Icon: Handshake,
   },
   {
-    slug: 'audit-controle-finances-publiques',
+    slug: 'metiers-audit-controle',
     number: '05',
     titleKey: 'spec5',
     bodyKey: 'spec5Body',

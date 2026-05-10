@@ -12,11 +12,12 @@ export const metadata: Metadata = {
 };
 
 const QUICK_LINKS = [
-  { slug: 'formations/master', label: 'Le Master' },
-  { slug: 'formations/specialites', label: '5 spécialités' },
-  { slug: 'formations/continue', label: 'Formation continue' },
-  { slug: 'formations/certifications', label: 'Certifications' },
-  { slug: 'formations/admission', label: 'Admission' },
+  { slug: 'formations/master', label: 'Master Professionnel' },
+  { slug: 'formations/specialites', label: '5 spécialités du Master' },
+  { slug: 'formations/formation-continue', label: 'Formation continue (10 modules)' },
+  { slug: 'formations/certifications', label: 'Certifications internationales' },
+  { slug: 'formations/seminaires', label: 'Séminaires & voyages d\'étude' },
+  { slug: 'formations/admission', label: 'Admission (P14 — 2026)' },
   { slug: 'formations/frais-de-scolarite', label: 'Frais de scolarité' },
 ] as const;
 

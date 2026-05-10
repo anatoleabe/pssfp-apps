@@ -37,9 +37,9 @@ test.describe('Home — sections', () => {
     await expect(specs).toBeVisible();
     const cards = specs.locator('a[data-testid^="spec-card-"]');
     await expect(cards).toHaveCount(5);
-    await expect(page.getByTestId('spec-card-fiscalite-finance-comptabilite-publique')).toHaveAttribute(
+    await expect(page.getByTestId('spec-card-metiers-fiscalite-comptabilite')).toHaveAttribute(
       'href',
-      '/formations/specialites/fiscalite-finance-comptabilite-publique',
+      '/formations/specialites/metiers-fiscalite-comptabilite',
     );
   });
 
