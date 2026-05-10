@@ -6,6 +6,43 @@
 > **Date** : 2026-05-08, version 1.1 (validations Anatole intégrées 2026-05-08 PM)
 > **Durée estimée** : 5-6 jours répartis en 6 PRs.
 
+## ⚠️ RÈGLE D'OR — INSPECT-FIRST (lire avant toute PR)
+
+**Anatole a déjà commencé à charger des contenus via l'admin Filament et à intégrer des assets** (logo, certaines pages, etc.). Sprint S5 est un sprint **d'amélioration et de complément**, PAS un sprint de remise à zéro.
+
+**Avant TOUTE création de fichier, page, asset, ou seeder, Claude Code DOIT** :
+
+1. **Inventorier ce qui existe en BDD** :
+   ```bash
+   cd apps/backend
+   php artisan tinker --execute="
+     echo 'Pages: '; App\Models\Page::pluck('slug')->each(fn(\$s) => print(\"  - \$s\n\"));
+     echo 'Articles: '; App\Models\Article::pluck('slug')->each(fn(\$s) => print(\"  - \$s\n\"));
+     echo 'Media: '; \\Spatie\\MediaLibrary\\MediaCollections\\Models\\Media::select('id','collection_name','file_name')->get()->each(fn(\$m) => print(\"  - {\$m->collection_name}/{\$m->file_name}\n\"));
+   "
+   ```
+2. **Inventorier les fichiers déjà importés** dans MinIO :
+   ```bash
+   php artisan storage:list minio  # ou mc ls minio/pssfp-media/
+   ```
+3. **Inventorier le code existant** par grep :
+   ```bash
+   grep -r "logo" apps/frontend/src/components/ apps/frontend/public/
+   grep -r "mot-du-president\|mot-president\|président" apps/frontend/src/
+   grep -r "Formation continue\|formation-continue" apps/frontend/src/
+   ```
+4. **Demander confirmation Anatole en commentaire de PR** si un asset/page/seeder semble déjà exister sous une forme légèrement différente. Exemple : si une page `/a-propos/mot-president` existe avec contenu déjà saisi via admin, NE PAS créer un seeder qui l'écrase ; à la place, **enrichir** le contenu manquant et **améliorer** le layout sans toucher au texte saisi.
+
+**Règles de non-régression** :
+- Pas de `migrate:fresh --seed` sans confirmation explicite Anatole.
+- Pas d'overwrite d'un fichier dans `apps/frontend/public/` sans diff visuel comparé.
+- Pas de seed qui écrase une `Page` ou `Article` créés via admin (vérifier `created_at` antérieur au sprint S5).
+- Si conflit potentiel détecté → ouvrir issue GitHub `inspect-conflict` et continuer les autres tâches non bloquantes.
+
+**Pattern de migration** : préférer `updateOrCreate(['slug' => $slug], [...defaults non-destructifs])` à `create()` pour les seeders qui pourraient toucher du contenu existant. Et **ne mettre que les champs vides** dans le tableau d'update, pas les champs déjà remplis.
+
+---
+
 ## Décisions Anatole validées le 2026-05-08
 
 1. **Le DOCX « Mot du Président.docx » est la version finale.**
@@ -329,62 +366,110 @@ Ajoutée sous le bento Master, dimension équivalente, lien direct vers `/format
 ```
 Sprint S5 — Bouclage site institutionnel (contenu réel).
 
+⚠️ RÈGLE D'OR INSPECT-FIRST — À LIRE EN PRIORITÉ ⚠️
+Anatole a déjà commencé à charger des contenus via Filament admin
+et à intégrer des assets (logo, certaines pages, etc.). Sprint S5 est
+un sprint d'AMÉLIORATION et de COMPLÉMENT, PAS une remise à zéro.
+
+AVANT TOUTE création/modification, suis la procédure Inspect-First de
+la section "RÈGLE D'OR" de la spec (en haut du document):
+  1. Inventaire BDD via php artisan tinker (Pages, Articles, Media)
+  2. Inventaire MinIO via storage:list ou mc ls
+  3. Inventaire code via grep
+  4. Si conflit potentiel → issue GitHub `inspect-conflict` + skip
+  5. Préférer updateOrCreate(['slug'=>$slug], [champs vides uniquement])
+     plutôt que create() ou seed destructif
+  6. JAMAIS de migrate:fresh --seed sans confirmation explicite Anatole
+
+Étape 0 OBLIGATOIRE de chaque PR (V→AA): commencer par produire
+un inventaire de l'existant pertinent dans la PR description, et
+indiquer pour chaque tâche si on CRÉE / COMPLÈTE / AMÉLIORE / SKIP.
+
+──────────────────────────────────────────────────────────────────
+
 Lis docs/sprints/sprint-S5-bouclage-institutionnel.md de bout en bout
-puis exécute les PRs V, W, X, Y, Z, AA en séquence.
+(la règle Inspect-First en haut, puis les PRs V à AA, puis l'annexe
+section 10bis sur ui-ux-pro-max).
 
 Avant la PR V:
   cd backend
-  cp .env.example .env  # si pas fait
-  php artisan key:generate
+  Vérifie .env (déjà créé par Anatole probablement)
   Vérifie que docker compose est up (postgres + minio + redis + meilisearch + mailpit)
-  php artisan migrate
+  php artisan migrate  (sans --fresh, sans --seed)
+  → produis inventaire complet en commentaire pour validation
 
-PR V — Import assets:
-  Source: /Users/anatole-savics/Documents/PS/03_PROJETS/SITE WEB PSSFP/
-  (les dossiers EN DEHORS du sous-dossier pssfp/)
+PR V — Import assets (Inspect-First!):
+  Étape 0: lister les Media déjà présents dans Filament + MinIO
+  Étape 1: identifier les assets MANQUANTS dans Documents/PS/03_PROJETS/SITE WEB PSSFP/
+  Étape 2: importer UNIQUEMENT les manquants (skip si filename + checksum identique)
   Cible: MinIO buckets pssfp-media/{logos,photos,documents}
-  Crée Media Library Filament, importe + tague + génère 3 tailles WebP.
-  Documente dans docs/asset-inventory.md
+  Documente dans docs/asset-inventory.md (ajout, pas remplacement)
 
-PR W — Pages contenu réel:
-  Extrait Mot du Président.docx, Présentation PSSFP.docx, Organigramme PSSFP.docx
-  vers Markdown via python-docx ou pandoc.
-  Mets à jour les seeders existants + crée MotPresidentPageSeeder.
-  Ajoute la page /pssfp/mot-du-president au menu déroulant Le PSSFP.
+PR W — Pages contenu réel (Inspect-First!):
+  Étape 0: php artisan tinker → liste des Pages existantes par slug
+  Pour chaque page cible (mot-du-president, presentation, organigramme...):
+    SI EXISTE: enrichir UNIQUEMENT champs vides (description, meta_title vides...)
+              AMÉLIORER le layout sans toucher au contenu texte
+    SI N'EXISTE PAS: créer via updateOrCreate
+  Renommage menu "Le PSSFP" → "À propos de nous" (vérifier si déjà fait)
+  Audit grep "Directeur Général|\bDG\b" → corriger en "Président du Comité de Pilotage"
+    (vérifier si déjà fait avant!)
 
-PR X — Formation continue:
-  Crée le menu Formations niveau 1 avec 5 sous-menus (cf spec section 3).
-  Page /formations/formation-continue + /formations/seminaires.
-  Card Formation continue en home sous le bento.
+PR X — Formation continue (Inspect-First!):
+  Étape 0: vérifier si menu Formations existe déjà avec sous-menus
+  Source: docs/sources/catalogue-formations-extracted.txt (75 pages déjà extraites)
+  Pour les 10 modules formation continue: créer chaque page UNIQUEMENT si absente
+  Card "Formation continue" en home: vérifier qu'elle n'est pas déjà ajoutée
 
-PR Y — Hero showcase:
-  Embla Carousel React (npm i embla-carousel-react).
-  5 slides cf section 4. Autoplay 6s, crossfade 800ms.
-  Garder hero actuel comme variante via flag CMS (champ "hero_variant" sur Page d'accueil).
+PR Y — Hero showcase (Inspect-First!):
+  Étape 0: regarde le composant Hero actuel — il y a déjà un Hero avec
+    AnimatedBeam + animations. Le NOUVEAU Hero carousel doit être une
+    NOUVELLE variante via flag CMS (champ `hero_variant: 'static'|'carousel'`)
+    sur la Page Accueil. NE PAS supprimer le Hero existant.
+  npm i embla-carousel-react (vérifier qu'il n'est pas déjà installé)
+  Photos: utiliser celles importées en PR V, pas dupliquer
 
-PR Z — Wiring + articles:
-  Crée 3 vrais articles via seeder ArticlesSeeder.
-  Configure NEXT_PUBLIC_CANDIDATURE_URL/LIBRARY_URL/FOAD_URL dans .env.example frontend.
-  Remplace data mock HomeActualites par fetch API.
+PR Z — Wiring + articles (Inspect-First!):
+  Étape 0: php artisan tinker → liste Articles existants
+  Pour les 4 articles: créer UNIQUEMENT si slug absent
+  .env.example frontend: vérifier si NEXT_PUBLIC_CANDIDATURE_URL existe déjà
+    (peut-être déjà configuré par Anatole) — ajouter sans écraser
+  HomeActualites: vérifier si déjà migré du mock vers fetch API
 
 PR AA — Polish + démo:
-  Lighthouse production, audit i18n, tests Playwright e2e des 12 pages.
-  Page /demo-copil cachée. Script export-brochure PDF.
+  Lighthouse production, audit i18n, tests Playwright e2e
+  Page /demo-copil cachée
+  Script export-brochure PDF
 
-Garde-fous:
+Garde-fous PARTOUT:
+- INSPECT-FIRST sur chaque PR (étape 0 obligatoire)
 - Charte CDC §10.1 (Violet #6B2FA0 / Or #C9A227 / Lavande #EDE7F6)
+  via apps/frontend/design-system/CHARTE-OVERRIDE.md (déjà créé en
+  PR design-system bootstrap, lis-le avant tout code UI)
 - A11y axe-core 0 violation critique
 - Dark mode validé sur chaque PR
 - prefers-reduced-motion respecté
-- i18n: tout en clés, rien en dur
+- i18n: tout en clés next-intl, rien en dur
 - Tests Playwright snapshots versionnés
+- Pas de `migrate:fresh --seed` sans demander Anatole
 
-Si une étape demande validation Anatole (rédaction Mot du Président,
-sélection des 3 articles, choix des 5 slides), ouvre une issue GitHub
-label `validation-anatole` et continue les tâches non bloquantes.
+Si une étape demande validation Anatole (rédaction articles Centre Pasteur
+ou Assemblée Nationale, choix des 5 photos hero, conflit inspect-first
+détecté), ouvre une issue GitHub label `validation-anatole` ou
+`inspect-conflict` et continue les tâches non bloquantes.
 
-Reporte chaque PR mergée dans le canal habituel avec lien GitHub
-+ capture d'écran avant/après.
+Pour chaque PR, dans le PR description GitHub, indique :
+  ## Inventaire avant intervention
+  - Pages existantes touchées : [liste]
+  - Articles existants touchés : [liste]
+  - Assets existants touchés : [liste]
+  ## Actions
+  - CRÉÉ : [...]
+  - COMPLÉTÉ : [...]
+  - AMÉLIORÉ : [...]
+  - SKIPPÉ (déjà fait) : [...]
+
+Reporte chaque PR mergée avec lien GitHub + capture d'écran avant/après.
 ```
 
 ---
@@ -403,7 +488,201 @@ Reporte chaque PR mergée dans le canal habituel avec lien GitHub
 
 ---
 
-## 10. Sources utilisées
+## 10bis. Annexe — Usage de `/ui-ux-pro-max` dans Sprint S5
+
+**Décision Anatole 2026-05-10** : on utilise le skill `/ui-ux-pro-max` (https://github.com/nextlevelbuilder/ui-ux-pro-max-skill, v2.5.0, 73k★) **comme outil principal** pour le design system. Magic 21st.dev (`/ui`, `/21`) reste installé en complément optionnel, mais ui-ux-pro-max **prime** sur tout choix design.
+
+### Pourquoi ui-ux-pro-max plutôt que Magic ?
+
+| Critère | Magic (`/ui`) | ui-ux-pro-max (`/ui-ux-pro-max`) |
+|---|---|---|
+| Output | Composant unitaire ad hoc | Design System MASTER.md + overrides par page |
+| Cohérence inter-composants | Non garantie | Garantie par le MASTER versionné |
+| Domaine specifique | Aucun | 161 règles dont Government / Higher Education |
+| Anti-patterns codifiés | Non | Oui (refuse les gradients AI purple/pink, etc.) |
+| Pre-delivery checklist a11y | Non | Oui |
+| Persistance | Non | Oui (`design-system/` versionné) |
+| Convient à un site institutionnel | Risqué (dérives) | Idéal |
+
+Pour PSSFP — site institutionnel public francophone à enjeu CAMES — la cohérence prime sur la rapidité. **ui-ux-pro-max gagne**.
+
+### Étape 1 — Installation ui-ux-pro-max (une fois pour toutes)
+
+À exécuter **avant la PR V** (sprint kickoff) :
+
+```bash
+# Option A — via marketplace Claude Code (le plus simple)
+# Dans Claude Code, taper:
+/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill
+/plugin install ui-ux-pro-max@ui-ux-pro-max-skill
+
+# Option B — via CLI (équivalent)
+npm install -g uipro-cli
+cd /Users/anatole-savics/Documents/PS/03_PROJETS/SITE WEB PSSFP/pssfp/apps/frontend
+uipro init --ai claude
+```
+
+Vérification : `python3 .claude/skills/ui-ux-pro-max/scripts/search.py --help` doit lister les commandes du skill.
+
+### Étape 2 — Génération du Design System MASTER (5 min)
+
+Toujours dans `apps/frontend` :
+
+```bash
+# Génère design-system/MASTER.md adapté à PSSFP
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py \
+  "government higher education public finance institution Cameroon francophone" \
+  --design-system --persist \
+  -p "PSSFP Programme Supérieur de Spécialisation en Finances Publiques" \
+  -f markdown
+```
+
+### Étape 3 — Override charte CDC §10.1 (CRITIQUE)
+
+Le skill va proposer une palette par défaut. **On la remplace** par la charte officielle gelée. Créer `apps/frontend/design-system/CHARTE-OVERRIDE.md` qui prime sur le MASTER :
+
+```markdown
+# CHARTE-OVERRIDE.md — Règles non-négociables PSSFP
+
+Ces règles **priment** sur toute suggestion de `MASTER.md` ou de tout outil tiers.
+
+## Couleurs (CDC v5 §10.1, gelées par ADR)
+- Primary : #6B2FA0 (Violet institutionnel) — JAMAIS #2D1454 ou autre
+- Secondary : #C9A227 (Or excellence) — JAMAIS #C9A040 ou autre
+- Tertiary : #EDE7F6 (Lavande)
+- Anthracite : #1F1A24 (texte/dark bg)
+- Crème : #FAF8F5 (light bg)
+- États : Vert #2E7D32, Rouge #C62828
+
+## Typographie (CDC v5 §10.1)
+- Titres H1-H4 : Playfair Display (600/700/900)
+- Corps : Inter (400/500/600)
+- UI / Boutons : DM Sans (500)
+
+## Anti-patterns INTERDITS
+- ❌ Gradients AI purple/pink (#A855F7 → #EC4899) — cliché incompatible institutionnel
+- ❌ Glow néon, brutalism, claymorphism
+- ❌ Glassmorphism transparence > 60% (lisibilité d'abord)
+- ❌ Emojis utilisés comme icônes (utiliser lucide-react)
+- ❌ Texte en dur dans le JSX (toujours next-intl t('key'))
+- ❌ Animations sans respect de prefers-reduced-motion
+
+## Pre-delivery non négociable
+- [ ] Contraste WCAG AA partout (≥4.5:1 corps, ≥3:1 UI)
+- [ ] focus-visible:ring-2 sur tous éléments interactifs
+- [ ] cursor-pointer sur tout cliquable
+- [ ] Hover transitions 150-300ms ease-out
+- [ ] Responsive testé sur 375 / 768 / 1024 / 1440
+- [ ] prefers-reduced-motion respecté (pas d'autoplay, pas de Ken Burns, pas de stagger)
+- [ ] Dark mode validé sur chaque composant
+- [ ] axe-core 0 violation critique
+```
+
+### Étape 4 — Génération des overrides par page
+
+```bash
+# Page Accueil
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py \
+  "institutional homepage hero data viz public finance editorial" \
+  --design-system --persist -p "PSSFP" --page "accueil"
+
+# Page Mot du Président
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py \
+  "leader quote editorial layout institutional president" \
+  --design-system --persist -p "PSSFP" --page "mot-president"
+
+# Page Formation continue (la pièce maîtresse)
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py \
+  "training catalog cards bento public sector education" \
+  --design-system --persist -p "PSSFP" --page "formation-continue"
+
+# Page Master + 5 spécialités
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py \
+  "academic program presentation higher education master" \
+  --design-system --persist -p "PSSFP" --page "master"
+
+# Page Actualités
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py \
+  "news editorial magazine timeline institutional" \
+  --design-system --persist -p "PSSFP" --page "actualites"
+
+# Page Partenaires
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py \
+  "partners trust logos international institutional" \
+  --design-system --persist -p "PSSFP" --page "partenaires"
+```
+
+Résultat attendu — arborescence design-system :
+
+```
+apps/frontend/design-system/
+├── MASTER.md                     # Skill output, overridden par CHARTE
+├── CHARTE-OVERRIDE.md            # Source de vérité absolue (non-négociable)
+└── pages/
+    ├── accueil.md
+    ├── mot-president.md
+    ├── formation-continue.md
+    ├── master.md
+    ├── actualites.md
+    └── partenaires.md
+```
+
+### Étape 5 — Workflow contextuel à chaque PR du Sprint S5
+
+Avant de coder un composant, Claude Code lit dans cet ordre :
+
+1. `apps/frontend/design-system/CHARTE-OVERRIDE.md` (règles non-négociables)
+2. `apps/frontend/design-system/MASTER.md` (style global)
+3. `apps/frontend/design-system/pages/<slug>.md` si la page concernée a un override
+4. La spec PR du Sprint S5 (§ correspondant)
+
+Puis il code en respectant strictement la hiérarchie : CHARTE > pages override > MASTER > spec PR.
+
+### Étape 6 — Mise à jour du `apps/frontend/CLAUDE.md`
+
+Ajouter ce paragraphe en haut du `CLAUDE.md` du frontend :
+
+```markdown
+## Design System — Source de vérité
+
+Avant tout code UI, lis dans cet ordre strict :
+1. `apps/frontend/design-system/CHARTE-OVERRIDE.md` — règles non-négociables (charte CDC §10.1)
+2. `apps/frontend/design-system/MASTER.md` — design system généré par /ui-ux-pro-max
+3. `apps/frontend/design-system/pages/<slug>.md` — override page si présent
+
+Ne génère JAMAIS un composant sans avoir lu la CHARTE. Toute suggestion d'outil tiers
+(Magic /ui, ChatGPT, autre) qui contredit la CHARTE doit être ignorée.
+
+Le skill /ui-ux-pro-max peut être ré-invoqué pour générer un nouvel override page
+si une page nouvelle est créée. Les fichiers design-system/ sont versionnés.
+```
+
+### Étape 7 — Si tu utilises malgré tout Magic ponctuellement
+
+OK pour des micro-composants génériques (un toast, un skeleton loader, un toggle).
+Préfixe systématiquement le prompt `/ui` par :
+
+```
+Use the project's CHARTE-OVERRIDE.md design tokens (--pssfp-violet #6B2FA0,
+--pssfp-or #C9A227, Playfair Display + Inter + DM Sans). All user-facing text
+in next-intl t('key'). Respect prefers-reduced-motion. No emojis as icons.
+Output a single shadcn/ui-compatible TypeScript component.
+
+Now generate: [ton besoin]
+```
+
+Pour tout composant de page-niveau (hero, section, footer, page éditoriale), **n'utilise PAS Magic** — utilise ui-ux-pro-max + Claude Code direct, c'est plus cohérent.
+
+### Référence
+
+- Skill GitHub : https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
+- Catégorie matchée : Government + Higher Education + Public Finance (mix)
+- Version cible : v2.5.0 ou supérieure
+- Voir aussi : `docs/sprints/sprint-S4-uxboost-phase2.md` (spec UX Boost antérieure qui décrit déjà le skill — toujours valide, complétée par cette annexe).
+
+---
+
+## 11. Sources utilisées
 
 - `docs/sources/catalogue-formations-extracted.txt` — extraction texte du catalogue PDF officiel (75 pages, 42 KB), source de vérité pour la rubrique Formations
 - `Documentation/Mot du Président.docx` (15 KB) — texte original du Pr. BASAHAG
@@ -415,4 +694,4 @@ Reporte chaque PR mergée dans le canal habituel avec lien GitHub
 
 ---
 
-**Ce document est versionné** : `pssfp/docs/sprints/sprint-S5-bouclage-institutionnel.md` (v1.1)
+**Ce document est versionné** : `pssfp/docs/sprints/sprint-S5-bouclage-institutionnel.md` (v1.4 — règle Inspect-First ajoutée 2026-05-10 PM, protège le travail manuel d'Anatole en admin Filament)
