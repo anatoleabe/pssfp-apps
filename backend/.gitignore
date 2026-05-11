@@ -22,3 +22,7 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Filament published assets (rebuilt via php artisan filament:assets)
+/public/css/filament
+/public/js/filament

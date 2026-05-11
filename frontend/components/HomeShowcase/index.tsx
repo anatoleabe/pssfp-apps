@@ -151,7 +151,7 @@ export function HomeShowcase(): JSX.Element {
     <section
       aria-label="Présentation du PSSFP — diaporama de 5 slides"
       data-testid="home-showcase"
-      className="relative isolate overflow-hidden bg-[#1A0A2E]"
+      className="relative isolate overflow-hidden bg-[#14101A]"
     >
       {/*
         Carrousel WAI-ARIA APG pattern : track focusable + ARIA roledescription
@@ -196,7 +196,12 @@ export function HomeShowcase(): JSX.Element {
               {/* Overlay gradient bottom pour lisibilité texte */}
               <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-t from-[#1A0A2E]/95 via-[#14091F]/60 to-transparent"
+                className="absolute inset-0 bg-gradient-to-t from-[#14101A]/95 via-[#1B1620]/55 to-transparent"
+              />
+              {/* Diagonal slash décoratif gold — éditorial */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-transparent via-[#C9A227]/70 to-transparent md:left-6"
               />
 
               {/* Contenu — seule la 1re slide a un h1 (SEO + a11y heading-order) */}
@@ -218,7 +223,7 @@ export function HomeShowcase(): JSX.Element {
                   <Link
                     href={slide.primaryCta.href}
                     data-testid={`showcase-cta-primary-${slide.id}`}
-                    className="group inline-flex items-center gap-2 rounded-pssfp-button bg-gradient-violet-or px-5 py-3 text-sm font-medium text-white shadow-pssfp-elevated transition-all hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A0A2E]"
+                    className="group inline-flex items-center gap-2 rounded-pssfp-button bg-[#C9A227] px-5 py-3 text-sm font-semibold text-[#14101A] shadow-pssfp-glow-or transition-all hover:-translate-y-0.5 hover:bg-[#D9B441] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8C868] focus-visible:ring-offset-2 focus-visible:ring-offset-[#14101A]"
                   >
                     {slide.primaryCta.label}
                     <ArrowRight

@@ -8,22 +8,24 @@ import {
 } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
+type Variant = 'forest' | 'ink' | 'gold';
+
 interface Card {
   key: 'foad' | 'biblio' | 'candidature';
   href: string;
   external: boolean;
   Icon: LucideIcon;
-  /** Direction visuelle de la card. */
-  variant: 'violet' | 'lavande' | 'or';
+  variant: Variant;
 }
 
 /**
- * Bloc 3 accès rapides — refonte PR R.
+ * Bloc 3 accès rapides — refonte Editorial Senate.
  *
- * 3 grandes cards (FOAD, Bibliothèque, Candidature) avec background gradient
- * thématique, halo radial décoratif, hover scale + reveal arrow ArrowUpRight,
- * shadow elevated → floating au hover. Card "candidature" mise en avant
- * avec gradient violet→or.
+ * 3 grandes cards avec rotation forest / ink / gold pour casser la dominante
+ * violette. La candidature reste la card phare (gold burnished, accent
+ * institutionnel fort). FOAD prend l'ancre forest. Biblio prend ink-deep
+ * pour l'élévation typographique. Background cream warm — plus de lavande
+ * blanc.
  */
 export async function HomeAccessRapide(): Promise<JSX.Element> {
   const t = await getTranslations('home.access');
@@ -34,21 +36,21 @@ export async function HomeAccessRapide(): Promise<JSX.Element> {
       href: process.env.NEXT_PUBLIC_FOAD_URL ?? 'https://foad.pssfp.net',
       external: true,
       Icon: GraduationCap,
-      variant: 'lavande',
+      variant: 'forest',
     },
     {
       key: 'biblio',
       href: process.env.NEXT_PUBLIC_LIBRARY_URL ?? '#',
       external: true,
       Icon: BookOpen,
-      variant: 'violet',
+      variant: 'ink',
     },
     {
       key: 'candidature',
       href: process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#',
       external: true,
       Icon: FileSignature,
-      variant: 'or',
+      variant: 'gold',
     },
   ];
 
@@ -56,25 +58,29 @@ export async function HomeAccessRapide(): Promise<JSX.Element> {
     <section
       aria-labelledby="access-heading"
       data-testid="home-access"
-      className="relative overflow-hidden bg-gradient-lavande-blanc"
+      className="relative overflow-hidden bg-gradient-cream-warm pssfp-paper-grain"
     >
-      {/* Halos décoratifs en background */}
+      {/* Halo décoratifs sobres */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-32 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full opacity-20 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #6B2FA0 0%, transparent 70%)' }}
+        className="pointer-events-none absolute -left-32 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full opacity-15 blur-3xl"
+        style={{ background: 'radial-gradient(circle, #0E4D3F 0%, transparent 70%)' }}
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full opacity-15 blur-3xl"
+        className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full opacity-20 blur-3xl"
         style={{ background: 'radial-gradient(circle, #C9A227 0%, transparent 70%)' }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#C9A227]/50 to-transparent"
       />
 
       <div className="relative mx-auto max-w-7xl px-6 py-20 md:py-24">
         <header className="mb-12 max-w-3xl">
           <h2
             id="access-heading"
-            className="font-heading font-bold text-pssfp-h2 text-[#1A0A2E]"
+            className="font-heading font-bold text-pssfp-h2 text-[#14101A]"
           >
             {t('title')}
           </h2>
@@ -105,17 +111,50 @@ interface AccessCardProps {
   openLabel: string;
 }
 
-function AccessCard({ card, title, body, openLabel }: AccessCardProps): JSX.Element {
-  const baseStyles = {
-    violet:
-      'bg-gradient-violet text-white border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
-    or:
-      'bg-gradient-violet-or text-white border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
-    lavande:
-      'bg-white border-[#EDE7F6] text-[#1A0A2E] shadow-pssfp-soft hover:shadow-pssfp-elevated hover:border-[#9B59B6]/40',
-  } as const;
+const VARIANT_STYLES: Record<Variant, {
+  card: string;
+  haloBg: string;
+  iconBg: string;
+  titleColor: string;
+  bodyColor: string;
+  ctaColor: string;
+  ctaArrowBg: string;
+  focusRing: string;
+}> = {
+  forest: {
+    card: 'bg-gradient-forest text-white border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
+    haloBg: 'radial-gradient(circle, rgba(255, 255, 255, 0.30) 0%, transparent 70%)',
+    iconBg: 'bg-white/15 text-white backdrop-blur-2xl',
+    titleColor: 'text-white',
+    bodyColor: 'text-white/85',
+    ctaColor: 'text-white',
+    ctaArrowBg: 'bg-white/15 text-white group-hover:bg-white group-hover:text-[#0E4D3F]',
+    focusRing: 'focus-visible:ring-[#C9A227]',
+  },
+  ink: {
+    card: 'bg-gradient-ink-deep text-white border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
+    haloBg: 'radial-gradient(circle, rgba(176, 132, 232, 0.40) 0%, transparent 70%)',
+    iconBg: 'bg-white/10 text-[#E8C868] backdrop-blur-2xl',
+    titleColor: 'text-white',
+    bodyColor: 'text-white/85',
+    ctaColor: 'text-[#E8C868]',
+    ctaArrowBg: 'bg-white/10 text-[#E8C868] group-hover:bg-[#E8C868] group-hover:text-[#14101A]',
+    focusRing: 'focus-visible:ring-[#E8C868]',
+  },
+  gold: {
+    card: 'bg-gradient-or-soft text-[#14101A] border-transparent shadow-pssfp-glow-or hover:shadow-pssfp-floating',
+    haloBg: 'radial-gradient(circle, rgba(20, 16, 26, 0.20) 0%, transparent 70%)',
+    iconBg: 'bg-[#14101A]/10 text-[#14101A] backdrop-blur-2xl',
+    titleColor: 'text-[#14101A]',
+    bodyColor: 'text-[#14101A]/80',
+    ctaColor: 'text-[#14101A]',
+    ctaArrowBg: 'bg-[#14101A]/10 text-[#14101A] group-hover:bg-[#14101A] group-hover:text-[#C9A227]',
+    focusRing: 'focus-visible:ring-[#0E4D3F]',
+  },
+};
 
-  const isLight = card.variant === 'lavande';
+function AccessCard({ card, title, body, openLabel }: AccessCardProps): JSX.Element {
+  const v = VARIANT_STYLES[card.variant];
   const Icon = card.Icon;
 
   return (
@@ -124,58 +163,35 @@ function AccessCard({ card, title, body, openLabel }: AccessCardProps): JSX.Elem
       data-testid={`access-${card.key}`}
       rel={card.external ? 'noopener noreferrer' : undefined}
       target={card.external ? '_blank' : undefined}
-      className={`group relative flex h-full min-h-[260px] flex-col justify-between overflow-hidden rounded-pssfp-card border p-7 transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 ${baseStyles[card.variant]}`}
+      className={`group relative flex h-full min-h-[260px] flex-col justify-between overflow-hidden rounded-pssfp-card border p-7 transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${v.card} ${v.focusRing}`}
     >
-      {/* Halo décoratif subtil au hover */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-50"
-        style={{
-          background: isLight
-            ? 'radial-gradient(circle, rgba(155, 89, 182, 0.4) 0%, transparent 70%)'
-            : 'radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%)',
-        }}
+        className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-60"
+        style={{ background: v.haloBg }}
       />
 
       <div className="relative">
         <span
           aria-hidden="true"
-          className={`inline-flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-300 ease-pssfp-out-expo group-hover:scale-110 ${
-            isLight
-              ? 'bg-[#EDE7F6] text-[#6B2FA0]'
-              : 'bg-white/15 text-white backdrop-blur-2xl'
-          }`}
+          className={`inline-flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-300 ease-pssfp-out-expo group-hover:scale-110 ${v.iconBg}`}
         >
           <Icon size={28} />
         </span>
-        <h3 className={`mt-6 font-heading text-pssfp-h3 font-bold leading-tight ${isLight ? 'text-[#1A0A2E]' : 'text-white'}`}>
+        <h3 className={`mt-6 font-heading text-pssfp-h3 font-bold leading-tight ${v.titleColor}`}>
           {title}
         </h3>
-        <p
-          className={`mt-3 text-sm leading-relaxed ${
-            isLight ? 'text-[#555]' : 'text-white/85'
-          }`}
-        >
-          {body}
-        </p>
+        <p className={`mt-3 text-sm leading-relaxed ${v.bodyColor}`}>{body}</p>
       </div>
 
-      <div
-        className={`relative mt-6 inline-flex items-center justify-between gap-3 ${
-          isLight ? 'text-[#6B2FA0]' : 'text-white'
-        }`}
-      >
+      <div className={`relative mt-6 inline-flex items-center justify-between gap-3 ${v.ctaColor}`}>
         <span className="inline-flex items-center gap-2 text-sm font-semibold">
           {openLabel}
           {card.external ? <ExternalLink size={14} aria-hidden="true" /> : null}
         </span>
         <span
           aria-hidden="true"
-          className={`flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ease-pssfp-out-expo group-hover:scale-110 ${
-            isLight
-              ? 'bg-[#EDE7F6] text-[#6B2FA0] group-hover:bg-[#6B2FA0] group-hover:text-white'
-              : 'bg-white/15 text-white group-hover:bg-white group-hover:text-[#6B2FA0]'
-          }`}
+          className={`flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ease-pssfp-out-expo group-hover:scale-110 ${v.ctaArrowBg}`}
         >
           <ArrowUpRight
             size={18}

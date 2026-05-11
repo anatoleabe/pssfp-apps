@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Sparkles as SparklesIcon, MapPin } from 'lucide-react';
+import { ArrowRight, MapPin } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { AnimatedBeam } from '../magic-ui/animated-beam';
 import { Sparkles } from '../magic-ui/sparkles';
@@ -52,10 +52,7 @@ export async function HomeHero(): Promise<JSX.Element> {
 
       <div className="mx-auto grid max-w-7xl gap-12 px-6 py-20 md:grid-cols-[3fr_2fr] md:py-28 lg:py-32">
         <div className="relative">
-          <p className="pssfp-eyebrow inline-flex items-center gap-2">
-            <SparklesIcon size={14} aria-hidden="true" className="text-[#C9A227]" />
-            {t('eyebrow')}
-          </p>
+          <p className="pssfp-eyebrow">{t('eyebrow')}</p>
           <h1
             id="hero-heading"
             className="mt-4 font-heading font-bold text-pssfp-h1 text-[#1A0A2E] dark:text-[#FAF8F5]"

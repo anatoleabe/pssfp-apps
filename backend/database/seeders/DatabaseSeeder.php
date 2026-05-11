@@ -18,6 +18,11 @@ final class DatabaseSeeder extends Seeder
             // Rôles + admin.
             RolePermissionSeeder::class,
             AdminUserSeeder::class,
+            // Contenu éditorial du site institutionnel (idempotent par slug).
+            AProposPagesSeeder::class,
+            FormationsPagesSeeder::class,
+            VieAcademiquePagesSeeder::class,
+            ArticlesSeeder::class,
             // Données de démo (env local/dev/testing uniquement).
             DemoCampagneSeeder::class,
         ]);
