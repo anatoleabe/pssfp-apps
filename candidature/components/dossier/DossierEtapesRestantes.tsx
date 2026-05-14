@@ -51,13 +51,13 @@ export function DossierEtapesRestantes({ candidature }: { candidature: MyCandida
   return (
     <section
       aria-labelledby="etapes-heading"
-      className="relative overflow-hidden rounded-pssfp-card border border-[#EDE7F6] bg-gradient-lavande-blanc p-6 md:p-7"
+      className="relative overflow-hidden rounded-pssfp-card border border-[#F4EFFA] bg-gradient-lavande-blanc p-6 md:p-7"
     >
       {/* Halo décoratif */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full opacity-25 blur-3xl"
-        style={{ background: 'radial-gradient(circle, rgba(201, 162, 39, 0.4) 0%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(circle, rgba(212, 175, 106, 0.4) 0%, transparent 70%)' }}
       />
 
       <div className="relative flex flex-wrap items-start justify-between gap-3">
@@ -65,12 +65,12 @@ export function DossierEtapesRestantes({ candidature }: { candidature: MyCandida
           <p className="pssfp-eyebrow">Parcours</p>
           <h2
             id="etapes-heading"
-            className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A0A2E]"
+            className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A1A1A]"
           >
             Étapes restantes
           </h2>
         </div>
-        <div className="rounded-full border border-[#EDE7F6] bg-white px-3 py-1 text-xs font-semibold text-[#6B2FA0]">
+        <div className="rounded-full border border-[#F4EFFA] bg-white px-3 py-1 text-xs font-semibold text-[#4A2E67]">
           {doneSteps} / {totalSteps} ·{' '}
           <span className="pssfp-text-gradient-violet-or">{progress}%</span>
         </div>
@@ -80,7 +80,7 @@ export function DossierEtapesRestantes({ candidature }: { candidature: MyCandida
       <div className="relative mt-5 h-2 w-full overflow-hidden rounded-full bg-white/80">
         <div
           aria-hidden="true"
-          className="h-full rounded-full bg-gradient-violet-or transition-all duration-700 ease-pssfp-out-expo"
+          className="h-full rounded-full bg-gradient-prune-or transition-all duration-700 ease-pssfp-out-expo"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -96,7 +96,7 @@ export function DossierEtapesRestantes({ candidature }: { candidature: MyCandida
               e.done
                 ? 'border-emerald-200 bg-emerald-50/60'
                 : e.current
-                ? 'border-[#9B59B6]/40 bg-white shadow-pssfp-soft'
+                ? 'border-[#5C3A7E]/40 bg-white shadow-pssfp-soft'
                 : 'border-transparent bg-white/40'
             }`}
           >
@@ -106,7 +106,7 @@ export function DossierEtapesRestantes({ candidature }: { candidature: MyCandida
                 e.done
                   ? 'bg-emerald-500 text-white'
                   : e.current
-                  ? 'bg-gradient-violet-or text-white shadow-pssfp-glow-or animate-pssfp-pulse-violet'
+                  ? 'bg-gradient-prune-or text-white shadow-pssfp-glow-or animate-pssfp-pulse-prune'
                   : 'border-2 border-gray-300 bg-white text-gray-400'
               }`}
             >
@@ -117,7 +117,7 @@ export function DossierEtapesRestantes({ candidature }: { candidature: MyCandida
                 e.done
                   ? 'text-emerald-900'
                   : e.current
-                  ? 'font-semibold text-[#1A0A2E]'
+                  ? 'font-semibold text-[#1A1A1A]'
                   : 'text-[#555]'
               }`}
             >

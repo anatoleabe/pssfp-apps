@@ -77,12 +77,12 @@ export function CookieBanner(): JSX.Element | null {
     >
       <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
         <div>
-          <h2 id="cookie-banner-heading" className="font-heading text-lg font-bold text-[#6B2FA0]">
+          <h2 id="cookie-banner-heading" className="font-heading text-lg font-bold text-[#4A2E67]">
             {t('title')}
           </h2>
           <p id="cookie-banner-body" className="mt-2 text-sm text-[#555]">
             {t('body')}{' '}
-            <a href="/confidentialite" className="underline hover:text-[#6B2FA0]">
+            <a href="/confidentialite" className="underline hover:text-[#4A2E67]">
               {t('learnMore')}
             </a>
             .
@@ -93,7 +93,7 @@ export function CookieBanner(): JSX.Element | null {
             type="button"
             onClick={onRefuse}
             data-testid="cookie-refuse"
-            className="inline-flex h-11 items-center rounded-md border border-gray-300 bg-white px-4 text-sm text-[#333] hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+            className="inline-flex h-11 items-center rounded-md border border-gray-300 bg-white px-4 text-sm text-[#333] hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
           >
             {t('refuse')}
           </button>
@@ -101,7 +101,7 @@ export function CookieBanner(): JSX.Element | null {
             type="button"
             onClick={onAccept}
             data-testid="cookie-accept"
-            className="inline-flex h-11 items-center rounded-md bg-[#6B2FA0] px-4 text-sm font-medium text-white hover:bg-[#9B59B6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+            className="inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-4 text-sm font-medium text-white hover:bg-[#5C3A7E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
           >
             {t('accept')}
           </button>

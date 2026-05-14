@@ -235,7 +235,7 @@ function Card({
     >
       <h2
         id={`${id}-heading`}
-        className="font-heading text-lg font-bold text-[#6B2FA0]"
+        className="font-heading text-lg font-bold text-[#4A2E67]"
       >
         {title}
       </h2>
@@ -270,7 +270,7 @@ function Field({
 }
 
 const inputCls =
-  'h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30';
+  'h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30';
 
 interface SectionPropsBase {
   form: FormState;
@@ -589,7 +589,7 @@ function SectionDiplome({ form, errors, setField }: SectionPropsBase): JSX.Eleme
       </Field>
 
       {showEmployer && (
-        <div className="space-y-4 rounded-md border border-[#EDE7F6] bg-[#FAF7FF] p-4">
+        <div className="space-y-4 rounded-md border border-[#F4EFFA] bg-[#FAF7FF] p-4">
           <Field field="employeur" label="Employeur" error={errors.employeur}>
             <input
               type="text"
@@ -645,7 +645,7 @@ function SectionEngagement({ form, errors, setField }: SectionPropsBase): JSX.El
       title="Engagement"
       description="Re-signez en tapant exactement votre prénom suivi de votre nom."
     >
-      <p className="rounded-md border border-[#C9A227]/40 bg-[#FFFBEA] p-3 text-xs text-[#666]" role="note">
+      <p className="rounded-md border border-[#D4AF6A]/40 bg-[#FFFBEA] p-3 text-xs text-[#666]" role="note">
         Votre PIN n'est pas modifiable depuis ce formulaire. En cas d'oubli, utilisez la
         page « PIN oublié » depuis l'écran de connexion.
       </p>

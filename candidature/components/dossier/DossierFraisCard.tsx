@@ -19,19 +19,19 @@ export function DossierFraisCard({ candidature }: { candidature: MyCandidature }
   return (
     <section
       aria-labelledby="frais-heading"
-      className="rounded-pssfp-card border border-[#EDE7F6] bg-white p-6 shadow-pssfp-soft md:p-7"
+      className="rounded-pssfp-card border border-[#F4EFFA] bg-white p-6 shadow-pssfp-soft md:p-7"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="pssfp-eyebrow">Paiement</p>
           <h2
             id="frais-heading"
-            className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A0A2E]"
+            className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A1A1A]"
           >
             Frais de candidature
           </h2>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7FF] px-3 py-1.5 text-sm font-semibold text-[#6B2FA0]">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7FF] px-3 py-1.5 text-sm font-semibold text-[#4A2E67]">
           50 000 FCFA
         </span>
       </div>
@@ -73,25 +73,25 @@ export function DossierFraisCard({ candidature }: { candidature: MyCandidature }
           </p>
 
           {/* Bloc CREMINCAM avec illustration banque */}
-          <div className="relative overflow-hidden rounded-pssfp-card border border-[#EDE7F6] bg-gradient-lavande-blanc p-5">
+          <div className="relative overflow-hidden rounded-pssfp-card border border-[#F4EFFA] bg-gradient-lavande-blanc p-5">
             {/* Illustration banque décorative */}
             <div
               aria-hidden="true"
               className="pointer-events-none absolute -right-4 -top-4 opacity-15"
             >
-              <Building2 size={120} className="text-[#6B2FA0]" />
+              <Building2 size={120} className="text-[#4A2E67]" />
             </div>
 
             <div className="relative">
               <div className="flex items-center gap-3">
                 <span
                   aria-hidden="true"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-violet text-white shadow-pssfp-glow-violet"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-prune text-white shadow-pssfp-glow-prune"
                 >
                   <Banknote size={22} />
                 </span>
                 <div>
-                  <p className="font-heading font-bold text-[#6B2FA0]">CREMINCAM</p>
+                  <p className="font-heading font-bold text-[#4A2E67]">CREMINCAM</p>
                   <p className="text-xs text-[#666]">Mode de paiement actif (V1)</p>
                 </div>
               </div>
@@ -99,7 +99,7 @@ export function DossierFraisCard({ candidature }: { candidature: MyCandidature }
                 <li>Se rendre dans une agence CREMINCAM.</li>
                 <li>
                   Présenter le numéro de dossier{' '}
-                  <span className="rounded-pssfp-button bg-white px-2 py-0.5 font-mono text-[#6B2FA0] shadow-pssfp-soft">
+                  <span className="rounded-pssfp-button bg-white px-2 py-0.5 font-mono text-[#4A2E67] shadow-pssfp-soft">
                     {numero}
                   </span>
                   .

@@ -1,7 +1,11 @@
+/**
+ * Charte 2026 PSSFP — ADR-0008 (2026-05-14)
+ * Remplace Playfair Display + Inter (CDC v5 §10.1 d'origine).
+ */
 export const fonts = {
-  heading: 'Playfair Display, serif',
-  body: 'Inter, sans-serif',
-  ui: 'DM Sans, sans-serif',
+  heading: 'Cormorant Garamond, Georgia, serif',
+  body: 'Source Sans 3, system-ui, -apple-system, Segoe UI, sans-serif',
+  ui: 'DM Sans, system-ui, sans-serif',
 } as const;
 
 export const fontSizes = {

@@ -141,10 +141,10 @@ export function ContactForm(): JSX.Element {
           name="cgu"
           required
           data-testid="contact-cgu"
-          className="mt-1 h-4 w-4 rounded border-gray-300 text-[#6B2FA0] focus-visible:ring-[#6B2FA0]"
+          className="mt-1 h-4 w-4 rounded border-gray-300 text-[#4A2E67] focus-visible:ring-[#4A2E67]"
         />
         <span>
-          J'ai pris connaissance de la <a href="/confidentialite" className="underline hover:text-[#6B2FA0]">politique de confidentialité</a> et j'accepte que mes données soient traitées pour répondre à ma demande.
+          J'ai pris connaissance de la <a href="/confidentialite" className="underline hover:text-[#4A2E67]">politique de confidentialité</a> et j'accepte que mes données soient traitées pour répondre à ma demande.
         </span>
       </label>
       {fieldError('cgu') && (
@@ -185,7 +185,7 @@ export function ContactForm(): JSX.Element {
         type="submit"
         disabled={pending || status.kind === 'sending'}
         data-testid="contact-submit"
-        className="inline-flex h-12 w-fit items-center justify-center rounded-md bg-[#6B2FA0] px-6 text-base font-medium text-white hover:bg-[#9B59B6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 disabled:opacity-60"
+        className="inline-flex h-12 w-fit items-center justify-center rounded-md bg-[#4A2E67] px-6 text-base font-medium text-white hover:bg-[#5C3A7E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 disabled:opacity-60"
       >
         {status.kind === 'sending' ? 'Envoi…' : 'Envoyer le message'}
       </button>
@@ -194,7 +194,7 @@ export function ContactForm(): JSX.Element {
 }
 
 const inputCls =
-  'h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30';
+  'h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30';
 
 function Field({
   id,

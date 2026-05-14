@@ -132,8 +132,8 @@ export default function DemoCopilPage(): JSX.Element {
   return (
     <article className="mx-auto max-w-5xl px-6 py-12 md:py-20">
       <header className="mb-12">
-        <p className="pssfp-eyebrow text-[#C9A227]">Démonstration interne — Sprint S5</p>
-        <h1 className="mt-3 font-heading text-4xl font-bold text-[#1A0A2E] md:text-5xl">
+        <p className="pssfp-eyebrow text-[#D4AF6A]">Démonstration interne — Sprint S5</p>
+        <h1 className="mt-3 font-heading text-4xl font-bold text-[#1A1A1A] md:text-5xl">
           Bouclage du site institutionnel
         </h1>
         <p className="mt-4 text-lg text-[#555]">
@@ -147,16 +147,16 @@ export default function DemoCopilPage(): JSX.Element {
       </header>
 
       <section aria-labelledby="kpis-heading" className="mb-16">
-        <h2 id="kpis-heading" className="font-heading text-2xl font-bold text-[#6B2FA0]">
+        <h2 id="kpis-heading" className="font-heading text-2xl font-bold text-[#4A2E67]">
           Sprint S5 en chiffres
         </h2>
         <ul className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3">
           {KPIS.map((kpi) => (
             <li
               key={kpi.label}
-              className="rounded-pssfp-card border border-[#EDE7F6] bg-gradient-lavande-blanc p-6 text-center"
+              className="rounded-pssfp-card border border-[#F4EFFA] bg-gradient-lavande-blanc p-6 text-center"
             >
-              <p className="font-heading text-4xl font-bold text-[#6B2FA0]">{kpi.value}</p>
+              <p className="font-heading text-4xl font-bold text-[#4A2E67]">{kpi.value}</p>
               <p className="mt-2 text-sm text-[#555]">{kpi.label}</p>
             </li>
           ))}
@@ -164,7 +164,7 @@ export default function DemoCopilPage(): JSX.Element {
       </section>
 
       <section aria-labelledby="prs-heading">
-        <h2 id="prs-heading" className="font-heading text-2xl font-bold text-[#6B2FA0]">
+        <h2 id="prs-heading" className="font-heading text-2xl font-bold text-[#4A2E67]">
           Les 6 PRs du Sprint
         </h2>
         <ol className="mt-6 space-y-6">
@@ -172,14 +172,14 @@ export default function DemoCopilPage(): JSX.Element {
             <li
               key={pr.id}
               data-testid={`demo-copil-pr-${pr.id}`}
-              className="rounded-pssfp-card border border-[#EDE7F6] bg-white p-6 shadow-pssfp-soft transition-all hover:shadow-pssfp-elevated md:p-8"
+              className="rounded-pssfp-card border border-[#F4EFFA] bg-white p-6 shadow-pssfp-soft transition-all hover:shadow-pssfp-elevated md:p-8"
             >
               <div className="flex items-start gap-4">
-                <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-violet-or text-white">
+                <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-prune-or text-white">
                   <pr.Icon size={22} aria-hidden="true" />
                 </span>
                 <div className="grow">
-                  <h3 className="font-heading text-xl font-bold text-[#1A0A2E]">{pr.title}</h3>
+                  <h3 className="font-heading text-xl font-bold text-[#1A1A1A]">{pr.title}</h3>
                   <p className="mt-2 text-[#555]">{pr.description}</p>
                   <ul className="mt-4 space-y-1.5 text-sm text-[#444]">
                     {pr.highlights.map((h) => (
@@ -187,7 +187,7 @@ export default function DemoCopilPage(): JSX.Element {
                         <CheckCircle2
                           size={16}
                           aria-hidden="true"
-                          className="mt-0.5 shrink-0 text-[#6B2FA0]"
+                          className="mt-0.5 shrink-0 text-[#4A2E67]"
                         />
                         <span>{h}</span>
                       </li>
@@ -196,7 +196,7 @@ export default function DemoCopilPage(): JSX.Element {
                   {pr.link && (
                     <Link
                       href={pr.link.href}
-                      className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-[#6B2FA0] transition-all hover:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+                      className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-[#4A2E67] transition-all hover:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
                     >
                       {pr.link.label}
                       <ArrowRight size={14} aria-hidden="true" />
@@ -210,7 +210,7 @@ export default function DemoCopilPage(): JSX.Element {
       </section>
 
       <section aria-labelledby="next-heading" className="mt-16">
-        <h2 id="next-heading" className="font-heading text-2xl font-bold text-[#6B2FA0]">
+        <h2 id="next-heading" className="font-heading text-2xl font-bold text-[#4A2E67]">
           Prochaines étapes
         </h2>
         <div className="mt-6 rounded-pssfp-card border border-amber-300 bg-amber-50 p-6">

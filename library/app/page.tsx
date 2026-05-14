@@ -9,7 +9,7 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-16">
-      <h1 className="font-heading text-4xl font-bold text-[#6B2FA0] md:text-5xl">
+      <h1 className="font-heading text-4xl font-bold text-[#4A2E67] md:text-5xl">
         {t('title')}
       </h1>
       <p className="mt-4 max-w-3xl text-lg text-[#333333]">{t('intro')}</p>

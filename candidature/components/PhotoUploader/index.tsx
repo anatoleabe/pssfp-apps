@@ -154,7 +154,7 @@ export function PhotoUploader({
           <div
             role="status"
             aria-live="polite"
-            className="flex h-full w-full items-center justify-center bg-gray-50 text-sm text-[#6B2FA0]"
+            className="flex h-full w-full items-center justify-center bg-gray-50 text-sm text-[#4A2E67]"
           >
             Envoi en cours…
           </div>
@@ -179,7 +179,7 @@ export function PhotoUploader({
             onDragLeave={() => setIsDragging(false)}
             onDrop={onDrop}
             className={`rounded-lg border-2 border-dashed p-6 text-sm transition-colors ${
-              isDragging ? 'border-[#6B2FA0] bg-[#EDE7F6]' : 'border-gray-300 bg-white'
+              isDragging ? 'border-[#4A2E67] bg-[#F4EFFA]' : 'border-gray-300 bg-white'
             }`}
           >
             <p className="font-medium text-[#333]">Glissez-déposez votre photo ici</p>
@@ -187,7 +187,7 @@ export function PhotoUploader({
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="mt-3 inline-flex h-11 items-center rounded-md bg-[#6B2FA0] px-4 text-sm font-medium text-white hover:bg-[#9B59B6] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0] focus:ring-offset-2"
+              className="mt-3 inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-4 text-sm font-medium text-white hover:bg-[#5C3A7E] focus:outline-none focus:ring-2 focus:ring-[#4A2E67] focus:ring-offset-2"
               data-testid="photo-pick"
             >
               Choisir un fichier
@@ -213,7 +213,7 @@ export function PhotoUploader({
               type="button"
               onClick={submit}
               disabled={isPending}
-              className="inline-flex h-11 items-center rounded-md bg-[#6B2FA0] px-5 text-sm font-medium text-white hover:bg-[#9B59B6] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0] focus:ring-offset-2 disabled:opacity-60"
+              className="inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-5 text-sm font-medium text-white hover:bg-[#5C3A7E] focus:outline-none focus:ring-2 focus:ring-[#4A2E67] focus:ring-offset-2 disabled:opacity-60"
               data-testid="photo-submit"
             >
               {isPending ? 'Envoi…' : 'Enregistrer cette photo'}
@@ -221,7 +221,7 @@ export function PhotoUploader({
             <button
               type="button"
               onClick={reset}
-              className="inline-flex h-11 items-center rounded-md border border-gray-300 bg-white px-5 text-sm text-[#333] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#6B2FA0] focus:ring-offset-2"
+              className="inline-flex h-11 items-center rounded-md border border-gray-300 bg-white px-5 text-sm text-[#333] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4A2E67] focus:ring-offset-2"
             >
               Choisir une autre image
             </button>
@@ -233,7 +233,7 @@ export function PhotoUploader({
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="inline-flex h-11 items-center rounded-md bg-[#6B2FA0] px-5 text-sm font-medium text-white hover:bg-[#9B59B6] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0] focus:ring-offset-2"
+              className="inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-5 text-sm font-medium text-white hover:bg-[#5C3A7E] focus:outline-none focus:ring-2 focus:ring-[#4A2E67] focus:ring-offset-2"
               data-testid="photo-replace"
             >
               Remplacer la photo

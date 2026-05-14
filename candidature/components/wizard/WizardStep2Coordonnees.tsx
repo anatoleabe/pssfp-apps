@@ -16,7 +16,7 @@ export interface WizardStep2Props {
 export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardStep2Props): JSX.Element {
   return (
     <div className="space-y-5" data-testid="wizard-step-2">
-      <h2 className="font-heading text-xl font-bold text-[#6B2FA0]">Étape 2 — Coordonnées</h2>
+      <h2 className="font-heading text-xl font-bold text-[#4A2E67]">Étape 2 — Coordonnées</h2>
 
       <Field label="Pays d'origine" error={errors.pays_origine}>
         <SearchableSelect
@@ -50,7 +50,7 @@ export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardS
             type="text"
             value={data.adresse}
             onChange={(e) => onChange({ adresse: e.target.value })}
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
         <Field label="Ville de résidence" error={errors.ville_residence}>
@@ -58,7 +58,7 @@ export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardS
             type="text"
             value={data.ville_residence}
             onChange={(e) => onChange({ ville_residence: e.target.value })}
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
       </div>
@@ -68,7 +68,7 @@ export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardS
           type="text"
           value={data.lieu_naissance}
           onChange={(e) => onChange({ lieu_naissance: e.target.value })}
-          className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+          className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         />
       </Field>
 
@@ -98,7 +98,7 @@ export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardS
           type="email"
           value={data.email}
           onChange={(e) => onChange({ email: e.target.value })}
-          className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+          className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         />
       </Field>
     </div>

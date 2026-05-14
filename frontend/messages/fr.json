@@ -124,6 +124,44 @@
       "diplomes": "Diplômés",
       "years": "Années d'expertise"
     },
+    "piliers": {
+      "eyebrow": "Notre engagement",
+      "heading": "Quatre piliers au service des finances publiques",
+      "intro": "Le PSSFP s'appuie sur quatre piliers complémentaires pour former les cadres et accompagner la modernisation de l'action publique.",
+      "formations": {
+        "title": "Formations qualifiantes",
+        "body": "Master Professionnel et 10 modules courts pour les administrations, élus et professionnels en activité."
+      },
+      "expertise": {
+        "title": "Expertise publique",
+        "body": "Audit, contrôle, fiscalité, gouvernance territoriale, marchés publics, économie et gestion publiques."
+      },
+      "reseau": {
+        "title": "Réseau & partenariats",
+        "body": "MINFI, MINESUP, UY2, FMI, Expertise France, Institut des Finances Basil Fuleihan — un réseau actif."
+      },
+      "ethique": {
+        "title": "Éthique & intégrité",
+        "body": "La rigueur professionnelle et la culture de résultats au service de la transparence publique."
+      }
+    },
+    "engagements": {
+      "eyebrow": "Nos engagements",
+      "heading": "Trois engagements pour la performance publique",
+      "intro": "Au-delà des programmes, le PSSFP s'engage sur la qualité, l'innovation pédagogique et l'impact durable de ses formations.",
+      "rigueur": {
+        "title": "Rigueur et qualité",
+        "body": "Des programmes alignés sur les meilleures pratiques internationales et les besoins réels des administrations publiques."
+      },
+      "innovation": {
+        "title": "Innovation pédagogique",
+        "body": "Des méthodes actives et des outils numériques (FOAD) pour une expérience d'apprentissage moderne et flexible."
+      },
+      "impact": {
+        "title": "Impact durable",
+        "body": "Des compétences renforcées pour des finances publiques performantes et au service de la société camerounaise."
+      }
+    },
     "specialites": {
       "eyebrow": "Catalogue 2026 · Master · Continue · Certifications",
       "title": "Plus qu'un Master,",

@@ -37,7 +37,7 @@ export default async function DossierEditionPage({
     }
     return (
       <div className="mx-auto max-w-4xl px-6 py-10 md:py-16">
-        <h1 className="font-heading text-3xl font-bold text-[#6B2FA0]">Éditer mon dossier</h1>
+        <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">Éditer mon dossier</h1>
         <p
           role="alert"
           className="mt-6 rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-700"
@@ -70,7 +70,7 @@ export default async function DossierEditionPage({
   return (
     <div className="mx-auto max-w-4xl px-6 py-10 md:py-16">
       <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666]">
-        <Link href="/dossier" className="hover:text-[#6B2FA0]">
+        <Link href="/dossier" className="hover:text-[#4A2E67]">
           Mon dossier
         </Link>
         <span aria-hidden="true"> / </span>
@@ -79,7 +79,7 @@ export default async function DossierEditionPage({
 
       <header className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
         <div>
-          <h1 className="font-heading text-3xl font-bold text-[#6B2FA0]">Éditer mon dossier</h1>
+          <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">Éditer mon dossier</h1>
           <p className="mt-1 text-sm text-[#666]">
             Vos modifications sont enregistrées automatiquement après 2 secondes d'inactivité.
           </p>
@@ -87,7 +87,7 @@ export default async function DossierEditionPage({
         <Link
           href="/dossier"
           data-testid="edition-back"
-          className="inline-flex h-11 items-center rounded-md border border-gray-300 bg-white px-4 text-sm text-[#333] hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+          className="inline-flex h-11 items-center rounded-md border border-gray-300 bg-white px-4 text-sm text-[#333] hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
         >
           ← Retour au dossier
         </Link>

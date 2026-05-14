@@ -24,23 +24,23 @@ const STATS: ReadonlyArray<Stat> = [
 
 const ACCENT_CLASSES = {
   violet: {
-    pill: 'bg-[#ECE0F2] text-[#6B2FA0]',
-    halo: 'radial-gradient(circle at 30% 0%, rgba(107, 47, 160, 0.08) 0%, transparent 60%)',
-    value: 'text-[#6B2FA0]',
+    pill: 'bg-[#F4EFFA] text-[#4A2E67]',
+    halo: 'radial-gradient(circle at 30% 0%, rgba(74, 46, 103, 0.08) 0%, transparent 60%)',
+    value: 'text-[#4A2E67]',
   },
   forest: {
-    pill: 'bg-[#DCE8E0] text-[#0E4D3F]',
-    halo: 'radial-gradient(circle at 30% 0%, rgba(14, 77, 63, 0.10) 0%, transparent 60%)',
-    value: 'text-[#0E4D3F]',
+    pill: 'bg-[#D6E4EC] text-[#0F3A4A]',
+    halo: 'radial-gradient(circle at 30% 0%, rgba(15, 58, 74, 0.10) 0%, transparent 60%)',
+    value: 'text-[#0F3A4A]',
   },
   or: {
     pill: 'bg-[#FBEFC9] text-[#9A7B12]',
-    halo: 'radial-gradient(circle at 30% 0%, rgba(201, 162, 39, 0.12) 0%, transparent 60%)',
+    halo: 'radial-gradient(circle at 30% 0%, rgba(212, 175, 106, 0.12) 0%, transparent 60%)',
     value: 'pssfp-text-gradient-violet-or',
   },
   ink: {
-    pill: 'bg-[#EFE6CE] text-[#14101A]',
-    halo: 'radial-gradient(circle at 30% 0%, rgba(20, 16, 26, 0.06) 0%, transparent 60%)',
+    pill: 'bg-[#EFE9DF] text-[#14101A]',
+    halo: 'radial-gradient(circle at 30% 0%, rgba(60, 60, 60, 0.06) 0%, transparent 60%)',
     value: 'text-[#14101A]',
   },
 } as const;
@@ -58,12 +58,12 @@ export function HomeStats(): JSX.Element {
     <section
       aria-labelledby="stats-heading"
       data-testid="home-stats"
-      className="relative border-y border-[#E4D8B7] bg-[#FBF7EE]"
+      className="relative border-y border-[#D8C9A6] bg-[#FAF7F2]"
     >
       {/* Hairline gold éditorial */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#C9A227]/60 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4AF6A]/60 to-transparent"
       />
 
       <div className="mx-auto max-w-7xl px-6 py-16 md:py-20">
@@ -73,7 +73,7 @@ export function HomeStats(): JSX.Element {
             <p className="pssfp-eyebrow">{t('eyebrow')}</p>
             <h2
               id="stats-heading"
-              className="mt-4 font-heading font-bold text-pssfp-h2 text-[#1A0A2E]"
+              className="mt-4 font-heading font-bold text-pssfp-h2 text-[#1A1A1A]"
             >
               {t('heading')}{' '}
               <span className="relative inline-block">
@@ -88,7 +88,7 @@ export function HomeStats(): JSX.Element {
                 >
                   <path
                     d="M2 8C50 3 150 3 198 8"
-                    stroke="#C9A227"
+                    stroke="#D4AF6A"
                     strokeWidth="3"
                     strokeLinecap="round"
                   />
@@ -102,9 +102,9 @@ export function HomeStats(): JSX.Element {
               aria-hidden="true"
               className="mx-auto mt-8 flex w-32 items-center justify-center gap-3"
             >
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#C9A227]/50" />
-              <div className="h-1.5 w-1.5 rounded-full bg-[#C9A227]" />
-              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#C9A227]/50" />
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#D4AF6A]/50" />
+              <div className="h-1.5 w-1.5 rounded-full bg-[#D4AF6A]" />
+              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#D4AF6A]/50" />
             </div>
           </header>
         </BlurFade>
@@ -115,7 +115,7 @@ export function HomeStats(): JSX.Element {
             return (
               <li key={stat.key}>
                 <BlurFade delay={index * 0.08} inView>
-                  <div className="group relative h-full overflow-hidden rounded-pssfp-card border border-[#E4D8B7] bg-white p-6 shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-transparent hover:shadow-pssfp-elevated">
+                  <div className="group relative h-full overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white p-6 shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-transparent hover:shadow-pssfp-elevated">
                     <div
                       aria-hidden="true"
                       className="pointer-events-none absolute inset-0 -z-10 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
@@ -135,7 +135,7 @@ export function HomeStats(): JSX.Element {
                       <NumberTicker value={stat.value} delay={index * 0.1} />
                       {stat.suffix ?? ''}
                     </p>
-                    <p className="mt-3 font-ui text-xs uppercase tracking-[0.16em] text-[#6B6378] md:text-sm">
+                    <p className="mt-3 font-ui text-xs uppercase tracking-[0.16em] text-[#6B6B6B] md:text-sm">
                       {t(stat.key)}
                     </p>
                   </div>

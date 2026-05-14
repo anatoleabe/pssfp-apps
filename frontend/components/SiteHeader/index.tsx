@@ -79,7 +79,7 @@ export function SiteHeader(): JSX.Element {
     >
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-2 focus:rounded-md focus:bg-[#6B2FA0] focus:px-3 focus:py-2 focus:text-sm focus:text-white"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-2 focus:rounded-md focus:bg-[#4A2E67] focus:px-3 focus:py-2 focus:text-sm focus:text-white"
       >
         {t('skip')}
       </a>
@@ -88,17 +88,17 @@ export function SiteHeader(): JSX.Element {
         <Link
           href="/"
           aria-label="PSSFP — Accueil"
-          className="group flex items-center gap-3 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+          className="group flex items-center gap-3 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
         >
           <span className="relative inline-flex transition-transform duration-300 ease-pssfp-out-expo group-hover:scale-105">
             <span
               aria-hidden="true"
               className="absolute inset-0 -z-10 rounded-full opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-60"
-              style={{ background: 'radial-gradient(circle, #9B59B6 0%, transparent 70%)' }}
+              style={{ background: 'radial-gradient(circle, #5C3A7E 0%, transparent 70%)' }}
             />
             <PssfpLogo size={48} />
           </span>
-          <span className="hidden font-heading text-base font-bold text-[#6B2FA0] dark:text-[#B084E8] sm:block">
+          <span className="hidden font-heading text-base font-bold text-[#4A2E67] dark:text-[#B084E8] sm:block">
             PSSFP
           </span>
         </Link>
@@ -124,10 +124,10 @@ export function SiteHeader(): JSX.Element {
                     aria-expanded={hasChildren ? isSubmenuOpen : undefined}
                     onFocus={hasChildren ? () => handleSubmenuOpen(link.key) : undefined}
                     className={cn(
-                      'group/nav relative inline-flex h-10 items-center gap-1 rounded-md px-3 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:focus-visible:ring-[#E8C868]',
+                      'group/nav relative inline-flex h-10 items-center gap-1 rounded-md px-3 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 dark:focus-visible:ring-[#E5C788]',
                       active
-                        ? 'font-semibold text-[#6B2FA0] dark:text-[#B084E8]'
-                        : 'text-[#333] hover:text-[#6B2FA0] dark:text-[#F5EFE3] dark:hover:text-[#B084E8]',
+                        ? 'font-semibold text-[#4A2E67] dark:text-[#B084E8]'
+                        : 'text-[#333] hover:text-[#4A2E67] dark:text-[#F5EFE3] dark:hover:text-[#B084E8]',
                     )}
                   >
                     {t(link.key)}
@@ -144,7 +144,7 @@ export function SiteHeader(): JSX.Element {
                     <span
                       aria-hidden="true"
                       className={cn(
-                        'pointer-events-none absolute inset-x-2 bottom-1 h-0.5 origin-left rounded-full bg-[linear-gradient(90deg,#6B2FA0_0%,#9B59B6_50%,#C9A040_100%)] transition-transform duration-300 ease-pssfp-out-expo motion-reduce:transition-none',
+                        'pointer-events-none absolute inset-x-2 bottom-1 h-0.5 origin-left rounded-full bg-[linear-gradient(90deg,#4A2E67_0%,#5C3A7E_50%,#C9A040_100%)] transition-transform duration-300 ease-pssfp-out-expo motion-reduce:transition-none',
                         active
                           ? 'scale-x-100'
                           : 'scale-x-0 group-hover/nav:scale-x-100 group-focus-visible/nav:scale-x-100',
@@ -170,7 +170,7 @@ export function SiteHeader(): JSX.Element {
           <ThemeToggle testId="theme-toggle" />
           <a
             href={process.env.NEXT_PUBLIC_LIBRARY_URL ?? '#'}
-            className="inline-flex h-10 items-center gap-1.5 rounded-pssfp-button border border-[#E4D8B7] bg-white px-3.5 text-sm text-[#333] transition-all duration-200 hover:border-[#6B2FA0] hover:text-[#6B2FA0] hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:border-[#3A2F48] dark:bg-[#1F1A28] dark:text-[#F5EFE3] dark:hover:border-[#B084E8] dark:hover:text-[#B084E8]"
+            className="inline-flex h-10 items-center gap-1.5 rounded-pssfp-button border border-[#D8C9A6] bg-white px-3.5 text-sm text-[#333] transition-all duration-200 hover:border-[#4A2E67] hover:text-[#4A2E67] hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 dark:border-[#3A2F48] dark:bg-[#1F1A28] dark:text-[#F5EFE3] dark:hover:border-[#B084E8] dark:hover:text-[#B084E8]"
             data-testid="nav-library"
           >
             {t('library')}
@@ -179,11 +179,11 @@ export function SiteHeader(): JSX.Element {
           <span className="group/cta relative inline-flex">
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute -inset-1 rounded-pssfp-button bg-[radial-gradient(circle_at_50%_50%,rgba(201,160,64,0.55)_0%,rgba(107,47,160,0.35)_45%,transparent_70%)] opacity-0 blur-lg transition-opacity duration-500 ease-pssfp-out-expo motion-reduce:transition-none group-hover/cta:opacity-100 group-focus-within/cta:opacity-100"
+              className="pointer-events-none absolute -inset-1 rounded-pssfp-button bg-[radial-gradient(circle_at_50%_50%,rgba(212, 175, 106,0.55)_0%,rgba(74, 46, 103,0.35)_45%,transparent_70%)] opacity-0 blur-lg transition-opacity duration-500 ease-pssfp-out-expo motion-reduce:transition-none group-hover/cta:opacity-100 group-focus-within/cta:opacity-100"
             />
             <a
               href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
-              className="group relative inline-flex h-10 items-center gap-1.5 overflow-hidden rounded-pssfp-button bg-[linear-gradient(135deg,#2D1454_0%,#6B2FA0_55%,#C9A040_100%)] bg-[length:200%_200%] px-4 text-sm font-medium text-white shadow-pssfp-elevated transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-0.5 hover:bg-[position:100%_100%] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A040] focus-visible:ring-offset-2 motion-reduce:transition-none"
+              className="group relative inline-flex h-10 items-center gap-1.5 overflow-hidden rounded-pssfp-button bg-[linear-gradient(135deg,#2D1454_0%,#4A2E67_55%,#C9A040_100%)] bg-[length:200%_200%] px-4 text-sm font-medium text-white shadow-pssfp-elevated transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-0.5 hover:bg-[position:100%_100%] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A040] focus-visible:ring-offset-2 motion-reduce:transition-none"
               data-testid="nav-candidature"
             >
               <span
@@ -213,7 +213,7 @@ export function SiteHeader(): JSX.Element {
             aria-expanded={open}
             aria-controls="mobile-menu"
             data-testid="nav-toggle"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#E4D8B7] text-[#333] transition-colors hover:border-[#6B2FA0] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:border-[#3A2F48] dark:text-[#F5EFE3] dark:hover:border-[#B084E8] dark:hover:text-[#B084E8]"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#D8C9A6] text-[#333] transition-colors hover:border-[#4A2E67] hover:text-[#4A2E67] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 dark:border-[#3A2F48] dark:text-[#F5EFE3] dark:hover:border-[#B084E8] dark:hover:text-[#B084E8]"
           >
             {open ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
           </button>
@@ -223,7 +223,7 @@ export function SiteHeader(): JSX.Element {
       <div
         aria-hidden="true"
         className={cn(
-          'pointer-events-none h-px origin-left bg-[linear-gradient(90deg,#2D1454_0%,#6B2FA0_45%,#C9A040_100%)] transition-opacity duration-300 motion-reduce:transition-none',
+          'pointer-events-none h-px origin-left bg-[linear-gradient(90deg,#2D1454_0%,#4A2E67_45%,#C9A040_100%)] transition-opacity duration-300 motion-reduce:transition-none',
           scrolled ? 'opacity-100' : 'opacity-0',
         )}
         style={{ transform: `scaleX(${scrollProgress / 100})` }}

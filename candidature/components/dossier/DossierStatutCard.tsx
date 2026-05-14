@@ -61,13 +61,13 @@ export function DossierStatutCard({ candidature }: { candidature: MyCandidature 
   return (
     <section
       aria-labelledby="statut-heading"
-      className="relative overflow-hidden rounded-pssfp-card border border-[#EDE7F6] bg-white p-6 shadow-pssfp-soft md:p-7"
+      className="relative overflow-hidden rounded-pssfp-card border border-[#F4EFFA] bg-white p-6 shadow-pssfp-soft md:p-7"
     >
       {/* Halo décoratif gauche */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-12 -top-12 h-44 w-44 rounded-full opacity-30 blur-3xl"
-        style={{ background: 'radial-gradient(circle, rgba(107, 47, 160, 0.18) 0%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(circle, rgba(74, 46, 103, 0.18) 0%, transparent 70%)' }}
       />
 
       <div className="relative flex flex-wrap items-start justify-between gap-4">
@@ -75,7 +75,7 @@ export function DossierStatutCard({ candidature }: { candidature: MyCandidature 
           <p className="pssfp-eyebrow">État de mon dossier</p>
           <h2
             id="statut-heading"
-            className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A0A2E]"
+            className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A1A1A]"
           >
             Suivi en temps réel
           </h2>
@@ -91,17 +91,17 @@ export function DossierStatutCard({ candidature }: { candidature: MyCandidature 
         </span>
       </div>
 
-      <div className="relative mt-5 inline-flex items-center gap-2 rounded-pssfp-button bg-[#FAF7FF] px-3 py-2 font-mono text-sm text-[#6B2FA0]">
+      <div className="relative mt-5 inline-flex items-center gap-2 rounded-pssfp-button bg-[#FAF7FF] px-3 py-2 font-mono text-sm text-[#4A2E67]">
         <span className="text-xs uppercase tracking-wider text-[#888]">N°</span>
         {candidature.numero_dossier}
       </div>
 
       {(candidature.campagne || candidature.submitted_at || candidature.decided_at || candidature.withdrawn_at) && (
-        <dl className="relative mt-6 grid gap-4 border-t border-[#EDE7F6] pt-6 text-sm sm:grid-cols-2">
+        <dl className="relative mt-6 grid gap-4 border-t border-[#F4EFFA] pt-6 text-sm sm:grid-cols-2">
           {candidature.campagne && (
             <div>
               <dt className="text-xs uppercase tracking-wider text-[#888]">Campagne</dt>
-              <dd className="mt-1 font-heading font-bold text-[#6B2FA0]">{candidature.campagne.nom}</dd>
+              <dd className="mt-1 font-heading font-bold text-[#4A2E67]">{candidature.campagne.nom}</dd>
             </div>
           )}
           {candidature.submitted_at && (

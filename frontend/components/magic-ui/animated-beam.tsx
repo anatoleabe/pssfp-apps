@@ -15,8 +15,8 @@ export interface AnimatedBeamProps {
  */
 export function AnimatedBeam({
   className,
-  color = '#9B59B6',
-  accentColor = '#C9A227',
+  color = '#5C3A7E',
+  accentColor = '#D4AF6A',
 }: AnimatedBeamProps): JSX.Element {
   return (
     <div

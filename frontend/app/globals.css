@@ -4,66 +4,100 @@
 
 @layer base {
   /*
-   * Editorial Senate palette (refonte M1) — purple est l'accent, pas le décor.
-   *
-   * Les surfaces passent du lavande au cream/sand chaud. L'ink chaud (#1B1620)
-   * sert de couleur de texte et de surface dark. Le violet PSSFP reste mais
-   * uniquement pour les CTA principaux et les moments de marque. Une couleur
-   * secondaire forest (#0E4D3F) ancre les sections institutionnelles, le gold
-   * (#C9A227) reste l'accent éditorial.
+   * Charte 2026 PSSFP — ADR-0008 (2026-05-14).
+   * Prune institutionnelle dominant. Bleu pétrole en 2e accent d'autorité.
+   * Or champagne en accent éditorial. Lavande grisée pour fonds doux.
+   * Ivoire pour pages light. Graphite pour texte.
    */
   :root {
     /* Brand */
-    --pssfp-primary: #6B2FA0;
-    --pssfp-primary-hover: #5A2587;
-    --pssfp-secondary: #0E4D3F;          /* forest emerald, ancrage institutionnel */
-    --pssfp-secondary-hover: #0A3D32;
-    --pssfp-accent: #C9A227;              /* gold burnished */
-    --pssfp-accent-hover: #B0901E;
+    --pssfp-primary: #4A2E67;             /* Prune institutionnelle */
+    --pssfp-primary-hover: #3A2452;       /* Prune profonde */
+    --pssfp-primary-light: #5C3A7E;       /* Prune claire */
+    --pssfp-prune: #4A2E67;
+    --pssfp-prune-dark: #3A2452;
+    --pssfp-prune-light: #5C3A7E;
 
-    /* Surfaces (warm cream) */
-    --pssfp-bg: #FBF7EE;                  /* cream chaud — page */
-    --pssfp-bg-elevated: #FFFFFF;         /* cards proéminentes restent blanches */
-    --pssfp-bg-subtle: #F4ECDC;           /* ivory pour bandes alternées */
-    --pssfp-surface: #EFE6CE;             /* sand pour pastilles, badges, fills doux */
-    --pssfp-surface-soft: #F8F1DF;        /* sand très clair pour hovers */
-    --pssfp-secondary-soft: #DCE8E0;      /* forest soft pour pastilles emerald */
-    --pssfp-primary-soft: #ECE0F2;        /* violet soft (sparingly) */
+    --pssfp-secondary: #0F3A4A;           /* Bleu pétrole — 2e accent autorité */
+    --pssfp-secondary-hover: #082A37;
+    --pssfp-bleu-petrole: #0F3A4A;
+    --pssfp-bleu-petrole-dark: #082A37;
+
+    --pssfp-tertiary: #A592BD;            /* Lavande grisée */
+    --pssfp-lavande: #A592BD;
+
+    --pssfp-accent: #D4AF6A;              /* Or champagne */
+    --pssfp-accent-hover: #E5C788;        /* Or chaud */
+    --pssfp-or: #D4AF6A;
+    --pssfp-or-light: #E5C788;
+
+    /* Surfaces */
+    --pssfp-bg: #FAF7F2;                  /* Ivoire — page light */
+    --pssfp-bg-elevated: #FFFFFF;
+    --pssfp-bg-subtle: #F4F0EA;
+    --pssfp-surface: #EFE9DF;             /* Surface neutre claire */
+    --pssfp-surface-soft: #F8F3EA;
+    --pssfp-ivoire: #FAF7F2;
+
+    --pssfp-secondary-soft: rgba(15, 58, 74, 0.10);
+    --pssfp-primary-soft: rgba(74, 46, 103, 0.10);
+    --pssfp-or-soft: rgba(212, 175, 106, 0.16);
 
     /* Borders + ink */
-    --pssfp-border: #E4D8B7;              /* sand-darker pour rythme */
-    --pssfp-border-soft: #EFE6CE;
-    --pssfp-text: #2A2230;                /* ink chaud, légère teinte violette */
-    --pssfp-text-strong: #14101A;         /* deep ink pour titres */
-    --pssfp-text-muted: #6B6378;
+    --pssfp-border: rgba(165, 146, 189, 0.32);     /* Lavande grisée 32% */
+    --pssfp-border-soft: rgba(165, 146, 189, 0.18);
+    --pssfp-text: #3C3C3C;                /* Graphite */
+    --pssfp-text-strong: #1A1A1A;
+    --pssfp-text-muted: #6B6B6B;
     --pssfp-text-on-primary: #FFFFFF;
+    --pssfp-graphite: #3C3C3C;
+    --pssfp-graphite-light: #6B6B6B;
 
     color-scheme: light;
   }
 
-  /* Dark — warm ink + lavender accent (plus de wall-of-violet) */
+  /* Dark — prune profond + or chaud, lecture confortable */
   .dark {
-    --pssfp-primary: #B084E8;
+    --pssfp-primary: #B084E8;             /* Prune claire pour contraste dark */
     --pssfp-primary-hover: #C9A0F0;
-    --pssfp-secondary: #6FBDA0;           /* emerald lighten pour contraste dark */
-    --pssfp-secondary-hover: #88CFB3;
-    --pssfp-accent: #E8C868;
-    --pssfp-accent-hover: #F0D687;
+    --pssfp-primary-light: #D6BEF0;
+    --pssfp-prune: #B084E8;
+    --pssfp-prune-dark: #8C6BC0;
+    --pssfp-prune-light: #C9A0F0;
 
-    --pssfp-bg: #14101A;                  /* warm deep ink, pas violet pur */
+    --pssfp-secondary: #7FB0C4;           /* Bleu pétrole éclairci pour dark */
+    --pssfp-secondary-hover: #97C2D2;
+    --pssfp-bleu-petrole: #7FB0C4;
+    --pssfp-bleu-petrole-dark: #5A8FA3;
+
+    --pssfp-tertiary: #A592BD;
+    --pssfp-lavande: #A592BD;
+
+    --pssfp-accent: #E5C788;              /* Or chaud */
+    --pssfp-accent-hover: #F0D9A6;
+    --pssfp-or: #E5C788;
+    --pssfp-or-light: #F0D9A6;
+
+    --pssfp-bg: #14101A;                  /* Ink chaud */
     --pssfp-bg-elevated: #1F1A28;
     --pssfp-bg-subtle: #1A1622;
     --pssfp-surface: #2A2235;
     --pssfp-surface-soft: #251E30;
-    --pssfp-secondary-soft: #1F3A30;
-    --pssfp-primary-soft: #2D2240;
+    --pssfp-ivoire: #1F1A28;
 
-    --pssfp-border: #3A2F48;
-    --pssfp-border-soft: #2A2235;
+    --pssfp-secondary-soft: rgba(127, 176, 196, 0.16);
+    --pssfp-primary-soft: rgba(176, 132, 232, 0.16);
+    --pssfp-or-soft: rgba(229, 199, 136, 0.18);
+
+    --pssfp-border: rgba(165, 146, 189, 0.28);
+    --pssfp-border-soft: rgba(165, 146, 189, 0.14);
     --pssfp-text: #F0E8D8;
     --pssfp-text-strong: #FAF5E8;
     --pssfp-text-muted: #B5ACBF;
     --pssfp-text-on-primary: #14101A;
+    --pssfp-graphite: #F0E8D8;
+    --pssfp-graphite-light: #B5ACBF;
+
     color-scheme: dark;
   }
 
@@ -93,7 +127,7 @@
 }
 
 @layer components {
-  /* Hiérarchie typographique éditoriale */
+  /* Hiérarchie typographique éditoriale (Cormorant Garamond / Source Sans 3) */
   .pssfp-h1 {
     @apply font-heading font-bold text-pssfp-h1;
     color: var(--pssfp-text-strong);
@@ -126,39 +160,73 @@
     @apply py-12 md:py-16;
   }
 
-  /* Title gradient — accent éditorial, à utiliser sur 1 mot par section max */
+  /* Title gradient — accent éditorial, 1 mot par section max */
+  .pssfp-text-gradient-prune-or {
+    background: linear-gradient(135deg, #4A2E67 0%, #D4AF6A 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .dark .pssfp-text-gradient-prune-or {
+    background: linear-gradient(135deg, #B084E8 0%, #E5C788 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  /* Legacy alias kept for compat during migration — same effect as prune-or */
   .pssfp-text-gradient-violet-or {
-    background: linear-gradient(135deg, #6B2FA0 0%, #C9A227 100%);
+    background: linear-gradient(135deg, #4A2E67 0%, #D4AF6A 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
   }
   .dark .pssfp-text-gradient-violet-or {
-    background: linear-gradient(135deg, #B084E8 0%, #E8C868 100%);
+    background: linear-gradient(135deg, #B084E8 0%, #E5C788 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
   }
+  .pssfp-text-gradient-petrole-or {
+    background: linear-gradient(135deg, #0F3A4A 0%, #D4AF6A 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .dark .pssfp-text-gradient-petrole-or {
+    background: linear-gradient(135deg, #7FB0C4 0%, #E5C788 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  /* Legacy alias forest-or — désormais petrole-or */
   .pssfp-text-gradient-forest-or {
-    background: linear-gradient(135deg, #0E4D3F 0%, #C9A227 100%);
+    background: linear-gradient(135deg, #0F3A4A 0%, #D4AF6A 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
   }
   .dark .pssfp-text-gradient-forest-or {
-    background: linear-gradient(135deg, #6FBDA0 0%, #E8C868 100%);
+    background: linear-gradient(135deg, #7FB0C4 0%, #E5C788 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
   }
 
-  /* Editorial gold hairline — séparateur subtil */
+  /* Hairline gold — séparateur éditorial */
   .pssfp-hairline-gold {
-    background: linear-gradient(90deg, transparent 0%, #C9A22760 30%, #C9A22760 70%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 106, 0.55) 30%, rgba(212, 175, 106, 0.55) 70%, transparent 100%);
+    height: 1px;
+  }
+  .pssfp-hairline-prune-or {
+    background: linear-gradient(90deg, transparent 0%, rgba(74, 46, 103, 0.55) 20%, rgba(212, 175, 106, 0.75) 50%, rgba(74, 46, 103, 0.55) 80%, transparent 100%);
     height: 1px;
   }
 
@@ -190,21 +258,21 @@
   /* Paper-grain texture overlay — atmosphère éditoriale */
   .pssfp-paper-grain {
     background-image:
-      radial-gradient(circle at 20% 10%, rgba(20, 16, 26, 0.025) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(201, 162, 39, 0.04) 0%, transparent 50%);
+      radial-gradient(circle at 20% 10%, rgba(60, 60, 60, 0.025) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(212, 175, 106, 0.04) 0%, transparent 50%);
   }
   .dark .pssfp-paper-grain {
     background-image:
-      radial-gradient(circle at 20% 10%, rgba(232, 200, 104, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 20% 10%, rgba(229, 199, 136, 0.04) 0%, transparent 50%),
       radial-gradient(circle at 80% 80%, rgba(176, 132, 232, 0.05) 0%, transparent 50%);
   }
 }
 
 ::selection {
-  background: #C9A227;
-  color: #14101A;
+  background: #D4AF6A;
+  color: #1A1A1A;
 }
 .dark ::selection {
-  background: #E8C868;
+  background: #E5C788;
   color: #14101A;
 }

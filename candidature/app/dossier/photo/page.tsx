@@ -22,7 +22,7 @@ export default async function PhotoPage(): Promise<JSX.Element> {
     }
     return (
       <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">
-        <h1 className="font-heading text-3xl font-bold text-[#6B2FA0]">Photo identité</h1>
+        <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">Photo identité</h1>
         <p
           role="alert"
           className="mt-6 rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-700"
@@ -41,14 +41,14 @@ export default async function PhotoPage(): Promise<JSX.Element> {
   return (
     <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">
       <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666]">
-        <Link href="/dossier" className="hover:text-[#6B2FA0]">
+        <Link href="/dossier" className="hover:text-[#4A2E67]">
           Mon dossier
         </Link>
         <span aria-hidden="true"> / </span>
         <span className="text-[#333]">Photo identité</span>
       </nav>
 
-      <h1 className="font-heading text-3xl font-bold text-[#6B2FA0]">Photo identité</h1>
+      <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">Photo identité</h1>
       <p className="mt-2 text-sm text-[#666]">
         Cette photo apparaîtra sur votre récépissé et sera vérifiée au dépôt physique de votre
         dossier. Choisissez une photo récente, bien éclairée, fond neutre.
@@ -63,7 +63,7 @@ export default async function PhotoPage(): Promise<JSX.Element> {
       </div>
 
       <div className="mt-6 flex justify-between text-sm">
-        <Link href="/dossier" className="text-[#6B2FA0] underline hover:text-[#9B59B6]">
+        <Link href="/dossier" className="text-[#4A2E67] underline hover:text-[#5C3A7E]">
           ← Retour au dossier
         </Link>
       </div>

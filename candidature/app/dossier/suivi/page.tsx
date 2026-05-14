@@ -24,7 +24,7 @@ export default async function SuiviPage(): Promise<JSX.Element> {
     }
     return (
       <div className="mx-auto max-w-3xl px-6 py-16">
-        <h1 className="font-heading text-3xl font-bold text-[#6B2FA0]">Suivi</h1>
+        <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">Suivi</h1>
         <div role="alert" className="mt-6 rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-700">
           Erreur de chargement : {result.message}
         </div>
@@ -42,18 +42,18 @@ export default async function SuiviPage(): Promise<JSX.Element> {
     <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-heading text-3xl font-bold text-[#6B2FA0]">Suivi de ma candidature</h1>
+          <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">Suivi de ma candidature</h1>
           <p className="mt-1 text-sm text-[#666]">
             Numéro de dossier <span className="font-mono">{candidature.numero_dossier}</span>
           </p>
         </div>
-        <Link href="/dossier" className="text-sm text-[#6B2FA0] underline">
+        <Link href="/dossier" className="text-sm text-[#4A2E67] underline">
           Retour au dossier
         </Link>
       </header>
 
       <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-6 font-heading text-lg font-bold text-[#6B2FA0]">Étapes</h2>
+        <h2 className="mb-6 font-heading text-lg font-bold text-[#4A2E67]">Étapes</h2>
         <StatusTimeline candidature={candidature} />
       </section>
 

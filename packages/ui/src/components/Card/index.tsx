@@ -8,17 +8,17 @@ const cardVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-white border border-[#EDE7F6] shadow-pssfp-soft hover:-translate-y-1 hover:shadow-pssfp-elevated hover:border-[#9B59B6]/40',
+          'bg-white border border-[#F4EFFA] shadow-pssfp-soft hover:-translate-y-1 hover:shadow-pssfp-elevated hover:border-[#5C3A7E]/40',
         flat:
-          'bg-white border border-[#EDE7F6]',
+          'bg-white border border-[#F4EFFA]',
         glass:
           'border border-white/30 bg-white/60 shadow-pssfp-soft backdrop-blur-2xl',
         gradient:
-          'bg-gradient-violet-or text-white shadow-pssfp-elevated hover:-translate-y-1 hover:shadow-pssfp-floating',
+          'bg-gradient-prune-or text-white shadow-pssfp-elevated hover:-translate-y-1 hover:shadow-pssfp-floating',
         lavande:
-          'bg-gradient-lavande-blanc border border-[#EDE7F6] shadow-pssfp-soft hover:-translate-y-1 hover:shadow-pssfp-elevated',
+          'bg-gradient-lavande-blanc border border-[#F4EFFA] shadow-pssfp-soft hover:-translate-y-1 hover:shadow-pssfp-elevated',
         outline:
-          'bg-transparent border-2 border-[#6B2FA0]/20 hover:border-[#6B2FA0]/60 hover:shadow-pssfp-soft',
+          'bg-transparent border-2 border-[#4A2E67]/20 hover:border-[#4A2E67]/60 hover:shadow-pssfp-soft',
       },
       padding: {
         none: '',
@@ -27,7 +27,7 @@ const cardVariants = cva(
         lg: 'p-8',
       },
       interactive: {
-        true: 'cursor-pointer focus-within:ring-2 focus-within:ring-[#6B2FA0] focus-within:ring-offset-2',
+        true: 'cursor-pointer focus-within:ring-2 focus-within:ring-[#4A2E67] focus-within:ring-offset-2',
         false: '',
       },
     },

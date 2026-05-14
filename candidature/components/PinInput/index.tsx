@@ -84,11 +84,11 @@ export function PinInput({ value, onChange, ariaLabel, testId, noAutoFocus }: Pi
             }}
             className={cn(
               'h-14 w-12 rounded-pssfp-button border-2 text-center font-heading text-2xl font-bold tabular-nums transition-all duration-200 ease-pssfp-out-expo',
-              'focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30',
+              'focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30',
               isFilled
-                ? 'border-[#6B2FA0] bg-[#FAF7FF] text-[#6B2FA0] shadow-pssfp-soft'
-                : 'border-[#EDE7F6] bg-white text-[#333]',
-              'focus:scale-105 focus:border-[#6B2FA0] focus:shadow-pssfp-glow-violet',
+                ? 'border-[#4A2E67] bg-[#FAF7FF] text-[#4A2E67] shadow-pssfp-soft'
+                : 'border-[#F4EFFA] bg-white text-[#333]',
+              'focus:scale-105 focus:border-[#4A2E67] focus:shadow-pssfp-glow-prune',
               allFilled && 'border-emerald-400 bg-emerald-50/40 text-emerald-700',
             )}
           />

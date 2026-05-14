@@ -90,13 +90,13 @@ export function ForgotPinWizard(): JSX.Element {
                   done
                     ? 'bg-emerald-100 text-emerald-700'
                     : active
-                    ? 'bg-[#6B2FA0] text-white'
+                    ? 'bg-[#4A2E67] text-white'
                     : 'bg-gray-100 text-gray-400'
                 }`}
               >
                 {done ? '✓' : id}
               </span>
-              <span className={`hidden md:inline ${active ? 'text-[#6B2FA0] font-medium' : 'text-gray-500'}`}>
+              <span className={`hidden md:inline ${active ? 'text-[#4A2E67] font-medium' : 'text-gray-500'}`}>
                 {label}
               </span>
               {idx < STEP_LABELS.length - 1 && (
@@ -109,7 +109,7 @@ export function ForgotPinWizard(): JSX.Element {
 
       {step === 1 && (
         <div className="space-y-5" data-testid="forgot-pin-step-1">
-          <h2 className="font-heading text-lg font-semibold text-[#6B2FA0]">
+          <h2 className="font-heading text-lg font-semibold text-[#4A2E67]">
             Saisissez votre numéro de téléphone
           </h2>
           <p className="text-sm text-[#666]">
@@ -123,7 +123,7 @@ export function ForgotPinWizard(): JSX.Element {
             placeholder="+237691234567"
             value={phone}
             onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ''))}
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
           {serverError && (
             <div role="alert" className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700">
@@ -135,7 +135,7 @@ export function ForgotPinWizard(): JSX.Element {
             data-testid="forgot-submit-phone"
             disabled={!phoneValid || pending}
             onClick={submitPhone}
-            className="h-11 w-full rounded-md bg-[#6B2FA0] text-sm font-medium text-white hover:bg-[#9B59B6] disabled:cursor-not-allowed disabled:bg-gray-300"
+            className="h-11 w-full rounded-md bg-[#4A2E67] text-sm font-medium text-white hover:bg-[#5C3A7E] disabled:cursor-not-allowed disabled:bg-gray-300"
           >
             {pending ? 'Envoi…' : 'Recevoir le code'}
           </button>
@@ -144,7 +144,7 @@ export function ForgotPinWizard(): JSX.Element {
 
       {step === 2 && (
         <div className="space-y-5" data-testid="forgot-pin-step-2">
-          <h2 className="font-heading text-lg font-semibold text-[#6B2FA0]">
+          <h2 className="font-heading text-lg font-semibold text-[#4A2E67]">
             Saisissez le code reçu par SMS
           </h2>
           <p className="text-sm text-[#666]">
@@ -173,7 +173,7 @@ export function ForgotPinWizard(): JSX.Element {
               data-testid="forgot-submit-otp"
               disabled={!codeValid || pending}
               onClick={submitCode}
-              className="h-11 flex-1 rounded-md bg-[#6B2FA0] text-sm font-medium text-white hover:bg-[#9B59B6] disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="h-11 flex-1 rounded-md bg-[#4A2E67] text-sm font-medium text-white hover:bg-[#5C3A7E] disabled:cursor-not-allowed disabled:bg-gray-300"
             >
               {pending ? 'Vérification…' : 'Valider le code'}
             </button>
@@ -183,7 +183,7 @@ export function ForgotPinWizard(): JSX.Element {
 
       {step === 3 && (
         <div className="space-y-5" data-testid="forgot-pin-step-3">
-          <h2 className="font-heading text-lg font-semibold text-[#6B2FA0]">
+          <h2 className="font-heading text-lg font-semibold text-[#4A2E67]">
             Choisissez votre nouveau PIN
           </h2>
           <p className="text-sm text-[#666]">
@@ -225,7 +225,7 @@ export function ForgotPinWizard(): JSX.Element {
             data-testid="forgot-submit-reset"
             disabled={!pinResult.ok || newPin !== newPinConfirm || pending}
             onClick={submitNewPin}
-            className="h-11 w-full rounded-md bg-[#6B2FA0] text-sm font-medium text-white hover:bg-[#9B59B6] disabled:cursor-not-allowed disabled:bg-gray-300"
+            className="h-11 w-full rounded-md bg-[#4A2E67] text-sm font-medium text-white hover:bg-[#5C3A7E] disabled:cursor-not-allowed disabled:bg-gray-300"
           >
             {pending ? 'Mise à jour…' : 'Définir mon nouveau PIN'}
           </button>

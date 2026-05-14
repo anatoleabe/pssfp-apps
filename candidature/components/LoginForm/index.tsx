@@ -84,7 +84,7 @@ export function LoginForm({ labels, initialPhone = '', reasonMessage }: LoginFor
           onBlur={() => setPhoneTouched(true)}
           aria-invalid={phoneTouched && !phoneValid}
           aria-describedby="phone-help"
-          className="mt-1 h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+          className="mt-1 h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         />
         <p id="phone-help" className="mt-1 text-xs text-gray-500">
           {labels.phoneHelp}
@@ -108,7 +108,7 @@ export function LoginForm({ labels, initialPhone = '', reasonMessage }: LoginFor
           onBlur={() => setPinTouched(true)}
           aria-invalid={pinTouched && !pinValid}
           aria-describedby="pin-help"
-          className="mt-1 h-11 w-full rounded-md border border-gray-300 px-3 text-lg tracking-widest focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+          className="mt-1 h-11 w-full rounded-md border border-gray-300 px-3 text-lg tracking-widest focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         />
         <p id="pin-help" className="mt-1 text-xs text-gray-500">
           {labels.pinHelp}
@@ -125,14 +125,14 @@ export function LoginForm({ labels, initialPhone = '', reasonMessage }: LoginFor
         type="submit"
         data-testid="login-submit"
         disabled={!phoneValid || !pinValid || pending}
-        className="flex h-11 w-full items-center justify-center rounded-md bg-[#6B2FA0] text-sm font-medium text-white hover:bg-[#9B59B6] disabled:cursor-not-allowed disabled:bg-gray-300"
+        className="flex h-11 w-full items-center justify-center rounded-md bg-[#4A2E67] text-sm font-medium text-white hover:bg-[#5C3A7E] disabled:cursor-not-allowed disabled:bg-gray-300"
       >
         {pending ? 'Connexion…' : labels.submit}
       </button>
 
       <Link
         href="/forgot-pin"
-        className="block text-center text-sm text-[#6B2FA0] underline hover:text-[#9B59B6]"
+        className="block text-center text-sm text-[#4A2E67] underline hover:text-[#5C3A7E]"
       >
         {labels.forgotPin}
       </Link>

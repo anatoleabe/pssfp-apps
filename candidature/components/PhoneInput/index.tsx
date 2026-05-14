@@ -58,7 +58,7 @@ export function PhoneInput({
           const found = pays.find((p) => p.code_iso === code);
           update({ countryCode: code, indicatif: found?.indicatif ?? '+' });
         }}
-        className="h-11 rounded-md border border-gray-300 px-2 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+        className="h-11 rounded-md border border-gray-300 px-2 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
       >
         {pays.map((p) => (
           <option key={p.code_iso} value={p.code_iso}>
@@ -80,7 +80,7 @@ export function PhoneInput({
           setLocal(digits);
           update({ local: digits });
         }}
-        className="h-11 flex-1 rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+        className="h-11 flex-1 rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
       />
     </div>
   );

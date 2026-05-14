@@ -28,6 +28,27 @@ class AProposPagesSeeder extends Seeder
     {
         $now = now()->subDay();
 
+        // Sprint S5.1 — la page racine `a-propos` (parent_slug=null) doit
+        // exister pour que le menu API expose les sous-pages comme enfants
+        // (sinon elles remontent à plat et /a-propos retombe sur le fallback
+        // « contenu sera publié »).
+        Page::query()->updateOrCreate(
+            ['slug' => 'a-propos'],
+            [
+                'parent_slug' => null,
+                'title' => ['fr' => 'À propos de nous'],
+                'excerpt' => ['fr' => "Découvrez le Programme Supérieur de Spécialisation en Finances Publiques — mission, gouvernance, partenaires et conformité CAMES."],
+                'body' => ['fr' => "Cette page sert de sommaire vers les sections institutionnelles. Le rendu est géré côté frontend (`/a-propos/page.tsx`) avec hero éditorial + cards des sous-pages."],
+                'meta_title' => ['fr' => 'À propos de nous — PSSFP'],
+                'meta_description' => ['fr' => 'Programme Supérieur de Spécialisation en Finances Publiques : mission, gouvernance, partenaires, conformité CAMES, histoire institutionnelle depuis 2013.'],
+                'status' => Page::STATUS_PUBLISHED,
+                'published_at' => $now,
+                'order' => 0,
+                'is_in_menu' => true,
+                'menu_label' => ['fr' => 'À propos de nous'],
+            ],
+        );
+
         foreach ($this->pages() as $data) {
             Page::query()->updateOrCreate(
                 ['slug' => $data['slug']],

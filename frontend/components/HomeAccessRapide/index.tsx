@@ -58,22 +58,22 @@ export async function HomeAccessRapide(): Promise<JSX.Element> {
     <section
       aria-labelledby="access-heading"
       data-testid="home-access"
-      className="relative overflow-hidden bg-gradient-cream-warm pssfp-paper-grain"
+      className="relative overflow-hidden bg-gradient-ivoire pssfp-paper-grain"
     >
       {/* Halo décoratifs sobres */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-32 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full opacity-15 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #0E4D3F 0%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(circle, #0F3A4A 0%, transparent 70%)' }}
       />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full opacity-20 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #C9A227 0%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(circle, #D4AF6A 0%, transparent 70%)' }}
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#C9A227]/50 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4AF6A]/50 to-transparent"
       />
 
       <div className="relative mx-auto max-w-7xl px-6 py-20 md:py-24">
@@ -122,34 +122,34 @@ const VARIANT_STYLES: Record<Variant, {
   focusRing: string;
 }> = {
   forest: {
-    card: 'bg-gradient-forest text-white border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
+    card: 'bg-gradient-petrole-prune text-white border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
     haloBg: 'radial-gradient(circle, rgba(255, 255, 255, 0.30) 0%, transparent 70%)',
     iconBg: 'bg-white/15 text-white backdrop-blur-2xl',
     titleColor: 'text-white',
     bodyColor: 'text-white/85',
     ctaColor: 'text-white',
-    ctaArrowBg: 'bg-white/15 text-white group-hover:bg-white group-hover:text-[#0E4D3F]',
-    focusRing: 'focus-visible:ring-[#C9A227]',
+    ctaArrowBg: 'bg-white/15 text-white group-hover:bg-white group-hover:text-[#0F3A4A]',
+    focusRing: 'focus-visible:ring-[#D4AF6A]',
   },
   ink: {
     card: 'bg-gradient-ink-deep text-white border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
     haloBg: 'radial-gradient(circle, rgba(176, 132, 232, 0.40) 0%, transparent 70%)',
-    iconBg: 'bg-white/10 text-[#E8C868] backdrop-blur-2xl',
+    iconBg: 'bg-white/10 text-[#E5C788] backdrop-blur-2xl',
     titleColor: 'text-white',
     bodyColor: 'text-white/85',
-    ctaColor: 'text-[#E8C868]',
-    ctaArrowBg: 'bg-white/10 text-[#E8C868] group-hover:bg-[#E8C868] group-hover:text-[#14101A]',
-    focusRing: 'focus-visible:ring-[#E8C868]',
+    ctaColor: 'text-[#E5C788]',
+    ctaArrowBg: 'bg-white/10 text-[#E5C788] group-hover:bg-[#E5C788] group-hover:text-[#14101A]',
+    focusRing: 'focus-visible:ring-[#E5C788]',
   },
   gold: {
-    card: 'bg-gradient-or-soft text-[#14101A] border-transparent shadow-pssfp-glow-or hover:shadow-pssfp-floating',
-    haloBg: 'radial-gradient(circle, rgba(20, 16, 26, 0.20) 0%, transparent 70%)',
+    card: 'bg-gradient-or text-[#14101A] border-transparent shadow-pssfp-glow-or hover:shadow-pssfp-floating',
+    haloBg: 'radial-gradient(circle, rgba(60, 60, 60, 0.20) 0%, transparent 70%)',
     iconBg: 'bg-[#14101A]/10 text-[#14101A] backdrop-blur-2xl',
     titleColor: 'text-[#14101A]',
     bodyColor: 'text-[#14101A]/80',
     ctaColor: 'text-[#14101A]',
-    ctaArrowBg: 'bg-[#14101A]/10 text-[#14101A] group-hover:bg-[#14101A] group-hover:text-[#C9A227]',
-    focusRing: 'focus-visible:ring-[#0E4D3F]',
+    ctaArrowBg: 'bg-[#14101A]/10 text-[#14101A] group-hover:bg-[#14101A] group-hover:text-[#D4AF6A]',
+    focusRing: 'focus-visible:ring-[#0F3A4A]',
   },
 };
 
