@@ -20,6 +20,7 @@ use Symfony\Component\Finder\Finder;
  * Catégorisation :
  *   - logos/...        : logo (subcategory selon dossier)
  *   - photos/{cat}/... : photo + subcategory mappée
+ *   - slidershow/...   : photo/slidershow (hero carrousel home — sprint S5.3)
  *   - conventions/...  : document/convention
  *   - Catalogues/*.pdf : document/catalogue
  *   - textes/Appel*    : document/appel-candidature ou photo/evenements
@@ -78,8 +79,20 @@ class AssetImportService
                     continue;
                 }
 
+                // Pour les photos JPG/PNG, le path canonique stocké en BDD est
+                // la version WebP (cf. importFile()). On doit donc rechercher
+                // sur le path post-rewrite pour que l'idempotence fonctionne.
+                $extension = strtolower($file->getExtension());
+                $lookupPath = $mapping['path'];
+                if (
+                    $mapping['category'] === Asset::CATEGORY_PHOTO
+                    && in_array($extension, ['jpg', 'jpeg', 'png'], true)
+                ) {
+                    $lookupPath = preg_replace('/\.(jpg|jpeg|png)$/i', '.webp', $mapping['path']);
+                }
+
                 $existing = Asset::where('disk', $mapping['disk'])
-                    ->where('path', $mapping['path'])
+                    ->where('path', $lookupPath)
                     ->first();
 
                 if ($existing !== null) {
@@ -184,6 +197,19 @@ class AssetImportService
                     'path' => 'logos/institutions-coop/'.$slugFilename,
                 ];
             }
+        }
+
+        // slidershow/* — hero carrousel home (sprint S5.3)
+        // Toutes les images du dossier deviennent des photos/slidershow/<slug>.webp
+        // taggées 'slidershow' pour requête CMS future.
+        if ($root === 'slidershow' && in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+            return [
+                'category' => Asset::CATEGORY_PHOTO,
+                'subcategory' => 'slidershow',
+                'tags' => ['slidershow'],
+                'disk' => self::MEDIA_DISK,
+                'path' => 'photos/slidershow/'.$slugFilename,
+            ];
         }
 
         // photos/{subcategory}/...
