@@ -19,6 +19,7 @@ beforeEach(function (): void {
     mkdir($this->sourceDir.'/logos/institutions-coop', 0755, true);
     mkdir($this->sourceDir.'/conventions', 0755, true);
     mkdir($this->sourceDir.'/photos/direction', 0755, true);
+    mkdir($this->sourceDir.'/slidershow', 0755, true);
 
     // Sample SVG (logo)
     file_put_contents(
@@ -36,6 +37,15 @@ beforeEach(function (): void {
     file_put_contents(
         $this->sourceDir.'/conventions/convention-tripartite-2013.pdf',
         '%PDF-1.4 dummy content'
+    );
+
+    // Sprint S5.3 — Sample JPG slidershow (1×1 PNG renamed for mapping test).
+    // Content irrelevant : on teste ici uniquement le mapping path → category.
+    file_put_contents(
+        $this->sourceDir.'/slidershow/slidershow1_pssfp1.jpg',
+        base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+        ),
     );
 });
 
@@ -101,6 +111,21 @@ it('is idempotent: re-running skips already imported files', function (): void {
     $second = (new AssetImportService($this->sourceDir))->run();
     expect($second['imported'])->toBe(0)
         ->and($second['skipped'])->toBe($first['imported']);
+});
+
+it('imports slidershow JPG into photos/slidershow with slidershow tag (S5.3)', function (): void {
+    $service = new AssetImportService($this->sourceDir);
+    $service->run();
+
+    $slidershow = Asset::query()
+        ->where('subcategory', 'slidershow')
+        ->first();
+
+    expect($slidershow)->not->toBeNull()
+        ->and($slidershow->category)->toBe(Asset::CATEGORY_PHOTO)
+        ->and($slidershow->disk)->toBe(AssetImportService::MEDIA_DISK)
+        ->and($slidershow->tags)->toContain('slidershow')
+        ->and(str_starts_with($slidershow->path, 'photos/slidershow/'))->toBeTrue();
 });
 
 it('returns null mapping for unrelated files (skipped, no error)', function (): void {
