@@ -19,6 +19,7 @@ Règle d'or : si une décision n'est pas dans un ADR, elle peut être renégoci�
 | [0005](0005-auth-sanctum-tokens-scoped.md) | Authentification Sanctum + tokens scoped | Accepté | 2026-05-05 |
 | [0006](0006-i18n-fr-default.md) | i18n FR par défaut, structure prête EN/AR | Accepté | 2026-05-05 |
 | [0007](0007-pin-6-chiffres-candidats.md) | PIN 6 chiffres pour les candidats — UX prioritaire | Accepté | 2026-05-05 |
+| [0008](0008-evolution-charte-2026.md) | Évolution charte graphique 2026 — prune institutionnel, bleu pétrole, Cormorant Garamond | Accepté | 2026-05-14 |
 
 ## Workflow ADR
 

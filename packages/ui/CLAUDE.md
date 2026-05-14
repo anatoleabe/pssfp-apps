@@ -61,20 +61,25 @@ packages/ui/
 - **Forwarded refs** pour les composants potentiellement utilisés dans des libs tierces.
 - **Aucune dépendance directe** à React Server Components — tous les composants sont compatibles RSC sauf indication explicite (`'use client'`).
 
-## Design tokens
-
-Couleurs CDC §10.1 :
+## Design tokens (charte 2026 — ADR-0008)
 
 ```typescript
 export const colors = {
-  primary: '#6B2FA0',          // Violet institutionnel
-  primaryHover: '#9B59B6',     // Violet moyen
-  surface: '#EDE7F6',          // Lavande
-  accent: '#C9A227',           // Or
+  primary: '#4A2E67',          // Prune institutionnelle
+  primaryHover: '#3A2452',     // Prune profonde
+  primaryLight: '#5C3A7E',     // Prune claire
+  secondary: '#0F3A4A',        // Bleu pétrole — 2e accent autorité
+  secondaryHover: '#082A37',
+  tertiary: '#A592BD',         // Lavande grisée
+  surface: '#A592BD',
+  accent: '#D4AF6A',           // Or champagne
+  accentHover: '#E5C788',
   background: '#FFFFFF',
-  text: '#333333',
-  textMuted: '#666666',
-  surfaceAlt: '#F5F5F5',
+  ivoire: '#FAF7F2',
+  text: '#3C3C3C',             // Graphite
+  textStrong: '#1A1A1A',
+  textMuted: '#6B6B6B',
+  surfaceAlt: '#F4F0EA',
   // Sémantiques
   success: '#2E7D32',
   warning: '#F9A825',
@@ -83,12 +88,12 @@ export const colors = {
 } as const;
 ```
 
-Typographies :
+Typographies (ADR-0008) :
 
 ```typescript
 export const fonts = {
-  heading: 'Playfair Display, serif',
-  body: 'Inter, sans-serif',
+  heading: 'Cormorant Garamond, Georgia, serif',
+  body: 'Source Sans 3, system-ui, sans-serif',
   ui: 'DM Sans, sans-serif',
 } as const;
 ```
