@@ -1,5 +1,19 @@
 import Link from 'next/link';
-import { ArrowRight, BookOpen, Globe2, ShieldCheck } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpen,
+  Globe2,
+  ShieldCheck,
+  UserSquare2,
+  Building2,
+  Users,
+  Network,
+  FileSignature,
+  History,
+  School,
+  Award,
+  Handshake,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { getMenu } from '@/lib/api/pages';
@@ -14,12 +28,37 @@ export const metadata: Metadata = {
     "Découvrez le Programme Supérieur de Spécialisation en Finances Publiques — mission, gouvernance, partenaires et conformité CAMES.",
 };
 
+// Carte d'icônes par slug — utilisé pour les cards de navigation des sous-pages.
+const ICON_BY_SLUG: Record<string, typeof BookOpen> = {
+  'a-propos/mot-president': UserSquare2,
+  'a-propos/presentation': BookOpen,
+  'a-propos/comite-pilotage': Users,
+  'a-propos/organigramme': Network,
+  'a-propos/convention-tripartite': FileSignature,
+  'a-propos/histoire': History,
+  'a-propos/infrastructure': Building2,
+  'a-propos/partenaires': Handshake,
+  'a-propos/conformite-cames': Award,
+};
+
+// Description courte par sous-page — pour les cards.
+const SHORT_DESC_BY_SLUG: Record<string, string> = {
+  'a-propos/mot-president': "Mot d'introduction du Président du Comité de Pilotage.",
+  'a-propos/presentation': "Mission, vocation et offre de formation du PSSFP.",
+  'a-propos/comite-pilotage': "Composition et missions du COPIL.",
+  'a-propos/organigramme': "Structure organisationnelle complète.",
+  'a-propos/convention-tripartite': "Cadre juridique MINFI · MINESUP · UY2.",
+  'a-propos/histoire': "De 2013 aux 13 promotions diplômées.",
+  'a-propos/infrastructure': "Campus de Messa, amphithéâtres, bibliothèque.",
+  'a-propos/partenaires': "Partenaires nationaux et internationaux.",
+  'a-propos/conformite-cames': "12 exigences CAMES — accréditation régionale.",
+};
+
 /**
  * /a-propos — page d'accueil de la rubrique institutionnelle.
  *
- * Sprint S5 PR W : rubrique renommée « À propos de nous » (ex « Le PSSFP »).
- * PR U (UX Boost Phase 2) : refonte storytelling avec hero éditorial,
- * 3 piliers, scroll reveal des sous-pages CMS, CTA candidature.
+ * Sprint S5.1 — refonte cards avec icônes lucide + descriptions courtes,
+ * conforme à la maquette identité visuelle 2026 (ADR-0008).
  */
 export default async function AProposIndexPage(): Promise<JSX.Element> {
   const t = await getTranslations('aproposIndex');
@@ -31,12 +70,10 @@ export default async function AProposIndexPage(): Promise<JSX.Element> {
   return (
     <article>
       {/* HERO ÉDITORIAL — display typo, gradient subtil, motif géométrique */}
-      <header className="relative overflow-hidden border-b border-[var(--pssfp-border)] bg-gradient-lavande-blanc dark:bg-[#1A0A2E] dark:bg-none">
-        {/* Motif décoratif (compositor-friendly, transform/opacity uniquement) */}
+      <header className="relative overflow-hidden border-b border-[var(--pssfp-border)] bg-gradient-lavande-blanc dark:bg-[#1A1A1A] dark:bg-none">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-0 opacity-50 dark:opacity-30">
-          <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-[#9B59B6]/15 blur-3xl dark:bg-[#B084E8]/10" />
-          <div className="absolute -bottom-32 -left-16 h-[28rem] w-[28rem] rounded-full bg-[#C9A227]/10 blur-3xl dark:bg-[#E8C868]/10" />
-          {/* Courbes flottantes animées (respecte prefers-reduced-motion) */}
+          <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-[var(--pssfp-prune-light)]/15 blur-3xl dark:bg-[#B084E8]/10" />
+          <div className="absolute -bottom-32 -left-16 h-[28rem] w-[28rem] rounded-full bg-[var(--pssfp-or)]/10 blur-3xl dark:bg-[#E5C788]/10" />
           <BackgroundPaths className="opacity-70 dark:opacity-50" />
         </div>
 
@@ -47,7 +84,7 @@ export default async function AProposIndexPage(): Promise<JSX.Element> {
           <RevealOnScroll delay={120}>
             <h1 className="mt-4 font-heading text-pssfp-h1 font-bold leading-[1.05] tracking-tight text-[var(--pssfp-text-strong)]">
               {t('title')}
-              <span className="block italic font-normal pssfp-text-gradient-violet-or">
+              <span className="block italic font-normal pssfp-text-gradient-prune-or">
                 — {t('titleAccent')}
               </span>
             </h1>
@@ -97,11 +134,11 @@ export default async function AProposIndexPage(): Promise<JSX.Element> {
                 key={p.title}
                 delay={idx * 120}
                 as="li"
-                className="group relative overflow-hidden rounded-pssfp-card border border-[var(--pssfp-border)] bg-[var(--pssfp-bg-elevated)] p-7 shadow-pssfp-soft transition-all duration-300 hover:-translate-y-1 hover:border-[#6B2FA0] hover:shadow-pssfp-elevated dark:hover:border-[#B084E8]"
+                className="group relative overflow-hidden rounded-pssfp-card border border-[var(--pssfp-border)] bg-[var(--pssfp-bg-elevated)] p-7 shadow-pssfp-soft transition-all duration-300 hover:-translate-y-1 hover:border-pssfp-prune hover:shadow-pssfp-elevated dark:hover:border-[#B084E8]"
               >
                 <span
                   aria-hidden="true"
-                  className="absolute inset-x-0 top-0 h-1 bg-gradient-violet-or opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                  className="absolute inset-x-0 top-0 h-1 bg-gradient-prune-or opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                 />
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-[var(--pssfp-surface)] text-[var(--pssfp-primary)]">
                   <p.Icon size={22} aria-hidden="true" strokeWidth={1.75} />
@@ -118,9 +155,9 @@ export default async function AProposIndexPage(): Promise<JSX.Element> {
         </div>
       </section>
 
-      {/* EXPLORER — sommaire des sous-pages CMS, cards reveal */}
+      {/* EXPLORER — grid 3 colonnes avec icônes + description courte par sous-page */}
       <section className="border-b border-[var(--pssfp-border)] bg-[var(--pssfp-bg)] pssfp-section">
-        <div className="mx-auto max-w-5xl px-6">
+        <div className="mx-auto max-w-6xl px-6">
           <RevealOnScroll>
             <p className="pssfp-eyebrow">{t('exploreEyebrow')}</p>
             <h2 className="mt-3 font-heading text-pssfp-h2 font-bold tracking-tight text-[var(--pssfp-text-strong)]">
@@ -140,29 +177,45 @@ export default async function AProposIndexPage(): Promise<JSX.Element> {
               Le contenu institutionnel sera publié dès l'activation du CMS Filament en production.
             </p>
           ) : (
-            <ul className="mt-10 grid gap-4 md:grid-cols-2">
-              {children.map((child, idx) => (
-                <RevealOnScroll
-                  key={child.slug}
-                  delay={idx * 80}
-                  as="li"
-                >
-                  <Link
-                    href={`/${child.slug}`}
-                    data-testid={`apropos-card-${child.slug.split('/').pop()}`}
-                    className="group flex h-full items-center justify-between gap-4 rounded-pssfp-card border border-[var(--pssfp-border)] bg-[var(--pssfp-bg-elevated)] p-5 transition-all hover:-translate-y-0.5 hover:border-[#9B59B6] hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:hover:border-[#B084E8] dark:focus-visible:ring-[#E8C868]"
-                  >
-                    <span className="font-heading text-lg font-semibold text-[var(--pssfp-text-strong)] group-hover:text-[var(--pssfp-primary)]">
-                      {child.label}
-                    </span>
-                    <ArrowRight
-                      size={18}
-                      aria-hidden="true"
-                      className="shrink-0 text-[var(--pssfp-primary)] transition-transform group-hover:translate-x-1"
-                    />
-                  </Link>
-                </RevealOnScroll>
-              ))}
+            <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {children.map((child, idx) => {
+                const Icon = ICON_BY_SLUG[child.slug] ?? School;
+                const desc = SHORT_DESC_BY_SLUG[child.slug];
+                const key = child.slug.split('/').pop() ?? child.slug;
+                return (
+                  <RevealOnScroll key={child.slug} delay={idx * 60} as="li">
+                    <Link
+                      href={`/${child.slug}`}
+                      data-testid={`apropos-card-${key}`}
+                      className="group relative flex h-full flex-col rounded-pssfp-card border border-[var(--pssfp-border)] bg-[var(--pssfp-bg-elevated)] p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-pssfp-prune hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 dark:hover:border-[#B084E8] dark:focus-visible:ring-[#E5C788]"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-x-0 top-0 h-0.5 bg-gradient-prune-or opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                      />
+                      <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--pssfp-primary-soft)] text-pssfp-prune dark:text-[#B084E8]">
+                        <Icon size={20} aria-hidden="true" strokeWidth={1.75} />
+                      </span>
+                      <h3 className="mt-5 font-heading text-lg font-semibold text-[var(--pssfp-text-strong)] group-hover:text-pssfp-prune dark:group-hover:text-[#B084E8]">
+                        {child.label}
+                      </h3>
+                      {desc && (
+                        <p className="mt-2 text-sm leading-relaxed text-[var(--pssfp-text-muted)]">
+                          {desc}
+                        </p>
+                      )}
+                      <span className="mt-auto pt-4 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-pssfp-or">
+                        Découvrir
+                        <ArrowRight
+                          size={14}
+                          aria-hidden="true"
+                          className="transition-transform group-hover:translate-x-1"
+                        />
+                      </span>
+                    </Link>
+                  </RevealOnScroll>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -172,7 +225,7 @@ export default async function AProposIndexPage(): Promise<JSX.Element> {
       <section className="bg-[var(--pssfp-bg-subtle)] pssfp-section-tight">
         <div className="mx-auto max-w-5xl px-6">
           <RevealOnScroll>
-            <div className="relative overflow-hidden rounded-pssfp-card border border-[var(--pssfp-border)] bg-gradient-violet p-8 text-white shadow-pssfp-elevated md:p-12">
+            <div className="relative overflow-hidden rounded-pssfp-card border border-[var(--pssfp-border)] bg-gradient-prune p-8 text-white shadow-pssfp-elevated md:p-12">
               <div
                 aria-hidden="true"
                 className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl"
@@ -189,7 +242,7 @@ export default async function AProposIndexPage(): Promise<JSX.Element> {
                 <a
                   href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
                   data-testid="apropos-cta-candidature"
-                  className="inline-flex items-center gap-2 rounded-pssfp-button bg-[#C9A227] px-5 py-3 font-medium text-[#1F1A24] shadow-pssfp-elevated transition-all hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#6B2FA0]"
+                  className="inline-flex items-center gap-2 rounded-pssfp-button bg-pssfp-or px-5 py-3 font-medium text-pssfp-graphite shadow-pssfp-elevated transition-all hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-pssfp-prune"
                 >
                   {t('ctaButton')}
                   <ArrowRight size={16} aria-hidden="true" />

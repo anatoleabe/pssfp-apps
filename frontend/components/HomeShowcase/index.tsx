@@ -181,7 +181,19 @@ export function HomeShowcase(): JSX.Element {
               aria-hidden={index !== selectedIndex}
               className="relative h-[80vh] min-h-[560px] w-full shrink-0 grow-0 basis-full"
             >
-              {/* Image de fond — priority + fetchpriority sur la 1re seulement (LCP) */}
+              {/*
+                Image de fond — priority + fetchpriority sur la 1re seulement (LCP).
+                Sprint S5.1 — ajout d'un gradient de secours pour ne jamais laisser
+                de vide noir tant que l'image MinIO charge (bug audit P1 #4).
+              */}
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 -z-10"
+                style={{
+                  background:
+                    'linear-gradient(135deg, #14101A 0%, #2A1E3A 50%, #4A2E67 100%)',
+                }}
+              />
               <Image
                 src={mediaUrl(slide.imagePath)}
                 alt={slide.imageAlt}
@@ -189,6 +201,7 @@ export function HomeShowcase(): JSX.Element {
                 sizes="100vw"
                 priority={index === 0}
                 fetchPriority={index === 0 ? 'high' : 'auto'}
+                loading={index === 0 ? 'eager' : 'lazy'}
                 className="object-cover object-center"
                 quality={85}
               />
@@ -196,17 +209,17 @@ export function HomeShowcase(): JSX.Element {
               {/* Overlay gradient bottom pour lisibilité texte */}
               <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-t from-[#14101A]/95 via-[#1B1620]/55 to-transparent"
+                className="absolute inset-0 bg-gradient-to-t from-[#14101A]/95 via-[#1A1A1A]/55 to-transparent"
               />
               {/* Diagonal slash décoratif gold — éditorial */}
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-transparent via-[#C9A227]/70 to-transparent md:left-6"
+                className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-transparent via-[#D4AF6A]/70 to-transparent md:left-6"
               />
 
               {/* Contenu — seule la 1re slide a un h1 (SEO + a11y heading-order) */}
               <div className="relative mx-auto flex h-full max-w-7xl flex-col justify-end px-6 pb-20 md:pb-28">
-                <p className="pssfp-eyebrow text-[#E8C868]">{slide.eyebrow}</p>
+                <p className="pssfp-eyebrow text-[#E5C788]">{slide.eyebrow}</p>
                 {index === 0 ? (
                   <h1 className="mt-3 max-w-3xl font-heading text-pssfp-h1 font-bold leading-[1.05] tracking-tight text-white md:text-[clamp(2.5rem,1rem+5vw,5rem)]">
                     {slide.title}
@@ -223,7 +236,7 @@ export function HomeShowcase(): JSX.Element {
                   <Link
                     href={slide.primaryCta.href}
                     data-testid={`showcase-cta-primary-${slide.id}`}
-                    className="group inline-flex items-center gap-2 rounded-pssfp-button bg-[#C9A227] px-5 py-3 text-sm font-semibold text-[#14101A] shadow-pssfp-glow-or transition-all hover:-translate-y-0.5 hover:bg-[#D9B441] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8C868] focus-visible:ring-offset-2 focus-visible:ring-offset-[#14101A]"
+                    className="group inline-flex items-center gap-2 rounded-pssfp-button bg-[#D4AF6A] px-5 py-3 text-sm font-semibold text-[#14101A] shadow-pssfp-glow-or transition-all hover:-translate-y-0.5 hover:bg-[#D9B441] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E5C788] focus-visible:ring-offset-2 focus-visible:ring-offset-[#14101A]"
                   >
                     {slide.primaryCta.label}
                     <ArrowRight
@@ -236,7 +249,7 @@ export function HomeShowcase(): JSX.Element {
                     <Link
                       href={slide.secondaryCta.href}
                       data-testid={`showcase-cta-secondary-${slide.id}`}
-                      className="inline-flex items-center gap-2 rounded-pssfp-button border border-[#C9A227]/60 bg-white/5 px-5 py-3 text-sm font-medium text-[#E8C868] backdrop-blur-sm transition-all hover:border-[#E8C868] hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8C868]"
+                      className="inline-flex items-center gap-2 rounded-pssfp-button border border-[#D4AF6A]/60 bg-white/5 px-5 py-3 text-sm font-medium text-[#E5C788] backdrop-blur-sm transition-all hover:border-[#E5C788] hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E5C788]"
                     >
                       {slide.secondaryCta.label}
                     </Link>
@@ -255,7 +268,7 @@ export function HomeShowcase(): JSX.Element {
           onClick={scrollPrev}
           aria-label="Slide précédente"
           data-testid="showcase-prev"
-          className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8C868]"
+          className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E5C788]"
         >
           <ChevronLeft size={22} aria-hidden="true" />
         </button>
@@ -264,7 +277,7 @@ export function HomeShowcase(): JSX.Element {
           onClick={scrollNext}
           aria-label="Slide suivante"
           data-testid="showcase-next"
-          className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8C868]"
+          className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E5C788]"
         >
           <ChevronRight size={22} aria-hidden="true" />
         </button>
@@ -288,8 +301,8 @@ export function HomeShowcase(): JSX.Element {
               aria-label={`Aller à la slide ${index + 1} — ${slide.eyebrow}`}
               onClick={() => goTo(index)}
               data-testid={`showcase-dot-${index}`}
-              className={`h-2 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8C868] ${
-                active ? 'w-8 bg-[#E8C868]' : 'w-2 bg-white/40 hover:bg-white/60'
+              className={`h-2 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E5C788] ${
+                active ? 'w-8 bg-[#E5C788]' : 'w-2 bg-white/40 hover:bg-white/60'
               }`}
             />
           );
