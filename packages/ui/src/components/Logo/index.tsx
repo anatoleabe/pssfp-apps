@@ -28,12 +28,12 @@ export const Logo = forwardRef<SVGSVGElement, LogoProps>(
           {...props}
         >
           <title>{title}</title>
-          <rect width="48" height="48" rx="8" fill="#6B2FA0" />
+          <rect width="48" height="48" rx="8" fill="#4A2E67" />
           <text
             x="24"
             y="30"
             textAnchor="middle"
-            fontFamily="Playfair Display, serif"
+            fontFamily="Cormorant Garamond, Georgia, serif"
             fontSize="20"
             fontWeight="700"
             fill="#FFFFFF"
@@ -55,12 +55,12 @@ export const Logo = forwardRef<SVGSVGElement, LogoProps>(
         {...props}
       >
         <title>{title}</title>
-        <rect width="48" height="48" rx="8" fill="#6B2FA0" />
+        <rect width="48" height="48" rx="8" fill="#4A2E67" />
         <text
           x="24"
           y="30"
           textAnchor="middle"
-          fontFamily="Playfair Display, serif"
+          fontFamily="Cormorant Garamond, Georgia, serif"
           fontSize="20"
           fontWeight="700"
           fill="#FFFFFF"
@@ -70,19 +70,19 @@ export const Logo = forwardRef<SVGSVGElement, LogoProps>(
         <text
           x="60"
           y="22"
-          fontFamily="Playfair Display, serif"
+          fontFamily="Cormorant Garamond, Georgia, serif"
           fontSize="18"
           fontWeight="700"
-          fill="#6B2FA0"
+          fill="#4A2E67"
         >
           PSSFP
         </text>
         <text
           x="60"
           y="38"
-          fontFamily="Inter, sans-serif"
+          fontFamily="Source Sans 3, sans-serif"
           fontSize="9"
-          fill="#666666"
+          fill="#6B6B6B"
         >
           Finances Publiques
         </text>
