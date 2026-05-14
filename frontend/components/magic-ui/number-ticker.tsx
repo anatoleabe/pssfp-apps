@@ -24,15 +24,20 @@ function formatNumber(n: number, decimalPlaces: number): string {
 /**
  * Compteur animé vers une valeur cible quand visible.
  *
- * Sprint S5.1 — corrige le bug du NumberTicker qui restait bloqué à 0
- * (ou à une valeur intermédiaire) en light mode initial :
- *   1. SSR + initial client render = valeur finale formatée (`finalText`).
- *      Garantit que même si le useInView ne déclenche jamais (rare, mais
- *      observé), le visiteur voit la vraie valeur.
- *   2. Au mount client, si !reduceMotion : reset à 0 puis anime au `delay`.
- *   3. Watchdog 1.8s après le set : force la valeur finale si le spring
- *      ne l'a pas atteinte (anti-blocage).
- *   4. prefers-reduced-motion : garde la valeur finale figée, pas d'anim.
+ * Sprint S5.2 — fix régression #45 : le S5.1 armait le watchdog APRÈS le
+ * early return sur `!isInView`. Si la card est wrappée dans `BlurFade`
+ * (cf. `HomeStats`) qui démarre à opacity 0, l'IntersectionObserver peut
+ * fire à `true` puis le reset à 0 écrase le SSR sans que l'animation ne
+ * complète — résultat : visiteur bloqué à "0" ou valeur intermédiaire.
+ *
+ * Garanties désormais :
+ *   1. SSR + 1er render client = valeur finale (`finalText` dans <span>).
+ *   2. `prefers-reduced-motion: reduce` → valeur finale figée immédiatement.
+ *   3. Sinon, **watchdog absolu 2.5 s armé AVANT toute condition** : force
+ *      la valeur finale même si `isInView` ne fire jamais, ou si l'animation
+ *      ne complète pas. Empêche tout blocage permanent.
+ *   4. Si `isInView` fire : animation propre de 0 → value (ou inverse pour
+ *      `direction=down`), watchdog couvre toujours les anomalies.
  */
 export function NumberTicker({
   value,
@@ -56,32 +61,45 @@ export function NumberTicker({
   // Anime la valeur quand le ticker entre dans le viewport (client uniquement).
   useEffect(() => {
     if (!mounted) return;
+
     if (reduceMotion) {
-      // Reduce motion : on force la valeur finale, sans animation.
+      // Reduce motion : valeur finale figée, pas d'animation.
       if (ref.current) {
         ref.current.textContent = formatNumber(value, decimalPlaces);
       }
       return;
     }
-    if (!isInView) return;
 
-    // Reset à 0 (ou à value si direction=down) puis anime.
-    motionValue.set(direction === 'down' ? value : 0);
-    if (ref.current) {
-      ref.current.textContent = formatNumber(direction === 'down' ? value : 0, decimalPlaces);
-    }
-    const startTimeout = setTimeout(() => {
-      motionValue.set(direction === 'down' ? 0 : value);
-    }, delay * 1000);
-
-    // Watchdog : si après 1.8s + delay le spring n'a pas atteint la valeur
-    // finale, on la force. Sécurise les bugs d'animation observés en audit S5.
+    // Watchdog ABSOLU : armé AVANT tout check `isInView`. Garantit que
+    // la valeur finale est rendue dans tous les cas (BlurFade qui masque
+    // la card, IntersectionObserver qui ne fire pas, spring qui freeze).
+    // Sprint S5.2 fix #45 — le bug venait du fait que le watchdog était
+    // armé après l'early return `!isInView`, donc jamais déclenché si
+    // l'observer ne triggerait pas.
     const watchdog = setTimeout(() => {
       if (ref.current) {
         ref.current.textContent = formatNumber(value, decimalPlaces);
       }
       motionValue.set(value);
-    }, delay * 1000 + 1800);
+    }, 2500);
+
+    if (!isInView) {
+      // Pas (encore) visible : on garde la valeur finale du SSR.
+      // Le watchdog reste armé au cas où `isInView` ne fire jamais.
+      return () => clearTimeout(watchdog);
+    }
+
+    // Visible : reset à 0 (ou à `value` pour direction=down) puis anime.
+    motionValue.set(direction === 'down' ? value : 0);
+    if (ref.current) {
+      ref.current.textContent = formatNumber(
+        direction === 'down' ? value : 0,
+        decimalPlaces,
+      );
+    }
+    const startTimeout = setTimeout(() => {
+      motionValue.set(direction === 'down' ? 0 : value);
+    }, delay * 1000);
 
     return () => {
       clearTimeout(startTimeout);
