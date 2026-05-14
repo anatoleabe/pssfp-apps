@@ -4,21 +4,29 @@
 
 @layer base {
   :root {
-    --pssfp-primary: #6B2FA0;
-    --pssfp-primary-hover: #9B59B6;
-    --pssfp-surface: #EDE7F6;
-    --pssfp-accent: #C9A227;
-    --pssfp-text: #333333;
-    --pssfp-text-muted: #666666;
+    --pssfp-primary: #4A2E67;
+    --pssfp-primary-hover: #3A2452;
+    --pssfp-primary-light: #5C3A7E;
+    --pssfp-prune: #4A2E67;
+    --pssfp-bleu-petrole: #0F3A4A;
+    --pssfp-lavande: #A592BD;
+    --pssfp-surface: rgba(165, 146, 189, 0.18);
+    --pssfp-accent: #D4AF6A;
+    --pssfp-or: #D4AF6A;
+    --pssfp-ivoire: #FAF7F2;
+    --pssfp-text: #3C3C3C;
+    --pssfp-graphite: #3C3C3C;
+    --pssfp-text-muted: #6B6B6B;
+    --pssfp-border: rgba(165, 146, 189, 0.32);
   }
 
   body {
-    color: #333333;
+    color: var(--pssfp-graphite);
     background: #FFFFFF;
   }
 
   *:focus-visible {
-    outline: 2px solid #6B2FA0;
+    outline: 2px solid var(--pssfp-or);
     outline-offset: 2px;
   }
 
@@ -34,28 +42,36 @@
 
 @layer components {
   .pssfp-h1 {
-    @apply font-heading font-bold text-pssfp-h1 text-[#1A0A2E];
+    @apply font-heading font-bold text-pssfp-h1 text-[#1A1A1A];
   }
   .pssfp-h2 {
-    @apply font-heading font-bold text-pssfp-h2 text-[#1A0A2E];
+    @apply font-heading font-bold text-pssfp-h2 text-[#1A1A1A];
   }
   .pssfp-h3 {
-    @apply font-heading font-bold text-pssfp-h3 text-[#1A0A2E];
+    @apply font-heading font-bold text-pssfp-h3 text-[#1A1A1A];
   }
   .pssfp-eyebrow {
-    @apply font-ui text-xs uppercase tracking-[0.18em] text-[#C9A227];
+    @apply font-ui text-xs uppercase tracking-[0.18em] text-pssfp-or;
   }
   .pssfp-lead {
-    @apply font-body text-pssfp-lead text-[#555];
+    @apply font-body text-pssfp-lead text-pssfp-graphite-light;
   }
   .pssfp-body {
-    @apply font-body text-pssfp-body text-[#333];
+    @apply font-body text-pssfp-body text-pssfp-graphite;
   }
   .pssfp-section {
     @apply py-12 md:py-16;
   }
+  .pssfp-text-gradient-prune-or {
+    background: linear-gradient(135deg, #4A2E67 0%, #D4AF6A 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  /* alias temporaire */
   .pssfp-text-gradient-violet-or {
-    background: linear-gradient(135deg, #6B2FA0 0%, #C9A227 100%);
+    background: linear-gradient(135deg, #4A2E67 0%, #D4AF6A 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
