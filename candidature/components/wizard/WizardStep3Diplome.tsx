@@ -13,7 +13,7 @@ export function WizardStep3Diplome({ data, errors, onChange }: WizardStep3Props)
 
   return (
     <div className="space-y-5" data-testid="wizard-step-3">
-      <h2 className="font-heading text-xl font-bold text-[#6B2FA0]">Étape 3 — Diplôme &amp; situation professionnelle</h2>
+      <h2 className="font-heading text-xl font-bold text-[#4A2E67]">Étape 3 — Diplôme &amp; situation professionnelle</h2>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Diplôme le plus élevé obtenu" error={errors.diplome_obtenu}>
@@ -22,7 +22,7 @@ export function WizardStep3Diplome({ data, errors, onChange }: WizardStep3Props)
             value={data.diplome_obtenu}
             onChange={(e) => onChange({ diplome_obtenu: e.target.value })}
             placeholder="Master, Licence…"
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
         <Field label="Année d'obtention" error={errors.annee_diplome}>
@@ -36,7 +36,7 @@ export function WizardStep3Diplome({ data, errors, onChange }: WizardStep3Props)
             onChange={(e) =>
               onChange({ annee_diplome: e.target.value === '' ? '' : Number(e.target.value) })
             }
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
       </div>
@@ -47,7 +47,7 @@ export function WizardStep3Diplome({ data, errors, onChange }: WizardStep3Props)
             type="text"
             value={data.institut}
             onChange={(e) => onChange({ institut: e.target.value })}
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
         <Field label="Spécialité du diplôme" error={errors.specialite_diplome}>
@@ -55,7 +55,7 @@ export function WizardStep3Diplome({ data, errors, onChange }: WizardStep3Props)
             type="text"
             value={data.specialite_diplome}
             onChange={(e) => onChange({ specialite_diplome: e.target.value })}
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
       </div>
@@ -69,7 +69,7 @@ export function WizardStep3Diplome({ data, errors, onChange }: WizardStep3Props)
               statut_actuel: e.target.value as WizardData['statut_actuel'],
             })
           }
-          className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+          className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         >
           <option value="">— Choisir —</option>
           <option value="Etudiant">Étudiant</option>
@@ -79,13 +79,13 @@ export function WizardStep3Diplome({ data, errors, onChange }: WizardStep3Props)
       </Field>
 
       {showEmployer && (
-        <div className="space-y-4 rounded-md border border-[#EDE7F6] bg-[#FAF7FF] p-4">
+        <div className="space-y-4 rounded-md border border-[#F4EFFA] bg-[#FAF7FF] p-4">
           <Field label="Employeur" error={errors.employeur}>
             <input
               type="text"
               value={data.employeur}
               onChange={(e) => onChange({ employeur: e.target.value })}
-              className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+              className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
             />
           </Field>
           <Field label="Adresse de l'employeur" error={errors.adresse_employeur}>
@@ -93,7 +93,7 @@ export function WizardStep3Diplome({ data, errors, onChange }: WizardStep3Props)
               type="text"
               value={data.adresse_employeur}
               onChange={(e) => onChange({ adresse_employeur: e.target.value })}
-              className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+              className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
             />
           </Field>
           <Field label="Téléphone employeur" error={errors.tel_employeur}>
@@ -101,7 +101,7 @@ export function WizardStep3Diplome({ data, errors, onChange }: WizardStep3Props)
               type="text"
               value={data.tel_employeur}
               onChange={(e) => onChange({ tel_employeur: e.target.value })}
-              className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+              className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
             />
           </Field>
         </div>
@@ -111,7 +111,7 @@ export function WizardStep3Diplome({ data, errors, onChange }: WizardStep3Props)
         <select
           value={data.moyen_connaissance}
           onChange={(e) => onChange({ moyen_connaissance: e.target.value })}
-          className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+          className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         >
           <option value="">— Choisir —</option>
           <option>Site web</option>

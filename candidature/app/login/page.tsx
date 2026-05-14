@@ -29,7 +29,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps): Promi
 
   return (
     <div className="mx-auto max-w-md px-6 py-16">
-      <h1 className="font-heading text-3xl font-bold text-[#6B2FA0]">{t('title')}</h1>
+      <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">{t('title')}</h1>
       <p className="mt-2 text-base text-[#666666]">{t('subtitle')}</p>
 
       <LoginForm

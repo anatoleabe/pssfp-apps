@@ -134,21 +134,21 @@ const UNITES: OrgNode[] = [
 
 const accentClasses = {
   primary: {
-    border: 'border-[#6B2FA0]',
-    bg: 'bg-gradient-to-br from-[#6B2FA0] to-[#9B59B6]',
+    border: 'border-[#4A2E67]',
+    bg: 'bg-gradient-to-br from-[#4A2E67] to-[#5C3A7E]',
     text: 'text-white',
-    glow: 'shadow-[0_8px_32px_-8px_rgba(107,47,160,0.45)]',
+    glow: 'shadow-[0_8px_32px_-8px_rgba(74, 46, 103,0.45)]',
   },
   or: {
-    border: 'border-[#C9A227]',
+    border: 'border-[#D4AF6A]',
     bg: 'bg-gradient-to-br from-[#FFFBEA] to-[#FFE9B0]',
-    text: 'text-[#1A0A2E]',
-    glow: 'shadow-[0_8px_32px_-8px_rgba(201,162,39,0.35)]',
+    text: 'text-[#1A1A1A]',
+    glow: 'shadow-[0_8px_32px_-8px_rgba(212, 175, 106,0.35)]',
   },
   lavande: {
-    border: 'border-[#9B59B6]/40',
-    bg: 'bg-gradient-to-br from-[#EDE7F6] to-[#FAF7FF]',
-    text: 'text-[#1A0A2E]',
+    border: 'border-[#5C3A7E]/40',
+    bg: 'bg-gradient-to-br from-[#F4EFFA] to-[#FAF7FF]',
+    text: 'text-[#1A1A1A]',
     glow: 'shadow-pssfp-soft',
   },
 } as const;
@@ -175,7 +175,7 @@ function PersonCard({ node, size = 'md' }: { node: OrgNode; size?: 'lg' | 'md' |
       data-testid={`org-card-${node.id}`}
       className={`relative flex flex-col items-center gap-3 rounded-pssfp-card border-2 ${accent.border} ${size === 'lg' ? accent.bg : 'bg-white dark:bg-[#1F0E2E]'} ${s.card} ${accent.glow} transition-all duration-300 hover:-translate-y-1`}
     >
-      <div className={`relative ${s.avatar} overflow-hidden rounded-full border-2 ${accent.border} bg-[#EDE7F6]`}>
+      <div className={`relative ${s.avatar} overflow-hidden rounded-full border-2 ${accent.border} bg-[#F4EFFA]`}>
         {node.photoPath ? (
           <Image
             src={mediaUrl(node.photoPath)}
@@ -185,13 +185,13 @@ function PersonCard({ node, size = 'md' }: { node: OrgNode; size?: 'lg' | 'md' |
             className="object-cover"
           />
         ) : (
-          <span className={`flex h-full w-full items-center justify-center font-heading font-bold ${size === 'lg' ? 'text-3xl' : size === 'md' ? 'text-xl' : 'text-base'} text-[#6B2FA0]`}>
+          <span className={`flex h-full w-full items-center justify-center font-heading font-bold ${size === 'lg' ? 'text-3xl' : size === 'md' ? 'text-xl' : 'text-base'} text-[#4A2E67]`}>
             {getInitials(node.name)}
           </span>
         )}
       </div>
       <div className="text-center">
-        <p className={`font-heading font-bold leading-tight ${s.name} ${size === 'lg' ? accent.text : 'text-[#1A0A2E] dark:text-[#F5EFE3]'}`}>
+        <p className={`font-heading font-bold leading-tight ${s.name} ${size === 'lg' ? accent.text : 'text-[#1A1A1A] dark:text-[#F5EFE3]'}`}>
           {node.name}
         </p>
         <p className={`mt-1 ${s.role} ${size === 'lg' ? 'text-white/85' : 'text-[#666] dark:text-[#B5A8C8]'}`}>
@@ -200,12 +200,12 @@ function PersonCard({ node, size = 'md' }: { node: OrgNode; size?: 'lg' | 'md' |
       </div>
       {node.members && node.members.length > 0 && (
         <details className="mt-2 w-full text-xs">
-          <summary className={`cursor-pointer text-center font-medium ${size === 'lg' ? 'text-white/90' : 'text-[#6B2FA0] dark:text-[#B084E8]'} hover:underline`}>
+          <summary className={`cursor-pointer text-center font-medium ${size === 'lg' ? 'text-white/90' : 'text-[#4A2E67] dark:text-[#B084E8]'} hover:underline`}>
             Voir l'équipe ({node.members.length})
           </summary>
           <ul className="mt-2 space-y-1 text-left text-[11px] text-[#555] dark:text-[#B5A8C8]">
             {node.members.map((m) => (
-              <li key={m} className="border-l-2 border-[#C9A227]/40 pl-2">{m}</li>
+              <li key={m} className="border-l-2 border-[#D4AF6A]/40 pl-2">{m}</li>
             ))}
           </ul>
         </details>
@@ -217,7 +217,7 @@ function PersonCard({ node, size = 'md' }: { node: OrgNode; size?: 'lg' | 'md' |
 function Connector(): JSX.Element {
   return (
     <div aria-hidden="true" className="flex justify-center">
-      <div className="h-8 w-0.5 bg-gradient-to-b from-[#6B2FA0] to-[#C9A227]" />
+      <div className="h-8 w-0.5 bg-gradient-to-b from-[#4A2E67] to-[#D4AF6A]" />
     </div>
   );
 }
@@ -227,7 +227,7 @@ export function OrganigrammeChart(): JSX.Element {
     <div data-testid="organigramme-chart" className="space-y-2 py-8">
       {/* Niveau 1 — Comité de Pilotage (PCP) */}
       <section aria-labelledby="org-copil" className="text-center">
-        <h2 id="org-copil" className="pssfp-eyebrow text-[#C9A227] mb-4">
+        <h2 id="org-copil" className="pssfp-eyebrow text-[#D4AF6A] mb-4">
           Comité de Pilotage
         </h2>
         <div className="flex justify-center">
@@ -251,7 +251,7 @@ export function OrganigrammeChart(): JSX.Element {
 
       {/* Niveau 2 — Comité Scientifique */}
       <section aria-labelledby="org-cosci" className="text-center">
-        <h2 id="org-cosci" className="pssfp-eyebrow text-[#C9A227] mb-4">
+        <h2 id="org-cosci" className="pssfp-eyebrow text-[#D4AF6A] mb-4">
           Comité Scientifique
         </h2>
         <div className="flex justify-center">
@@ -268,7 +268,7 @@ export function OrganigrammeChart(): JSX.Element {
 
       {/* Niveau 3 — Départements de formation (5) */}
       <section aria-labelledby="org-departements">
-        <h2 id="org-departements" className="pssfp-eyebrow text-[#C9A227] mb-4 text-center">
+        <h2 id="org-departements" className="pssfp-eyebrow text-[#D4AF6A] mb-4 text-center">
           5 Départements de Formation
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -282,7 +282,7 @@ export function OrganigrammeChart(): JSX.Element {
 
       {/* Niveau 4 — Unités fonctionnelles */}
       <section aria-labelledby="org-unites">
-        <h2 id="org-unites" className="pssfp-eyebrow text-[#C9A227] mb-4 text-center">
+        <h2 id="org-unites" className="pssfp-eyebrow text-[#D4AF6A] mb-4 text-center">
           Unités fonctionnelles & Centre de Documentation
         </h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">

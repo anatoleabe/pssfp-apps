@@ -59,7 +59,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
                 </p>
                 <a
                   href="/inscription"
-                  className="mt-5 inline-flex items-center gap-2 rounded-pssfp-button bg-gradient-violet-or px-5 py-2.5 text-sm font-semibold text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] focus-visible:ring-offset-2"
+                  className="mt-5 inline-flex items-center gap-2 rounded-pssfp-button bg-gradient-prune-or px-5 py-2.5 text-sm font-semibold text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2"
                 >
                   Reprendre l&apos;inscription
                   <ArrowRight size={14} aria-hidden="true" />
@@ -97,7 +97,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-32 top-12 -z-10 h-72 w-72 rounded-full opacity-20 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #6B2FA0 0%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(circle, #4A2E67 0%, transparent 70%)' }}
       />
 
       <div className="mx-auto max-w-5xl px-6 py-10 md:py-16">
@@ -107,11 +107,11 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
             <div
               aria-hidden="true"
               className="absolute -inset-1 -z-10 rounded-full opacity-50 blur-xl"
-              style={{ background: 'radial-gradient(circle, #C9A227 0%, transparent 70%)' }}
+              style={{ background: 'radial-gradient(circle, #D4AF6A 0%, transparent 70%)' }}
             />
             <span
               aria-hidden="true"
-              className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-gradient-violet-or font-heading text-xl font-bold text-white shadow-pssfp-elevated ring-4 ring-white"
+              className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-gradient-prune-or font-heading text-xl font-bold text-white shadow-pssfp-elevated ring-4 ring-white"
             >
               {initials}
             </span>
@@ -121,7 +121,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
               <Sparkles size={12} aria-hidden="true" />
               Espace candidat
             </p>
-            <h1 className="mt-1 font-heading text-2xl font-bold text-[#1A0A2E] md:text-3xl">
+            <h1 className="mt-1 font-heading text-2xl font-bold text-[#1A1A1A] md:text-3xl">
               Bonjour <span className="pssfp-text-gradient-violet-or">{candidature.prenom || 'candidat'}</span>
               <span aria-hidden="true">,</span>
             </h1>

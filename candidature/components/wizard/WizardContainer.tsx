@@ -219,7 +219,7 @@ export function WizardContainer({ pays, specialites, submitAction }: WizardConta
         <button
           type="button"
           onClick={cancel}
-          className="text-sm text-gray-500 underline hover:text-[#6B2FA0]"
+          className="text-sm text-gray-500 underline hover:text-[#4A2E67]"
         >
           Annuler et retourner à l'accueil
         </button>
@@ -229,7 +229,7 @@ export function WizardContainer({ pays, specialites, submitAction }: WizardConta
             <button
               type="button"
               onClick={goPrev}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm text-[#333333] hover:border-[#6B2FA0] hover:text-[#6B2FA0]"
+              className="rounded-md border border-gray-300 px-4 py-2 text-sm text-[#333333] hover:border-[#4A2E67] hover:text-[#4A2E67]"
             >
               Précédent
             </button>
@@ -239,7 +239,7 @@ export function WizardContainer({ pays, specialites, submitAction }: WizardConta
               type="button"
               onClick={goNext}
               data-testid="wizard-next"
-              className="rounded-md bg-[#6B2FA0] px-5 py-2 text-sm font-medium text-white hover:bg-[#9B59B6]"
+              className="rounded-md bg-[#4A2E67] px-5 py-2 text-sm font-medium text-white hover:bg-[#5C3A7E]"
             >
               Suivant
             </button>
@@ -250,7 +250,7 @@ export function WizardContainer({ pays, specialites, submitAction }: WizardConta
               data-testid="wizard-submit"
               disabled={pending || !isStep4Strict}
               onClick={submit}
-              className="rounded-md bg-[#6B2FA0] px-5 py-2 text-sm font-medium text-white hover:bg-[#9B59B6] disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="rounded-md bg-[#4A2E67] px-5 py-2 text-sm font-medium text-white hover:bg-[#5C3A7E] disabled:cursor-not-allowed disabled:bg-gray-300"
             >
               {pending ? 'Envoi…' : 'Soumettre ma candidature'}
             </button>

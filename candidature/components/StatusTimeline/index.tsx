@@ -78,7 +78,7 @@ function buildEvents(candidature: MyCandidature): TimelineEvent[] {
 
 const STATUS_CLASS: Record<TimelineEvent['status'], string> = {
   done: 'border-emerald-500 bg-emerald-100 text-emerald-700',
-  current: 'border-[#6B2FA0] bg-[#EDE7F6] text-[#6B2FA0]',
+  current: 'border-[#4A2E67] bg-[#F4EFFA] text-[#4A2E67]',
   pending: 'border-gray-300 bg-white text-gray-400',
   cancelled: 'border-red-300 bg-red-50 text-red-700',
 };

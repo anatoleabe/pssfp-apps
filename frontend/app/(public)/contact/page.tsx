@@ -80,18 +80,18 @@ export default function ContactPage(): JSX.Element {
           className="pointer-events-none absolute inset-0 -z-10 opacity-[0.025]"
           style={{
             backgroundImage:
-              'radial-gradient(circle at 1px 1px, #6B2FA0 1px, transparent 0)',
+              'radial-gradient(circle at 1px 1px, #4A2E67 1px, transparent 0)',
             backgroundSize: '24px 24px',
           }}
         />
         {/* Halos colorés (aria-hidden) */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -top-32 -right-32 -z-10 h-[480px] w-[480px] rounded-full bg-[#6B2FA0] opacity-[0.06] blur-3xl"
+          className="pointer-events-none absolute -top-32 -right-32 -z-10 h-[480px] w-[480px] rounded-full bg-[#4A2E67] opacity-[0.06] blur-3xl"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -bottom-40 -left-32 -z-10 h-[420px] w-[420px] rounded-full bg-[#C9A227] opacity-[0.08] blur-3xl"
+          className="pointer-events-none absolute -bottom-40 -left-32 -z-10 h-[420px] w-[420px] rounded-full bg-[#D4AF6A] opacity-[0.08] blur-3xl"
         />
 
         <div className="mx-auto max-w-4xl px-6 py-20 text-center md:py-28">
@@ -99,7 +99,7 @@ export default function ContactPage(): JSX.Element {
 
           <h1
             id="contact-heading"
-            className="mt-5 font-heading font-bold text-pssfp-h1 text-[#1A0A2E] dark:text-[#FAF8F5]"
+            className="mt-5 font-heading font-bold text-pssfp-h1 text-[#1A1A1A] dark:text-[#FAF7F2]"
           >
             Nous sommes à votre{' '}
             <span className="relative inline-block">
@@ -114,7 +114,7 @@ export default function ContactPage(): JSX.Element {
               >
                 <path
                   d="M2 8C50 3 150 3 198 8"
-                  stroke="#C9A227"
+                  stroke="#D4AF6A"
                   strokeWidth="3"
                   strokeLinecap="round"
                 />
@@ -129,7 +129,7 @@ export default function ContactPage(): JSX.Element {
           </p>
 
           <div className="mt-8 flex items-center justify-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#6B2FA0]/20 bg-[#EDE7F6] px-4 py-1.5 text-sm font-medium text-[#6B2FA0] dark:border-[#9B59B6]/40 dark:bg-[#2A1E3A] dark:text-[#EDE7F6]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#4A2E67]/20 bg-[#F4EFFA] px-4 py-1.5 text-sm font-medium text-[#4A2E67] dark:border-[#5C3A7E]/40 dark:bg-[#2A1E3A] dark:text-[#F4EFFA]">
               <Clock size={14} aria-hidden="true" />
               Réponse sous 48h ouvrées
             </span>
@@ -146,7 +146,7 @@ export default function ContactPage(): JSX.Element {
           <div className="lg:col-span-7">
             <header className="mb-8">
               <p className="pssfp-eyebrow">Nous écrire</p>
-              <h2 className="mt-3 font-heading text-pssfp-h2 font-bold text-[#1A0A2E] dark:text-[#FAF8F5]">
+              <h2 className="mt-3 font-heading text-pssfp-h2 font-bold text-[#1A1A1A] dark:text-[#FAF7F2]">
                 Envoyez-nous un message
               </h2>
               <p className="mt-3 pssfp-body text-[#555] dark:text-[#C9C2D8]">
@@ -154,7 +154,7 @@ export default function ContactPage(): JSX.Element {
               </p>
             </header>
 
-            <div className="rounded-pssfp-card border border-[#EDE7F6] bg-white p-6 shadow-pssfp-soft dark:border-[#2A1E3A] dark:bg-[#1A1428] md:p-8">
+            <div className="rounded-pssfp-card border border-[#F4EFFA] bg-white p-6 shadow-pssfp-soft dark:border-[#2A1E3A] dark:bg-[#1A1428] md:p-8">
               <ContactForm />
             </div>
           </div>
@@ -165,7 +165,7 @@ export default function ContactPage(): JSX.Element {
               <p className="pssfp-eyebrow">Coordonnées</p>
               <h2
                 id="info-heading"
-                className="mt-3 font-heading text-pssfp-h2 font-bold text-[#1A0A2E] dark:text-[#FAF8F5]"
+                className="mt-3 font-heading text-pssfp-h2 font-bold text-[#1A1A1A] dark:text-[#FAF7F2]"
               >
                 Où nous trouver
               </h2>
@@ -184,9 +184,9 @@ export default function ContactPage(): JSX.Element {
 
             {/* Séparateur ornement */}
             <div className="mt-10 flex items-center gap-4" aria-hidden="true">
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#C9A227]/40" />
-              <span className="text-[#C9A227]">✦</span>
-              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#C9A227]/40" />
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#D4AF6A]/40" />
+              <span className="text-[#D4AF6A]">✦</span>
+              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#D4AF6A]/40" />
             </div>
           </aside>
         </div>
@@ -204,7 +204,7 @@ export default function ContactPage(): JSX.Element {
             <p className="pssfp-eyebrow">Accès</p>
             <h2
               id="map-heading"
-              className="mt-3 font-heading text-pssfp-h2 font-bold text-[#1A0A2E] dark:text-[#FAF8F5]"
+              className="mt-3 font-heading text-pssfp-h2 font-bold text-[#1A1A1A] dark:text-[#FAF7F2]"
             >
               Campus de Messa, Yaoundé
             </h2>
@@ -213,7 +213,7 @@ export default function ContactPage(): JSX.Element {
             </p>
           </header>
 
-          <div className="overflow-hidden rounded-pssfp-card border border-[#EDE7F6] bg-white shadow-pssfp-elevated dark:border-[#2A1E3A] dark:bg-[#1A1428]">
+          <div className="overflow-hidden rounded-pssfp-card border border-[#F4EFFA] bg-white shadow-pssfp-elevated dark:border-[#2A1E3A] dark:bg-[#1A1428]">
             <GoogleMapEmbed />
           </div>
         </div>
@@ -228,13 +228,13 @@ export default function ContactPage(): JSX.Element {
       >
         <header className="mb-10 text-center">
           <p className="pssfp-eyebrow inline-flex items-center justify-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#6B2FA0]" aria-hidden="true" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#4A2E67]" aria-hidden="true" />
             FAQ
-            <span className="h-1.5 w-1.5 rounded-full bg-[#C9A227]" aria-hidden="true" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#D4AF6A]" aria-hidden="true" />
           </p>
           <h2
             id="faq-heading"
-            className="mt-3 font-heading text-pssfp-h2 font-bold text-[#1A0A2E] dark:text-[#FAF8F5]"
+            className="mt-3 font-heading text-pssfp-h2 font-bold text-[#1A1A1A] dark:text-[#FAF7F2]"
           >
             Questions fréquentes
           </h2>
@@ -247,15 +247,15 @@ export default function ContactPage(): JSX.Element {
           {FAQ.map((item, i) => (
             <li key={item.q}>
               <details
-                className="group rounded-pssfp-card border border-[#EDE7F6] bg-white px-5 py-1 shadow-pssfp-soft transition-shadow open:shadow-pssfp-elevated dark:border-[#2A1E3A] dark:bg-[#1A1428]"
+                className="group rounded-pssfp-card border border-[#F4EFFA] bg-white px-5 py-1 shadow-pssfp-soft transition-shadow open:shadow-pssfp-elevated dark:border-[#2A1E3A] dark:bg-[#1A1428]"
                 {...(i === 0 ? { open: true } : {})}
               >
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 font-heading text-base font-semibold text-[#1A0A2E] outline-none transition-colors hover:text-[#6B2FA0] focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:text-[#FAF8F5] dark:hover:text-[#C9A227]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 font-heading text-base font-semibold text-[#1A1A1A] outline-none transition-colors hover:text-[#4A2E67] focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 dark:text-[#FAF7F2] dark:hover:text-[#D4AF6A]">
                   <span>{item.q}</span>
                   <ChevronDown
                     size={18}
                     aria-hidden="true"
-                    className="shrink-0 text-[#6B2FA0] transition-transform duration-200 group-open:rotate-180 dark:text-[#C9A227]"
+                    className="shrink-0 text-[#4A2E67] transition-transform duration-200 group-open:rotate-180 dark:text-[#D4AF6A]"
                   />
                 </summary>
                 <div className="pb-5 pr-8 text-sm leading-relaxed text-[#555] dark:text-[#C9C2D8]">
@@ -268,9 +268,9 @@ export default function ContactPage(): JSX.Element {
 
         {/* Ornement de clôture */}
         <div className="mt-12 flex items-center justify-center gap-4" aria-hidden="true">
-          <div className="h-px w-20 bg-gradient-to-r from-transparent to-[#6B2FA0]/40" />
-          <div className="h-2 w-2 rounded-full bg-[#C9A227]" />
-          <div className="h-px w-20 bg-gradient-to-l from-transparent to-[#6B2FA0]/40" />
+          <div className="h-px w-20 bg-gradient-to-r from-transparent to-[#4A2E67]/40" />
+          <div className="h-2 w-2 rounded-full bg-[#D4AF6A]" />
+          <div className="h-px w-20 bg-gradient-to-l from-transparent to-[#4A2E67]/40" />
         </div>
       </section>
     </>
@@ -280,18 +280,18 @@ export default function ContactPage(): JSX.Element {
 function ContactCard({ info }: { info: ContactInfo }): JSX.Element {
   const Icon = info.icon;
   const inner = (
-    <div className="group relative flex items-start gap-4 rounded-pssfp-card border border-[#EDE7F6] bg-white p-5 shadow-pssfp-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[#6B2FA0]/30 hover:shadow-pssfp-elevated dark:border-[#2A1E3A] dark:bg-[#1A1428] dark:hover:border-[#9B59B6]/40">
+    <div className="group relative flex items-start gap-4 rounded-pssfp-card border border-[#F4EFFA] bg-white p-5 shadow-pssfp-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[#4A2E67]/30 hover:shadow-pssfp-elevated dark:border-[#2A1E3A] dark:bg-[#1A1428] dark:hover:border-[#5C3A7E]/40">
       <span
         aria-hidden="true"
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-violet-or text-white shadow-pssfp-glow-violet transition-transform duration-200 group-hover:scale-105"
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-prune-or text-white shadow-pssfp-glow-prune transition-transform duration-200 group-hover:scale-105"
       >
         <Icon size={20} />
       </span>
       <div className="min-w-0">
-        <p className="font-heading text-sm font-semibold uppercase tracking-wider text-[#6B2FA0] dark:text-[#C9A227]">
+        <p className="font-heading text-sm font-semibold uppercase tracking-wider text-[#4A2E67] dark:text-[#D4AF6A]">
           {info.label}
         </p>
-        <p className="mt-1 truncate font-heading text-base font-semibold text-[#1A0A2E] dark:text-[#FAF8F5]">
+        <p className="mt-1 truncate font-heading text-base font-semibold text-[#1A1A1A] dark:text-[#FAF7F2]">
           {info.primary}
         </p>
         <p className="mt-0.5 text-sm text-[#555] dark:text-[#C9C2D8]">{info.secondary}</p>
@@ -302,7 +302,7 @@ function ContactCard({ info }: { info: ContactInfo }): JSX.Element {
   return info.href ? (
     <a
       href={info.href}
-      className="block rounded-pssfp-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+      className="block rounded-pssfp-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
     >
       {inner}
     </a>

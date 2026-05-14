@@ -34,9 +34,9 @@ export function WizardStep4Engagement({ data, errors, cta, onChange }: WizardSte
 
   return (
     <div className="space-y-6" data-testid="wizard-step-4">
-      <h2 className="font-heading text-xl font-bold text-[#6B2FA0]">Étape 4 — Engagement &amp; PIN</h2>
+      <h2 className="font-heading text-xl font-bold text-[#4A2E67]">Étape 4 — Engagement &amp; PIN</h2>
 
-      <section className="rounded-md border border-[#C9A227]/40 bg-[#FFFBEA] p-4 text-sm text-[#666]">
+      <section className="rounded-md border border-[#D4AF6A]/40 bg-[#FFFBEA] p-4 text-sm text-[#666]">
         <p>
           La photo d'identité officielle pourra être ajoutée depuis votre dossier candidat
           après la création de votre compte.
@@ -53,7 +53,7 @@ export function WizardStep4Engagement({ data, errors, cta, onChange }: WizardSte
           value={data.engagement_nom}
           onChange={(e) => onChange({ engagement_nom: e.target.value })}
           aria-invalid={!engagementOk && data.engagement_nom.length > 0}
-          className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+          className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         />
       </Field>
 
@@ -94,7 +94,7 @@ export function WizardStep4Engagement({ data, errors, cta, onChange }: WizardSte
           type="checkbox"
           checked={data.cgu}
           onChange={(e) => onChange({ cgu: e.target.checked })}
-          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#6B2FA0] focus:ring-[#6B2FA0]"
+          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#4A2E67] focus:ring-[#4A2E67]"
         />
         <span>
           J'accepte les conditions générales d'utilisation et la politique de confidentialité du PSSFP.
@@ -111,7 +111,7 @@ export function WizardStep4Engagement({ data, errors, cta, onChange }: WizardSte
           <p className="mb-2">{errors.phone_e164}</p>
           <Link
             href={cta.href}
-            className="inline-flex items-center rounded-md bg-[#6B2FA0] px-4 py-2 text-sm font-medium text-white hover:bg-[#9B59B6]"
+            className="inline-flex items-center rounded-md bg-[#4A2E67] px-4 py-2 text-sm font-medium text-white hover:bg-[#5C3A7E]"
           >
             {cta.label}
           </Link>

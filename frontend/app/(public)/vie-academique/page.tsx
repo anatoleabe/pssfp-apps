@@ -26,7 +26,7 @@ export default async function VieAcademiqueIndexPage(): Promise<JSX.Element> {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 md:py-16">
       <header className="mb-8">
-        <h1 className="font-heading text-3xl font-bold text-[#6B2FA0] md:text-4xl">
+        <h1 className="font-heading text-3xl font-bold text-[#4A2E67] md:text-4xl">
           Vie académique
         </h1>
         {result.ok && result.data.excerpt && (
@@ -40,15 +40,15 @@ export default async function VieAcademiqueIndexPage(): Promise<JSX.Element> {
             <Link
               href={`/${slug}`}
               data-testid={`vie-link-${slug.split('/').pop()}`}
-              className="group flex h-full flex-col items-start gap-3 rounded-lg border border-[#EDE7F6] bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-[#9B59B6] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+              className="group flex h-full flex-col items-start gap-3 rounded-lg border border-[#F4EFFA] bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-[#5C3A7E] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
             >
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-[#EDE7F6] text-[#6B2FA0]">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-[#F4EFFA] text-[#4A2E67]">
                 <Icon size={20} aria-hidden="true" />
               </span>
-              <span className="grow font-heading text-lg font-semibold text-[#333] group-hover:text-[#6B2FA0]">
+              <span className="grow font-heading text-lg font-semibold text-[#333] group-hover:text-[#4A2E67]">
                 {label}
               </span>
-              <ArrowRight size={16} aria-hidden="true" className="text-[#6B2FA0] transition-transform group-hover:translate-x-1" />
+              <ArrowRight size={16} aria-hidden="true" className="text-[#4A2E67] transition-transform group-hover:translate-x-1" />
             </Link>
           </li>
         ))}

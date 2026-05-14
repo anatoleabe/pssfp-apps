@@ -51,15 +51,15 @@ export function FacebookEmbed(): JSX.Element {
         role="region"
         aria-label="Flux Facebook officiel"
         data-testid="fb-embed-consent"
-        className="rounded-lg border border-[#EDE7F6] bg-[#FAF7FF] p-6 text-center"
+        className="rounded-lg border border-[#F4EFFA] bg-[#FAF7FF] p-6 text-center"
       >
-        <p className="font-heading text-lg font-bold text-[#6B2FA0]">{t('title')}</p>
+        <p className="font-heading text-lg font-bold text-[#4A2E67]">{t('title')}</p>
         <p className="mt-2 text-sm text-[#555]">{t('body')}</p>
         <button
           type="button"
           onClick={giveConsent}
           data-testid="fb-embed-consent-accept"
-          className="mt-4 inline-flex h-11 items-center rounded-md bg-[#6B2FA0] px-5 text-sm font-medium text-white hover:bg-[#9B59B6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+          className="mt-4 inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-5 text-sm font-medium text-white hover:bg-[#5C3A7E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
         >
           {t('accept')}
         </button>
@@ -70,7 +70,7 @@ export function FacebookEmbed(): JSX.Element {
   return (
     <div
       data-testid="fb-embed-loaded"
-      className="overflow-hidden rounded-lg border border-[#EDE7F6] bg-white"
+      className="overflow-hidden rounded-lg border border-[#F4EFFA] bg-white"
     >
       {/* Page Plugin officiel Facebook chargé seulement après consentement.
           Pas de SDK JS — iframe statique, c'est largement suffisant pour

@@ -27,16 +27,16 @@ export function WizardStepper({ current, steps }: WizardStepperProps): JSX.Eleme
     <nav aria-label="Progression du formulaire" className="mb-10">
       {/* Mobile: compact summary */}
       <div className="mb-4 flex items-center justify-between md:hidden">
-        <p className="font-heading text-sm font-bold text-[#6B2FA0]">
+        <p className="font-heading text-sm font-bold text-[#4A2E67]">
           Étape {current} / {totalSteps}
         </p>
         <p className="text-xs text-[#666]">{steps[current - 1]?.label}</p>
       </div>
 
       {/* Bar de progression mobile */}
-      <div className="relative mb-6 h-1.5 w-full overflow-hidden rounded-full bg-[#EDE7F6] md:hidden">
+      <div className="relative mb-6 h-1.5 w-full overflow-hidden rounded-full bg-[#F4EFFA] md:hidden">
         <motion.div
-          className="h-full rounded-full bg-gradient-violet-or"
+          className="h-full rounded-full bg-gradient-prune-or"
           initial={false}
           animate={{ width: `${completedRatio * 100}%` }}
           transition={
@@ -60,14 +60,14 @@ export function WizardStepper({ current, steps }: WizardStepperProps): JSX.Eleme
                   className={cn(
                     'relative flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ease-pssfp-out-expo',
                     isDone && 'bg-emerald-500 text-white shadow-pssfp-soft',
-                    isActive && 'bg-gradient-violet-or text-white shadow-pssfp-glow-or',
-                    isFuture && 'border-2 border-[#EDE7F6] bg-white text-gray-400',
+                    isActive && 'bg-gradient-prune-or text-white shadow-pssfp-glow-or',
+                    isFuture && 'border-2 border-[#F4EFFA] bg-white text-gray-400',
                   )}
                 >
                   {isActive && !reduceMotion && (
                     <span
                       aria-hidden="true"
-                      className="absolute inset-0 rounded-full animate-pssfp-pulse-violet"
+                      className="absolute inset-0 rounded-full animate-pssfp-pulse-prune"
                     />
                   )}
                   {isDone ? <Check size={18} /> : <span className="relative">{s.id}</span>}
@@ -75,7 +75,7 @@ export function WizardStepper({ current, steps }: WizardStepperProps): JSX.Eleme
                 <span
                   className={cn(
                     'text-center text-xs font-medium leading-tight transition-colors duration-200',
-                    isActive && 'text-[#6B2FA0]',
+                    isActive && 'text-[#4A2E67]',
                     isDone && 'text-emerald-700',
                     isFuture && 'text-gray-400',
                   )}
@@ -84,12 +84,12 @@ export function WizardStepper({ current, steps }: WizardStepperProps): JSX.Eleme
                 </span>
               </div>
               {!isLast && (
-                <div className="relative mt-5 h-0.5 flex-1 overflow-hidden rounded-full bg-[#EDE7F6]">
+                <div className="relative mt-5 h-0.5 flex-1 overflow-hidden rounded-full bg-[#F4EFFA]">
                   <motion.div
                     aria-hidden="true"
                     className={cn(
                       'h-full rounded-full',
-                      isDone ? 'bg-emerald-500' : 'bg-gradient-violet-or',
+                      isDone ? 'bg-emerald-500' : 'bg-gradient-prune-or',
                     )}
                     initial={false}
                     animate={{ width: isDone ? '100%' : isActive ? '50%' : '0%' }}

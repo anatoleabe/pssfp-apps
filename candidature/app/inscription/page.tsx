@@ -42,13 +42,13 @@ export default async function InscriptionPage(): Promise<JSX.Element> {
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-32 top-12 -z-10 h-72 w-72 rounded-full opacity-20 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #C9A227 0%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(circle, #D4AF6A 0%, transparent 70%)' }}
       />
 
       <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">
         <header className="mb-10 max-w-2xl space-y-3 text-center md:text-left">
           <p className="pssfp-eyebrow inline-block">Promotion 14 · Campagne 2026</p>
-          <h1 className="font-heading text-pssfp-h1 font-bold text-[#1A0A2E]">
+          <h1 className="font-heading text-pssfp-h1 font-bold text-[#1A1A1A]">
             {t('title')}
           </h1>
           <p className="pssfp-lead">{t('subtitle')}</p>

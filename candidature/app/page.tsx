@@ -15,7 +15,7 @@ export default async function HomePage(): Promise<JSX.Element> {
         <div className="flex flex-wrap items-center gap-3">
           <h1
             id="hero-heading"
-            className="font-heading text-4xl font-bold text-[#6B2FA0] md:text-5xl"
+            className="font-heading text-4xl font-bold text-[#4A2E67] md:text-5xl"
           >
             {campagne?.nom ?? t('title')}
           </h1>
@@ -33,13 +33,13 @@ export default async function HomePage(): Promise<JSX.Element> {
             <Link
               href="/inscription"
               data-testid="cta-inscription"
-              className="rounded-md bg-[#6B2FA0] px-6 py-3 font-medium text-white hover:bg-[#9B59B6]"
+              className="rounded-md bg-[#4A2E67] px-6 py-3 font-medium text-white hover:bg-[#5C3A7E]"
             >
               {t('ctaCreateAccount')}
             </Link>
             <Link
               href="/login"
-              className="rounded-md border border-[#6B2FA0] px-6 py-3 font-medium text-[#6B2FA0] hover:bg-[#EDE7F6]"
+              className="rounded-md border border-[#4A2E67] px-6 py-3 font-medium text-[#4A2E67] hover:bg-[#F4EFFA]"
             >
               {t('ctaLogin')}
             </Link>
@@ -67,8 +67,8 @@ export default async function HomePage(): Promise<JSX.Element> {
         <Pillar title={t('pillars.foad.title')} body={t('pillars.foad.body')} />
       </section>
 
-      <section className="mt-12 rounded-lg border border-[#C9A227]/40 bg-[#FFFBEA] p-6">
-        <h2 className="mb-2 font-heading text-lg font-semibold text-[#C9A227]">{t('feeTitle')}</h2>
+      <section className="mt-12 rounded-lg border border-[#D4AF6A]/40 bg-[#FFFBEA] p-6">
+        <h2 className="mb-2 font-heading text-lg font-semibold text-[#D4AF6A]">{t('feeTitle')}</h2>
         <p className="text-sm text-[#333333]">{t('feeNotice')}</p>
       </section>
     </div>
@@ -77,8 +77,8 @@ export default async function HomePage(): Promise<JSX.Element> {
 
 function Pillar({ title, body }: { title: string; body: string }): JSX.Element {
   return (
-    <div className="rounded-lg border border-[#EDE7F6] bg-white p-5 shadow-sm">
-      <h3 className="mb-2 font-heading text-base font-semibold text-[#6B2FA0]">{title}</h3>
+    <div className="rounded-lg border border-[#F4EFFA] bg-white p-5 shadow-sm">
+      <h3 className="mb-2 font-heading text-base font-semibold text-[#4A2E67]">{title}</h3>
       <p className="text-sm text-[#666]">{body}</p>
     </div>
   );
