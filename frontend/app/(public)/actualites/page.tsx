@@ -1,10 +1,31 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Calendar, Pin } from 'lucide-react';
+import {
+  ArrowRight,
+  Calendar,
+  Pin,
+  Newspaper,
+  Globe2,
+  GraduationCap,
+  Handshake,
+  Megaphone,
+  type LucideIcon,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 import { FacebookEmbed } from '@/components/FacebookEmbed';
 import { listArticles } from '@/lib/api/articles';
 import { mediaUrl } from '@/lib/media';
+
+// Sprint S5.2 — icône thématique par catégorie pour le fallback visuel
+// quand un article n'a pas de `featured_image_path` (rare mais possible
+// pour les articles créés via Filament sans upload).
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  evenement: Calendar,
+  cooperation: Globe2,
+  'vie-academique': GraduationCap,
+  partenariat: Handshake,
+  communique: Megaphone,
+};
 
 export const revalidate = 300;
 
@@ -61,27 +82,48 @@ export default async function ActualitesIndexPage({
       ) : (
         <div className="grid gap-10 lg:grid-cols-[2fr_1fr]">
           <ul className="grid gap-6 md:grid-cols-2">
-            {result.data.data.map((article) => (
+            {result.data.data.map((article) => {
+              const candidate = article.category ? CATEGORY_ICONS[article.category] : undefined;
+              const CategoryIcon: LucideIcon = candidate ?? Newspaper;
+              return (
               <li
                 key={article.slug}
                 data-testid={`actualite-card-${article.slug}`}
                 className="group flex h-full flex-col overflow-hidden rounded-xl border border-[var(--pssfp-border)] bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-pssfp-elevated"
               >
-                {/* Image MinIO ou gradient fallback — Sprint S5.1 (audit P1 #5) */}
+                {/*
+                  Sprint S5.2 — Image MinIO si dispo, sinon fallback éditorial
+                  (gradient prune→bleu pétrole + icône catégorie + label).
+                  La photo doit être seedée pour la majorité des articles ;
+                  le fallback couvre les cas Filament-CMS sans upload.
+                */}
                 <div
-                  aria-hidden="true"
-                  className="relative h-44 overflow-hidden rounded-t-xl bg-gradient-to-br from-pssfp-prune/15 to-pssfp-or/20"
+                  className="relative h-44 overflow-hidden rounded-t-xl bg-gradient-to-br from-pssfp-prune/85 to-pssfp-bleu-petrole/85"
+                  data-has-image={article.featured_image_path ? 'true' : 'false'}
                 >
-                  {article.featured_image_path && (
-                    <Image
-                      src={mediaUrl(article.featured_image_path)}
-                      alt=""
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+                  {article.featured_image_path ? (
+                    <>
+                      <Image
+                        src={mediaUrl(article.featured_image_path)}
+                        alt=""
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                    </>
+                  ) : (
+                    <div
+                      aria-hidden="true"
+                      className="flex h-full flex-col items-center justify-center gap-2 text-pssfp-or"
+                      data-testid={`actualite-card-fallback-${article.slug}`}
+                    >
+                      <CategoryIcon size={36} strokeWidth={1.5} />
+                      <span className="font-ui text-[10px] uppercase tracking-[0.18em] text-pssfp-or/90">
+                        {article.category_label ?? 'Actualité'}
+                      </span>
+                    </div>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                 </div>
                 <div className="flex grow flex-col p-5">
                   <p className="flex flex-wrap items-center gap-2 text-xs text-[#666]">
@@ -118,7 +160,8 @@ export default async function ActualitesIndexPage({
                   </Link>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
 
           <aside aria-label="Flux Facebook officiel">
