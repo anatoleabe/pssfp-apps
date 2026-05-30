@@ -22,9 +22,10 @@ test.describe('NumberTicker — watchdog absolu (S5.2 #45)', () => {
     await page.waitForTimeout(3000);
 
     const text = await stats.innerText();
-    // Aucune valeur ne doit rester à "0" ou "0+".
+    // Aucune valeur ne doit rester à "0" ou "0+" (lignes isolées — sinon la
+    // substring "0+\n" matche aussi "200+\n" du compteur diplômés).
     expect(text).not.toMatch(/^0$/m);
-    expect(text).not.toContain('0+\n');
+    expect(text).not.toMatch(/^0\+$/m);
     // Doit contenir les valeurs cibles (séparateur fr-FR est un espace fine
     // insécable U+202F entre milliers ; on tolère espace standard aussi).
     expect(text).toMatch(/\b13\b/);

@@ -63,9 +63,13 @@ const SHORT_DESC_BY_SLUG: Record<string, string> = {
 export default async function AProposIndexPage(): Promise<JSX.Element> {
   const t = await getTranslations('aproposIndex');
   const result = await getMenu();
-  const children = result.ok
-    ? (result.data.find((node) => node.slug === 'a-propos')?.children ?? [])
-    : [];
+  // Defensive : l'endpoint peut renvoyer un payload non-Array (ex. backend
+  // en mode stub `{status:'ok'}`). Cf. fix HomeActualites S5.3 (commit 51f7854).
+  const children = (
+    result.ok && Array.isArray(result.data)
+      ? (result.data.find((node) => node.slug === 'a-propos')?.children ?? [])
+      : []
+  );
 
   return (
     <article>
