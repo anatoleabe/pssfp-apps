@@ -1,66 +1,83 @@
 'use client';
 
 /**
- * HomeShowcase — carousel hero 5 slides (cf. spec sprint S5 PR Y).
+ * HomeShowcase — carousel hero 5 slides (cf. spec sprint S5 PR Y, refonte S5.3).
  *
- * - Embla Carousel React + autoplay 6s, pause au hover.
- * - Crossfade 800ms entre slides.
- * - Photos institutionnelles (MinIO bucket pssfp-media).
- * - Pictogrammes ronds en bas + boutons précédent/suivant.
- * - Navigation clavier (← →) sur le track.
- * - Respect `prefers-reduced-motion`.
- * - LCP : la 1re slide a `priority` + `fetchPriority="high"`.
+ * S5.3 — Rendu visuel épuré : photo plein cadre + overlay gradient L→R +
+ * eyebrow or + titre Cormorant XL + 2 badges-cards translucides bordure or
+ * dont les icônes s'adaptent à chaque slide. Pas de top bar / bottom bar
+ * institutionnels — l'identité PSSFP est portée par le SiteHeader global.
  *
- * Note : composant `'use client'` car Embla est un hook navigateur.
+ * Scaffolding Embla, navigation clavier, autoplay, reduced-motion : INCHANGÉS.
  */
 import Image from 'next/image';
 import Link from 'next/link';
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Award,
+  BadgeCheck,
+  BookOpen,
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+  Globe2,
+  GraduationCap,
+  Handshake,
+  Layers,
+  type LucideIcon,
+} from 'lucide-react';
 import { mediaUrl } from '../../lib/media';
+
+interface ShowcaseCta {
+  label: string;
+  href: string;
+  /** Icône Lucide rendue dans le badge — choisie pour le thème de la slide. */
+  icon: LucideIcon;
+}
 
 export interface ShowcaseSlide {
   /** Identifiant stable pour les listes / tests. */
   id: string;
   /** Eyebrow court (ex. "Identité institutionnelle"). */
   eyebrow: string;
-  /** Titre principal Playfair (peut contenir un span de mise en valeur). */
+  /** Titre principal Cormorant Garamond (peut contenir un span de mise en valeur). */
   title: string;
-  /** Sous-titre Inter. */
+  /** Sous-titre Source Sans 3. */
   subtitle: string;
   /** Chemin relatif au bucket pssfp-media (ex. "photos/evenements/dsc-0538.webp"). */
   imagePath: string;
   /** Texte alt pour l'image. */
   imageAlt: string;
-  /** CTA principal. */
-  primaryCta: { label: string; href: string };
-  /** CTA secondaire optionnel. */
-  secondaryCta?: { label: string; href: string };
+  /** CTA principal (rendu badge-card avec icône thématique). */
+  primaryCta: ShowcaseCta;
+  /** CTA secondaire optionnel (rendu badge-card avec icône thématique). */
+  secondaryCta?: ShowcaseCta;
 }
 
 const SLIDES: ReadonlyArray<ShowcaseSlide> = [
   {
     id: 'identite',
-    eyebrow: 'Le PSSFP — depuis 2013',
+    eyebrow: 'PSSFP — depuis 2013',
     title: "Former l'élite des finances publiques",
     subtitle:
-      'Un institut du Ministère des Finances, créé le 9 octobre 2013 par convention tripartite MINFI · MINESUP · UY2.',
-    imagePath: 'photos/evenements/dsc-0538.webp',
-    imageAlt: 'Sortie solennelle de la promotion 6 — Palais des Congrès de Yaoundé',
-    primaryCta: { label: 'Découvrir nos formations', href: '/formations' },
-    secondaryCta: { label: 'Candidater à la 14e promo', href: '#candidature' },
+      "Une institution d'excellence au service de la modernisation de l'action publique du Cameroun et de la sous-région CEMAC.",
+    imagePath: 'photos/slidershow/slidershow1-pssfp1.webp',
+    imageAlt: 'Cérémonie de remise des diplômes — Promotion 2025 du PSSFP',
+    primaryCta: { label: 'Excellence académique', href: '/formations', icon: Award },
+    secondaryCta: { label: 'Promotion 2025', href: '#candidature', icon: GraduationCap },
   },
   {
     id: 'excellence-promotions',
     eyebrow: '13 promotions diplômées',
     title: '13 promotions au service de l’État',
     subtitle:
-      "5 spécialités du Master Professionnel en Finances Publiques — BAC+5 reconnu CAMES, débouchés DGI, DGD, DGTCFM, MINEPAT, ARMP, FEICOM.",
+      '5 spécialités du Master Professionnel en Finances Publiques — BAC+5 reconnu CAMES, débouchés DGI, DGD, DGTCFM, MINEPAT, ARMP, FEICOM.',
     imagePath: 'photos/evenements/dsc-0466.webp',
     imageAlt: 'Diplômés de la sortie solennelle promo 6',
-    primaryCta: { label: 'Découvrir le Master', href: '/formations/master' },
+    primaryCta: { label: 'Master Professionnel', href: '/formations/master', icon: GraduationCap },
+    secondaryCta: { label: '5 spécialités CAMES', href: '/formations/master', icon: BadgeCheck },
   },
   {
     id: 'formation-continue',
@@ -71,8 +88,14 @@ const SLIDES: ReadonlyArray<ShowcaseSlide> = [
     imagePath: 'photos/evenements/affiche.webp',
     imageAlt: 'Affiche de la promotion 13 — appel à candidature et formation',
     primaryCta: {
-      label: 'Voir le catalogue Formation continue',
+      label: 'Catalogue 2026',
       href: '/formations/formation-continue',
+      icon: BookOpen,
+    },
+    secondaryCta: {
+      label: '10 modules courts',
+      href: '/formations/formation-continue',
+      icon: Layers,
     },
   },
   {
@@ -83,7 +106,8 @@ const SLIDES: ReadonlyArray<ShowcaseSlide> = [
       "Convention tripartite MINFI · MINESUP · Université de Yaoundé II-Soa, sous l'autorité du Comité de Pilotage.",
     imagePath: 'photos/evenements/dsc-0302.webp',
     imageAlt: 'Cérémonie institutionnelle PSSFP',
-    primaryCta: { label: 'À propos de nous', href: '/a-propos' },
+    primaryCta: { label: 'Notre gouvernance', href: '/a-propos', icon: Building2 },
+    secondaryCta: { label: 'MINFI · MINESUP · UY2', href: '/a-propos', icon: Handshake },
   },
   {
     id: 'international',
@@ -93,7 +117,8 @@ const SLIDES: ReadonlyArray<ShowcaseSlide> = [
       'Coopération CEMAC, partenariats avec la France (Expertise France, ENA) et le Maroc (Institut des Finances Basil Fuleihan), certifications internationales (FMI, OCDE).',
     imagePath: 'photos/evenements/whatsapp-image-2025-10-04-at-192408.webp',
     imageAlt: 'Délégation PSSFP en mission internationale',
-    primaryCta: { label: 'Découvrir nos partenaires', href: '/a-propos/partenaires' },
+    primaryCta: { label: 'Nos partenaires', href: '/a-propos/partenaires', icon: Globe2 },
+    secondaryCta: { label: 'CEMAC · FMI · OCDE', href: '/a-propos/partenaires', icon: Handshake },
   },
 ];
 
@@ -151,7 +176,7 @@ export function HomeShowcase(): JSX.Element {
     <section
       aria-label="Présentation du PSSFP — diaporama de 5 slides"
       data-testid="home-showcase"
-      className="relative isolate overflow-hidden bg-[#14101A]"
+      className="relative isolate overflow-hidden bg-[#0A1B2E]"
     >
       {/*
         Carrousel WAI-ARIA APG pattern : track focusable + ARIA roledescription
@@ -179,21 +204,26 @@ export function HomeShowcase(): JSX.Element {
               aria-roledescription="slide"
               aria-label={`Slide ${index + 1} sur ${SLIDES.length} — ${slide.eyebrow}`}
               aria-hidden={index !== selectedIndex}
-              className="relative h-[80vh] min-h-[560px] w-full shrink-0 grow-0 basis-full"
+              className="relative h-[70vh] min-h-[520px] w-full shrink-0 grow-0 basis-full md:h-[78vh] md:min-h-[580px] md:max-h-[760px]"
             >
               {/*
-                Image de fond — priority + fetchpriority sur la 1re seulement (LCP).
-                Sprint S5.1 — ajout d'un gradient de secours pour ne jamais laisser
-                de vide noir tant que l'image MinIO charge (bug audit P1 #4).
+                Gradient de secours : ne jamais laisser de vide noir tant que
+                MinIO charge (S5.1, audit P1 #4).
               */}
               <div
                 aria-hidden="true"
                 className="absolute inset-0 -z-10"
                 style={{
                   background:
-                    'linear-gradient(135deg, #14101A 0%, #2A1E3A 50%, #4A2E67 100%)',
+                    'linear-gradient(135deg, #0A1B2E 0%, #0F3A4A 50%, #1F2A4A 100%)',
                 }}
               />
+
+              {/*
+                Image de fond plein cadre — priority + fetchPriority sur la 1re
+                pour optimiser le LCP. Utilise les variantes WebP générées par
+                AssetImportService (full ≤ 1920px, compression qualité 85).
+              */}
               <Image
                 src={mediaUrl(slide.imagePath)}
                 alt={slide.imageAlt}
@@ -206,54 +236,97 @@ export function HomeShowcase(): JSX.Element {
                 quality={85}
               />
 
-              {/* Overlay gradient bottom pour lisibilité texte */}
+              {/*
+                S5.3 — Overlay gradient gauche → droite. Sombre côté texte
+                (lisibilité) et transparent côté droit pour révéler la photo.
+                Différenciateur visuel majeur de la nouvelle maquette.
+              */}
               <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-t from-[#14101A]/95 via-[#1A1A1A]/55 to-transparent"
-              />
-              {/* Diagonal slash décoratif gold — éditorial */}
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-transparent via-[#D4AF6A]/70 to-transparent md:left-6"
+                className="absolute inset-0 bg-gradient-to-r from-[#0A1B2E]/95 via-[#0F3A4A]/70 to-transparent md:via-[#0F3A4A]/55"
               />
 
-              {/* Contenu — seule la 1re slide a un h1 (SEO + a11y heading-order) */}
-              <div className="relative mx-auto flex h-full max-w-7xl flex-col justify-end px-6 pb-20 md:pb-28">
-                <p className="pssfp-eyebrow text-[#E5C788]">{slide.eyebrow}</p>
-                {index === 0 ? (
-                  <h1 className="mt-3 max-w-3xl font-heading text-pssfp-h1 font-bold leading-[1.05] tracking-tight text-white md:text-[clamp(2.5rem,1rem+5vw,5rem)]">
-                    {slide.title}
-                  </h1>
-                ) : (
-                  <h2 className="mt-3 max-w-3xl font-heading text-pssfp-h1 font-bold leading-[1.05] tracking-tight text-white md:text-[clamp(2.5rem,1rem+5vw,5rem)]">
-                    {slide.title}
-                  </h2>
-                )}
-                <p className="mt-5 max-w-2xl text-pssfp-lead text-white/85">
-                  {slide.subtitle}
-                </p>
-                <div className="mt-8 flex flex-wrap items-center gap-3">
-                  <Link
-                    href={slide.primaryCta.href}
-                    data-testid={`showcase-cta-primary-${slide.id}`}
-                    className="group inline-flex items-center gap-2 rounded-pssfp-button bg-[#D4AF6A] px-5 py-3 text-sm font-semibold text-[#14101A] shadow-pssfp-glow-or transition-all hover:-translate-y-0.5 hover:bg-[#D9B441] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E5C788] focus-visible:ring-offset-2 focus-visible:ring-offset-[#14101A]"
-                  >
-                    {slide.primaryCta.label}
-                    <ArrowRight
-                      size={16}
-                      aria-hidden="true"
-                      className="transition-transform group-hover:translate-x-0.5"
-                    />
-                  </Link>
-                  {slide.secondaryCta && (
-                    <Link
-                      href={slide.secondaryCta.href}
-                      data-testid={`showcase-cta-secondary-${slide.id}`}
-                      className="inline-flex items-center gap-2 rounded-pssfp-button border border-[#D4AF6A]/60 bg-white/5 px-5 py-3 text-sm font-medium text-[#E5C788] backdrop-blur-sm transition-all hover:border-[#E5C788] hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E5C788]"
-                    >
-                      {slide.secondaryCta.label}
-                    </Link>
+              {/*
+                Contenu textuel — centré verticalement (items-center).
+                Pas de padding vertical : sans top/bottom bars à compenser,
+                le contenu doit occuper sereinement le centre du slide.
+              */}
+              <div className="relative mx-auto flex h-full max-w-7xl items-center px-6 md:px-10">
+                <div className="max-w-3xl">
+                  {/* Eyebrow avec trait or à gauche */}
+                  <div className="flex items-center gap-3">
+                    <span aria-hidden="true" className="h-px w-10 bg-[#D4AF6A] md:w-14" />
+                    <p className="font-ui text-[11px] font-medium uppercase tracking-[0.28em] text-[#D4AF6A] md:text-xs">
+                      {slide.eyebrow}
+                    </p>
+                  </div>
+
+                  {/* Titre — h1 uniquement sur la 1re slide (SEO + a11y heading-order) */}
+                  {index === 0 ? (
+                    <h1 className="mt-5 font-heading text-[clamp(2.5rem,1rem+5vw,5.5rem)] font-bold leading-[1.04] text-white md:mt-7">
+                      {slide.title}
+                    </h1>
+                  ) : (
+                    <h2 className="mt-5 font-heading text-[clamp(2.5rem,1rem+5vw,5.5rem)] font-bold leading-[1.04] text-white md:mt-7">
+                      {slide.title}
+                    </h2>
                   )}
+
+                  <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/85 md:mt-7 md:text-xl">
+                    {slide.subtitle}
+                  </p>
+
+                  {/*
+                    Badges-cards — chaque slide fournit ses icônes thématiques
+                    (Award, GraduationCap, BookOpen, BadgeCheck, Building2,
+                    Handshake, Globe2, Layers) pour rester en phase avec son
+                    sujet. Cf. tableau SLIDES.
+                  */}
+                  <div className="mt-8 flex flex-wrap items-center gap-3 md:mt-10 md:gap-4">
+                    {(() => {
+                      const PrimaryIcon = slide.primaryCta.icon;
+                      return (
+                        <Link
+                          href={slide.primaryCta.href}
+                          data-testid={`showcase-cta-primary-${slide.id}`}
+                          className="group inline-flex items-center gap-3 rounded-lg border border-[#D4AF6A]/40 bg-[#0F3A4A]/60 px-5 py-3 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-[#D4AF6A] hover:bg-[#0F3A4A]/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A1B2E]"
+                        >
+                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#D4AF6A]/15 transition-colors group-hover:bg-[#D4AF6A]/25">
+                            <PrimaryIcon
+                              size={20}
+                              className="text-[#D4AF6A]"
+                              aria-hidden="true"
+                            />
+                          </span>
+                          <span className="font-ui text-sm font-medium text-white">
+                            {slide.primaryCta.label}
+                          </span>
+                        </Link>
+                      );
+                    })()}
+                    {slide.secondaryCta &&
+                      (() => {
+                        const SecondaryIcon = slide.secondaryCta.icon;
+                        return (
+                          <Link
+                            href={slide.secondaryCta.href}
+                            data-testid={`showcase-cta-secondary-${slide.id}`}
+                            className="group inline-flex items-center gap-3 rounded-lg border border-[#D4AF6A]/40 bg-[#0F3A4A]/60 px-5 py-3 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-[#D4AF6A] hover:bg-[#0F3A4A]/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A1B2E]"
+                          >
+                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#D4AF6A]/15 transition-colors group-hover:bg-[#D4AF6A]/25">
+                              <SecondaryIcon
+                                size={20}
+                                className="text-[#D4AF6A]"
+                                aria-hidden="true"
+                              />
+                            </span>
+                            <span className="font-ui text-sm font-medium text-white">
+                              {slide.secondaryCta.label}
+                            </span>
+                          </Link>
+                        );
+                      })()}
+                  </div>
                 </div>
               </div>
             </div>
@@ -268,7 +341,7 @@ export function HomeShowcase(): JSX.Element {
           onClick={scrollPrev}
           aria-label="Slide précédente"
           data-testid="showcase-prev"
-          className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E5C788]"
+          className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A]"
         >
           <ChevronLeft size={22} aria-hidden="true" />
         </button>
@@ -277,15 +350,15 @@ export function HomeShowcase(): JSX.Element {
           onClick={scrollNext}
           aria-label="Slide suivante"
           data-testid="showcase-next"
-          className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E5C788]"
+          className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A]"
         >
           <ChevronRight size={22} aria-hidden="true" />
         </button>
       </div>
 
-      {/* Indicateurs ronds */}
+      {/* Indicateurs ronds — ancrés en bas du slide. */}
       <div
-        className="absolute inset-x-0 bottom-6 flex items-center justify-center gap-2"
+        className="absolute inset-x-0 bottom-6 z-20 flex items-center justify-center gap-2 md:bottom-8"
         role="tablist"
         aria-label="Choisir une slide"
         data-testid="showcase-dots"
@@ -301,8 +374,8 @@ export function HomeShowcase(): JSX.Element {
               aria-label={`Aller à la slide ${index + 1} — ${slide.eyebrow}`}
               onClick={() => goTo(index)}
               data-testid={`showcase-dot-${index}`}
-              className={`h-2 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E5C788] ${
-                active ? 'w-8 bg-[#E5C788]' : 'w-2 bg-white/40 hover:bg-white/60'
+              className={`h-2 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A1B2E] ${
+                active ? 'w-8 bg-[#D4AF6A]' : 'w-2 bg-white/40 hover:bg-white/60'
               }`}
             />
           );

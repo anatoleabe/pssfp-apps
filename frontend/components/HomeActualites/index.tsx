@@ -40,9 +40,13 @@ export async function HomeActualites(): Promise<JSX.Element> {
   } as const;
 
   const articlesResult = await listArticles({ featured: true });
-  const realArticles: ApiArticle[] = articlesResult.ok
-    ? articlesResult.data.data.slice(0, 3)
-    : [];
+  // Defensive : l'endpoint peut renvoyer un payload sans clé `data` (ex.
+  // backend en mode stub `{status:'ok'}`). On ne crash pas, on bascule sur
+  // le placeholder éditorial. Cf. crash signalé Next dev S5.3.
+  const realArticles: ApiArticle[] =
+    articlesResult.ok && Array.isArray(articlesResult.data?.data)
+      ? articlesResult.data.data.slice(0, 3)
+      : [];
   const hasRealArticles = realArticles.length > 0;
 
   return (

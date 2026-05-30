@@ -3,8 +3,8 @@
 > **Source** : `assets-source/` (gitignored)
 > **Cible** : MinIO buckets `pssfp-media` (public) et `pssfp-documents` (privé)
 > **Commande** : `php artisan pssfp:import-assets`
-> **Mise à jour** : 2026-05-10 (premier import)
-> **Total importé** : 67 / 249 (cf. limitations §3)
+> **Mise à jour** : 2026-05-14 (sprint S5.3 — ajout dossier slidershow/)
+> **Total importé** : ~220 / ~315 (cf. limitations §3)
 
 ## 1. Comment ré-importer / ajouter de nouveaux assets
 
@@ -31,6 +31,7 @@
    │   └── voyages/
    ├── conventions/          → document/convention
    ├── Catalogues/           → document/catalogue
+   ├── slidershow/           → photo/slidershow (hero carrousel home — S5.3)
    └── textes/Appel*/        → document/appel-candidature
    ```
 2. `cd backend && php artisan pssfp:import-assets`
