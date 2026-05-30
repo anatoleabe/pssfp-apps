@@ -57,10 +57,39 @@ async function safeJson<T>(path: string, revalidate?: number): Promise<ApiResult
   }
 }
 
-export function getPageBySlug(slug: string): Promise<ApiResult<ApiPage>> {
-  return safeJson<ApiPage>(`/pages/${encodeURIComponent(slug)}`, 300);
+/**
+ * Validateur de forme — protège contre les payloads stub du backend
+ * (ex. `{status:'ok'}` retourné par les endpoints non-câblés). Sans cette
+ * garde, `result.data.slug.startsWith()` crashe au SSR de toutes les pages
+ * éditoriales (a-propos, formations, vie-académique).
+ */
+function isValidPage(data: unknown): data is ApiPage {
+  return (
+    typeof data === 'object'
+    && data !== null
+    && typeof (data as { slug?: unknown }).slug === 'string'
+    && typeof (data as { uuid?: unknown }).uuid === 'string'
+  );
 }
 
-export function getMenu(): Promise<ApiResult<MenuItem[]>> {
-  return safeJson<MenuItem[]>('/menu', 300);
+export async function getPageBySlug(slug: string): Promise<ApiResult<ApiPage>> {
+  const r = await safeJson<ApiPage>(`/pages/${encodeURIComponent(slug)}`, 300);
+  if (r.ok && !isValidPage(r.data)) {
+    return {
+      ok: false,
+      error: { message: 'Payload page invalide (backend stub ?)', status: 502 },
+    };
+  }
+  return r;
+}
+
+export async function getMenu(): Promise<ApiResult<MenuItem[]>> {
+  const r = await safeJson<MenuItem[]>('/menu', 300);
+  if (r.ok && !Array.isArray(r.data)) {
+    return {
+      ok: false,
+      error: { message: 'Payload menu invalide (backend stub ?)', status: 502 },
+    };
+  }
+  return r;
 }
