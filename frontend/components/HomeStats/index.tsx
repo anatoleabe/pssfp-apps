@@ -22,34 +22,40 @@ const STATS: ReadonlyArray<Stat> = [
   { key: 'years', value: 10, suffix: '+', Icon: Trophy, accent: 'ink' },
 ];
 
+// Palette accent par stat — light + dark mode (S5.4).
+// Hex dark mode alignés avec SiteHeader/MegaMenu (de facto palette projet).
 const ACCENT_CLASSES = {
   violet: {
-    pill: 'bg-[#F4EFFA] text-[#4A2E67]',
+    pill: 'bg-[#F4EFFA] text-[#4A2E67] dark:bg-[#4A2E67]/30 dark:text-[#B084E8]',
     halo: 'radial-gradient(circle at 30% 0%, rgba(74, 46, 103, 0.08) 0%, transparent 60%)',
-    value: 'text-[#4A2E67]',
+    value: 'text-[#4A2E67] dark:text-[#B084E8]',
   },
   forest: {
-    pill: 'bg-[#D6E4EC] text-[#0F3A4A]',
+    pill: 'bg-[#D6E4EC] text-[#0F3A4A] dark:bg-[#0F3A4A]/45 dark:text-[#7FB0C4]',
     halo: 'radial-gradient(circle at 30% 0%, rgba(15, 58, 74, 0.10) 0%, transparent 60%)',
-    value: 'text-[#0F3A4A]',
+    value: 'text-[#0F3A4A] dark:text-[#7FB0C4]',
   },
   or: {
-    pill: 'bg-[#FBEFC9] text-[#9A7B12]',
+    pill: 'bg-[#FBEFC9] text-[#9A7B12] dark:bg-[#D4AF6A]/20 dark:text-[#E5C788]',
     halo: 'radial-gradient(circle at 30% 0%, rgba(212, 175, 106, 0.12) 0%, transparent 60%)',
-    value: 'pssfp-text-gradient-violet-or',
+    value: 'pssfp-text-gradient-violet-or dark:text-[#E5C788]',
   },
   ink: {
-    pill: 'bg-[#EFE9DF] text-[#14101A]',
+    pill: 'bg-[#EFE9DF] text-[#14101A] dark:bg-[#3A2F48]/55 dark:text-[#F5EFE3]',
     halo: 'radial-gradient(circle at 30% 0%, rgba(60, 60, 60, 0.06) 0%, transparent 60%)',
-    value: 'text-[#14101A]',
+    value: 'text-[#14101A] dark:text-[#F5EFE3]',
   },
 } as const;
 
 /**
- * Bloc 4 chiffres clés animés (refonte PR R).
+ * Bloc 4 chiffres clés animés.
  *
- * BentoGrid 4 colonnes (2x2 mobile) avec NumberTicker (Framer Motion spring),
- * icône Lucide en accent, gradient subtil, hover lift, BlurFade au scroll.
+ * S5.4 — Layout horizontal "icône GAUCHE + chiffre DROITE côte à côte",
+ * label dessous : élimine le vide vertical des cards. Dark mode validé
+ * (palette alignée SiteHeader/MegaMenu).
+ *
+ * Conserve : NumberTicker spring, BlurFade scroll, hover lift + halo radial,
+ * hairline or éditoriale, ornement central sous l'eyebrow.
  */
 export function HomeStats(): JSX.Element {
   const t = useTranslations('home.stats');
@@ -58,12 +64,12 @@ export function HomeStats(): JSX.Element {
     <section
       aria-labelledby="stats-heading"
       data-testid="home-stats"
-      className="relative border-y border-[#D8C9A6] bg-[#FAF7F2]"
+      className="relative border-y border-[#D8C9A6] bg-[#FAF7F2] dark:border-[#3A2F48] dark:bg-[#14101A]"
     >
       {/* Hairline gold éditorial */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4AF6A]/60 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4AF6A]/60 to-transparent dark:via-[#D4AF6A]/45"
       />
 
       <div className="mx-auto max-w-7xl px-6 py-16 md:py-20">
@@ -73,7 +79,7 @@ export function HomeStats(): JSX.Element {
             <p className="pssfp-eyebrow">{t('eyebrow')}</p>
             <h2
               id="stats-heading"
-              className="mt-4 font-heading font-bold text-pssfp-h2 text-[#1A1A1A]"
+              className="mt-4 font-heading font-bold text-pssfp-h2 text-[#1A1A1A] dark:text-[#F5EFE3]"
             >
               {t('heading')}{' '}
               <span className="relative inline-block">
@@ -95,7 +101,7 @@ export function HomeStats(): JSX.Element {
                 </svg>
               </span>
             </h2>
-            <p className="mx-auto mt-6 max-w-xl pssfp-body text-[#5C5566]">
+            <p className="mx-auto mt-6 max-w-xl pssfp-body text-[#5C5566] dark:text-[#B5A8C8]">
               {t('intro')}
             </p>
             <div
@@ -115,27 +121,34 @@ export function HomeStats(): JSX.Element {
             return (
               <li key={stat.key}>
                 <BlurFade delay={index * 0.08} inView>
-                  <div className="group relative h-full overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white p-6 shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-transparent hover:shadow-pssfp-elevated">
+                  <div className="group relative h-full overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white p-5 shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-transparent hover:shadow-pssfp-elevated dark:border-[#3A2F48] dark:bg-[#1F1A28]">
                     <div
                       aria-hidden="true"
                       className="pointer-events-none absolute inset-0 -z-10 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                       style={{ background: a.halo }}
                     />
 
-                    <span
-                      aria-hidden="true"
-                      className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl transition-transform duration-300 ease-pssfp-out-expo group-hover:scale-110 ${a.pill}`}
-                    >
-                      <stat.Icon size={22} />
-                    </span>
+                    {/*
+                      Pair horizontal icône GAUCHE / chiffre DROITE — élimine
+                      le vide vertical signalé par Anatole S5.3 → S5.4.
+                    */}
+                    <div className="flex items-center gap-4">
+                      <span
+                        aria-hidden="true"
+                        className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 ease-pssfp-out-expo group-hover:scale-110 md:h-14 md:w-14 ${a.pill}`}
+                      >
+                        <stat.Icon size={24} />
+                      </span>
+                      <p
+                        className={`font-heading text-4xl font-bold leading-none tabular-nums md:text-5xl ${a.value}`}
+                      >
+                        <NumberTicker value={stat.value} delay={index * 0.1} />
+                        {stat.suffix ?? ''}
+                      </p>
+                    </div>
 
-                    <p
-                      className={`font-heading text-4xl font-bold leading-none md:text-5xl ${a.value}`}
-                    >
-                      <NumberTicker value={stat.value} delay={index * 0.1} />
-                      {stat.suffix ?? ''}
-                    </p>
-                    <p className="mt-3 font-ui text-xs uppercase tracking-[0.16em] text-[#6B6B6B] md:text-sm">
+                    {/* Label sous le pair (left-aligned). */}
+                    <p className="mt-3 font-ui text-xs font-medium uppercase tracking-[0.18em] text-[#6B6B6B] dark:text-[#B5A8C8] md:text-[13px]">
                       {t(stat.key)}
                     </p>
                   </div>
