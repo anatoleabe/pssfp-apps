@@ -58,7 +58,7 @@ export async function HomeAccessRapide(): Promise<JSX.Element> {
     <section
       aria-labelledby="access-heading"
       data-testid="home-access"
-      className="relative overflow-hidden bg-gradient-ivoire pssfp-paper-grain"
+      className="relative overflow-hidden bg-gradient-ivoire pssfp-paper-grain dark:bg-[#14101A] dark:bg-none"
     >
       {/* Halo décoratifs sobres */}
       <div
@@ -78,13 +78,14 @@ export async function HomeAccessRapide(): Promise<JSX.Element> {
 
       <div className="relative mx-auto max-w-7xl px-6 py-20 md:py-24">
         <header className="mb-12 max-w-3xl">
+          <p className="pssfp-eyebrow">{t('eyebrow')}</p>
           <h2
             id="access-heading"
-            className="font-heading font-bold text-pssfp-h2 text-[#14101A]"
+            className="mt-3 font-heading font-bold text-pssfp-h2 text-[#14101A] dark:text-[#F5EFE3]"
           >
             {t('title')}
           </h2>
-          <p className="mt-4 pssfp-lead">{t('intro')}</p>
+          <p className="mt-4 pssfp-lead dark:text-[#B5A8C8]">{t('intro')}</p>
         </header>
 
         <ul className="grid gap-6 md:grid-cols-3">

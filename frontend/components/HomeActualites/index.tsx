@@ -53,7 +53,7 @@ export async function HomeActualites(): Promise<JSX.Element> {
     <section
       aria-labelledby="actualites-heading"
       data-testid="home-actualites"
-      className="bg-[#FAF7F2]"
+      className="bg-[#FAF7F2] dark:bg-[#14101A]"
     >
       <div className="mx-auto max-w-7xl px-6 py-20 md:py-24">
         <header className="mb-12 flex flex-wrap items-end justify-between gap-4">
@@ -61,14 +61,14 @@ export async function HomeActualites(): Promise<JSX.Element> {
             <p className="pssfp-eyebrow">{t('eyebrow')}</p>
             <h2
               id="actualites-heading"
-              className="mt-3 font-heading font-bold text-pssfp-h2 text-[#14101A]"
+              className="mt-3 font-heading font-bold text-pssfp-h2 text-[#14101A] dark:text-[#F5EFE3]"
             >
               {t('title')}
             </h2>
           </div>
           <Link
             href="/actualites"
-            className="group inline-flex items-center gap-2 rounded-pssfp-button border border-[#D8C9A6] bg-white px-4 py-2.5 text-sm font-semibold text-[#0F3A4A] transition-all duration-200 hover:border-[#0F3A4A] hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F3A4A] focus-visible:ring-offset-2"
+            className="group inline-flex items-center gap-2 rounded-pssfp-button border border-[#D8C9A6] bg-white px-4 py-2.5 text-sm font-semibold text-[#0F3A4A] transition-all duration-200 hover:border-[#0F3A4A] hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F3A4A] focus-visible:ring-offset-2 dark:border-[#3A2F48] dark:bg-[#1F1A28] dark:text-[#7FB0C4] dark:hover:border-[#7FB0C4]"
           >
             {t('seeAll')}
             <ArrowRight
@@ -99,7 +99,7 @@ export async function HomeActualites(): Promise<JSX.Element> {
                   <li key={article.uuid}>
                     <article
                       data-testid={`home-actualites-card-${article.slug}`}
-                      className="group flex h-full flex-col overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-[#D4AF6A]/60 hover:shadow-pssfp-elevated"
+                      className="group flex h-full flex-col overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-[#D4AF6A]/60 hover:shadow-pssfp-elevated dark:border-[#3A2F48] dark:bg-[#1F1A28] dark:hover:border-[#D4AF6A]/60"
                     >
                       {/* Header image MinIO ou gradient fallback */}
                       <div
@@ -115,31 +115,32 @@ export async function HomeActualites(): Promise<JSX.Element> {
                             className="object-cover transition-transform duration-700 ease-pssfp-out-expo group-hover:scale-105"
                           />
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                        {/* Overlay prune (au lieu de noir) — cohérence charte. */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#4A2E67]/45 via-[#4A2E67]/10 to-transparent dark:from-[#14101A]/55 dark:via-[#14101A]/15" />
                       </div>
 
                       <div className="flex grow flex-col p-6">
-                        <p className="flex flex-wrap items-center gap-2 text-xs">
-                          <span className="inline-flex items-center gap-1 text-[#6B6B6B]">
-                            <Calendar size={12} aria-hidden="true" />
+                        <p className="flex flex-wrap items-center gap-2 font-ui">
+                          <span className="inline-flex items-center gap-1.5 text-sm text-[#6B6B6B] dark:text-[#B5A8C8]">
+                            <Calendar size={14} aria-hidden="true" />
                             <time dateTime={dateIso}>{formatDateFr(dateIso)}</time>
                           </span>
-                          <span className="inline-flex items-center rounded-full bg-[#EFE9DF] px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-[#14101A]">
+                          <span className="inline-flex items-center rounded-full bg-[#EFE9DF] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#14101A] dark:bg-[#3A2F48]/60 dark:text-[#E5C788]">
                             {article.category_label ?? article.category ?? ''}
                           </span>
                         </p>
-                        <h3 className="mt-4 grow font-heading text-pssfp-h3 font-bold leading-snug text-[#14101A]">
+                        <h3 className="mt-4 grow font-heading text-pssfp-h3 font-bold leading-snug text-[#14101A] dark:text-[#F5EFE3]">
                           {article.title}
                         </h3>
                         {article.excerpt && (
-                          <p className="mt-3 text-sm leading-relaxed text-[#6B6B6B]">
+                          <p className="mt-3 text-sm leading-relaxed text-[#6B6B6B] dark:text-[#B5A8C8]">
                             {article.excerpt}
                           </p>
                         )}
                         <Link
                           href={`/actualites/${article.slug}`}
                           data-testid={`home-actualites-link-${article.slug}`}
-                          className="mt-5 inline-flex items-center gap-1.5 self-start rounded text-sm font-semibold text-[#0F3A4A] transition-all duration-200 hover:gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F3A4A] focus-visible:ring-offset-2"
+                          className="mt-5 inline-flex items-center gap-1.5 self-start rounded text-sm font-semibold text-[#0F3A4A] transition-all duration-200 hover:gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F3A4A] focus-visible:ring-offset-2 dark:text-[#7FB0C4]"
                         >
                           {t('readMore')}
                           <ArrowRight

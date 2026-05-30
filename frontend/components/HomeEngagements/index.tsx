@@ -12,12 +12,14 @@ import { getTranslations } from 'next-intl/server';
 interface Engagement {
   key: 'rigueur' | 'innovation' | 'impact';
   Icon: LucideIcon;
+  /** Numéro éditorial pour parité hiérarchique avec HomePiliers (S5.4). */
+  number: '01' | '02' | '03';
 }
 
 const ENGAGEMENTS: ReadonlyArray<Engagement> = [
-  { key: 'rigueur', Icon: Award },
-  { key: 'innovation', Icon: Lightbulb },
-  { key: 'impact', Icon: Target },
+  { key: 'rigueur', Icon: Award, number: '01' },
+  { key: 'innovation', Icon: Lightbulb, number: '02' },
+  { key: 'impact', Icon: Target, number: '03' },
 ];
 
 export async function HomeEngagements(): Promise<JSX.Element> {
@@ -53,6 +55,17 @@ export async function HomeEngagements(): Promise<JSX.Element> {
                 aria-hidden="true"
                 className="absolute inset-x-0 top-0 h-1 rounded-t-pssfp-card bg-gradient-prune-or opacity-0 transition-opacity duration-300 group-hover:opacity-100"
               />
+              {/*
+                Eyebrow numéroté éditorial — parité hiérarchique avec
+                HomePiliers (S5.4) : chaque pilier/engagement = un focal point
+                ancré par son numéro en haut-droite, calque DM Sans tracking.
+              */}
+              <span
+                aria-hidden="true"
+                className="absolute right-6 top-6 font-ui text-[10px] font-semibold uppercase tracking-[0.24em] text-pssfp-or"
+              >
+                {e.number}
+              </span>
               {/* Icône en cercle prune avec accent or */}
               <span
                 aria-hidden="true"
@@ -63,6 +76,11 @@ export async function HomeEngagements(): Promise<JSX.Element> {
               <h3 className="mt-6 font-heading text-xl font-semibold text-[var(--pssfp-text-strong)]">
                 {t(`${e.key}.title`)}
               </h3>
+              {/* Micro-séparateur or — densifie l'espace entre titre et body. */}
+              <span
+                aria-hidden="true"
+                className="mt-3 inline-block h-px w-8 bg-pssfp-or/60 transition-all duration-300 group-hover:w-12 group-hover:bg-pssfp-or"
+              />
               <p className="mt-3 text-pssfp-body leading-relaxed text-[var(--pssfp-text-muted)]">
                 {t(`${e.key}.body`)}
               </p>
