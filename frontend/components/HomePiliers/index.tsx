@@ -16,13 +16,15 @@ import { getTranslations } from 'next-intl/server';
 interface Pilier {
   key: 'formations' | 'expertise' | 'reseau' | 'ethique';
   Icon: LucideIcon;
+  /** Numéro éditorial — parité hiérarchique avec HomeEngagements (S5.4). */
+  number: '01' | '02' | '03' | '04';
 }
 
 const PILIERS: ReadonlyArray<Pilier> = [
-  { key: 'formations', Icon: GraduationCap },
-  { key: 'expertise', Icon: Briefcase },
-  { key: 'reseau', Icon: Globe2 },
-  { key: 'ethique', Icon: ShieldCheck },
+  { key: 'formations', Icon: GraduationCap, number: '01' },
+  { key: 'expertise', Icon: Briefcase, number: '02' },
+  { key: 'reseau', Icon: Globe2, number: '03' },
+  { key: 'ethique', Icon: ShieldCheck, number: '04' },
 ];
 
 export async function HomePiliers(): Promise<JSX.Element> {
@@ -66,18 +68,32 @@ export async function HomePiliers(): Promise<JSX.Element> {
 
         <ul className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
           {PILIERS.map((p) => (
-            <li key={p.key} className="group">
+            <li key={p.key} className="group relative">
               <div className="flex flex-col items-start">
-                <span
-                  aria-hidden="true"
-                  className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-pssfp-or/15 text-pssfp-or transition-all duration-300 group-hover:bg-pssfp-or group-hover:text-pssfp-bleu-petrole"
-                >
-                  <p.Icon size={22} strokeWidth={1.75} />
-                </span>
+                {/* Pair éditorial : icône GAUCHE + numéro DROITE — densifie. */}
+                <div className="flex w-full items-center justify-between">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-pssfp-or/15 text-pssfp-or transition-all duration-300 group-hover:bg-pssfp-or group-hover:text-pssfp-bleu-petrole"
+                  >
+                    <p.Icon size={22} strokeWidth={1.75} />
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="font-ui text-[10px] font-semibold uppercase tracking-[0.24em] text-pssfp-or/75"
+                  >
+                    {p.number}
+                  </span>
+                </div>
                 <h3 className="mt-5 font-heading text-lg font-bold text-white">
                   {t(`${p.key}.title`)}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-white/75">
+                {/* Micro-séparateur or — parité avec HomeEngagements. */}
+                <span
+                  aria-hidden="true"
+                  className="mt-3 inline-block h-px w-8 bg-pssfp-or/60 transition-all duration-300 group-hover:w-12 group-hover:bg-pssfp-or"
+                />
+                <p className="mt-3 text-sm leading-relaxed text-white/75">
                   {t(`${p.key}.body`)}
                 </p>
               </div>
