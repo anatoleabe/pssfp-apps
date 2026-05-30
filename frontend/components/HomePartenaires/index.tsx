@@ -33,7 +33,7 @@ export async function HomePartenaires(): Promise<JSX.Element> {
     <section
       aria-labelledby="partenaires-heading"
       data-testid="home-partenaires"
-      className="relative overflow-hidden bg-[#FBF7EE]"
+      className="relative overflow-hidden bg-[#FAF7F2]"
     >
       <div className="mx-auto max-w-7xl px-6 py-20 md:py-24">
         <header className="mb-12 max-w-3xl">
@@ -53,11 +53,11 @@ export async function HomePartenaires(): Promise<JSX.Element> {
         {/* Fade gauche/droite pour bord propre */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-[#FBF7EE] to-transparent"
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-[#FAF7F2] to-transparent"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#FBF7EE] to-transparent"
+          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#FAF7F2] to-transparent"
         />
 
         <Marquee pauseOnHover duration={45} className="[--gap:2.5rem]">
@@ -80,7 +80,7 @@ export async function HomePartenaires(): Promise<JSX.Element> {
 function PartnerLogo({ partner }: { partner: Partenaire }): JSX.Element {
   return (
     <div
-      className="group flex h-24 w-44 shrink-0 items-center justify-center rounded-pssfp-card border border-[#E4D8B7] bg-white p-5 shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-0.5 hover:border-[#C9A227]/60 hover:shadow-pssfp-elevated"
+      className="group flex h-24 w-44 shrink-0 items-center justify-center rounded-pssfp-card border border-[#D8C9A6] bg-white p-5 shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-0.5 hover:border-[#D4AF6A]/60 hover:shadow-pssfp-elevated"
       title={partner.name}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -10,7 +10,7 @@ export default async function ConfidentialitePage(): Promise<JSX.Element> {
 
   return (
     <article className="mx-auto max-w-3xl px-6 py-12 md:py-16">
-      <h1 className="font-heading text-3xl font-bold text-[#6B2FA0] md:text-4xl">
+      <h1 className="font-heading text-3xl font-bold text-[#4A2E67] md:text-4xl">
         {t('title')}
       </h1>
 

@@ -14,7 +14,7 @@ export default async function ForgotPinPage(): Promise<JSX.Element> {
 
   return (
     <div className="mx-auto max-w-md px-6 py-16">
-      <h1 className="font-heading text-3xl font-bold text-[#6B2FA0]">PIN oublié</h1>
+      <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">PIN oublié</h1>
       <p className="mt-2 text-base text-[#666]">
         Récupérez l'accès à votre dossier en trois étapes guidées.
       </p>

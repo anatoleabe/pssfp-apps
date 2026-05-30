@@ -71,7 +71,7 @@ export function MobileDrawer({
         data-testid="mobile-menu"
         className={cn(
           'absolute right-0 top-0 flex h-full w-[min(420px,90vw)] flex-col pt-[72px]',
-          'border-l border-[#E4D8B7] bg-white shadow-pssfp-floating',
+          'border-l border-[#D8C9A6] bg-white shadow-pssfp-floating',
           'dark:border-[#3A2F48] dark:bg-[#14101A]',
           'transition-transform duration-300 ease-pssfp-out-expo',
           visible && open ? 'translate-x-0' : 'translate-x-full',
@@ -95,10 +95,10 @@ export function MobileDrawer({
                       aria-current={active ? 'page' : undefined}
                       className={cn(
                         'flex-1 rounded-pssfp-button px-3 py-3 transition-colors',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] dark:focus-visible:ring-[#E8C868]',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] dark:focus-visible:ring-[#E5C788]',
                         active
-                          ? 'bg-[#EFE6CE] font-semibold text-[#0E4D3F] dark:bg-[#3A2F48]/50 dark:text-[#6FBDA0]'
-                          : 'text-[#2A2230] hover:bg-[#F8F1DF] hover:text-[#0E4D3F] dark:text-[#F0E8D8] dark:hover:bg-[#3A2F48]/30 dark:hover:text-[#6FBDA0]',
+                          ? 'bg-[#EFE9DF] font-semibold text-[#0F3A4A] dark:bg-[#3A2F48]/50 dark:text-[#7FB0C4]'
+                          : 'text-[#3C3C3C] hover:bg-[#F8F3EA] hover:text-[#0F3A4A] dark:text-[#F0E8D8] dark:hover:bg-[#3A2F48]/30 dark:hover:text-[#7FB0C4]',
                       )}
                     >
                       {t(link.key)}
@@ -110,7 +110,7 @@ export function MobileDrawer({
                         aria-expanded={expanded}
                         aria-label={`Déplier ${t(link.key)}`}
                         data-testid={`nav-mobile-toggle-${link.key}`}
-                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-pssfp-button text-[#6B6378] transition-colors hover:bg-[#F8F1DF] hover:text-[#0E4D3F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E4D3F] dark:text-[#B5ACBF] dark:hover:bg-[#3A2F48]/40 dark:hover:text-[#6FBDA0]"
+                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-pssfp-button text-[#6B6B6B] transition-colors hover:bg-[#F8F3EA] hover:text-[#0F3A4A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F3A4A] dark:text-[#B5ACBF] dark:hover:bg-[#3A2F48]/40 dark:hover:text-[#7FB0C4]"
                       >
                         <ChevronDown
                           size={18}
@@ -130,7 +130,7 @@ export function MobileDrawer({
                         expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
                       )}
                     >
-                      <ul className="overflow-hidden border-l border-[#E4D8B7] pl-3 dark:border-[#3A2F48]">
+                      <ul className="overflow-hidden border-l border-[#D8C9A6] pl-3 dark:border-[#3A2F48]">
                         {link.children!.map((child) => {
                           const Icon = child.icon;
                           const childActive = pathname === child.href;
@@ -143,8 +143,8 @@ export function MobileDrawer({
                                 className={cn(
                                   'group flex items-center gap-2.5 rounded px-2 py-2.5 text-sm transition-colors',
                                   childActive
-                                    ? 'font-semibold text-[#6B2FA0] dark:text-[#B084E8]'
-                                    : 'text-[#555] hover:text-[#6B2FA0] dark:text-[#B5A8C8] dark:hover:text-[#B084E8]',
+                                    ? 'font-semibold text-[#4A2E67] dark:text-[#B084E8]'
+                                    : 'text-[#555] hover:text-[#4A2E67] dark:text-[#B5A8C8] dark:hover:text-[#B084E8]',
                                 )}
                               >
                                 <Icon
@@ -154,8 +154,8 @@ export function MobileDrawer({
                                   className={cn(
                                     'shrink-0 transition-colors',
                                     childActive
-                                      ? 'text-[#6B2FA0] dark:text-[#B084E8]'
-                                      : 'text-[#9B59B6]/70 group-hover:text-[#6B2FA0] dark:text-[#B084E8]/70',
+                                      ? 'text-[#4A2E67] dark:text-[#B084E8]'
+                                      : 'text-[#5C3A7E]/70 group-hover:text-[#4A2E67] dark:text-[#B084E8]/70',
                                   )}
                                 />
                                 <span className="truncate">{t(child.key)}</span>
@@ -172,11 +172,11 @@ export function MobileDrawer({
           </ul>
         </nav>
 
-        <div className="border-t border-[#E4D8B7] bg-[#F4ECDC] px-5 py-4 dark:border-[#3A2F48] dark:bg-[#1F1A28]">
+        <div className="border-t border-[#D8C9A6] bg-[#F4F0EA] px-5 py-4 dark:border-[#3A2F48] dark:bg-[#1F1A28]">
           <a
             href={process.env.NEXT_PUBLIC_LIBRARY_URL ?? '#'}
             onClick={onClose}
-            className="mb-2 flex items-center justify-between rounded-pssfp-button border border-[#E4D8B7] bg-white px-4 py-3 text-sm text-[#333] transition-all hover:border-[#6B2FA0] hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:border-[#3A2F48] dark:bg-[#14101A] dark:text-[#F5EFE3] dark:hover:border-[#B084E8] dark:hover:text-[#B084E8]"
+            className="mb-2 flex items-center justify-between rounded-pssfp-button border border-[#D8C9A6] bg-white px-4 py-3 text-sm text-[#333] transition-all hover:border-[#4A2E67] hover:text-[#4A2E67] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 dark:border-[#3A2F48] dark:bg-[#14101A] dark:text-[#F5EFE3] dark:hover:border-[#B084E8] dark:hover:text-[#B084E8]"
           >
             <span className="font-medium">{t('library')}</span>
             <ExternalLink size={14} aria-hidden="true" />
@@ -184,7 +184,7 @@ export function MobileDrawer({
           <a
             href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
             onClick={onClose}
-            className="group flex items-center justify-between rounded-pssfp-button bg-gradient-violet-or px-4 py-3 font-medium text-white shadow-pssfp-elevated transition-all hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] focus-visible:ring-offset-2"
+            className="group flex items-center justify-between rounded-pssfp-button bg-gradient-prune-or px-4 py-3 font-medium text-white shadow-pssfp-elevated transition-all hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2"
           >
             {t('candidature')}
             <ArrowRight

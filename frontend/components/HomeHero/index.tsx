@@ -23,7 +23,7 @@ export async function HomeHero(): Promise<JSX.Element> {
     ? (
         <>
           {splitMatch[1]}
-          <Sparkles color="#C9A227" count={6}>
+          <Sparkles color="#D4AF6A" count={6}>
             <span className="pssfp-text-gradient-violet-or">{splitMatch[2]}</span>
           </Sparkles>
           {splitMatch[3]}
@@ -45,7 +45,7 @@ export async function HomeHero(): Promise<JSX.Element> {
         className="pointer-events-none absolute inset-0 -z-10 opacity-[0.025]"
         style={{
           backgroundImage:
-            'radial-gradient(circle at 1px 1px, #6B2FA0 1px, transparent 0)',
+            'radial-gradient(circle at 1px 1px, #4A2E67 1px, transparent 0)',
           backgroundSize: '24px 24px',
         }}
       />
@@ -55,7 +55,7 @@ export async function HomeHero(): Promise<JSX.Element> {
           <p className="pssfp-eyebrow">{t('eyebrow')}</p>
           <h1
             id="hero-heading"
-            className="mt-4 font-heading font-bold text-pssfp-h1 text-[#1A0A2E] dark:text-[#FAF8F5]"
+            className="mt-4 font-heading font-bold text-pssfp-h1 text-[#1A1A1A] dark:text-[#FAF7F2]"
           >
             {titleNodes}
           </h1>
@@ -64,7 +64,7 @@ export async function HomeHero(): Promise<JSX.Element> {
             <a
               href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
               data-testid="hero-cta-candidature"
-              className="group relative inline-flex h-14 items-center gap-2 overflow-hidden rounded-pssfp-button bg-gradient-violet-or px-7 text-base font-semibold text-white shadow-pssfp-floating transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:shadow-pssfp-glow-or focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] focus-visible:ring-offset-2"
+              className="group relative inline-flex h-14 items-center gap-2 overflow-hidden rounded-pssfp-button bg-gradient-prune-or px-7 text-base font-semibold text-white shadow-pssfp-floating transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:shadow-pssfp-glow-or focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2"
             >
               <span
                 aria-hidden="true"
@@ -79,7 +79,7 @@ export async function HomeHero(): Promise<JSX.Element> {
             </a>
             <Link
               href="/formations"
-              className="inline-flex h-14 items-center gap-2 rounded-pssfp-button border-2 border-[#6B2FA0] bg-white/80 px-7 text-base font-semibold text-[#6B2FA0] backdrop-blur-2xs transition-all duration-200 ease-pssfp-out-expo hover:bg-[#6B2FA0] hover:text-white hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 dark:border-[#B084E8] dark:bg-[#1F0E2E]/60 dark:text-[#B084E8] dark:hover:bg-[#B084E8] dark:hover:text-[#14091F] dark:focus-visible:ring-[#E8C868]"
+              className="inline-flex h-14 items-center gap-2 rounded-pssfp-button border-2 border-[#4A2E67] bg-white/80 px-7 text-base font-semibold text-[#4A2E67] backdrop-blur-2xs transition-all duration-200 ease-pssfp-out-expo hover:bg-[#4A2E67] hover:text-white hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 dark:border-[#B084E8] dark:bg-[#1F0E2E]/60 dark:text-[#B084E8] dark:hover:bg-[#B084E8] dark:hover:text-[#14091F] dark:focus-visible:ring-[#E5C788]"
             >
               {t('ctaSecondary')}
             </Link>
@@ -88,7 +88,7 @@ export async function HomeHero(): Promise<JSX.Element> {
           {/* Trust signals léger */}
           <ul className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-3 text-xs text-[#666] dark:text-[#B5A8C8]">
             <li className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#2E7D32] animate-pssfp-pulse-violet" aria-hidden="true" />
+              <span className="h-2 w-2 rounded-full bg-[#2E7D32] animate-pssfp-pulse-prune" aria-hidden="true" />
               <span className="font-medium">Inscriptions P14 ouvertes</span>
             </li>
             <li className="flex items-center gap-2">
@@ -109,21 +109,21 @@ export async function HomeHero(): Promise<JSX.Element> {
             <div
               aria-hidden="true"
               className="pointer-events-none absolute -inset-1 -z-10 rounded-pssfp-card opacity-30 blur-xl"
-              style={{ background: 'radial-gradient(circle, #C9A227 0%, transparent 70%)' }}
+              style={{ background: 'radial-gradient(circle, #D4AF6A 0%, transparent 70%)' }}
             />
             <p className="pssfp-eyebrow">{t('campusEyebrow')}</p>
-            <p className="mt-3 font-heading text-pssfp-h3 font-bold text-[#1A0A2E] dark:text-[#FAF8F5]">
+            <p className="mt-3 font-heading text-pssfp-h3 font-bold text-[#1A1A1A] dark:text-[#FAF7F2]">
               {t('campusName')}
             </p>
             <p className="mt-3 text-sm leading-relaxed text-[#555] dark:text-[#B5A8C8]">{t('campusBody')}</p>
-            <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-[#EDE7F6] pt-5 text-sm dark:border-[#3A2A55]">
+            <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-[#F4EFFA] pt-5 text-sm dark:border-[#3A2A55]">
               <div>
                 <dt className="text-xs uppercase tracking-wider text-[#666] dark:text-[#B5A8C8]">{t('promoLabel')}</dt>
-                <dd className="mt-1 font-heading font-bold text-[#6B2FA0] dark:text-[#B084E8]">P14 / 2026</dd>
+                <dd className="mt-1 font-heading font-bold text-[#4A2E67] dark:text-[#B084E8]">P14 / 2026</dd>
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wider text-[#666] dark:text-[#B5A8C8]">{t('campusCity')}</dt>
-                <dd className="mt-1 inline-flex items-center gap-1 font-heading font-bold text-[#6B2FA0] dark:text-[#B084E8]">
+                <dd className="mt-1 inline-flex items-center gap-1 font-heading font-bold text-[#4A2E67] dark:text-[#B084E8]">
                   <MapPin size={12} aria-hidden="true" />
                   Yaoundé, CM
                 </dd>

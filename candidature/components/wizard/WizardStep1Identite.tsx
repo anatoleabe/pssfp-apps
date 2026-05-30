@@ -21,7 +21,7 @@ export function WizardStep1Identite({
 }: WizardStep1Props): JSX.Element {
   return (
     <div className="space-y-5" data-testid="wizard-step-1">
-      <h2 className="font-heading text-xl font-bold text-[#6B2FA0]">
+      <h2 className="font-heading text-xl font-bold text-[#4A2E67]">
         Étape 1 — Vœu de spécialité &amp; identité
       </h2>
 
@@ -69,7 +69,7 @@ export function WizardStep1Identite({
             onChange={(e) =>
               onChange({ civilite: e.target.value as 'M.' | 'Mme' | 'Mlle' })
             }
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           >
             <option>M.</option>
             <option>Mme</option>
@@ -82,7 +82,7 @@ export function WizardStep1Identite({
             type="text"
             value={data.prenom}
             onChange={(e) => onChange({ prenom: e.target.value })}
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
         <Field label="Nom" error={errors.nom}>
@@ -91,7 +91,7 @@ export function WizardStep1Identite({
             type="text"
             value={data.nom}
             onChange={(e) => onChange({ nom: e.target.value })}
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
       </div>
@@ -102,7 +102,7 @@ export function WizardStep1Identite({
             type="text"
             value={data.epouse}
             onChange={(e) => onChange({ epouse: e.target.value })}
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
         <Field label="Date de naissance" error={errors.date_naissance}>
@@ -112,14 +112,14 @@ export function WizardStep1Identite({
             value={data.date_naissance}
             onChange={(e) => onChange({ date_naissance: e.target.value })}
             max={new Date().toISOString().slice(0, 10)}
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
         <Field label="Genre" error={errors.genre}>
           <select
             value={data.genre}
             onChange={(e) => onChange({ genre: e.target.value as 'M' | 'F' | 'autre' })}
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           >
             <option value="M">Masculin</option>
             <option value="F">Féminin</option>
@@ -133,7 +133,7 @@ export function WizardStep1Identite({
           <select
             value={data.statut_matrimonial}
             onChange={(e) => onChange({ statut_matrimonial: e.target.value })}
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30"
+            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           >
             <option>Célibataire</option>
             <option>Marié(e)</option>
@@ -194,7 +194,7 @@ function Radio({
         <label
           key={o.value}
           className={`flex-1 cursor-pointer rounded-md border px-3 py-2 text-sm ${
-            value === o.value ? 'border-[#6B2FA0] bg-[#EDE7F6] text-[#6B2FA0]' : 'border-gray-300'
+            value === o.value ? 'border-[#4A2E67] bg-[#F4EFFA] text-[#4A2E67]' : 'border-gray-300'
           }`}
         >
           <input

@@ -1,20 +1,26 @@
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
-import { Playfair_Display, Inter, DM_Sans } from 'next/font/google';
+import { Cormorant_Garamond, Source_Sans_3, DM_Sans } from 'next/font/google';
 import './globals.css';
 
-const playfair = Playfair_Display({
+/**
+ * Charte 2026 PSSFP — ADR-0008.
+ * Cormorant Garamond (titres) + Source Sans 3 (corps + UI) + DM Sans (micro-UI letter-spaced).
+ * Remplace Playfair Display + Inter de la charte CDC v5 §10.1 d'origine.
+ */
+const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-heading',
-  weight: ['400', '700'],
+  weight: ['500', '600', '700'],
 });
 
-const inter = Inter({
+const sourceSans = Source_Sans_3({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-body',
+  weight: ['400', '500', '600', '700'],
 });
 
 const dmSans = DM_Sans({
@@ -30,7 +36,7 @@ export const metadata: Metadata = {
     template: '%s — PSSFP',
   },
   description:
-    'Site institutionnel du PSSFP, Campus de Messa, Yaoundé — formations supérieures en finances publiques.',
+    'Former. Moderniser. Transformer les finances publiques. Site institutionnel du PSSFP, Campus de Messa, Yaoundé.',
   metadataBase: new URL('https://pssfp.net'),
   openGraph: {
     locale: 'fr_FR',
@@ -52,7 +58,7 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className={`${playfair.variable} ${inter.variable} ${dmSans.variable}`} suppressHydrationWarning>
+    <html lang={locale} className={`${cormorant.variable} ${sourceSans.variable} ${dmSans.variable}`} suppressHydrationWarning>
       <head>
         {/* No-flash dark mode init — runs before paint to set html.dark from localStorage / prefers-color-scheme */}
         <script

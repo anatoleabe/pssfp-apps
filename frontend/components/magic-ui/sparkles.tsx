@@ -19,7 +19,7 @@ export interface SparklesProps {
 export function Sparkles({
   children,
   className,
-  color = '#C9A227',
+  color = '#D4AF6A',
   count = 5,
 }: SparklesProps): JSX.Element {
   // Positions/tailles déterministes basées sur l'index — stable SSR/CSR.

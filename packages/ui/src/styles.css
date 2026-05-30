@@ -1,12 +1,22 @@
+/**
+ * Charte 2026 PSSFP — ADR-0008.
+ * Tokens partagés @pssfp/ui (frontend + library + candidature).
+ */
 :root {
-  --pssfp-primary: #6B2FA0;
-  --pssfp-primary-hover: #9B59B6;
-  --pssfp-surface: #EDE7F6;
-  --pssfp-accent: #C9A227;
+  --pssfp-primary: #4A2E67;
+  --pssfp-primary-hover: #3A2452;
+  --pssfp-primary-light: #5C3A7E;
+  --pssfp-secondary: #0F3A4A;
+  --pssfp-secondary-hover: #082A37;
+  --pssfp-tertiary: #A592BD;
+  --pssfp-surface: #F4EFFA;
+  --pssfp-accent: #D4AF6A;
+  --pssfp-accent-hover: #E5C788;
   --pssfp-background: #FFFFFF;
-  --pssfp-text: #333333;
-  --pssfp-text-muted: #666666;
-  --pssfp-surface-alt: #F5F5F5;
+  --pssfp-ivoire: #FAF7F2;
+  --pssfp-text: #3C3C3C;
+  --pssfp-text-muted: #6B6B6B;
+  --pssfp-surface-alt: #F4F0EA;
   --pssfp-success: #2E7D32;
   --pssfp-warning: #F9A825;
   --pssfp-error: #C62828;

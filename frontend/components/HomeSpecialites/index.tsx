@@ -107,19 +107,19 @@ const SHORT_FORMATS: ReadonlyArray<ShortFormat> = [
 
 const SHORT_ACCENT_CLASSES = {
   forest: {
-    iconBg: 'bg-[#DCE8E0] text-[#0E4D3F] group-hover:bg-gradient-forest group-hover:text-white',
-    cta: 'text-[#0E4D3F]',
-    border: 'hover:border-[#0E4D3F]/40',
+    iconBg: 'bg-[#D6E4EC] text-[#0F3A4A] group-hover:bg-gradient-petrole-prune group-hover:text-white',
+    cta: 'text-[#0F3A4A]',
+    border: 'hover:border-[#0F3A4A]/40',
   },
   or: {
-    iconBg: 'bg-[#FBEFC9] text-[#9A7B12] group-hover:bg-gradient-or-soft group-hover:text-[#14101A]',
+    iconBg: 'bg-[#FBEFC9] text-[#9A7B12] group-hover:bg-gradient-or group-hover:text-[#14101A]',
     cta: 'text-[#9A7B12]',
-    border: 'hover:border-[#C9A227]/60',
+    border: 'hover:border-[#D4AF6A]/60',
   },
   violet: {
-    iconBg: 'bg-[#ECE0F2] text-[#6B2FA0] group-hover:bg-gradient-violet group-hover:text-white',
-    cta: 'text-[#6B2FA0]',
-    border: 'hover:border-[#6B2FA0]/40',
+    iconBg: 'bg-[#F4EFFA] text-[#4A2E67] group-hover:bg-gradient-prune group-hover:text-white',
+    cta: 'text-[#4A2E67]',
+    border: 'hover:border-[#4A2E67]/40',
   },
 } as const;
 
@@ -140,7 +140,7 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
     <section
       aria-labelledby="specialites-heading"
       data-testid="home-specialites"
-      className="relative bg-[#F4ECDC]"
+      className="relative bg-[#F4F0EA]"
     >
       {/* Texture grain doux — pointillés ink */}
       <div
@@ -155,11 +155,11 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
       {/* Hairline gold haut + bas */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#C9A227]/50 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4AF6A]/50 to-transparent"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#C9A227]/50 to-transparent"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#D4AF6A]/50 to-transparent"
       />
 
       <div className="relative mx-auto max-w-7xl px-6 py-20 md:py-28">
@@ -183,7 +183,7 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
               >
                 <path
                   d="M2 8C50 3 150 3 198 8"
-                  stroke="#C9A227"
+                  stroke="#D4AF6A"
                   strokeWidth="3"
                   strokeLinecap="round"
                 />
@@ -197,12 +197,12 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
         <div className="mb-12 flex items-center gap-4">
           <div
             aria-hidden="true"
-            className="h-px flex-1 bg-gradient-to-r from-transparent to-[#C9A227]/30"
+            className="h-px flex-1 bg-gradient-to-r from-transparent to-[#D4AF6A]/30"
           />
-          <p className="pssfp-eyebrow text-[#6B2FA0]">{t('specialitiesEyebrow')}</p>
+          <p className="pssfp-eyebrow text-[#4A2E67]">{t('specialitiesEyebrow')}</p>
           <div
             aria-hidden="true"
-            className="h-px flex-1 bg-gradient-to-l from-transparent to-[#C9A227]/30"
+            className="h-px flex-1 bg-gradient-to-l from-transparent to-[#D4AF6A]/30"
           />
         </div>
 
@@ -214,13 +214,13 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
                   <Link
                     href={`/formations/specialites/${spec.slug}`}
                     data-testid={`spec-card-${spec.slug}`}
-                    className="group relative flex h-full min-h-[280px] flex-col justify-between overflow-hidden rounded-pssfp-card bg-gradient-ink-deep p-8 text-white shadow-pssfp-elevated transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] focus-visible:ring-offset-2 md:p-10"
+                    className="group relative flex h-full min-h-[280px] flex-col justify-between overflow-hidden rounded-pssfp-card bg-gradient-ink-deep p-8 text-white shadow-pssfp-elevated transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2 md:p-10"
                   >
                     {/* Halo or décoratif */}
                     <div
                       aria-hidden="true"
                       className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full opacity-40 blur-3xl transition-opacity duration-500 group-hover:opacity-70"
-                      style={{ background: 'radial-gradient(circle, #C9A227 0%, transparent 70%)' }}
+                      style={{ background: 'radial-gradient(circle, #D4AF6A 0%, transparent 70%)' }}
                     />
                     {/* Pattern grille subtile */}
                     <div
@@ -235,7 +235,7 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
 
                     <div className="relative">
                       <span className="inline-flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-[#FFE9B0]">
-                        <span className="h-px w-8 bg-[#C9A227]" aria-hidden="true" />
+                        <span className="h-px w-8 bg-[#D4AF6A]" aria-hidden="true" />
                         Spécialité phare · {spec.number}
                       </span>
                       <span
@@ -251,7 +251,7 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
                         {t(spec.bodyKey)}
                       </p>
                     </div>
-                    <span className="relative mt-6 inline-flex items-center gap-2 self-start rounded-full bg-gradient-or-soft px-5 py-2.5 text-sm font-semibold text-[#14101A] shadow-pssfp-glow-or transition-all duration-200 group-hover:gap-3 group-hover:shadow-pssfp-floating">
+                    <span className="relative mt-6 inline-flex items-center gap-2 self-start rounded-full bg-gradient-or px-5 py-2.5 text-sm font-semibold text-[#14101A] shadow-pssfp-glow-or transition-all duration-200 group-hover:gap-3 group-hover:shadow-pssfp-floating">
                       {t('readMore')}
                       <ArrowRight
                         size={16}
@@ -268,26 +268,26 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
                 <Link
                   href={`/formations/specialites/${spec.slug}`}
                   data-testid={`spec-card-${spec.slug}`}
-                  className="group relative flex h-full min-h-[220px] flex-col overflow-hidden rounded-pssfp-card border border-[#E4D8B7] bg-white p-6 shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-[#C9A227]/50 hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+                  className="group relative flex h-full min-h-[220px] flex-col overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white p-6 shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-[#D4AF6A]/50 hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
                 >
                   <div className="flex items-start justify-between">
                     <span
                       aria-hidden="true"
-                      className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#EFE6CE] text-[#14101A] transition-all duration-300 ease-pssfp-out-expo group-hover:scale-110 group-hover:bg-gradient-forest-or group-hover:text-white"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#EFE9DF] text-[#14101A] transition-all duration-300 ease-pssfp-out-expo group-hover:scale-110 group-hover:bg-gradient-petrole-or group-hover:text-white"
                     >
                       <spec.Icon size={22} />
                     </span>
-                    <span className="font-heading text-2xl font-bold text-[#C9A227]/70">
+                    <span className="font-heading text-2xl font-bold text-[#D4AF6A]/70">
                       {spec.number}
                     </span>
                   </div>
                   <h3 className="mt-5 font-heading text-pssfp-h3 font-bold leading-snug text-[#14101A]">
                     {t(spec.titleKey)}
                   </h3>
-                  <p className="mt-2 grow text-sm leading-relaxed text-[#6B6378]">
+                  <p className="mt-2 grow text-sm leading-relaxed text-[#6B6B6B]">
                     {t(spec.bodyKey)}
                   </p>
-                  <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0E4D3F] transition-all duration-200 group-hover:gap-2.5">
+                  <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0F3A4A] transition-all duration-200 group-hover:gap-2.5">
                     {t('readMore')}
                     <ArrowRight
                       size={14}
@@ -308,7 +308,7 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
             <h3 className="mt-3 font-heading text-pssfp-h3 font-bold text-[#14101A] md:text-3xl">
               {t('shortFormatsTitle')}
             </h3>
-            <p className="mt-3 pssfp-body text-[#6B6378]">{t('shortFormatsIntro')}</p>
+            <p className="mt-3 pssfp-body text-[#6B6B6B]">{t('shortFormatsIntro')}</p>
           </header>
 
           <ul className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
@@ -319,7 +319,7 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
                   <Link
                     href={fmt.href}
                     data-testid={`short-format-${fmt.labelKey}`}
-                    className={`group relative flex h-full flex-col overflow-hidden rounded-pssfp-card border border-[#E4D8B7] bg-white/80 p-6 shadow-pssfp-soft backdrop-blur-sm transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:bg-white hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 ${a.border}`}
+                    className={`group relative flex h-full flex-col overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white/80 p-6 shadow-pssfp-soft backdrop-blur-sm transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:bg-white hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 ${a.border}`}
                   >
                     <div className="flex items-center gap-3">
                       <span
@@ -328,14 +328,14 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
                       >
                         <fmt.Icon size={20} />
                       </span>
-                      <span className="font-ui text-xs uppercase tracking-[0.16em] text-[#6B6378]">
+                      <span className="font-ui text-xs uppercase tracking-[0.16em] text-[#6B6B6B]">
                         {t(fmt.metaKey)}
                       </span>
                     </div>
                     <h4 className="mt-5 font-heading text-lg font-bold leading-snug text-[#14101A]">
                       {t(fmt.labelKey)}
                     </h4>
-                    <p className="mt-2 grow text-sm leading-relaxed text-[#6B6378]">
+                    <p className="mt-2 grow text-sm leading-relaxed text-[#6B6B6B]">
                       {t(fmt.descKey)}
                     </p>
                     <span

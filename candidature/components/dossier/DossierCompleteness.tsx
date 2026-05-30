@@ -78,7 +78,7 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
       aria-labelledby="completeness-heading"
       className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
     >
-      <h2 id="completeness-heading" className="font-heading text-lg font-bold text-[#6B2FA0]">
+      <h2 id="completeness-heading" className="font-heading text-lg font-bold text-[#4A2E67]">
         Avant de soumettre
       </h2>
 
@@ -98,7 +98,7 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
                 <span aria-hidden>•</span>
                 <Link
                   href={`/dossier/edition?focus=${encodeURIComponent(field)}`}
-                  className="underline hover:text-[#6B2FA0]"
+                  className="underline hover:text-[#4A2E67]"
                 >
                   {FIELD_LABELS_FR[field] ?? field}
                 </Link>
@@ -132,7 +132,7 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
         data-testid="dossier-submit"
         disabled={!canSubmit || pending}
         onClick={handleSubmit}
-        className="mt-5 inline-flex h-11 items-center rounded-md bg-[#6B2FA0] px-5 text-sm font-medium text-white hover:bg-[#9B59B6] disabled:cursor-not-allowed disabled:bg-gray-300"
+        className="mt-5 inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-5 text-sm font-medium text-white hover:bg-[#5C3A7E] disabled:cursor-not-allowed disabled:bg-gray-300"
       >
         {pending ? 'Soumission…' : 'Soumettre ma candidature'}
       </button>

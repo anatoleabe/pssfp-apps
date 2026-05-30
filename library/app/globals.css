@@ -3,13 +3,24 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --pssfp-primary: #4A2E67;
+    --pssfp-primary-hover: #3A2452;
+    --pssfp-prune: #4A2E67;
+    --pssfp-bleu-petrole: #0F3A4A;
+    --pssfp-lavande: #A592BD;
+    --pssfp-or: #D4AF6A;
+    --pssfp-ivoire: #FAF7F2;
+    --pssfp-graphite: #3C3C3C;
+    --pssfp-border: rgba(165, 146, 189, 0.32);
+  }
   body {
-    color: #333333;
+    color: var(--pssfp-graphite);
     background: #FFFFFF;
   }
 
   *:focus-visible {
-    outline: 2px solid #6B2FA0;
+    outline: 2px solid var(--pssfp-or);
     outline-offset: 2px;
   }
 }

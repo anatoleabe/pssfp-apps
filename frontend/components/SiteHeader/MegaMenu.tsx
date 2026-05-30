@@ -41,11 +41,11 @@ export function MegaMenu({ link, pathname, onItemFocus, onItemBlur }: MegaMenuPr
                 data-testid={`nav-submenu-item-${child.key}`}
                 className={cn(
                   'group flex items-start gap-3 rounded-pssfp-button px-3 py-3 transition-all duration-200',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2',
-                  'dark:focus-visible:ring-[#E8C868]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2',
+                  'dark:focus-visible:ring-[#E5C788]',
                   childActive
-                    ? 'bg-[#EFE6CE] dark:bg-[#3A2F48]/60'
-                    : 'hover:bg-[#EFE6CE]/60 dark:hover:bg-[#3A2F48]/40',
+                    ? 'bg-[#EFE9DF] dark:bg-[#3A2F48]/60'
+                    : 'hover:bg-[#EFE9DF]/60 dark:hover:bg-[#3A2F48]/40',
                 )}
               >
                 <span
@@ -53,8 +53,8 @@ export function MegaMenu({ link, pathname, onItemFocus, onItemBlur }: MegaMenuPr
                   className={cn(
                     'mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-pssfp-button transition-all duration-200',
                     childActive
-                      ? 'bg-gradient-violet-or text-white shadow-pssfp-glow-or'
-                      : 'bg-[#EFE6CE] text-[#14101A] group-hover:bg-gradient-forest-or group-hover:text-white group-hover:shadow-pssfp-soft dark:bg-[#3A2F48]/40 dark:text-[#E8C868]',
+                      ? 'bg-gradient-prune-or text-white shadow-pssfp-glow-or'
+                      : 'bg-[#EFE9DF] text-[#14101A] group-hover:bg-gradient-petrole-or group-hover:text-white group-hover:shadow-pssfp-soft dark:bg-[#3A2F48]/40 dark:text-[#E5C788]',
                   )}
                 >
                   <Icon size={18} strokeWidth={1.75} />
@@ -64,13 +64,13 @@ export function MegaMenu({ link, pathname, onItemFocus, onItemBlur }: MegaMenuPr
                     className={cn(
                       'truncate text-sm font-semibold',
                       childActive
-                        ? 'text-[#6B2FA0] dark:text-[#B084E8]'
-                        : 'text-[#14101A] group-hover:text-[#0E4D3F] dark:text-[#F0E8D8] dark:group-hover:text-[#6FBDA0]',
+                        ? 'text-[#4A2E67] dark:text-[#B084E8]'
+                        : 'text-[#14101A] group-hover:text-[#0F3A4A] dark:text-[#F0E8D8] dark:group-hover:text-[#7FB0C4]',
                     )}
                   >
                     {t(child.key)}
                   </span>
-                  <span className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-[#6B6378] dark:text-[#B5A8C8]">
+                  <span className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-[#6B6B6B] dark:text-[#B5A8C8]">
                     {t(child.descriptionKey)}
                   </span>
                 </span>
@@ -80,16 +80,16 @@ export function MegaMenu({ link, pathname, onItemFocus, onItemBlur }: MegaMenuPr
         })}
       </ul>
 
-      <div className="mt-3 border-t border-[#E4D8B7] pt-3 dark:border-[#3A2F48]/70">
+      <div className="mt-3 border-t border-[#D8C9A6] pt-3 dark:border-[#3A2F48]/70">
         <Link
           href={link.href}
           role="menuitem"
           data-testid={`nav-submenu-all-${link.key}`}
           className={cn(
             'group/all inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium uppercase tracking-wide',
-            'text-[#6B2FA0] hover:text-[#9B59B6]',
-            'dark:text-[#B084E8] dark:hover:text-[#E8C868]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2',
+            'text-[#4A2E67] hover:text-[#5C3A7E]',
+            'dark:text-[#B084E8] dark:hover:text-[#E5C788]',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2',
           )}
         >
           {t('menuViewAll')}

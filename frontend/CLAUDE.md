@@ -25,7 +25,7 @@ App Next.js 14 servant le site institutionnel sur `pssfp.net`. Couvre 8 rubrique
 - **`'use client'` minoritaire** — seulement formulaires, lightbox, animations interactives, hooks navigateur. Justifier en commentaire pourquoi un composant doit être client.
 - **Fetch côté serveur** via `fetch()` natif avec `next: { revalidate: N }`. Pas d'axios côté server.
 - **next/image obligatoire** pour toutes les images. Formats AVIF/WebP, lazy par défaut, `sizes` responsive.
-- **next/font/google** pour Playfair Display + Inter + DM Sans, `display: swap`, subsetting Latin.
+- **next/font/google** pour Cormorant Garamond + Source Sans 3 + DM Sans (ADR-0008), `display: swap`, subsetting Latin. Playfair Display + Inter sortent du DS.
 - **next-intl** pour i18n (cf. ADR-0006). Toujours `useTranslations()`, jamais de texte en dur dans le JSX.
 - **shadcn/ui** pour les primitives (Button, Card, Dialog, Form). Ajout via `npx shadcn-ui@latest add ...`.
 - **Tailwind classes** uniquement, pas de CSS inline ni de styled-components.

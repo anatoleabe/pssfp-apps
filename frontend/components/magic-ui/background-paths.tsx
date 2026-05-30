@@ -89,7 +89,7 @@ function FloatingPaths({ position, count, durationSeconds, animate }: FloatingPa
  * Respecte `prefers-reduced-motion` (rend les courbes statiques).
  */
 export function BackgroundPaths({
-  colorClassName = 'text-[#6B2FA0] dark:text-[#B084E8]',
+  colorClassName = 'text-[#4A2E67] dark:text-[#B084E8]',
   className,
   durationSeconds = 20,
   pathCount = 36,

@@ -30,13 +30,13 @@ const rowSpanMap: Record<NonNullable<BentoCardProps['rowSpan']>, string> = {
 
 const variantMap: Record<NonNullable<BentoCardProps['variant']>, string> = {
   default:
-    'bg-white border border-[#EDE7F6] shadow-pssfp-soft hover:shadow-pssfp-elevated',
+    'bg-white border border-[#F4EFFA] shadow-pssfp-soft hover:shadow-pssfp-elevated',
   gradient:
-    'bg-gradient-violet-or text-white border border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
+    'bg-gradient-prune-or text-white border border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
   lavande:
-    'bg-gradient-lavande-blanc border border-[#EDE7F6] shadow-pssfp-soft hover:shadow-pssfp-elevated',
+    'bg-gradient-lavande-blanc border border-[#F4EFFA] shadow-pssfp-soft hover:shadow-pssfp-elevated',
   or:
-    'bg-gradient-or-soft text-[#1A0A2E] border border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
+    'bg-gradient-or text-[#1A1A1A] border border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
 };
 
 export function BentoGrid({ className, children }: BentoGridProps): JSX.Element {

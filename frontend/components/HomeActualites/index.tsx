@@ -34,9 +34,9 @@ export async function HomeActualites(): Promise<JSX.Element> {
   const t = await getTranslations('home.actualites');
 
   const accentBg = {
-    violet: 'bg-gradient-violet',
-    or: 'bg-gradient-or-soft',
-    forest: 'bg-gradient-forest',
+    violet: 'bg-gradient-prune',
+    or: 'bg-gradient-or',
+    forest: 'bg-gradient-petrole-prune',
   } as const;
 
   const articlesResult = await listArticles({ featured: true });
@@ -49,7 +49,7 @@ export async function HomeActualites(): Promise<JSX.Element> {
     <section
       aria-labelledby="actualites-heading"
       data-testid="home-actualites"
-      className="bg-[#FBF7EE]"
+      className="bg-[#FAF7F2]"
     >
       <div className="mx-auto max-w-7xl px-6 py-20 md:py-24">
         <header className="mb-12 flex flex-wrap items-end justify-between gap-4">
@@ -64,7 +64,7 @@ export async function HomeActualites(): Promise<JSX.Element> {
           </div>
           <Link
             href="/actualites"
-            className="group inline-flex items-center gap-2 rounded-pssfp-button border border-[#E4D8B7] bg-white px-4 py-2.5 text-sm font-semibold text-[#0E4D3F] transition-all duration-200 hover:border-[#0E4D3F] hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E4D3F] focus-visible:ring-offset-2"
+            className="group inline-flex items-center gap-2 rounded-pssfp-button border border-[#D8C9A6] bg-white px-4 py-2.5 text-sm font-semibold text-[#0F3A4A] transition-all duration-200 hover:border-[#0F3A4A] hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F3A4A] focus-visible:ring-offset-2"
           >
             {t('seeAll')}
             <ArrowRight
@@ -95,7 +95,7 @@ export async function HomeActualites(): Promise<JSX.Element> {
                   <li key={article.uuid}>
                     <article
                       data-testid={`home-actualites-card-${article.slug}`}
-                      className="group flex h-full flex-col overflow-hidden rounded-pssfp-card border border-[#E4D8B7] bg-white shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-[#C9A227]/60 hover:shadow-pssfp-elevated"
+                      className="group flex h-full flex-col overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-[#D4AF6A]/60 hover:shadow-pssfp-elevated"
                     >
                       {/* Header image MinIO ou gradient fallback */}
                       <div
@@ -116,11 +116,11 @@ export async function HomeActualites(): Promise<JSX.Element> {
 
                       <div className="flex grow flex-col p-6">
                         <p className="flex flex-wrap items-center gap-2 text-xs">
-                          <span className="inline-flex items-center gap-1 text-[#6B6378]">
+                          <span className="inline-flex items-center gap-1 text-[#6B6B6B]">
                             <Calendar size={12} aria-hidden="true" />
                             <time dateTime={dateIso}>{formatDateFr(dateIso)}</time>
                           </span>
-                          <span className="inline-flex items-center rounded-full bg-[#EFE6CE] px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-[#14101A]">
+                          <span className="inline-flex items-center rounded-full bg-[#EFE9DF] px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-[#14101A]">
                             {article.category_label ?? article.category ?? ''}
                           </span>
                         </p>
@@ -128,14 +128,14 @@ export async function HomeActualites(): Promise<JSX.Element> {
                           {article.title}
                         </h3>
                         {article.excerpt && (
-                          <p className="mt-3 text-sm leading-relaxed text-[#6B6378]">
+                          <p className="mt-3 text-sm leading-relaxed text-[#6B6B6B]">
                             {article.excerpt}
                           </p>
                         )}
                         <Link
                           href={`/actualites/${article.slug}`}
                           data-testid={`home-actualites-link-${article.slug}`}
-                          className="mt-5 inline-flex items-center gap-1.5 self-start rounded text-sm font-semibold text-[#0E4D3F] transition-all duration-200 hover:gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E4D3F] focus-visible:ring-offset-2"
+                          className="mt-5 inline-flex items-center gap-1.5 self-start rounded text-sm font-semibold text-[#0F3A4A] transition-all duration-200 hover:gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F3A4A] focus-visible:ring-offset-2"
                         >
                           {t('readMore')}
                           <ArrowRight

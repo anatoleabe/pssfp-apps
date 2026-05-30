@@ -31,11 +31,11 @@ export function CamesGrid(): JSX.Element {
     <section
       aria-labelledby="cames-heading"
       data-testid="cames-grid"
-      className="rounded-xl border border-[#C9A227]/40 bg-gradient-to-br from-white to-[#FFFBEA] p-6 md:p-8"
+      className="rounded-xl border border-[#D4AF6A]/40 bg-gradient-to-br from-white to-[#FFFBEA] p-6 md:p-8"
     >
       <h2
         id="cames-heading"
-        className="font-heading text-2xl font-bold text-[#6B2FA0]"
+        className="font-heading text-2xl font-bold text-[#4A2E67]"
       >
         Les 12 exigences CAMES
       </h2>
@@ -51,14 +51,14 @@ export function CamesGrid(): JSX.Element {
             <Link
               href={`/${req.linkSlug}`}
               data-testid={`cames-req-${req.id}`}
-              className="group flex items-start gap-3 rounded-md border border-[#EDE7F6] bg-white p-3 transition-colors hover:border-[#C9A227] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2"
+              className="group flex items-start gap-3 rounded-md border border-[#F4EFFA] bg-white p-3 transition-colors hover:border-[#D4AF6A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
             >
               <CheckCircle2
                 size={18}
                 aria-hidden="true"
-                className="mt-0.5 shrink-0 text-[#C9A227]"
+                className="mt-0.5 shrink-0 text-[#D4AF6A]"
               />
-              <span className="grow text-sm text-[#333] group-hover:text-[#6B2FA0]">
+              <span className="grow text-sm text-[#333] group-hover:text-[#4A2E67]">
                 <span className="font-semibold">Exigence {String(req.id).padStart(2, '0')}.</span>{' '}
                 {req.label}
               </span>

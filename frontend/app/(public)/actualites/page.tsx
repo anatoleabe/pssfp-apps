@@ -1,8 +1,10 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Calendar, Pin } from 'lucide-react';
 import type { Metadata } from 'next';
 import { FacebookEmbed } from '@/components/FacebookEmbed';
 import { listArticles } from '@/lib/api/articles';
+import { mediaUrl } from '@/lib/media';
 
 export const revalidate = 300;
 
@@ -33,7 +35,7 @@ export default async function ActualitesIndexPage({
     <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
       <header className="mb-10 flex flex-wrap items-baseline justify-between gap-4">
         <div>
-          <h1 className="font-heading text-3xl font-bold text-[#6B2FA0] md:text-4xl">Actualités</h1>
+          <h1 className="font-heading text-3xl font-bold text-[#4A2E67] md:text-4xl">Actualités</h1>
           <p className="mt-3 max-w-2xl text-[#555]">
             Événements, coopération, vie académique et communiqués officiels du PSSFP.
           </p>
@@ -52,7 +54,7 @@ export default async function ActualitesIndexPage({
         <p
           role="status"
           data-testid="actualites-empty"
-          className="rounded-md border border-[#EDE7F6] bg-[#FAF7FF] p-4 text-sm text-[#555]"
+          className="rounded-md border border-[#F4EFFA] bg-[#FAF7FF] p-4 text-sm text-[#555]"
         >
           Aucune actualité publiée pour le moment.
         </p>
@@ -63,12 +65,24 @@ export default async function ActualitesIndexPage({
               <li
                 key={article.slug}
                 data-testid={`actualite-card-${article.slug}`}
-                className="flex h-full flex-col rounded-xl border border-[#EDE7F6] bg-white shadow-sm"
+                className="group flex h-full flex-col overflow-hidden rounded-xl border border-[var(--pssfp-border)] bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-pssfp-elevated"
               >
+                {/* Image MinIO ou gradient fallback — Sprint S5.1 (audit P1 #5) */}
                 <div
                   aria-hidden="true"
-                  className="h-40 rounded-t-xl bg-gradient-to-br from-[#6B2FA0]/15 to-[#C9A227]/20"
-                />
+                  className="relative h-44 overflow-hidden rounded-t-xl bg-gradient-to-br from-pssfp-prune/15 to-pssfp-or/20"
+                >
+                  {article.featured_image_path && (
+                    <Image
+                      src={mediaUrl(article.featured_image_path)}
+                      alt=""
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                </div>
                 <div className="flex grow flex-col p-5">
                   <p className="flex flex-wrap items-center gap-2 text-xs text-[#666]">
                     <span className="inline-flex items-center gap-1">
@@ -76,7 +90,7 @@ export default async function ActualitesIndexPage({
                       {formatDateFr(article.published_at)}
                     </span>
                     <span aria-hidden="true">·</span>
-                    <span className="font-semibold text-[#6B2FA0]">{article.category_label}</span>
+                    <span className="font-semibold text-[#4A2E67]">{article.category_label}</span>
                     {article.is_pinned && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-[#FFFBEA] px-2 py-0.5 text-[#A57A00]">
                         <Pin size={10} aria-hidden="true" />
@@ -87,7 +101,7 @@ export default async function ActualitesIndexPage({
                   <h2 className="mt-3 grow font-heading text-lg font-bold leading-snug text-[#333]">
                     <Link
                       href={`/actualites/${article.slug}`}
-                      className="hover:text-[#6B2FA0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded"
+                      className="hover:text-[#4A2E67] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 rounded"
                     >
                       {article.title}
                     </Link>
@@ -97,7 +111,7 @@ export default async function ActualitesIndexPage({
                   )}
                   <Link
                     href={`/actualites/${article.slug}`}
-                    className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#6B2FA0] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B2FA0] focus-visible:ring-offset-2 rounded"
+                    className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#4A2E67] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 rounded"
                   >
                     Lire la suite
                     <ArrowRight size={14} aria-hidden="true" />
@@ -108,7 +122,7 @@ export default async function ActualitesIndexPage({
           </ul>
 
           <aside aria-label="Flux Facebook officiel">
-            <h2 className="mb-4 font-heading text-lg font-bold text-[#6B2FA0]">
+            <h2 className="mb-4 font-heading text-lg font-bold text-[#4A2E67]">
               Sur Facebook
             </h2>
             <FacebookEmbed />
@@ -125,7 +139,7 @@ export default async function ActualitesIndexPage({
           {pageNum > 1 && (
             <Link
               href={`/actualites?page=${pageNum - 1}`}
-              className="inline-flex h-10 items-center rounded-md border border-gray-300 bg-white px-4 hover:border-[#6B2FA0]"
+              className="inline-flex h-10 items-center rounded-md border border-gray-300 bg-white px-4 hover:border-[#4A2E67]"
             >
               ← Précédent
             </Link>
@@ -136,7 +150,7 @@ export default async function ActualitesIndexPage({
           {pageNum < result.data.meta.last_page && (
             <Link
               href={`/actualites?page=${pageNum + 1}`}
-              className="inline-flex h-10 items-center rounded-md border border-gray-300 bg-white px-4 hover:border-[#6B2FA0]"
+              className="inline-flex h-10 items-center rounded-md border border-gray-300 bg-white px-4 hover:border-[#4A2E67]"
             >
               Suivant →
             </Link>

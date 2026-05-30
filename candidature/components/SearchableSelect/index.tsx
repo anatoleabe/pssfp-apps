@@ -78,7 +78,7 @@ export function SearchableSelect({
           setOpen((prev) => !prev);
           setTimeout(() => inputRef.current?.focus(), 0);
         }}
-        className="flex h-11 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-left text-sm text-[#333333] focus:border-[#6B2FA0] focus:outline-none focus:ring-2 focus:ring-[#6B2FA0]/30 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
+        className="flex h-11 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-left text-sm text-[#333333] focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
       >
         <span className={selected ? '' : 'text-gray-400'}>
           {selected ? selected.label : placeholder}
@@ -107,7 +107,7 @@ export function SearchableSelect({
                 }
               }}
               placeholder="Rechercher…"
-              className="h-9 w-full rounded-md border border-gray-200 px-2 text-sm focus:border-[#6B2FA0] focus:outline-none"
+              className="h-9 w-full rounded-md border border-gray-200 px-2 text-sm focus:border-[#4A2E67] focus:outline-none"
             />
           </div>
           <ul className="py-1">
@@ -120,7 +120,7 @@ export function SearchableSelect({
                   role="option"
                   aria-selected={opt.value === value}
                   className={`px-3 py-2 text-sm ${
-                    opt.value === value ? 'bg-[#EDE7F6] font-medium text-[#6B2FA0]' : ''
+                    opt.value === value ? 'bg-[#F4EFFA] font-medium text-[#4A2E67]' : ''
                   }`}
                 >
                   <button
