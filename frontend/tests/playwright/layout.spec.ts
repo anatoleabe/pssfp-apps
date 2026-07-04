@@ -34,6 +34,25 @@ test.describe('Layout — Header', () => {
     const homeLink = page.getByTestId('nav-home');
     await expect(homeLink).toHaveAttribute('aria-current', 'page');
   });
+
+  test('vie academique menu exposes the six CMS destinations', async ({ page }) => {
+    await page.goto('/');
+    await page.getByTestId('nav-vie').hover();
+    const submenu = page.getByTestId('nav-submenu-vie');
+    await expect(submenu).toBeVisible();
+    await expect(submenu.locator('[data-testid^="nav-submenu-item-vie"]')).toHaveCount(6);
+    await expect(page.getByTestId('nav-submenu-item-viePromotions')).toBeVisible();
+    await expect(page.getByTestId('nav-submenu-item-vieCooperation')).toBeVisible();
+  });
+
+  test('mobile vie academique section expands', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 700 });
+    await page.goto('/');
+    await page.getByTestId('nav-toggle').click();
+    await page.getByTestId('nav-mobile-toggle-vie').click();
+    await expect(page.getByRole('link', { name: 'Promotions' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Coopération internationale' })).toBeVisible();
+  });
 });
 
 test.describe('Layout — Footer', () => {

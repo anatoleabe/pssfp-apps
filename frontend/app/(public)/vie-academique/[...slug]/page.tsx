@@ -1,7 +1,8 @@
-import Link from 'next/link';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { InternalPageCta } from '@/components/InternalPageCta';
+import { InternalPageHero } from '@/components/InternalPageHero';
 import { PageRenderer } from '@/components/PageRenderer';
 import { getPageBySlug } from '@/lib/api/pages';
 import { mediaUrl } from '@/lib/media';
@@ -70,62 +71,21 @@ export default async function VieAcademiqueCatchallPage({ params }: PageProps): 
 
   return (
     <>
-      {/* Hero éditorial avec photo si disponible, sinon gradient */}
-      {heroImage ? (
-        <header className="relative isolate overflow-hidden border-b border-[#F4EFFA] dark:border-[#3A2A55]">
-          <div className="relative h-[40vh] min-h-[320px] w-full md:h-[50vh]">
-            <Image
-              src={mediaUrl(heroImage)}
-              alt=""
-              fill
-              sizes="100vw"
-              priority
-              className="object-cover object-center"
-            />
-            <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A]/95 via-[#14091F]/40 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 mx-auto max-w-5xl px-6 pb-8 md:pb-12">
-              <p className="pssfp-eyebrow text-[#E5C788]">{eyebrowFor(page.slug)}</p>
-              <h1 className="mt-3 font-heading text-3xl font-bold leading-tight text-white md:text-5xl">
-                {page.title}
-              </h1>
-              {page.excerpt && (
-                <p className="mt-4 max-w-3xl text-lg text-white/85" data-testid="page-excerpt">
-                  {page.excerpt}
-                </p>
-              )}
-            </div>
-          </div>
-        </header>
-      ) : (
-        <header className="relative overflow-hidden border-b border-[#F4EFFA] bg-gradient-lavande-blanc py-12 md:py-16 dark:border-[#3A2A55] dark:bg-[#1A1A1A] dark:bg-none">
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-0 opacity-50 dark:opacity-30">
-            <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-[#5C3A7E]/15 blur-3xl dark:bg-[#B084E8]/10" />
-            <div className="absolute -bottom-32 -left-16 h-[28rem] w-[28rem] rounded-full bg-[#D4AF6A]/10 blur-3xl dark:bg-[#E5C788]/10" />
-          </div>
-          <div className="relative mx-auto max-w-5xl px-6">
-            <p className="pssfp-eyebrow text-[#D4AF6A]">{eyebrowFor(page.slug)}</p>
-            <h1 className="mt-3 font-heading text-3xl font-bold leading-tight text-[#4A2E67] md:text-5xl dark:text-[#B084E8]">
-              {page.title}
-            </h1>
-            {page.excerpt && (
-              <p className="mt-4 max-w-3xl text-lg text-[#555] dark:text-[#B5A8C8]" data-testid="page-excerpt">
-                {page.excerpt}
-              </p>
-            )}
-          </div>
-        </header>
-      )}
+      <InternalPageHero
+        eyebrow={eyebrowFor(page.slug)}
+        title={page.title}
+        excerpt={page.excerpt}
+        imageSrc={heroImage ? mediaUrl(heroImage) : null}
+      />
 
       <div className="mx-auto max-w-4xl px-6 pt-6">
-        <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666] dark:text-[#B5A8C8]">
-          <Link href="/" className="hover:text-[#4A2E67] dark:hover:text-[#B084E8]">Accueil</Link>
-          <span aria-hidden="true"> / </span>
-          <Link href="/vie-academique" className="hover:text-[#4A2E67] dark:hover:text-[#B084E8]">Vie académique</Link>
-          <span aria-hidden="true"> / </span>
-          <span className="text-[#333] dark:text-[#F5EFE3]" data-testid="breadcrumb-current">
-            {page.menu_label ?? page.title}
-          </span>
-        </nav>
+        <Breadcrumbs
+          items={[
+            { href: '/', label: 'Accueil' },
+            { href: '/vie-academique', label: 'Vie académique' },
+            { label: page.menu_label || page.title },
+          ]}
+        />
       </div>
 
       <div className="mx-auto max-w-4xl px-6 pb-12 md:pb-16">
@@ -135,6 +95,8 @@ export default async function VieAcademiqueCatchallPage({ params }: PageProps): 
           </div>
         )}
       </div>
+
+      <InternalPageCta />
     </>
   );
 }

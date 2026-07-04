@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { ArrowRight, Users, GraduationCap, Calendar, Briefcase, Globe2, Plane } from 'lucide-react';
 import type { Metadata } from 'next';
+import { InternalPageCta } from '@/components/InternalPageCta';
+import { InternalPageHero } from '@/components/InternalPageHero';
 import { PageRenderer } from '@/components/PageRenderer';
 import { getPageBySlug } from '@/lib/api/pages';
 
@@ -24,31 +26,29 @@ export default async function VieAcademiqueIndexPage(): Promise<JSX.Element> {
   const result = await getPageBySlug('vie-academique');
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-12 md:py-16">
-      <header className="mb-8">
-        <h1 className="font-heading text-3xl font-bold text-[#4A2E67] md:text-4xl">
-          Vie académique
-        </h1>
-        {result.ok && result.data.excerpt && (
-          <p className="mt-3 text-lg text-[#555]">{result.data.excerpt}</p>
-        )}
-      </header>
+    <>
+      <InternalPageHero
+        eyebrow="Communauté PSSFP"
+        title="Vie académique"
+        excerpt={result.ok ? result.data.excerpt : undefined}
+      />
 
+      <div className="mx-auto max-w-5xl px-6 py-12 md:py-16">
       <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {QUICK_LINKS.map(({ slug, label, Icon }) => (
           <li key={slug}>
             <Link
               href={`/${slug}`}
               data-testid={`vie-link-${slug.split('/').pop()}`}
-              className="group flex h-full flex-col items-start gap-3 rounded-lg border border-[#F4EFFA] bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-[#5C3A7E] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
+              className="group flex h-full flex-col items-start gap-3 rounded-pssfp-card border border-[var(--pssfp-border)] bg-[var(--pssfp-bg-elevated)] p-5 shadow-pssfp-soft transition-all hover:-translate-y-0.5 hover:border-pssfp-prune hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 dark:hover:border-[#B084E8]"
             >
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-[#F4EFFA] text-[#4A2E67]">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-[var(--pssfp-primary-soft)] text-pssfp-prune dark:text-[#B084E8]">
                 <Icon size={20} aria-hidden="true" />
               </span>
-              <span className="grow font-heading text-lg font-semibold text-[#333] group-hover:text-[#4A2E67]">
+              <span className="grow font-heading text-lg font-semibold text-[var(--pssfp-text-strong)] group-hover:text-pssfp-prune dark:group-hover:text-[#B084E8]">
                 {label}
               </span>
-              <ArrowRight size={16} aria-hidden="true" className="text-[#4A2E67] transition-transform group-hover:translate-x-1" />
+              <ArrowRight size={16} aria-hidden="true" className="text-pssfp-or transition-transform group-hover:translate-x-1" />
             </Link>
           </li>
         ))}
@@ -59,6 +59,9 @@ export default async function VieAcademiqueIndexPage(): Promise<JSX.Element> {
           <PageRenderer body={result.data.body} />
         </div>
       )}
-    </div>
+      </div>
+
+      <InternalPageCta />
+    </>
   );
 }

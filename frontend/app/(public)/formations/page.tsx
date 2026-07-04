@@ -1,6 +1,16 @@
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import {
+  ArrowRight,
+  Award,
+  BadgeCheck,
+  Banknote,
+  ClipboardList,
+  GraduationCap,
+  Layers,
+} from 'lucide-react';
 import type { Metadata } from 'next';
+import { InternalPageCta } from '@/components/InternalPageCta';
+import { InternalPageHero } from '@/components/InternalPageHero';
 import { PageRenderer } from '@/components/PageRenderer';
 import { getPageBySlug } from '@/lib/api/pages';
 
@@ -12,41 +22,42 @@ export const metadata: Metadata = {
 };
 
 const QUICK_LINKS = [
-  { slug: 'formations/master', label: 'Master Professionnel' },
-  { slug: 'formations/specialites', label: '5 spécialités du Master' },
-  { slug: 'formations/formation-continue', label: 'Formation continue (10 modules)' },
-  { slug: 'formations/certifications', label: 'Certifications internationales' },
-  { slug: 'formations/seminaires', label: 'Séminaires & voyages d\'étude' },
-  { slug: 'formations/admission', label: 'Admission (P14 — 2026)' },
-  { slug: 'formations/frais-de-scolarite', label: 'Frais de scolarité' },
+  { slug: 'formations/master', label: 'Master Professionnel', Icon: GraduationCap },
+  { slug: 'formations/specialites', label: '5 spécialités du Master', Icon: Layers },
+  { slug: 'formations/formation-continue', label: 'Formation continue (10 modules)', Icon: ClipboardList },
+  { slug: 'formations/certifications', label: 'Certifications internationales', Icon: BadgeCheck },
+  { slug: 'formations/seminaires', label: 'Séminaires & voyages d\'étude', Icon: Award },
+  { slug: 'formations/admission', label: 'Admission (P14 — 2026)', Icon: ClipboardList },
+  { slug: 'formations/frais-de-scolarite', label: 'Frais de scolarité', Icon: Banknote },
 ] as const;
 
 export default async function FormationsIndexPage(): Promise<JSX.Element> {
   const result = await getPageBySlug('formations');
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-12 md:py-16">
-      <header className="mb-8">
-        <h1 className="font-heading text-3xl font-bold text-[#4A2E67] md:text-4xl">
-          Formations supérieures
-        </h1>
-        {result.ok && result.data.excerpt && (
-          <p className="mt-3 text-lg text-[#555]">{result.data.excerpt}</p>
-        )}
-      </header>
+    <>
+      <InternalPageHero
+        eyebrow="Catalogue académique"
+        title="Formations supérieures"
+        excerpt={result.ok ? result.data.excerpt : undefined}
+      />
 
+      <div className="mx-auto max-w-5xl px-6 py-12 md:py-16">
       <ul className="grid gap-4 md:grid-cols-2">
-        {QUICK_LINKS.map((link) => (
-          <li key={link.slug}>
+        {QUICK_LINKS.map(({ slug, label, Icon }) => (
+          <li key={slug}>
             <Link
-              href={`/${link.slug}`}
-              data-testid={`formations-link-${link.slug.split('/').pop()}`}
-              className="group flex h-full items-center justify-between gap-4 rounded-lg border border-[#F4EFFA] bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-[#5C3A7E] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
+              href={`/${slug}`}
+              data-testid={`formations-link-${slug.split('/').pop()}`}
+              className="group flex h-full items-center gap-4 rounded-pssfp-card border border-[var(--pssfp-border)] bg-[var(--pssfp-bg-elevated)] p-5 shadow-pssfp-soft transition-all hover:-translate-y-0.5 hover:border-pssfp-prune hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 dark:hover:border-[#B084E8]"
             >
-              <span className="font-heading text-lg font-semibold text-[#333] group-hover:text-[#4A2E67]">
-                {link.label}
+              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[var(--pssfp-primary-soft)] text-pssfp-prune dark:text-[#B084E8]">
+                <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
               </span>
-              <ArrowRight size={18} aria-hidden="true" className="text-[#4A2E67] transition-transform group-hover:translate-x-1" />
+              <span className="grow font-heading text-lg font-semibold text-[var(--pssfp-text-strong)] group-hover:text-pssfp-prune dark:group-hover:text-[#B084E8]">
+                {label}
+              </span>
+              <ArrowRight size={18} aria-hidden="true" className="shrink-0 text-pssfp-or transition-transform group-hover:translate-x-1" />
             </Link>
           </li>
         ))}
@@ -57,6 +68,9 @@ export default async function FormationsIndexPage(): Promise<JSX.Element> {
           <PageRenderer body={result.data.body} />
         </div>
       )}
-    </div>
+      </div>
+
+      <InternalPageCta />
+    </>
   );
 }

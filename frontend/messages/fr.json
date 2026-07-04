@@ -42,6 +42,19 @@
     "formationsFrais": "Frais de scolarité",
     "formationsFraisDesc": "Tarifs, modalités et bourses",
     "vie": "Vie académique",
+    "vieMenuLabel": "Sous-menu Vie académique",
+    "viePromotions": "Promotions",
+    "viePromotionsDesc": "Parcours des auditeurs et réseau des diplômés",
+    "vieEnseignants": "Corps enseignant",
+    "vieEnseignantsDesc": "Expertise académique et professionnelle",
+    "vieCalendrier": "Calendrier académique",
+    "vieCalendrierDesc": "Dates clés de l'année universitaire",
+    "vieStages": "Stages et soutenances",
+    "vieStagesDesc": "Expérience professionnelle et travaux de fin d'études",
+    "vieMediafip": "Programme MEDIAFIP",
+    "vieMediafipDesc": "Mobilité et coopération académique",
+    "vieCooperation": "Coopération internationale",
+    "vieCooperationDesc": "Partenariats et ouverture sur la sous-région",
     "actualites": "Actualités",
     "contact": "Contact",
     "library": "Bibliothèque",
@@ -50,7 +63,23 @@
     "menuOpen": "Ouvrir le menu",
     "menuClose": "Fermer le menu",
     "menuSectionExplore": "Explorer la section",
-    "menuViewAll": "Voir toute la section"
+    "menuViewAll": "Voir toute la section",
+    "menuGroupInstitution": "Institution",
+    "menuGroupGouvernance": "Gouvernance",
+    "menuGroupReperes": "Repères",
+    "menuGroupDiplomes": "Diplômes",
+    "menuGroupDeveloppement": "Développement",
+    "menuGroupPratique": "Informations pratiques",
+    "menuGroupParcours": "Parcours",
+    "menuGroupCampus": "Campus",
+    "menuGroupOuverture": "Ouverture"
+  },
+  "internalCta": {
+    "eyebrow": "Admissions · Promotion 14",
+    "title": "Construisez votre parcours au PSSFP",
+    "body": "Explorez nos formations et préparez votre candidature pour rejoindre la prochaine promotion du Master Professionnel en Finances Publiques.",
+    "primary": "Candidater en ligne",
+    "secondary": "Voir les formations"
   },
   "footer": {
     "aboutTitle": "À propos",
@@ -102,6 +131,27 @@
     "ctaButton": "Candidater en ligne"
   },
   "home": {
+    "institutionalHero": {
+      "eyebrow": "Campus de Messa · Yaoundé",
+      "campaign": "Candidatures ouvertes",
+      "title": "Former l'élite des finances publiques",
+      "subtitle": "Le PSSFP prépare les cadres supérieurs capables de moderniser l'action publique au Cameroun et dans la sous-région CEMAC.",
+      "ctaPrimary": "Candidater à la promotion 14",
+      "ctaSecondary": "Découvrir les formations",
+      "deadline": "Dépôt des dossiers jusqu'au 15 août 2026.",
+      "trustCames": "Master BAC+5 reconnu CAMES",
+      "trustPromotions": "13 promotions formées",
+      "trustCampus": "Campus de Messa, Yaoundé",
+      "imageAlt": "Auditeurs diplômés du PSSFP lors de la cérémonie de remise des diplômes"
+    },
+    "campusCta": {
+      "eyebrow": "Campus de Messa · Yaoundé",
+      "title": "Rejoignez la prochaine génération de cadres publics",
+      "body": "Intégrez un programme d'excellence au cœur des institutions camerounaises et développez une expertise directement applicable aux enjeux des finances publiques.",
+      "ctaPrimary": "Candidater à la promotion 14",
+      "ctaSecondary": "Découvrir le campus",
+      "imageAlt": "Façade du Campus de Messa à Yaoundé"
+    },
     "hero": {
       "eyebrow": "Campus de Messa, Yaoundé",
       "title": "Former l'excellence des finances publiques en Afrique centrale",
@@ -168,6 +218,7 @@
       "titleAccent": "un parcours complet",
       "intro": "Un Master Professionnel en 5 spécialités, 10 modules courts de formation continue, et des certifications internationales — pour les futurs cadres comme pour les responsables en activité.",
       "readMore": "Découvrir",
+      "featuredLabel": "Spécialité phare",
       "specialitiesEyebrow": "Master Professionnel · 5 spécialités",
       "specialitiesTitle": "Choisir sa spécialité en M2",
       "spec1": "Les Métiers Budgétaires",
@@ -269,6 +320,21 @@
     "back": "Retour à l'accueil"
   },
   "actualites": {
+    "index": {
+      "eyebrow": "Actualités du Programme",
+      "title": "Actualités du PSSFP",
+      "intro": "Événements, coopération, vie académique et communiqués officiels : suivez les temps forts du Programme.",
+      "facebook": "Sur Facebook",
+      "readMore": "Lire la suite"
+    },
+    "detail": {
+      "eyebrow": "Actualité",
+      "pinned": "À la une",
+      "summaryTitle": "En bref",
+      "summaryBody": "Retrouvez les informations essentielles de cette publication et poursuivez votre découverte du Programme.",
+      "apply": "Candidater à la promotion 14",
+      "back": "Toutes les actualités"
+    },
     "facebook": {
       "title": "Suivez @pssfpcameroun",
       "body": "Le flux Facebook officiel du PSSFP n'est chargé qu'après votre consentement (RGPD). Aucun cookie tiers Facebook n'est déposé tant que vous n'avez pas accepté.",

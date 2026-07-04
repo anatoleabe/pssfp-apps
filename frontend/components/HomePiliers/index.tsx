@@ -50,8 +50,8 @@ export async function HomePiliers(): Promise<JSX.Element> {
         }}
       />
 
-      <div className="relative mx-auto max-w-7xl px-6 py-16 md:py-20">
-        <div className="mx-auto mb-12 max-w-3xl text-center md:mb-14">
+      <div className="relative mx-auto max-w-7xl px-6 py-12 md:py-16">
+        <div className="mx-auto mb-8 max-w-3xl text-center md:mb-10">
           <p className="font-ui text-xs uppercase tracking-[0.18em] text-pssfp-or">
             {t('eyebrow')}
           </p>
@@ -66,7 +66,7 @@ export async function HomePiliers(): Promise<JSX.Element> {
           </p>
         </div>
 
-        <ul className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
+        <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {PILIERS.map((p) => (
             <li key={p.key} className="group relative">
               <div className="flex flex-col items-start">
@@ -85,15 +85,15 @@ export async function HomePiliers(): Promise<JSX.Element> {
                     {p.number}
                   </span>
                 </div>
-                <h3 className="mt-5 font-heading text-lg font-bold text-white">
+                <h3 className="mt-4 font-heading text-lg font-bold text-white">
                   {t(`${p.key}.title`)}
                 </h3>
                 {/* Micro-séparateur or — parité avec HomeEngagements. */}
                 <span
                   aria-hidden="true"
-                  className="mt-3 inline-block h-px w-8 bg-pssfp-or/60 transition-all duration-300 group-hover:w-12 group-hover:bg-pssfp-or"
+                  className="mt-2 inline-block h-px w-8 bg-pssfp-or/60 transition-all duration-300 group-hover:w-12 group-hover:bg-pssfp-or"
                 />
-                <p className="mt-3 text-sm leading-relaxed text-white/75">
+                <p className="mt-2 text-sm leading-relaxed text-white/75">
                   {t(`${p.key}.body`)}
                 </p>
               </div>

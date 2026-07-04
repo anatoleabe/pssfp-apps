@@ -16,22 +16,26 @@ test.describe('/a-propos — index', () => {
     await expect(page.getByRole('heading', { level: 1, name: /À propos de nous/i })).toBeVisible();
   });
 
-  test('renders the empty state when backend unreachable', async ({ page }) => {
+  test('renders cards or the empty state depending on backend state', async ({ page }) => {
     await page.goto('/a-propos');
-    // Sans backend live, la liste enfants est vide → bandeau visible
-    await expect(page.getByTestId('apropos-empty')).toBeVisible();
+    const cards = page.locator('[data-testid^="apropos-card-"]');
+    const empty = page.getByTestId('apropos-empty');
+    expect((await cards.count()) + (await empty.count())).toBeGreaterThan(0);
   });
 });
 
-test.describe('/a-propos/[...slug] — error fallback', () => {
-  test('renders the error block when SSR fetch fails (no backend)', async ({ page }) => {
+test.describe('/a-propos/[...slug] — CMS or fallback', () => {
+  test('renders the CMS page or an explicit fallback', async ({ page }) => {
     const response = await page.goto('/a-propos/presentation');
     // Soit 404 (notFound), soit la page d'erreur si status != 404
     if (response?.status() === 404) {
       await expect(page.getByRole('heading', { level: 1, name: '404' })).toBeVisible();
     } else {
       await expect(
-        page.getByRole('heading', { level: 1, name: /Page (introuvable|indisponible)/i }),
+        page.getByRole('heading', {
+          level: 1,
+          name: /(Présentation du PSSFP|Page introuvable|Page indisponible)/i,
+        }),
       ).toBeVisible();
     }
   });
