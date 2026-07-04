@@ -29,7 +29,7 @@ final class SendContactRequest extends FormRequest
             'organisation' => ['sometimes', 'nullable', 'string', 'max:150'],
             'subject' => ['sometimes', 'nullable', 'string', 'max:200'],
             'message' => ['required', 'string', 'min:10', 'max:5000'],
-            'cf_turnstile_response' => ['sometimes', 'nullable', 'string'],
+            'cf_turnstile_response' => ['sometimes', 'nullable', 'string', 'max:2048'],
             'cgu' => ['required', 'accepted'],
         ];
     }
