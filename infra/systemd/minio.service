@@ -1,0 +1,26 @@
+# /etc/systemd/system/minio.service — LOT C.4
+# Stockage privé S3-compatible : photos candidats, récépissés, médias CMS.
+# Config secrète dans /etc/default/minio (mode 600) — cf. minio.env.example.
+#
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now minio.service
+
+[Unit]
+Description=MinIO Object Storage (PSSFP)
+After=network.target
+
+[Service]
+Type=simple
+User=minio
+Group=minio
+EnvironmentFile=/etc/default/minio
+# Console liée à 127.0.0.1 uniquement — jamais exposée (accès via tunnel SSH).
+ExecStart=/usr/local/bin/minio server $MINIO_VOLUMES --address 127.0.0.1:9000 --console-address 127.0.0.1:9001
+Restart=always
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

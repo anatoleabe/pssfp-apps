@@ -1,0 +1,33 @@
+# /etc/systemd/system/pssfp-queue.service — LOT C.4
+# CRITIQUE : tous les emails candidat (soumission, décision) sont ShouldQueue.
+# Sans ce worker, aucun email ne part (cf. docs/ops/go-live-candidature.md §B.5).
+#
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now pssfp-queue.service
+
+[Unit]
+Description=PSSFP Laravel Queue Worker (Redis)
+After=network.target redis-server.service postgresql.service
+Requires=redis-server.service
+
+[Service]
+Type=simple
+User=deploy
+Group=www-data
+WorkingDirectory=/var/www/pssfp/backend
+# --max-time=3600 : le worker se recycle chaque heure (le code frais est
+# rechargé après deploy sans fuite mémoire) ; systemd le relance aussitôt.
+ExecStart=/usr/bin/php artisan queue:work redis --queue=high,default,low --sleep=3 --tries=3 --max-time=3600
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/pssfp/queue.log
+StandardError=append:/var/log/pssfp/queue.log
+
+# Durcissement
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/www/pssfp/backend/storage /var/log/pssfp
+
+[Install]
+WantedBy=multi-user.target
