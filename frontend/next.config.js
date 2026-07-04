@@ -9,9 +9,9 @@ const nextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
-      { protocol: 'https', hostname: 'api.pssfp.net' },
-      { protocol: 'https', hostname: 'cdn.pssfp.net' },
-      { protocol: 'https', hostname: 'media.pssfp.net' },
+      { protocol: 'https', hostname: 'api.pssfp.org' },
+      { protocol: 'https', hostname: 'cdn.pssfp.org' },
+      { protocol: 'https', hostname: 'media.pssfp.org' },
       { protocol: 'http', hostname: 'localhost' },
       { protocol: 'http', hostname: '127.0.0.1' },
     ],
@@ -32,7 +32,7 @@ const nextConfig = {
     ];
   },
   // Sprint S5.1 — proxie les documents publics (catalogue Formation continue, etc.)
-  // vers le backend Laravel qui sert depuis MinIO. Garde l'URL `pssfp.net/documents/*`
+  // vers le backend Laravel qui sert depuis MinIO. Garde l'URL `pssfp.org/documents/*`
   // côté visiteur (URL "propre", pas de subdomain api.* exposé).
   async rewrites() {
     const apiBase = process.env.NEXT_PUBLIC_PUBLIC_DOC_URL ?? 'http://localhost:8000';

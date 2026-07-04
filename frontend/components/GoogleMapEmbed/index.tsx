@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 const STORAGE_KEY = 'pssfp_maps_consent_v1';
 
@@ -12,6 +13,7 @@ const STORAGE_KEY = 'pssfp_maps_consent_v1';
  * Coordonnées Campus de Messa, Yaoundé : approximation publique.
  */
 export function GoogleMapEmbed(): JSX.Element {
+  const t = useTranslations('contact.map');
   const [consented, setConsented] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -41,23 +43,19 @@ export function GoogleMapEmbed(): JSX.Element {
     return (
       <div
         role="region"
-        aria-label="Carte Google Maps Campus de Messa"
+        aria-label={t('regionAria')}
         data-testid="map-consent"
         className="rounded-lg border border-[#F4EFFA] bg-[#FAF7FF] p-6 text-center"
       >
-        <p className="font-heading text-lg font-bold text-[#4A2E67]">
-          Localisation — Campus de Messa
-        </p>
-        <p className="mt-2 text-sm text-[#555]">
-          Cliquez pour charger la carte Google Maps. Aucun cookie tiers Google n'est déposé tant que vous n'avez pas accepté.
-        </p>
+        <p className="font-heading text-lg font-bold text-[#4A2E67]">{t('consentTitle')}</p>
+        <p className="mt-2 text-sm text-[#555]">{t('consentBody')}</p>
         <button
           type="button"
           onClick={giveConsent}
           data-testid="map-consent-accept"
           className="mt-4 inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-5 text-sm font-medium text-white hover:bg-[#5C3A7E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
         >
-          Charger la carte
+          {t('load')}
         </button>
       </div>
     );
@@ -66,7 +64,7 @@ export function GoogleMapEmbed(): JSX.Element {
   return (
     <div data-testid="map-loaded" className="overflow-hidden rounded-lg border border-[#F4EFFA]">
       <iframe
-        title="Carte Google Maps — Campus de Messa, Yaoundé"
+        title={t('iframeTitle')}
         src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3979.4!2d11.515!3d3.857!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zM8KwNTEnMjUuMiJOIDExwrAzMCc1NC4wIkU!5e0!3m2!1sfr!2scm!4v1700000000"
         width="100%"
         height="320"

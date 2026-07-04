@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, Users, GraduationCap, Calendar, Briefcase, Globe2, Plane } from 'lucide-react';
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { InternalPageCta } from '@/components/InternalPageCta';
 import { InternalPageHero } from '@/components/InternalPageHero';
 import { PageRenderer } from '@/components/PageRenderer';
@@ -8,34 +9,35 @@ import { getPageBySlug } from '@/lib/api/pages';
 
 export const revalidate = 300;
 
-export const metadata: Metadata = {
-  title: 'Vie académique',
-  description: 'Promotions, enseignants, calendrier académique, stages, programme MEDIAFIP et coopération internationale au PSSFP.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('vieAcademiqueIndex');
+  return { title: t('metaTitle'), description: t('metaDescription') };
+}
 
 const QUICK_LINKS = [
-  { slug: 'vie-academique/promotions', label: '13 promotions', Icon: GraduationCap },
-  { slug: 'vie-academique/corps-enseignant', label: 'Corps enseignant', Icon: Users },
-  { slug: 'vie-academique/calendrier-academique', label: 'Calendrier 2026-2027', Icon: Calendar },
-  { slug: 'vie-academique/stages-et-soutenances', label: 'Stages et soutenances', Icon: Briefcase },
-  { slug: 'vie-academique/programme-mediafip', label: 'Programme MEDIAFIP', Icon: Plane },
-  { slug: 'vie-academique/cooperation-internationale', label: 'Coopération internationale', Icon: Globe2 },
+  { slug: 'vie-academique/promotions', labelKey: 'promotions', Icon: GraduationCap },
+  { slug: 'vie-academique/corps-enseignant', labelKey: 'enseignants', Icon: Users },
+  { slug: 'vie-academique/calendrier-academique', labelKey: 'calendrier', Icon: Calendar },
+  { slug: 'vie-academique/stages-et-soutenances', labelKey: 'stages', Icon: Briefcase },
+  { slug: 'vie-academique/programme-mediafip', labelKey: 'mediafip', Icon: Plane },
+  { slug: 'vie-academique/cooperation-internationale', labelKey: 'cooperation', Icon: Globe2 },
 ] as const;
 
 export default async function VieAcademiqueIndexPage(): Promise<JSX.Element> {
+  const t = await getTranslations('vieAcademiqueIndex');
   const result = await getPageBySlug('vie-academique');
 
   return (
     <>
       <InternalPageHero
-        eyebrow="Communauté PSSFP"
-        title="Vie académique"
+        eyebrow={t('eyebrow')}
+        title={t('title')}
         excerpt={result.ok ? result.data.excerpt : undefined}
       />
 
       <div className="mx-auto max-w-5xl px-6 py-12 md:py-16">
       <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {QUICK_LINKS.map(({ slug, label, Icon }) => (
+        {QUICK_LINKS.map(({ slug, labelKey, Icon }) => (
           <li key={slug}>
             <Link
               href={`/${slug}`}
@@ -46,7 +48,7 @@ export default async function VieAcademiqueIndexPage(): Promise<JSX.Element> {
                 <Icon size={20} aria-hidden="true" />
               </span>
               <span className="grow font-heading text-lg font-semibold text-[var(--pssfp-text-strong)] group-hover:text-pssfp-prune dark:group-hover:text-[#B084E8]">
-                {label}
+                {t(`links.${labelKey}`)}
               </span>
               <ArrowRight size={16} aria-hidden="true" className="text-pssfp-or transition-transform group-hover:translate-x-1" />
             </Link>
