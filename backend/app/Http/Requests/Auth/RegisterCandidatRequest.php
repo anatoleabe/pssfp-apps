@@ -35,6 +35,9 @@ final class RegisterCandidatRequest extends FormRequest
             'prenom' => ['required', 'string', 'max:100'],
             'date_naissance' => ['required', 'date', 'before:'.now()->subYears(18)->toDateString()],
             'cgu' => ['required', 'accepted'],
+            // Nullable : le widget peut être absent (clé non configurée) — la
+            // décision d'accepter revient à TurnstileVerifier, pas au FormRequest.
+            'turnstile_token' => ['nullable', 'string', 'max:2048'],
         ];
     }
 

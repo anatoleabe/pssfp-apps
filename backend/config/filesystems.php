@@ -67,6 +67,24 @@ return [
         //
         // Trois disks distincts plutôt qu'un disk générique pour éviter les
         // confusions de bucket et profiter de la signature URL spécifique.
+        //
+        // Disk `minio` générique : filet de sécurité pour le disk PAR DÉFAUT quand
+        // `FILESYSTEM_DISK=minio` (cf. .env.example / backend CLAUDE.md). Sans lui,
+        // tout appel `Storage::disk()` sans disk explicite échouerait. Pointe sur
+        // le bucket media par défaut (surchargeable via MINIO_BUCKET).
+        'minio' => [
+            'driver' => 's3',
+            'key' => env('MINIO_KEY'),
+            'secret' => env('MINIO_SECRET'),
+            'region' => env('MINIO_REGION', 'us-east-1'),
+            'bucket' => env('MINIO_BUCKET', 'pssfp-media'),
+            'endpoint' => env('MINIO_ENDPOINT', 'http://127.0.0.1:9000'),
+            'use_path_style_endpoint' => env('MINIO_USE_PATH_STYLE_ENDPOINT', true),
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
         'minio_media' => [
             'driver' => 's3',
             'key' => env('MINIO_KEY'),

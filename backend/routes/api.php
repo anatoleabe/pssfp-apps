@@ -26,14 +26,25 @@ Route::get('/health', HealthController::class)->name('api.health');
  * - login : middleware throttle.candidat.login (3/10min IP, 10/30min phone, 50/24h IP).
  * - reset-pin : token court Sanctum ability `pin:reset` issu de verify-otp.
  * - logout : token candidat standard.
+ *
+ * Backstop anti-abus par IP sur register/forgot-pin : défense en profondeur
+ * indépendante de Turnstile (qui fail-open si CF est injoignable). Protège
+ * notamment le crédit SMS OTP (spec §M13). Un cooldown par numéro dans
+ * OtpService est à ajouter au branchement du vrai fournisseur SMS (LOT B).
  */
 Route::prefix('auth/candidat')->name('auth.candidat.')->group(function (): void {
-    Route::post('/register', [AuthCandidatController::class, 'register'])->name('register');
+    Route::post('/register', [AuthCandidatController::class, 'register'])
+        ->middleware('throttle:20,1')
+        ->name('register');
     Route::post('/login', [AuthCandidatController::class, 'login'])
         ->middleware('throttle.candidat.login')
         ->name('login');
-    Route::post('/forgot-pin', [AuthCandidatController::class, 'forgotPin'])->name('forgot-pin');
-    Route::post('/verify-otp', [AuthCandidatController::class, 'verifyOtp'])->name('verify-otp');
+    Route::post('/forgot-pin', [AuthCandidatController::class, 'forgotPin'])
+        ->middleware('throttle:10,1')
+        ->name('forgot-pin');
+    Route::post('/verify-otp', [AuthCandidatController::class, 'verifyOtp'])
+        ->middleware('throttle:30,1')
+        ->name('verify-otp');
     Route::post('/reset-pin', [AuthCandidatController::class, 'resetPin'])
         ->middleware(['auth:sanctum', 'ability:pin:reset'])
         ->name('reset-pin');

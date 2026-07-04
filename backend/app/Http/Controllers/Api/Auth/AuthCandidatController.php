@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\CandidatAuthThrottle;
 use App\Services\CandidatUserService;
 use App\Services\OtpService;
+use App\Services\Security\TurnstileVerifier;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\PhoneMasker;
 use Illuminate\Http\JsonResponse;
@@ -61,10 +62,15 @@ final class AuthCandidatController extends Controller
         private readonly OtpService $otp,
         private readonly SmsServiceInterface $sms,
         private readonly CandidatAuthThrottle $throttle,
+        private readonly TurnstileVerifier $turnstile,
     ) {}
 
     public function register(RegisterCandidatRequest $request): JsonResponse
     {
+        if (! $this->turnstile->verify($request->input('turnstile_token'), $request->ip())) {
+            return $this->turnstileFailed();
+        }
+
         $phone = (string) $request->input('phone_e164');
 
         if ($this->users->existsForPhone($phone)) {
@@ -140,6 +146,10 @@ final class AuthCandidatController extends Controller
 
     public function forgotPin(ForgotPinRequest $request): JsonResponse
     {
+        if (! $this->turnstile->verify($request->input('turnstile_token'), $request->ip())) {
+            return $this->turnstileFailed();
+        }
+
         $phone = (string) $request->input('phone_e164');
         $user = $this->users->findByPhone($phone);
 
@@ -248,6 +258,16 @@ final class AuthCandidatController extends Controller
         }
 
         return response()->noContent();
+    }
+
+    private function turnstileFailed(): JsonResponse
+    {
+        $message = 'Vérification anti-robot échouée. Rechargez la page et réessayez.';
+
+        return response()->json([
+            'message' => $message,
+            'errors' => ['turnstile_token' => [$message]],
+        ], 422);
     }
 
     /** @return array<string, mixed> */

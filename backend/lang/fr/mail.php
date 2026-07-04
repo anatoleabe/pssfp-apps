@@ -4,6 +4,18 @@ declare(strict_types=1);
 
 return [
     'candidature' => [
+        'submitted' => [
+            'subject' => 'PSSFP — Récépissé de votre candidature :numero',
+            'greeting' => 'Bonjour :name,',
+            'intro' => 'Nous confirmons la bonne réception de votre candidature au Programme Supérieur de Spécialisation en Finances Publiques (PSSFP).',
+            'numero_dossier' => 'Numéro de dossier',
+            'specialite' => 'Spécialité demandée',
+            'fees_title' => 'Frais de dossier — étape indispensable',
+            'fees_body' => 'Pour finaliser votre candidature, veuillez vous acquitter des frais de dossier de :montant FCFA en agence CREMINCAM, en mentionnant votre numéro de dossier :numero. Conservez votre reçu : il valide le paiement auprès du PSSFP.',
+            'recipisse_note' => 'Votre récépissé de dépôt (PDF) est disponible dans votre espace candidat, rubrique « Suivi de mon dossier ».',
+            'cta_check' => 'Accéder à mon dossier',
+            'signature' => 'Le comité d\'admission du PSSFP',
+        ],
         'accepted' => [
             'subject' => 'PSSFP — Votre candidature :numero a été acceptée',
             'greeting' => 'Bonjour :name,',

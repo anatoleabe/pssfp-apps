@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Events\CandidatureAccepted;
-use App\Events\CandidatureRefused;
-use App\Listeners\SendCandidatureDecisionEmail;
 use App\Models\Candidature;
 use App\Observers\CandidatureObserver;
 use App\Services\Scanner\NoopPhotoScanner;
@@ -14,7 +11,6 @@ use App\Services\Scanner\PhotoScannerInterface;
 use App\Services\Sms\AfricasTalkingProvider;
 use App\Services\Sms\FakeSmsProvider;
 use App\Services\Sms\SmsServiceInterface;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -37,7 +33,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Candidature::observe(CandidatureObserver::class);
 
-        Event::listen(CandidatureAccepted::class, [SendCandidatureDecisionEmail::class, 'handleAccepted']);
-        Event::listen(CandidatureRefused::class, [SendCandidatureDecisionEmail::class, 'handleRefused']);
+        // Listeners email candidature (soumission + décisions) : enregistrés
+        // par l'auto-découverte Laravel 11 (app/Listeners, méthodes handle*).
+        // Ne PAS les ré-enregistrer ici — un Event::listen manuel les ferait
+        // tourner deux fois (double email candidat, cf. event:list).
     }
 }

@@ -17,6 +17,9 @@ final class ForgotPinRequest extends FormRequest
     {
         return [
             'phone_e164' => ['required', 'string', 'regex:/^\+[1-9]\d{6,14}$/'],
+            // Nullable : le widget peut être absent (clé non configurée) — la
+            // décision d'accepter revient à TurnstileVerifier, pas au FormRequest.
+            'turnstile_token' => ['nullable', 'string', 'max:2048'],
         ];
     }
 }

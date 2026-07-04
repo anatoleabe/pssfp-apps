@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Events\CandidatureSubmitted;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\User;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
@@ -191,9 +193,24 @@ final class CandidatureService
         }
 
         $result = $this->db->transaction(function () use ($candidature): array {
-            $pdf = $this->recipisse->generate($candidature);
+            // Verrou pessimiste : deux soumissions concurrentes (double-clic,
+            // même clé d'idempotence en cache-miss) seraient sérialisées ici.
+            // La seconde relit statut=candidat et échoue → pas de double
+            // récépissé / email / activity_log (cf. revue candidature LOT A).
+            $locked = Candidature::query()
+                ->whereKey($candidature->getKey())
+                ->lockForUpdate()
+                ->first();
 
-            $candidature->update([
+            if ($locked === null || $locked->statut !== Candidature::STATUT_POSTULANT) {
+                throw new RuntimeException(
+                    'Cannot submit a candidature already at statut '.($locked->statut ?? 'missing').'.'
+                );
+            }
+
+            $pdf = $this->recipisse->generate($locked);
+
+            $locked->update([
                 'statut' => Candidature::STATUT_CANDIDAT,
                 'submitted_at' => now(),
                 'recipisse_pdf_path' => $pdf['path'],
@@ -202,7 +219,7 @@ final class CandidatureService
 
             activity('candidatures')
                 ->causedBy(auth()->user())
-                ->performedOn($candidature)
+                ->performedOn($locked)
                 ->withProperties([
                     'ip' => request()?->ip(),
                     'pdf_path' => $pdf['path'],
@@ -222,8 +239,27 @@ final class CandidatureService
             );
         }
 
+        $fresh = $candidature->refresh();
+
+        // Email de confirmation + instructions frais CREMINCAM. Dispatché
+        // hors transaction et seulement sur une soumission réelle (un rejeu
+        // idempotent sort en amont via le cache). Le listener dégrade
+        // proprement si le candidat n'a pas d'email.
+        //
+        // Best-effort : une indisponibilité de la queue Redis ne doit pas
+        // renvoyer 500 alors que la soumission est déjà committée (le récépissé
+        // reste accessible depuis l'espace candidat). On trace et on continue.
+        try {
+            CandidatureSubmitted::dispatch($fresh);
+        } catch (\Throwable $e) {
+            Log::channel('single')->error(
+                'Dispatch CandidatureSubmitted échoué (queue indisponible ?) — soumission committée, email différé.',
+                ['candidature_uuid' => $fresh->uuid, 'error' => $e->getMessage()],
+            );
+        }
+
         return [
-            'candidature' => $candidature->refresh(),
+            'candidature' => $fresh,
             'pdf_url' => $result['url'],
         ];
     }

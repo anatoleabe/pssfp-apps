@@ -46,4 +46,10 @@ return [
         'sender_id' => env('AFRICAS_TALKING_SENDER_ID', 'PSSFP'),
     ],
 
+    // Cloudflare Turnstile (captcha anti-robot RGPD-friendly). Si `secret` est
+    // vide, la vérification est désactivée (dev/tests) — cf. TurnstileVerifier.
+    'turnstile' => [
+        'secret' => env('TURNSTILE_SECRET_KEY'),
+    ],
+
 ];
