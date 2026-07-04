@@ -16,7 +16,7 @@ const dmSans = DM_Sans({ subsets: ['latin'], display: 'swap', variable: '--font-
 export const metadata: Metadata = {
   title: { default: 'Candidature PSSFP', template: '%s — Candidature PSSFP' },
   description: 'Formulaire de candidature en ligne du PSSFP — promotion 14, campagne 2026.',
-  metadataBase: new URL('https://candidature.pssfp.net'),
+  metadataBase: new URL('https://apply.pssfp.org'),
   robots: { index: true, follow: true },
 };
 

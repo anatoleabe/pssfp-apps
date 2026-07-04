@@ -11,7 +11,7 @@ const COOKIE_PIN_RESET = 'pssfp_candidat_pin_reset';
  *
  * Path=/ pour partager entre toutes les pages candidature.
  * SameSite=Lax (pas Strict) — permet la navigation depuis un email accept/refuse.
- * Domain=.pssfp.net en prod (cross-app possible), absent en dev (cookie localhost).
+ * Domain=.pssfp.org en prod (cross-app possible), absent en dev (cookie localhost).
  * maxAge dérivé de `expiresAt` retourné par /v1/auth/candidat/register|login.
  */
 export async function setCandidatToken(token: string, expiresAt: string | null): Promise<void> {
@@ -33,7 +33,7 @@ export async function setCandidatToken(token: string, expiresAt: string | null):
     sameSite: 'lax' as const,
     path: '/',
     maxAge: maxAgeSeconds,
-    ...(isProd ? { domain: '.pssfp.net' } : {}),
+    ...(isProd ? { domain: '.pssfp.org' } : {}),
   };
 
   store.set(COOKIE_NAME, token, baseOptions);
@@ -78,7 +78,7 @@ export async function setPinResetToken(token: string, expiresAt: string | null):
     sameSite: 'lax',
     path: '/',
     maxAge: maxAgeSeconds,
-    ...(isProd ? { domain: '.pssfp.net' } : {}),
+    ...(isProd ? { domain: '.pssfp.org' } : {}),
   });
 }
 
