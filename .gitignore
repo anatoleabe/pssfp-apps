@@ -6,6 +6,10 @@
 .env
 .env.local
 .env.*.local
+# .env.production réels des apps Next (templates .env.production.example versionnés)
+/frontend/.env.production
+/candidature/.env.production
+/library/.env.production
 *.pem
 *.key
 secrets/
