@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 
 export const metadata = {
   title: 'Politique de confidentialité',
-  description: 'Politique de confidentialité et gestion des données personnelles sur pssfp.net.',
+  description: 'Politique de confidentialité et gestion des données personnelles sur pssfp.org.',
 };
 
 export default async function ConfidentialitePage(): Promise<JSX.Element> {

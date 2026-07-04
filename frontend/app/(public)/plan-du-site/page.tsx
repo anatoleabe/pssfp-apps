@@ -61,7 +61,7 @@ export default async function PlanDuSitePage(): Promise<JSX.Element> {
               href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
               className="underline hover:text-[#4A2E67]"
             >
-              candidature.pssfp.net
+              apply.pssfp.org
             </a>
           </li>
           <li>
@@ -69,17 +69,17 @@ export default async function PlanDuSitePage(): Promise<JSX.Element> {
               href={process.env.NEXT_PUBLIC_LIBRARY_URL ?? '#'}
               className="underline hover:text-[#4A2E67]"
             >
-              bibliotheque.pssfp.net
+              bibliotheque.pssfp.org
             </a>
           </li>
           <li>
             <a
-              href={process.env.NEXT_PUBLIC_FOAD_URL ?? 'https://foad.pssfp.net'}
+              href={process.env.NEXT_PUBLIC_FOAD_URL ?? 'https://foad.pssfp.org'}
               rel="noopener noreferrer"
               target="_blank"
               className="underline hover:text-[#4A2E67]"
             >
-              foad.pssfp.net (FOAD)
+              foad.pssfp.org (FOAD)
             </a>
           </li>
         </ul>

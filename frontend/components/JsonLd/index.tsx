@@ -23,7 +23,7 @@ export function JsonLd({ data }: JsonLdProps): JSX.Element {
   );
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pssfp.net';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pssfp.org';
 
 export function organizationJsonLd(): Record<string, unknown> {
   return {
@@ -42,7 +42,7 @@ export function organizationJsonLd(): Record<string, unknown> {
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer service',
-      email: 'contact@pssfp.net',
+      email: 'contact@pssfp.org',
       telephone: '+237222234567',
       availableLanguage: ['fr'],
     },

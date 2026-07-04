@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
  * POST /v1/contact (cf. spec module 1 PR O).
  *
  * - Rate limit : 5 messages / IP / heure (anti-spam léger côté serveur).
- * - Envoi du message à contact@pssfp.net.
+ * - Envoi du message à contact@pssfp.org.
  * - Auto-reply au sender.
  * - Retour 201 si OK, 422 si validation, 429 si rate-limit.
  */
@@ -39,7 +39,7 @@ final class ContactController extends Controller
 
         $payload = array_merge($request->validated(), ['ip' => $ip]);
 
-        $recipient = config('mail.contact_recipient', 'contact@pssfp.net');
+        $recipient = config('mail.contact_recipient', 'contact@pssfp.org');
 
         try {
             Mail::to($recipient)->send(new ContactMessageMailable($payload));

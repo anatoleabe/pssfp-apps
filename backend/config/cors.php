@@ -5,7 +5,7 @@ declare(strict_types=1);
 return [
     /*
      * CORS — autorise les 3 apps Next.js (frontend, library, candidature)
-     * en local et leurs équivalents production sur les sous-domaines pssfp.net.
+     * en local et leurs équivalents production sur les sous-domaines pssfp.org.
      * Cf. ADR-0005 — Sanctum tokens scoped + cookies cross-domain.
      */
 
@@ -20,10 +20,10 @@ return [
         env('APP_ENV') !== 'production' ? 'http://127.0.0.1:6001' : null,
         env('APP_ENV') !== 'production' ? 'http://127.0.0.1:6002' : null,
         env('APP_ENV') !== 'production' ? 'http://127.0.0.1:6003' : null,
-        'https://pssfp.net',
-        'https://www.pssfp.net',
-        'https://bibliotheque.pssfp.net',
-        'https://candidature.pssfp.net',
+        'https://pssfp.org',
+        'https://www.pssfp.org',
+        'https://bibliotheque.pssfp.org',
+        'https://apply.pssfp.org',
     ]),
 
     'allowed_origins_patterns' => [],

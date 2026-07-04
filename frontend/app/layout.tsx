@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   },
   description:
     'Former. Moderniser. Transformer les finances publiques. Site institutionnel du PSSFP, Campus de Messa, Yaoundé.',
-  metadataBase: new URL('https://pssfp.net'),
+  metadataBase: new URL('https://pssfp.org'),
   openGraph: {
     locale: 'fr_FR',
     type: 'website',

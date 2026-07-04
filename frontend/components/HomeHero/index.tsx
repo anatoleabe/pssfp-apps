@@ -5,7 +5,7 @@ import { AnimatedBeam } from '../magic-ui/animated-beam';
 import { Sparkles } from '../magic-ui/sparkles';
 
 /**
- * Hero d'accueil pssfp.net — refonte PR R.
+ * Hero d'accueil pssfp.org — refonte PR R.
  *
  * Direction visuelle : background gradient lavande→blanc subtil + faisceaux
  * SVG animés (AnimatedBeam) + sparkles or sur le mot clé "excellence" +

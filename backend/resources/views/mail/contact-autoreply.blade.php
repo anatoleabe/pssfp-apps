@@ -6,15 +6,15 @@ Notre équipe vous répondra dans les meilleurs délais (généralement sous 48 
 
 En attendant, vous pouvez consulter :
 
-- Le site institutionnel : https://pssfp.net
-- La bibliothèque virtuelle : https://bibliotheque.pssfp.net
-- La plateforme FOAD : https://foad.pssfp.net
-- Les candidatures en ligne : https://candidature.pssfp.net
+- Le site institutionnel : https://pssfp.org
+- La bibliothèque virtuelle : https://bibliotheque.pssfp.org
+- La plateforme FOAD : https://foad.pssfp.org
+- Les candidatures en ligne : https://apply.pssfp.org
 
 Cordialement,
 L'équipe PSSFP
 Campus de Messa, Yaoundé — Cameroun
-contact@pssfp.net
+contact@pssfp.org
 
 —
 Cet email est une confirmation automatique. Merci de ne pas y répondre directement.

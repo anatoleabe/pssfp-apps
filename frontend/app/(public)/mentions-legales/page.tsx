@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 
 export const metadata = {
   title: 'Mentions légales',
-  description: 'Mentions légales du site institutionnel pssfp.net.',
+  description: 'Mentions légales du site institutionnel pssfp.org.',
 };
 
 export default async function MentionsLegalesPage(): Promise<JSX.Element> {

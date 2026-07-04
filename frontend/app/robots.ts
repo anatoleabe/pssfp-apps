@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pssfp.net';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pssfp.org';
 
 /**
  * /robots.txt généré dynamiquement par Next.js.

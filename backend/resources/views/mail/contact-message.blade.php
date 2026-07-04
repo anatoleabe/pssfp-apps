@@ -1,4 +1,4 @@
-Nouveau message de contact depuis pssfp.net
+Nouveau message de contact depuis pssfp.org
 =============================================
 
 Nom         : {{ $payload['nom'] }}
@@ -20,5 +20,5 @@ Message
 {{ $payload['message'] }}
 
 —
-Cet email a été généré automatiquement depuis le formulaire de contact pssfp.net.
+Cet email a été généré automatiquement depuis le formulaire de contact pssfp.org.
 Pour répondre, utilisez l'adresse email ci-dessus (Reply-To).

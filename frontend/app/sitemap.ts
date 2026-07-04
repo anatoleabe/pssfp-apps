@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { listArticles } from '@/lib/api/articles';
 import { getMenu } from '@/lib/api/pages';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pssfp.net';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pssfp.org';
 
 const STATIC_ROUTES: ReadonlyArray<{ path: string; changeFrequency: 'daily' | 'weekly' | 'monthly' | 'yearly'; priority: number }> = [
   { path: '/', changeFrequency: 'weekly', priority: 1.0 },

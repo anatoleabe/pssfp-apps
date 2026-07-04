@@ -33,7 +33,7 @@ export async function HomeAccessRapide(): Promise<JSX.Element> {
   const cards: ReadonlyArray<Card> = [
     {
       key: 'foad',
-      href: process.env.NEXT_PUBLIC_FOAD_URL ?? 'https://foad.pssfp.net',
+      href: process.env.NEXT_PUBLIC_FOAD_URL ?? 'https://foad.pssfp.org',
       external: true,
       Icon: GraduationCap,
       variant: 'forest',

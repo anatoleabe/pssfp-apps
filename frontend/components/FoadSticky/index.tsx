@@ -4,12 +4,12 @@ import { GraduationCap } from 'lucide-react';
  * Bouton sticky vers la plateforme FOAD (cf. spec module 1 PR O).
  *
  * Visible sur toutes les pages publiques. Ouverture target=_blank vers
- * foad.pssfp.net.
+ * foad.pssfp.org.
  */
 export function FoadSticky(): JSX.Element {
   return (
     <a
-      href={process.env.NEXT_PUBLIC_FOAD_URL ?? 'https://foad.pssfp.net'}
+      href={process.env.NEXT_PUBLIC_FOAD_URL ?? 'https://foad.pssfp.org'}
       target="_blank"
       rel="noopener noreferrer"
       data-testid="foad-sticky"

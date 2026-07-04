@@ -34,9 +34,9 @@ const CONTACT_INFOS: ContactInfo[] = [
   {
     icon: Mail,
     label: 'Email',
-    primary: 'contact@pssfp.net',
+    primary: 'contact@pssfp.org',
     secondary: 'Réponse sous 48h ouvrées',
-    href: 'mailto:contact@pssfp.net',
+    href: 'mailto:contact@pssfp.org',
   },
 ];
 

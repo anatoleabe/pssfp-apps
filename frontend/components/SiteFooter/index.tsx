@@ -88,7 +88,7 @@ export function SiteFooter(): JSX.Element {
             </li>
             <li>
               <a
-                href={process.env.NEXT_PUBLIC_FOAD_URL ?? 'https://foad.pssfp.net'}
+                href={process.env.NEXT_PUBLIC_FOAD_URL ?? 'https://foad.pssfp.org'}
                 rel="noopener noreferrer"
                 target="_blank"
                 className="inline-block py-1 text-pssfp-graphite hover:text-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 rounded dark:text-[#F5EFE3] dark:hover:text-[#B084E8] dark:focus-visible:ring-[#E5C788]"
@@ -116,8 +116,8 @@ export function SiteFooter(): JSX.Element {
             </li>
             <li className="flex items-start gap-2">
               <Mail size={14} className="mt-1 shrink-0 text-pssfp-prune dark:text-[#B084E8]" aria-hidden="true" />
-              <a href="mailto:contact@pssfp.net" className="inline-block py-1 hover:text-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 rounded dark:hover:text-[#B084E8] dark:focus-visible:ring-[#E5C788]">
-                contact@pssfp.net
+              <a href="mailto:contact@pssfp.org" className="inline-block py-1 hover:text-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 rounded dark:hover:text-[#B084E8] dark:focus-visible:ring-[#E5C788]">
+                contact@pssfp.org
               </a>
             </li>
           </ul>

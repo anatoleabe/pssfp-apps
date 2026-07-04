@@ -25,7 +25,7 @@ final class ContactMessageMailable extends Mailable
         $subject = $this->payload['subject'] ?? null;
 
         return new Envelope(
-            subject: '[Contact pssfp.net] '.($subject !== null && $subject !== '' ? $subject : 'Nouveau message'),
+            subject: '[Contact pssfp.org] '.($subject !== null && $subject !== '' ? $subject : 'Nouveau message'),
             replyTo: [$this->payload['email']],
         );
     }
