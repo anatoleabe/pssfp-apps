@@ -54,6 +54,8 @@ export interface RegisterCandidatPayload {
   prenom: string;
   date_naissance: string;
   cgu: boolean;
+  /** Jeton Cloudflare Turnstile — validé côté backend (bypass si non configuré). */
+  turnstile_token?: string;
 }
 
 export interface RegisterCandidatResponse {

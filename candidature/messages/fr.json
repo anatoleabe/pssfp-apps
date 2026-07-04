@@ -46,10 +46,146 @@
   },
   "inscription": {
     "title": "Créer mon compte candidat",
-    "subtitle": "Quatre étapes guidées : identité, coordonnées, diplôme, engagement. Vos données sont enregistrées localement entre les étapes."
+    "subtitle": "Quatre étapes guidées : identité, coordonnées, diplôme, engagement. Vos données sont enregistrées localement entre les étapes.",
+    "eyebrow": "Promotion 14 · Campagne 2026"
   },
   "nav": {
     "home": "Accueil",
     "login": "Connexion"
+  },
+  "turnstile": {
+    "heading": "Vérification anti-robot",
+    "loadError": "La vérification anti-robot n'a pas pu se charger. Désactivez votre bloqueur de contenu ou réessayez.",
+    "retry": "Réessayer le chargement",
+    "expired": "La vérification anti-robot a expiré, merci de la refaire."
+  },
+  "pinReasons": {
+    "invalid_format": "Le PIN doit comporter exactement 6 chiffres.",
+    "blacklisted": "Ce PIN est trop courant. Choisissez-en un autre.",
+    "matches_phone_suffix": "Ce PIN reproduit la fin de votre numéro de téléphone.",
+    "matches_date_of_birth": "Ce PIN reproduit votre date de naissance."
+  },
+  "errors": {
+    "network": "Erreur réseau. Vérifiez votre connexion et réessayez.",
+    "turnstileFailed": "Vérification anti-robot échouée. Réessayez.",
+    "otpInvalid": "Code incorrect ou expiré.",
+    "otpExpired": "Le code a expiré. Demandez-en un nouveau.",
+    "otpUsed": "Ce code a déjà été utilisé.",
+    "throttled": "Trop de tentatives. Réessayez plus tard.",
+    "resetSessionExpired": "Session de réinitialisation expirée. Recommencez depuis le début.",
+    "pinRejected": "PIN refusé : trop courant, identique au numéro de téléphone, ou à votre date de naissance.",
+    "unauthenticated": "Session expirée. Reconnectez-vous.",
+    "incomplete": "Profil incomplet — vérifiez les champs manquants ci-dessous.",
+    "alreadySubmitted": "Candidature déjà soumise.",
+    "generic": "Une erreur est survenue. Réessayez."
+  },
+  "wizard": {
+    "steps": {
+      "identite": "Identité",
+      "coordonnees": "Coordonnées",
+      "diplome": "Diplôme",
+      "engagement": "Engagement"
+    },
+    "cancel": "Annuler et retourner à l'accueil",
+    "prev": "Précédent",
+    "next": "Suivant",
+    "submit": "Soumettre ma candidature",
+    "submitting": "Envoi…",
+    "retentionNotice": "Vos données sont enregistrées localement (session navigateur) et seront effacées automatiquement après 30 minutes d'inactivité ou à la fermeture de l'onglet. Votre PIN n'est jamais conservé entre les étapes.",
+    "backHome": "Retour à l'accueil",
+    "timeout": {
+      "title": "Votre session va expirer",
+      "body": "Sans activité de votre part, votre saisie sera effacée dans 2 minutes par mesure de sécurité.",
+      "continue": "Continuer ma saisie"
+    },
+    "step4": {
+      "title": "Étape 4 — Engagement & PIN",
+      "photoNotice": "La photo d'identité officielle pourra être ajoutée depuis votre dossier candidat après la création de votre compte.",
+      "signatureLabel": "Signature numérique (tapez \"{prenom} {nom}\")",
+      "signatureMismatch": "La signature ne correspond pas à votre prénom + nom.",
+      "pinLabel": "PIN à 6 chiffres (votre futur mot de passe)",
+      "pinAria": "PIN à 6 chiffres",
+      "pinConfirmLabel": "Confirmez le PIN",
+      "pinConfirmAria": "Confirmation du PIN",
+      "pinMismatch": "La confirmation ne correspond pas au PIN.",
+      "cguLabel": "J'accepte les conditions générales d'utilisation et la politique de confidentialité du PSSFP.",
+      "consult": "Consulter :",
+      "cguLink": "conditions générales d'utilisation",
+      "privacyLink": "politique de confidentialité",
+      "newTab": "(nouvel onglet)",
+      "loginCta": "Se connecter avec ce numéro"
+    }
+  },
+  "forgotPin": {
+    "progressAria": "Progression",
+    "steps": {
+      "phone": "1. Numéro de téléphone",
+      "code": "2. Code reçu par SMS",
+      "newPin": "3. Nouveau PIN"
+    },
+    "step1Title": "Saisissez votre numéro de téléphone",
+    "step1Body": "Nous vous enverrons un code de réinitialisation par SMS au numéro enregistré lors de votre inscription.",
+    "phoneLabel": "Numéro de téléphone",
+    "phoneHelp": "Format international : indicatif pays puis numéro, ex. +237691234567.",
+    "phoneInvalid": "Numéro invalide — format international attendu, ex. +237691234567.",
+    "sendCode": "Recevoir le code",
+    "sending": "Envoi…",
+    "step2Title": "Saisissez le code reçu par SMS",
+    "step2Body": "Le code à 6 chiffres a été envoyé au {phone}. Il est valable 10 minutes.",
+    "otpAria": "Code SMS",
+    "prev": "Précédent",
+    "verifyCode": "Valider le code",
+    "verifying": "Vérification…",
+    "step3Title": "Choisissez votre nouveau PIN",
+    "step3Body": "Six chiffres mémorisables, mais évitez les suites évidentes ou votre date de naissance.",
+    "newPinLabel": "Nouveau PIN",
+    "newPinAria": "Nouveau PIN",
+    "confirmLabel": "Confirmation",
+    "confirmAria": "Confirmation du nouveau PIN",
+    "confirmMismatch": "La confirmation ne correspond pas.",
+    "setPin": "Définir mon nouveau PIN",
+    "updating": "Mise à jour…"
+  },
+  "dossier": {
+    "fields": {
+      "civilite": "Civilité",
+      "nom": "Nom",
+      "prenom": "Prénom",
+      "date_naissance": "Date de naissance",
+      "lieu_naissance": "Lieu de naissance",
+      "genre": "Genre",
+      "statut_matrimonial": "Situation matrimoniale",
+      "nationalite": "Nationalité",
+      "pays_origine": "Pays d'origine",
+      "pays_residence": "Pays de résidence",
+      "region": "Région (Cameroun)",
+      "departement": "Département (Cameroun)",
+      "adresse": "Adresse",
+      "ville_residence": "Ville de résidence",
+      "indicatif1": "Indicatif téléphone",
+      "telephone1": "Numéro de téléphone",
+      "specialite": "Spécialité",
+      "type_etude": "Type d'études",
+      "premiere_langue": "Première langue",
+      "diplome_obtenu": "Diplôme obtenu",
+      "institut": "Établissement",
+      "specialite_diplome": "Spécialité du diplôme",
+      "annee_diplome": "Année d'obtention du diplôme",
+      "statut_actuel": "Situation actuelle",
+      "engagement_nom": "Signature numérique"
+    },
+    "completeness": {
+      "submittedTitle": "Candidature soumise",
+      "submittedBody": "Votre dossier est désormais entre les mains du comité d'admission. Vous serez notifié(e) par email à la décision finale.",
+      "title": "Avant de soumettre",
+      "completeNotice": "Votre profil est complet. Vous pouvez soumettre votre candidature.",
+      "incompleteIntro": "Les éléments suivants restent à compléter — cliquez pour ouvrir le formulaire d'édition à la bonne section :",
+      "submit": "Soumettre ma candidature",
+      "submitting": "Soumission…"
+    }
+  },
+  "legal": {
+    "updatedAtLabel": "Dernière mise à jour :",
+    "backHome": "Retour à l'accueil"
   }
 }

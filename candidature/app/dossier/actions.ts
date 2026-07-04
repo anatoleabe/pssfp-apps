@@ -17,13 +17,15 @@ export interface DossierActionResult {
   message?: string;
 }
 
-export async function submitDossierAction(): Promise<DossierActionResult> {
+export async function submitDossierAction(
+  idempotencyKey?: string,
+): Promise<DossierActionResult> {
   const token = await getCandidatToken();
   if (!token) {
     return { ok: false, errorKind: 'unauthenticated' };
   }
 
-  const r = await submitMyCandidature(token);
+  const r = await submitMyCandidature(token, idempotencyKey);
   if (r.ok) {
     revalidatePath('/dossier');
     return { ok: true, recipisseUrl: r.data.recipisse_url };

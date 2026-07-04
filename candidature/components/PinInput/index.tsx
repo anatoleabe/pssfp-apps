@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react';
 import { cn } from '@/lib/cn';
 
 export interface PinInputProps {
@@ -10,6 +10,8 @@ export interface PinInputProps {
   testId?: string;
   /** Désactive l'autofocus initial (utile pour les confirmations en 2e position). */
   noAutoFocus?: boolean;
+  /** id(s) d'élément(s) d'erreur associés — propagés en aria-describedby sur le groupe. */
+  describedBy?: string;
 }
 
 /**
@@ -20,7 +22,7 @@ export interface PinInputProps {
  * - Border emerald quand toutes remplies
  * - Backspace remonte au champ précédent
  */
-export function PinInput({ value, onChange, ariaLabel, testId, noAutoFocus }: PinInputProps): JSX.Element {
+export function PinInput({ value, onChange, ariaLabel, testId, noAutoFocus, describedBy }: PinInputProps): JSX.Element {
   const refs = useRef<Array<HTMLInputElement | null>>([]);
   const [chars, setChars] = useState<string[]>(() => splitToSix(value));
 
@@ -41,12 +43,26 @@ export function PinInput({ value, onChange, ariaLabel, testId, noAutoFocus }: Pi
     onChange(next.join(''));
   };
 
+  // Collage d'un code complet (SMS OTP, gestionnaire de mots de passe) :
+  // distribue les chiffres sur les 6 cases au lieu de n'en garder qu'un.
+  const handlePaste = (e: ClipboardEvent<HTMLInputElement>): void => {
+    const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!digits) {
+      return;
+    }
+    e.preventDefault();
+    setChars(splitToSix(digits));
+    onChange(digits);
+    refs.current[Math.min(digits.length, 5)]?.focus();
+  };
+
   const allFilled = chars.every((c) => c !== '');
 
   return (
     <div
       role="group"
       aria-label={ariaLabel}
+      aria-describedby={describedBy}
       data-testid={testId}
       className="inline-flex gap-2"
     >
@@ -71,6 +87,7 @@ export function PinInput({ value, onChange, ariaLabel, testId, noAutoFocus }: Pi
                 refs.current[idx + 1]?.focus();
               }
             }}
+            onPaste={handlePaste}
             onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
               if (e.key === 'Backspace' && !chars[idx] && idx > 0) {
                 refs.current[idx - 1]?.focus();

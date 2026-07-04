@@ -17,10 +17,20 @@ export interface SimpleResult {
 /**
  * Étape 1 — toujours 202, anti-énumération.
  */
-export async function requestOtpAction(phone: string): Promise<SimpleResult> {
-  const r = await forgotPin({ phone_e164: phone });
+export async function requestOtpAction(
+  phone: string,
+  turnstileToken?: string,
+): Promise<SimpleResult> {
+  const r = await forgotPin({ phone_e164: phone, turnstile_token: turnstileToken });
   if (r.ok) {
     return { ok: true };
+  }
+  if (r.status === 422) {
+    return {
+      ok: false,
+      errorKind: 'invalid',
+      message: r.message ?? 'Vérification anti-robot échouée. Réessayez.',
+    };
   }
   // Backend retourne 202 dans tous les cas. Si on tombe ici, c'est un souci réseau.
   return { ok: false, errorKind: 'network', message: r.message ?? 'Erreur réseau.' };

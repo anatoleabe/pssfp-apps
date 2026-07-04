@@ -25,8 +25,10 @@
     background: #FFFFFF;
   }
 
+  /* Indicateur de focus ≥ 3:1 sur fond clair (WCAG 1.4.11) : l'or #D4AF6A ne
+     donne que 2.07:1 sur blanc — le prune (11.2:1) reste dans la charte. */
   *:focus-visible {
-    outline: 2px solid var(--pssfp-or);
+    outline: 2px solid var(--pssfp-prune);
     outline-offset: 2px;
   }
 
@@ -50,8 +52,10 @@
   .pssfp-h3 {
     @apply font-heading font-bold text-pssfp-h3 text-[#1A1A1A];
   }
+  /* Texte 12px : l'or (2.07:1) est réservé au décoratif — prune pour rester
+     lisible (WCAG 1.4.3), le tracking large garde le caractère éditorial. */
   .pssfp-eyebrow {
-    @apply font-ui text-xs uppercase tracking-[0.18em] text-pssfp-or;
+    @apply font-ui text-xs uppercase tracking-[0.18em] text-pssfp-prune;
   }
   .pssfp-lead {
     @apply font-body text-pssfp-lead text-pssfp-graphite-light;

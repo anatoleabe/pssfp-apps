@@ -61,7 +61,7 @@ export function WizardStepper({ current, steps }: WizardStepperProps): JSX.Eleme
                     'relative flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ease-pssfp-out-expo',
                     isDone && 'bg-emerald-500 text-white shadow-pssfp-soft',
                     isActive && 'bg-gradient-prune-or text-white shadow-pssfp-glow-or',
-                    isFuture && 'border-2 border-[#F4EFFA] bg-white text-gray-400',
+                    isFuture && 'border-2 border-[#F4EFFA] bg-white text-gray-500',
                   )}
                 >
                   {isActive && !reduceMotion && (
@@ -77,7 +77,7 @@ export function WizardStepper({ current, steps }: WizardStepperProps): JSX.Eleme
                     'text-center text-xs font-medium leading-tight transition-colors duration-200',
                     isActive && 'text-[#4A2E67]',
                     isDone && 'text-emerald-700',
-                    isFuture && 'text-gray-400',
+                    isFuture && 'text-gray-500',
                   )}
                 >
                   {s.label}

@@ -1,58 +1,63 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { submitDossierAction } from '@/app/dossier/actions';
 import type { MyCandidature } from '@/lib/api/client';
 import { checkSubmittable } from '@/lib/validation/submittable';
 
-const FIELD_LABELS_FR: Record<string, string> = {
-  civilite: 'Civilité',
-  nom: 'Nom',
-  prenom: 'Prénom',
-  date_naissance: 'Date de naissance',
-  lieu_naissance: 'Lieu de naissance',
-  genre: 'Genre',
-  statut_matrimonial: 'Situation matrimoniale',
-  nationalite: 'Nationalité',
-  pays_origine: "Pays d'origine",
-  pays_residence: 'Pays de résidence',
-  region: 'Région (Cameroun)',
-  departement: 'Département (Cameroun)',
-  adresse: 'Adresse',
-  ville_residence: 'Ville de résidence',
-  indicatif1: 'Indicatif téléphone',
-  telephone1: 'Numéro de téléphone',
-  specialite: 'Spécialité',
-  type_etude: "Type d'études",
-  premiere_langue: 'Première langue',
-  diplome_obtenu: 'Diplôme obtenu',
-  institut: 'Établissement',
-  specialite_diplome: 'Spécialité du diplôme',
-  annee_diplome: "Année d'obtention du diplôme",
-  statut_actuel: 'Situation actuelle',
-  engagement_nom: 'Signature numérique',
-};
+/** Champs profil connus — mappés sur dossier.fields.* (fallback : code brut). */
+const KNOWN_FIELDS = new Set([
+  'civilite', 'nom', 'prenom', 'date_naissance', 'lieu_naissance', 'genre',
+  'statut_matrimonial', 'nationalite', 'pays_origine', 'pays_residence',
+  'region', 'departement', 'adresse', 'ville_residence', 'indicatif1',
+  'telephone1', 'specialite', 'type_etude', 'premiere_langue',
+  'diplome_obtenu', 'institut', 'specialite_diplome', 'annee_diplome',
+  'statut_actuel', 'engagement_nom',
+]);
 
 export function DossierCompleteness({ candidature }: { candidature: MyCandidature }): JSX.Element {
+  const t = useTranslations('dossier');
+  const tErr = useTranslations('errors');
   const result = checkSubmittable(candidature);
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+
+  const fieldLabel = (field: string): string =>
+    KNOWN_FIELDS.has(field) ? t(`fields.${field}`) : field;
+
+  // Clé d'idempotence stable sur toute la durée de vie du composant : un retry
+  // réseau de la même intention de soumission réutilise la même clé, ce qui
+  // permet au backend (cache 5 min sur X-Idempotency-Key) de ne pas régénérer
+  // le récépissé ni double-soumettre. Généré paresseusement au 1er submit.
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   const isAlreadySubmitted = candidature.statut !== 'postulant';
   const canSubmit = result.ok && !isAlreadySubmitted && candidature.withdrawn_at === null;
 
   const handleSubmit = (): void => {
     setServerError(null);
+    if (idempotencyKeyRef.current === null) {
+      idempotencyKeyRef.current = crypto.randomUUID();
+    }
+    const idempotencyKey = idempotencyKeyRef.current;
     startTransition(async () => {
-      const r = await submitDossierAction();
+      const r = await submitDossierAction(idempotencyKey);
       if (r.ok) {
         router.refresh();
         return;
       }
-      setServerError(r.message ?? 'Erreur de soumission.');
+      // Priorité au code d'erreur structuré (traduisible), message serveur en fallback.
+      const kindMap: Record<string, string> = {
+        incomplete: tErr('incomplete'),
+        already_submitted: tErr('alreadySubmitted'),
+        unauthenticated: tErr('unauthenticated'),
+        network: tErr('network'),
+      };
+      setServerError((r.errorKind && kindMap[r.errorKind]) ?? r.message ?? tErr('generic'));
     });
   };
 
@@ -63,12 +68,9 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
         className="rounded-lg border border-emerald-200 bg-emerald-50 p-6"
       >
         <h2 id="completeness-heading" className="font-heading text-lg font-bold text-emerald-800">
-          Candidature soumise
+          {t('completeness.submittedTitle')}
         </h2>
-        <p className="mt-2 text-sm text-emerald-900">
-          Votre dossier est désormais entre les mains du comité d'admission. Vous serez
-          notifié(e) par email à la décision finale.
-        </p>
+        <p className="mt-2 text-sm text-emerald-900">{t('completeness.submittedBody')}</p>
       </section>
     );
   }
@@ -79,19 +81,17 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
       className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
     >
       <h2 id="completeness-heading" className="font-heading text-lg font-bold text-[#4A2E67]">
-        Avant de soumettre
+        {t('completeness.title')}
       </h2>
 
       {result.missing.length === 0 && Object.keys(result.errors).length === 0 ? (
         <p className="mt-3 text-sm text-emerald-700">
-          ✅ Votre profil est complet. Vous pouvez soumettre votre candidature.
+          <span aria-hidden="true">✅ </span>
+          {t('completeness.completeNotice')}
         </p>
       ) : (
         <>
-          <p className="mt-3 text-sm text-[#666]">
-            Les éléments suivants restent à compléter — cliquez pour ouvrir le formulaire
-            d'édition à la bonne section :
-          </p>
+          <p className="mt-3 text-sm text-[#666]">{t('completeness.incompleteIntro')}</p>
           <ul className="mt-3 space-y-1 text-sm text-amber-800" data-testid="dossier-missing-fields">
             {result.missing.map((field) => (
               <li key={field} className="flex items-center gap-2">
@@ -100,7 +100,7 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
                   href={`/dossier/edition?focus=${encodeURIComponent(field)}`}
                   className="underline hover:text-[#4A2E67]"
                 >
-                  {FIELD_LABELS_FR[field] ?? field}
+                  {fieldLabel(field)}
                 </Link>
               </li>
             ))}
@@ -134,7 +134,7 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
         onClick={handleSubmit}
         className="mt-5 inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-5 text-sm font-medium text-white hover:bg-[#5C3A7E] disabled:cursor-not-allowed disabled:bg-gray-300"
       >
-        {pending ? 'Soumission…' : 'Soumettre ma candidature'}
+        {pending ? t('completeness.submitting') : t('completeness.submit')}
       </button>
     </section>
   );

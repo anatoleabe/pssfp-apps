@@ -46,6 +46,9 @@ export interface WizardData {
   pin: string;
   pin_confirmation: string;
   cgu: boolean;
+  // Jeton Cloudflare Turnstile (anti-robot). Non persisté en sessionStorage
+  // (single-use, courte durée) — regénéré à chaque affichage de l'étape 4.
+  turnstile_token: string;
 }
 
 export const initialWizardData: WizardData = {
@@ -90,6 +93,7 @@ export const initialWizardData: WizardData = {
   pin: '',
   pin_confirmation: '',
   cgu: false,
+  turnstile_token: '',
 };
 
 export interface WizardServerActionPayload {

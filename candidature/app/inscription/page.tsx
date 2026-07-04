@@ -47,7 +47,7 @@ export default async function InscriptionPage(): Promise<JSX.Element> {
 
       <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">
         <header className="mb-10 max-w-2xl space-y-3 text-center md:text-left">
-          <p className="pssfp-eyebrow inline-block">Promotion 14 · Campagne 2026</p>
+          <p className="pssfp-eyebrow inline-block">{t('eyebrow')}</p>
           <h1 className="font-heading text-pssfp-h1 font-bold text-[#1A1A1A]">
             {t('title')}
           </h1>

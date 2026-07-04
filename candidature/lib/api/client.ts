@@ -138,7 +138,10 @@ export function loginCandidat(payload: {
   return apiPost<RegisterCandidatResponse>('/auth/candidat/login', payload);
 }
 
-export function forgotPin(payload: { phone_e164: string }): Promise<ApiResult<unknown>> {
+export function forgotPin(payload: {
+  phone_e164: string;
+  turnstile_token?: string;
+}): Promise<ApiResult<unknown>> {
   return apiPost<unknown>('/auth/candidat/forgot-pin', payload);
 }
 

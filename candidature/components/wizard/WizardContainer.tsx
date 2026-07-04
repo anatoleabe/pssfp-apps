@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import type { Pays, Specialite } from '@/lib/api/types';
+import { isTurnstileEnabled } from '@/components/TurnstileWidget';
 import { isValidEngagement } from '@/lib/format/engagement';
 import { isValidE164 } from '@/lib/format/phone';
 import { validateCandidatePin } from '@/lib/validation/pinValidation';
@@ -22,12 +24,9 @@ import { WizardStepper } from './WizardStepper';
 
 const SESSION_KEY = 'pssfp.inscription.wizard.v1';
 const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
-const STEPS = [
-  { id: 1, label: 'Identité' },
-  { id: 2, label: 'Coordonnées' },
-  { id: 3, label: 'Diplôme' },
-  { id: 4, label: 'Engagement' },
-];
+// Avertissement WCAG 2.2.1 : prévenir avant l'expiration, avec possibilité
+// de prolonger. La modale apparaît 2 minutes avant l'effacement.
+const INACTIVITY_WARNING_MS = INACTIVITY_TIMEOUT_MS - 2 * 60 * 1000;
 
 export interface WizardContainerProps {
   pays: Pays[];
@@ -37,19 +36,42 @@ export interface WizardContainerProps {
 }
 
 export function WizardContainer({ pays, specialites, submitAction }: WizardContainerProps): JSX.Element {
+  const t = useTranslations('wizard');
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [data, setData] = useState<WizardData>(() => readSession() ?? initialWizardData);
   const [errors, setErrors] = useState<Partial<Record<keyof WizardData, string>>>({});
   const [serverErrors, setServerErrors] = useState<Record<string, string> | undefined>();
   const [serverCta, setServerCta] = useState<WizardServerActionResult['cta'] | null>(null);
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+  const [timeoutWarning, setTimeoutWarning] = useState(false);
   const [pending, startTransition] = useTransition();
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resetTimersRef = useRef<(() => void) | null>(null);
+  const stepPanelRef = useRef<HTMLDivElement | null>(null);
+  const continueButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // Persistance sessionStorage à chaque update.
+  const steps = useMemo(
+    () => [
+      { id: 1, label: t('steps.identite') },
+      { id: 2, label: t('steps.coordonnees') },
+      { id: 3, label: t('steps.diplome') },
+      { id: 4, label: t('steps.engagement') },
+    ],
+    [t],
+  );
+
+  // Persistance sessionStorage à chaque update. Exclusions volontaires :
+  // - turnstile_token : single-use, déjà invalide côté Cloudflare s'il est restauré ;
+  // - pin / pin_confirmation : credential, jamais écrit sur disque (PC public —
+  //   sessionStorage est en clair et beforeunload n'est pas fiable sur mobile).
   useEffect(() => {
     try {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+      sessionStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({ ...data, turnstile_token: '', pin: '', pin_confirmation: '' }),
+      );
     } catch {
       // noop : sessionStorage indisponible (mode privé strict)
     }
@@ -71,11 +93,21 @@ export function WizardContainer({ pays, specialites, submitAction }: WizardConta
 
   // Timer d'inactivité 30 min — efface la sessionStorage et redirige vers /
   // (cf. ajout 3 PR E, alignement banque mobile MTN MoMo / Orange Money).
+  // Une modale d'avertissement (WCAG 2.2.1) s'affiche 2 min avant l'expiration ;
+  // toute activité (clic, touche, scroll) remet les compteurs à zéro.
   useEffect(() => {
-    const reset = (): void => {
+    const clearTimers = (): void => {
       if (inactivityTimer.current) {
         clearTimeout(inactivityTimer.current);
       }
+      if (warningTimer.current) {
+        clearTimeout(warningTimer.current);
+      }
+    };
+    const reset = (): void => {
+      clearTimers();
+      setTimeoutWarning(false);
+      warningTimer.current = setTimeout(() => setTimeoutWarning(true), INACTIVITY_WARNING_MS);
       inactivityTimer.current = setTimeout(() => {
         try {
           sessionStorage.removeItem(SESSION_KEY);
@@ -85,16 +117,23 @@ export function WizardContainer({ pays, specialites, submitAction }: WizardConta
         router.push('/?inactivity_timeout=1');
       }, INACTIVITY_TIMEOUT_MS);
     };
+    resetTimersRef.current = reset;
     const events: Array<keyof DocumentEventMap> = ['mousedown', 'keydown', 'scroll', 'touchstart'];
     events.forEach((evt) => document.addEventListener(evt, reset));
     reset();
     return () => {
-      if (inactivityTimer.current) {
-        clearTimeout(inactivityTimer.current);
-      }
+      clearTimers();
+      resetTimersRef.current = null;
       events.forEach((evt) => document.removeEventListener(evt, reset));
     };
   }, [router]);
+
+  // La modale d'avertissement prend le focus à l'ouverture (annonce lecteur d'écran).
+  useEffect(() => {
+    if (timeoutWarning) {
+      continueButtonRef.current?.focus();
+    }
+  }, [timeoutWarning]);
 
   const patch = (delta: Partial<WizardData>): void => {
     setData((prev) => ({ ...prev, ...delta }));
@@ -139,19 +178,31 @@ export function WizardContainer({ pays, specialites, submitAction }: WizardConta
     if (!isValidE164(data.phone_e164)) {
       return false;
     }
+    if (isTurnstileEnabled() && data.turnstile_token.length === 0) {
+      return false;
+    }
     return data.cgu;
   }, [data]);
+
+  // Focus programmé sur le panneau de l'étape après navigation (WCAG 2.4.3) :
+  // sans lui, le focus reste sur le bouton « Suivant » et les AT ne perçoivent
+  // pas le changement de contenu.
+  const focusStepPanel = (): void => {
+    requestAnimationFrame(() => stepPanelRef.current?.focus());
+  };
 
   const goNext = (): void => {
     if (!validateStep(step)) {
       return;
     }
     setStep((s) => Math.min(4, s + 1));
+    focusStepPanel();
   };
 
   const goPrev = (): void => {
     setErrors({});
     setStep((s) => Math.max(1, s - 1));
+    focusStepPanel();
   };
 
   const cancel = (): void => {
@@ -180,9 +231,13 @@ export function WizardContainer({ pays, specialites, submitAction }: WizardConta
       }
       setServerErrors(result.errors);
       setServerCta(result.cta ?? null);
+      // Soumission échouée : le token Turnstile est consommé, on en régénère un.
+      setData((prev) => ({ ...prev, turnstile_token: '' }));
+      setTurnstileResetKey((k) => k + 1);
       // Si erreur sur phone_e164 → revenir à l'étape 2 pour correction.
       if (result.errors?.phone_e164) {
         setStep(2);
+        focusStepPanel();
       }
     });
   };
@@ -191,29 +246,32 @@ export function WizardContainer({ pays, specialites, submitAction }: WizardConta
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm md:p-8">
-      <WizardStepper current={step} steps={STEPS} />
+      <WizardStepper current={step} steps={steps} />
 
-      {step === 1 && (
-        <WizardStep1Identite
-          data={data}
-          errors={mergedErrors}
-          pays={pays}
-          specialites={specialites}
-          onChange={patch}
-        />
-      )}
-      {step === 2 && (
-        <WizardStep2Coordonnees data={data} errors={mergedErrors} pays={pays} onChange={patch} />
-      )}
-      {step === 3 && <WizardStep3Diplome data={data} errors={mergedErrors} onChange={patch} />}
-      {step === 4 && (
-        <WizardStep4Engagement
-          data={data}
-          errors={mergedErrors}
-          cta={serverCta ?? null}
-          onChange={patch}
-        />
-      )}
+      <div ref={stepPanelRef} tabIndex={-1} className="focus:outline-none">
+        {step === 1 && (
+          <WizardStep1Identite
+            data={data}
+            errors={mergedErrors}
+            pays={pays}
+            specialites={specialites}
+            onChange={patch}
+          />
+        )}
+        {step === 2 && (
+          <WizardStep2Coordonnees data={data} errors={mergedErrors} pays={pays} onChange={patch} />
+        )}
+        {step === 3 && <WizardStep3Diplome data={data} errors={mergedErrors} onChange={patch} />}
+        {step === 4 && (
+          <WizardStep4Engagement
+            data={data}
+            errors={mergedErrors}
+            cta={serverCta ?? null}
+            turnstileResetKey={turnstileResetKey}
+            onChange={patch}
+          />
+        )}
+      </div>
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-6">
         <button
@@ -221,7 +279,7 @@ export function WizardContainer({ pays, specialites, submitAction }: WizardConta
           onClick={cancel}
           className="text-sm text-gray-500 underline hover:text-[#4A2E67]"
         >
-          Annuler et retourner à l'accueil
+          {t('cancel')}
         </button>
 
         <div className="flex items-center gap-3">
@@ -231,7 +289,7 @@ export function WizardContainer({ pays, specialites, submitAction }: WizardConta
               onClick={goPrev}
               className="rounded-md border border-gray-300 px-4 py-2 text-sm text-[#333333] hover:border-[#4A2E67] hover:text-[#4A2E67]"
             >
-              Précédent
+              {t('prev')}
             </button>
           )}
           {step < 4 && (
@@ -241,7 +299,7 @@ export function WizardContainer({ pays, specialites, submitAction }: WizardConta
               data-testid="wizard-next"
               className="rounded-md bg-[#4A2E67] px-5 py-2 text-sm font-medium text-white hover:bg-[#5C3A7E]"
             >
-              Suivant
+              {t('next')}
             </button>
           )}
           {step === 4 && (
@@ -252,19 +310,48 @@ export function WizardContainer({ pays, specialites, submitAction }: WizardConta
               onClick={submit}
               className="rounded-md bg-[#4A2E67] px-5 py-2 text-sm font-medium text-white hover:bg-[#5C3A7E] disabled:cursor-not-allowed disabled:bg-gray-300"
             >
-              {pending ? 'Envoi…' : 'Soumettre ma candidature'}
+              {pending ? t('submitting') : t('submit')}
             </button>
           )}
         </div>
       </div>
 
-      <p className="mt-4 text-xs text-gray-400">
-        Vos données sont enregistrées localement (session navigateur) et seront effacées
-        automatiquement après 30 minutes d'inactivité ou à la fermeture de l'onglet.{' '}
+      <p className="mt-4 text-xs text-gray-500">
+        {t('retentionNotice')}{' '}
         <Link href="/" className="underline">
-          Retour à l'accueil
+          {t('backHome')}
         </Link>
       </p>
+
+      {timeoutWarning && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          data-testid="wizard-timeout-warning"
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="timeout-warning-title"
+            aria-describedby="timeout-warning-body"
+            className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
+          >
+            <h2 id="timeout-warning-title" className="font-heading text-lg font-bold text-[#4A2E67]">
+              {t('timeout.title')}
+            </h2>
+            <p id="timeout-warning-body" className="mt-2 text-sm text-[#333333]">
+              {t('timeout.body')}
+            </p>
+            <button
+              ref={continueButtonRef}
+              type="button"
+              onClick={() => resetTimersRef.current?.()}
+              className="mt-5 h-11 w-full rounded-md bg-[#4A2E67] text-sm font-medium text-white hover:bg-[#5C3A7E]"
+            >
+              {t('timeout.continue')}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

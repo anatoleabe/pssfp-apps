@@ -67,6 +67,7 @@ export async function submitInscription(payload: WizardData): Promise<WizardServ
     prenom: payload.prenom,
     date_naissance: payload.date_naissance,
     cgu: payload.cgu,
+    turnstile_token: payload.turnstile_token,
   });
 
   if (!register.ok) {
@@ -147,7 +148,8 @@ export async function submitInscription(payload: WizardData): Promise<WizardServ
     console.error('[submitInscription] register OK mais PUT /me KO', {
       status: profilePut.status,
       message: profilePut.message,
-      uuid: register.data.user.id,
+      // id interne (BIGSERIAL) — jamais exposé publiquement, log serveur only.
+      userId: register.data.user.id,
     });
     return { ok: true, redirectTo: '/dossier?profile_pending=1' };
   }
