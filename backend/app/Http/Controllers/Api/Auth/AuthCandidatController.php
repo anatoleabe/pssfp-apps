@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Auth;
 
+use App\Exceptions\OtpCooldownException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ForgotPinRequest;
 use App\Http\Requests\Auth\LoginCandidatRequest;
@@ -21,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Endpoints /v1/auth/candidat/*.
@@ -154,19 +156,32 @@ final class AuthCandidatController extends Controller
         $user = $this->users->findByPhone($phone);
 
         // Anti-énumération : on retourne 202 que le phone existe ou non.
+        // Même contrat en cooldown/plafond OTP (un 429 ciblé révélerait que
+        // le numéro est enregistré) et en panne SMS (le candidat réessaiera).
         if ($user !== null) {
-            $code = $this->otp->generate(
-                $phone,
-                'reset_pin',
-                ttlMinutes: 10,
-                ip: $request->ip(),
-                userAgent: $request->userAgent(),
-            );
+            try {
+                $code = $this->otp->generate(
+                    $phone,
+                    'reset_pin',
+                    ttlMinutes: 10,
+                    ip: $request->ip(),
+                    userAgent: $request->userAgent(),
+                );
 
-            $this->sms->send(
-                $phone,
-                "PSSFP : votre code de réinitialisation est {$code}. Valable 10 minutes."
-            );
+                $this->sms->send(
+                    $phone,
+                    "PSSFP : votre code de réinitialisation est {$code}. Valable 10 minutes."
+                );
+            } catch (OtpCooldownException $e) {
+                Log::channel('single')->notice('OTP forgot-pin throttlé par numéro — 202 silencieux.', [
+                    'reason' => $e->reason,
+                    'retry_after' => $e->retryAfterSeconds,
+                ]);
+            } catch (\Throwable $e) {
+                Log::channel('single')->error('Envoi SMS forgot-pin échoué — 202 silencieux.', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return response()->json([

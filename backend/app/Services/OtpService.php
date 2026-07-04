@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Exceptions\OtpCooldownException;
 use App\Models\SmsOtp;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\Hash;
@@ -26,7 +27,13 @@ final class OtpService
     /**
      * Génère un OTP à 6 chiffres et persiste son hash.
      *
+     * Garde-fous par numéro (LOT B.4, indépendants du throttle IP) :
+     * cooldown entre deux envois + plafond horaire glissant. Protège le
+     * crédit SMS d'un numéro ciblé depuis des IP tournantes.
+     *
      * @return string Le code en clair, à transmettre au SMS provider.
+     *
+     * @throws OtpCooldownException numéro en cooldown ou au plafond horaire.
      */
     public function generate(
         string $phone,
@@ -36,6 +43,8 @@ final class OtpService
         ?string $userAgent = null,
     ): string {
         return $this->db->transaction(function () use ($phone, $purpose, $ttlMinutes, $ip, $userAgent): string {
+            $this->assertNotThrottled($phone);
+
             // Annule les OTP encore actifs du même couple (phone, purpose)
             // — limite la fenêtre où plusieurs codes simultanés seraient valides.
             SmsOtp::query()
@@ -58,6 +67,41 @@ final class OtpService
 
             return $code;
         });
+    }
+
+    /**
+     * Cooldown + plafond horaire par numéro (tous purposes confondus —
+     * c'est le crédit SMS du numéro qu'on protège, pas un flux précis).
+     *
+     * @throws OtpCooldownException
+     */
+    private function assertNotThrottled(string $phone): void
+    {
+        $cooldownSeconds = max(0, (int) config('pssfp.otp.cooldown_seconds', 60));
+        $maxPerHour = max(1, (int) config('pssfp.otp.max_per_phone_per_hour', 5));
+
+        if ($cooldownSeconds > 0) {
+            $lastCreatedAt = SmsOtp::query()
+                ->where('phone_e164', $phone)
+                ->latest('id')
+                ->value('created_at');
+
+            if ($lastCreatedAt !== null) {
+                $elapsed = (int) abs(now()->diffInSeconds($lastCreatedAt));
+                if ($elapsed < $cooldownSeconds) {
+                    throw new OtpCooldownException($cooldownSeconds - $elapsed, 'cooldown');
+                }
+            }
+        }
+
+        $lastHourCount = SmsOtp::query()
+            ->where('phone_e164', $phone)
+            ->where('created_at', '>=', now()->subHour())
+            ->count();
+
+        if ($lastHourCount >= $maxPerHour) {
+            throw new OtpCooldownException(3600, 'hourly_cap');
+        }
     }
 
     /**
