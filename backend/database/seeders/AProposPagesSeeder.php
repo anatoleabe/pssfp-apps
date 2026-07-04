@@ -37,8 +37,8 @@ class AProposPagesSeeder extends Seeder
             [
                 'parent_slug' => null,
                 'title' => ['fr' => 'À propos de nous'],
-                'excerpt' => ['fr' => "Découvrez le Programme Supérieur de Spécialisation en Finances Publiques — mission, gouvernance, partenaires et conformité CAMES."],
-                'body' => ['fr' => "Cette page sert de sommaire vers les sections institutionnelles. Le rendu est géré côté frontend (`/a-propos/page.tsx`) avec hero éditorial + cards des sous-pages."],
+                'excerpt' => ['fr' => 'Découvrez le Programme Supérieur de Spécialisation en Finances Publiques — mission, gouvernance, partenaires et conformité CAMES.'],
+                'body' => ['fr' => 'Cette page sert de sommaire vers les sections institutionnelles. Le rendu est géré côté frontend (`/a-propos/page.tsx`) avec hero éditorial + cards des sous-pages.'],
                 'meta_title' => ['fr' => 'À propos de nous — PSSFP'],
                 'meta_description' => ['fr' => 'Programme Supérieur de Spécialisation en Finances Publiques : mission, gouvernance, partenaires, conformité CAMES, histoire institutionnelle depuis 2013.'],
                 'status' => Page::STATUS_PUBLISHED,
@@ -428,11 +428,11 @@ Le PSSFP est hébergé au **Campus de Messa**, en plein cœur de Yaoundé. Le si
 - **Bibliothèque physique** au campus de Messa : ouvrages spécialisés en finances publiques, droit budgétaire, fiscalité, audit, gouvernance territoriale.
 - **Bibliothèque virtuelle** : accès distant à des milliers de ressources numériques (cours, manuels, articles, jurisprudence).
 
-[Accéder à la bibliothèque virtuelle →](https://bibliotheque.pssfp.net)
+[Accéder à la bibliothèque virtuelle →](https://bibliotheque.pssfp.org)
 
 ## Plateforme FOAD
 
-Les étudiants en distanciel accèdent aux cours via la plateforme Moodle [foad.pssfp.net](https://foad.pssfp.net), accessible 24h/24, 7j/7.
+Les étudiants en distanciel accèdent aux cours via la plateforme Moodle [foad.pssfp.org](https://foad.pssfp.org), accessible 24h/24, 7j/7.
 
 ## Modalités d'enseignement
 
@@ -445,7 +445,7 @@ Les étudiants en distanciel accèdent aux cours via la plateforme Moodle [foad.
 **Campus de Messa**
 Yaoundé — Cameroun
 Tél. : (à compléter — UAAF)
-Email : usi@pssfp.net
+Email : usi@pssfp.org
 MD;
     }
 
@@ -482,7 +482,7 @@ Le PSSFP s'inscrit dans le cadre de l'accréditation **CAMES** (Conseil Africain
 
 Le tableau des **12 exigences CAMES** est consultable en bas de cette page. Pour chaque exigence, un lien vers la page institutionnelle du PSSFP qui en démontre la satisfaction.
 
-*Cette page intègre un tableau spécial rendu côté frontend (cf. spec module 1 PR K).*
+
 MD;
     }
 }
