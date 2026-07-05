@@ -251,22 +251,28 @@ class AssetImportService
 
         // textes/Appel*/* — visuels banderoles ou PDFs
         if ($root === 'textes' && $sub !== null && Str::startsWith(strtolower($sub), 'appel')) {
+            // SEULS les visuels (banderoles, affiches, dépliants) sont importés.
+            // Les PDF des campagnes passées contiennent des données nominatives
+            // réelles (listes de candidats retenus + matricules, codes d'accès
+            // plateformes) : ils ne doivent JAMAIS entrer dans le pool assets
+            // du CMS, même sur bucket privé (règle repo n°8 — revue LOT D).
+            $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'svg'], true);
+            if (! $isImage) {
+                return null;
+            }
+
             $promo = Str::contains($sub, '12') ? 'promo-12' : (Str::contains($sub, '13') ? 'promo-13' : null);
             $tags = ['appel-candidature'];
             if ($promo !== null) {
                 $tags[] = $promo;
             }
 
-            $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'svg'], true);
-            $disk = $isImage ? self::MEDIA_DISK : self::DOCUMENTS_DISK;
-            $folder = $isImage ? 'photos/evenements' : 'documents/appels-candidature';
-
             return [
-                'category' => $isImage ? Asset::CATEGORY_PHOTO : Asset::CATEGORY_DOCUMENT,
-                'subcategory' => $isImage ? 'evenements' : 'appel-candidature',
+                'category' => Asset::CATEGORY_PHOTO,
+                'subcategory' => 'evenements',
                 'tags' => $tags,
-                'disk' => $disk,
-                'path' => $folder.'/'.$slugFilename,
+                'disk' => self::MEDIA_DISK,
+                'path' => 'photos/evenements/'.$slugFilename,
             ];
         }
 

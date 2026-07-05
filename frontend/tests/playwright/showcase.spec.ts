@@ -1,87 +1,51 @@
-import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { expect, test } from '@playwright/test';
 
-/**
- * Tests du HomeShowcase carrousel (Sprint S5 PR Y).
- *
- * Le hero d'accueil par défaut est désormais le HomeShowcase (5 slides Embla).
- * Le hero legacy reste accessible via NEXT_PUBLIC_HERO_VARIANT=legacy.
- */
-
-test.describe('HomeShowcase — structure', () => {
-  test('renders 5 slides with dots and prev/next controls', async ({ page }) => {
-    await page.goto('/');
-    const showcase = page.getByTestId('home-showcase');
-    await expect(showcase).toBeVisible();
-
-    // 5 slides
-    const slides = page.locator('[data-testid^="showcase-slide-"]');
-    await expect(slides).toHaveCount(5);
-
-    // Dots
-    const dots = page.locator('[data-testid^="showcase-dot-"]');
-    await expect(dots).toHaveCount(5);
-
-    // Prev / Next
-    await expect(page.getByTestId('showcase-prev')).toBeVisible();
-    await expect(page.getByTestId('showcase-next')).toBeVisible();
+test.describe('HomeInstitutionalHero', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
   });
 
-  test('first slide is the institutional identity slide with 2 CTAs', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByTestId('showcase-slide-identite')).toBeVisible();
-    await expect(page.getByTestId('showcase-cta-primary-identite')).toHaveAttribute(
+  test('presente le positionnement institutionnel et la promotion 14', async ({
+    page,
+  }) => {
+    const hero = page.getByTestId('home-institutional-hero');
+
+    await expect(hero).toBeVisible();
+    await expect(hero.getByRole('heading', { level: 1 })).toContainText(
+      /finances publiques/i,
+    );
+    await expect(page.getByTestId('hero-cta-candidature')).toContainText(
+      /promotion 14/i,
+    );
+    await expect(page.getByTestId('hero-cta-formations')).toHaveAttribute(
       'href',
       '/formations',
     );
-    await expect(page.getByTestId('showcase-cta-secondary-identite')).toHaveAttribute(
-      'href',
-      '#candidature',
+    await expect(page.locator('[data-testid^="showcase-"]')).toHaveCount(0);
+  });
+
+  test('place les acces rapides immediatement apres le hero', async ({
+    page,
+  }) => {
+    const sectionIds = await page.locator('main > section').evaluateAll(
+      (sections) =>
+        sections.map((section) => section.getAttribute('data-testid')),
     );
+
+    expect(sectionIds.slice(0, 3)).toEqual([
+      'home-institutional-hero',
+      'home-access',
+      'home-stats',
+    ]);
   });
 
-  test('clicking next dot advances the carousel', async ({ page }) => {
-    await page.goto('/');
-    // Hover sur le showcase pause l'autoplay (stopOnMouseEnter: true) et
-    // garantit que React est hydraté avant les interactions. Sans ce hover,
-    // l'autoplay (6s) peut faire avancer l'index pendant le test sur une
-    // page dense (HomeStats / HomeSpecialites post-S5).
-    await page.getByTestId('home-showcase').hover();
-    const dot1 = page.getByTestId('showcase-dot-1');
-    await dot1.click();
-    await expect(dot1).toHaveAttribute('aria-selected', 'true');
-  });
+  test('ne presente aucune violation critique axe', async ({ page }) => {
+    const results = await new AxeBuilder({ page }).analyze();
+    const critical = results.violations.filter(
+      (violation) => violation.impact === 'critical',
+    );
 
-  test('next button advances the carousel to slide 2', async ({ page }) => {
-    await page.goto('/');
-    // Même pattern : hover → autoplay pausé → click déterministe.
-    await page.getByTestId('home-showcase').hover();
-    await page.getByTestId('showcase-next').click();
-    await expect(page.getByTestId('showcase-dot-1')).toHaveAttribute('aria-selected', 'true');
-  });
-});
-
-test.describe('HomeShowcase — accessibility', () => {
-  test('home with showcase has no critical a11y violations', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByTestId('home-showcase')).toBeVisible();
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .analyze();
-    expect(results.violations.filter((v) => v.impact === 'critical')).toEqual([]);
-  });
-
-  test('respects prefers-reduced-motion (no autoplay)', async ({ browser }) => {
-    const context = await browser.newContext({
-      reducedMotion: 'reduce',
-    });
-    const page = await context.newPage();
-    await page.goto('/');
-    await expect(page.getByTestId('home-showcase')).toBeVisible();
-    // Snapshot the first dot — after 7s it should still be selected (no autoplay).
-    await expect(page.getByTestId('showcase-dot-0')).toHaveAttribute('aria-selected', 'true');
-    await page.waitForTimeout(2000);
-    await expect(page.getByTestId('showcase-dot-0')).toHaveAttribute('aria-selected', 'true');
-    await context.close();
+    expect(critical).toEqual([]);
   });
 });

@@ -1,8 +1,10 @@
-import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { CamesGrid } from '@/components/CamesGrid';
+import { InternalPageCta } from '@/components/InternalPageCta';
+import { InternalPageHero } from '@/components/InternalPageHero';
 import { OrganigrammeChart } from '@/components/OrganigrammeChart';
 import { PageRenderer } from '@/components/PageRenderer';
 import { getPageBySlug } from '@/lib/api/pages';
@@ -29,45 +31,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 function Breadcrumb({ pageLabel }: { pageLabel: string }): JSX.Element {
   return (
-    <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666] dark:text-[#B5A8C8]">
-      <Link href="/" className="hover:text-[#4A2E67] dark:hover:text-[#B084E8]">Accueil</Link>
-      <span aria-hidden="true"> / </span>
-      <Link href="/a-propos" className="hover:text-[#4A2E67] dark:hover:text-[#B084E8]">À propos de nous</Link>
-      <span aria-hidden="true"> / </span>
-      <span className="text-[#333] dark:text-[#F5EFE3]" data-testid="breadcrumb-current">
-        {pageLabel}
-      </span>
-    </nav>
-  );
-}
-
-function PageHero({
-  eyebrow,
-  title,
-  excerpt,
-}: {
-  eyebrow?: string;
-  title: string;
-  excerpt?: string | null;
-}): JSX.Element {
-  return (
-    <header className="relative overflow-hidden border-b border-[#F4EFFA] bg-gradient-lavande-blanc py-12 md:py-16 dark:border-[#3A2A55] dark:bg-[#1A1A1A] dark:bg-none">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-0 opacity-50 dark:opacity-30">
-        <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-[#5C3A7E]/15 blur-3xl dark:bg-[#B084E8]/10" />
-        <div className="absolute -bottom-32 -left-16 h-[28rem] w-[28rem] rounded-full bg-[#D4AF6A]/10 blur-3xl dark:bg-[#E5C788]/10" />
-      </div>
-      <div className="relative mx-auto max-w-5xl px-6">
-        {eyebrow && <p className="pssfp-eyebrow text-[#D4AF6A]">{eyebrow}</p>}
-        <h1 className="mt-3 font-heading text-3xl font-bold leading-tight text-[#4A2E67] md:text-5xl dark:text-[#B084E8]">
-          {title}
-        </h1>
-        {excerpt && (
-          <p className="mt-4 max-w-3xl text-lg text-[#555] dark:text-[#B5A8C8]" data-testid="page-excerpt">
-            {excerpt}
-          </p>
-        )}
-      </div>
-    </header>
+    <Breadcrumbs
+      items={[
+        { href: '/', label: 'Accueil' },
+        { href: '/a-propos', label: 'À propos de nous' },
+        { label: pageLabel },
+      ]}
+    />
   );
 }
 
@@ -104,7 +74,7 @@ export default async function AProposPage({ params }: PageProps): Promise<JSX.El
     return (
       <>
         <div className="mx-auto max-w-5xl px-6 pt-6">
-          <Breadcrumb pageLabel={page.menu_label ?? page.title} />
+          <Breadcrumb pageLabel={page.menu_label || page.title} />
         </div>
         <div className="mx-auto max-w-5xl px-6 pb-12 md:pb-16">
           <header className="mb-10">
@@ -143,6 +113,7 @@ export default async function AProposPage({ params }: PageProps): Promise<JSX.El
             </div>
           </div>
         </div>
+        <InternalPageCta />
       </>
     );
   }
@@ -151,9 +122,9 @@ export default async function AProposPage({ params }: PageProps): Promise<JSX.El
   if (isOrganigramme) {
     return (
       <>
-        <PageHero eyebrow="Structure organisationnelle" title={page.title} excerpt={page.excerpt} />
+        <InternalPageHero eyebrow="Structure organisationnelle" title={page.title} excerpt={page.excerpt} />
         <div className="mx-auto max-w-7xl px-6 pt-6">
-          <Breadcrumb pageLabel={page.menu_label ?? page.title} />
+          <Breadcrumb pageLabel={page.menu_label || page.title} />
         </div>
         <div className="mx-auto max-w-7xl px-6 pb-12 md:pb-16">
           <OrganigrammeChart />
@@ -168,6 +139,7 @@ export default async function AProposPage({ params }: PageProps): Promise<JSX.El
             </details>
           )}
         </div>
+        <InternalPageCta />
       </>
     );
   }
@@ -175,13 +147,13 @@ export default async function AProposPage({ params }: PageProps): Promise<JSX.El
   // Layout par défaut : hero + prose
   return (
     <>
-      <PageHero
+      <InternalPageHero
         eyebrow={isCames ? 'Accréditation' : 'À propos de nous'}
         title={page.title}
         excerpt={page.excerpt}
       />
       <div className="mx-auto max-w-4xl px-6 pt-6">
-        <Breadcrumb pageLabel={page.menu_label ?? page.title} />
+        <Breadcrumb pageLabel={page.menu_label || page.title} />
       </div>
       <div className="mx-auto max-w-4xl px-6 pb-12 md:pb-16">
         {page.body && (
@@ -196,6 +168,7 @@ export default async function AProposPage({ params }: PageProps): Promise<JSX.El
           </div>
         )}
       </div>
+      <InternalPageCta />
     </>
   );
 }

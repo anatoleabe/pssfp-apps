@@ -42,6 +42,19 @@
     "formationsFrais": "Frais de scolarité",
     "formationsFraisDesc": "Tarifs, modalités et bourses",
     "vie": "Vie académique",
+    "vieMenuLabel": "Sous-menu Vie académique",
+    "viePromotions": "Promotions",
+    "viePromotionsDesc": "Parcours des auditeurs et réseau des diplômés",
+    "vieEnseignants": "Corps enseignant",
+    "vieEnseignantsDesc": "Expertise académique et professionnelle",
+    "vieCalendrier": "Calendrier académique",
+    "vieCalendrierDesc": "Dates clés de l'année universitaire",
+    "vieStages": "Stages et soutenances",
+    "vieStagesDesc": "Expérience professionnelle et travaux de fin d'études",
+    "vieMediafip": "Programme MEDIAFIP",
+    "vieMediafipDesc": "Mobilité et coopération académique",
+    "vieCooperation": "Coopération internationale",
+    "vieCooperationDesc": "Partenariats et ouverture sur la sous-région",
     "actualites": "Actualités",
     "contact": "Contact",
     "library": "Bibliothèque",
@@ -50,7 +63,23 @@
     "menuOpen": "Ouvrir le menu",
     "menuClose": "Fermer le menu",
     "menuSectionExplore": "Explorer la section",
-    "menuViewAll": "Voir toute la section"
+    "menuViewAll": "Voir toute la section",
+    "menuGroupInstitution": "Institution",
+    "menuGroupGouvernance": "Gouvernance",
+    "menuGroupReperes": "Repères",
+    "menuGroupDiplomes": "Diplômes",
+    "menuGroupDeveloppement": "Développement",
+    "menuGroupPratique": "Informations pratiques",
+    "menuGroupParcours": "Parcours",
+    "menuGroupCampus": "Campus",
+    "menuGroupOuverture": "Ouverture"
+  },
+  "internalCta": {
+    "eyebrow": "Admissions · Promotion 14",
+    "title": "Construisez votre parcours au PSSFP",
+    "body": "Explorez nos formations et préparez votre candidature pour rejoindre la prochaine promotion du Master Professionnel en Finances Publiques.",
+    "primary": "Candidater en ligne",
+    "secondary": "Voir les formations"
   },
   "footer": {
     "aboutTitle": "À propos",
@@ -102,6 +131,27 @@
     "ctaButton": "Candidater en ligne"
   },
   "home": {
+    "institutionalHero": {
+      "eyebrow": "Campus de Messa · Yaoundé",
+      "campaign": "Candidatures ouvertes",
+      "title": "Former l'élite des finances publiques",
+      "subtitle": "Le PSSFP prépare les cadres supérieurs capables de moderniser l'action publique au Cameroun et dans la sous-région CEMAC.",
+      "ctaPrimary": "Candidater à la promotion 14",
+      "ctaSecondary": "Découvrir les formations",
+      "deadline": "Dépôt des dossiers jusqu'au 15 août 2026.",
+      "trustCames": "Master BAC+5 reconnu CAMES",
+      "trustPromotions": "13 promotions formées",
+      "trustCampus": "Campus de Messa, Yaoundé",
+      "imageAlt": "Auditeurs diplômés du PSSFP lors de la cérémonie de remise des diplômes"
+    },
+    "campusCta": {
+      "eyebrow": "Campus de Messa · Yaoundé",
+      "title": "Rejoignez la prochaine génération de cadres publics",
+      "body": "Intégrez un programme d'excellence au cœur des institutions camerounaises et développez une expertise directement applicable aux enjeux des finances publiques.",
+      "ctaPrimary": "Candidater à la promotion 14",
+      "ctaSecondary": "Découvrir le campus",
+      "imageAlt": "Façade du Campus de Messa à Yaoundé"
+    },
     "hero": {
       "eyebrow": "Campus de Messa, Yaoundé",
       "title": "Former l'excellence des finances publiques en Afrique centrale",
@@ -168,6 +218,7 @@
       "titleAccent": "un parcours complet",
       "intro": "Un Master Professionnel en 5 spécialités, 10 modules courts de formation continue, et des certifications internationales — pour les futurs cadres comme pour les responsables en activité.",
       "readMore": "Découvrir",
+      "featuredLabel": "Spécialité phare",
       "specialitiesEyebrow": "Master Professionnel · 5 spécialités",
       "specialitiesTitle": "Choisir sa spécialité en M2",
       "spec1": "Les Métiers Budgétaires",
@@ -254,11 +305,11 @@
     "dataTitle": "Données collectées",
     "dataBody": "Aucune donnée personnelle n'est collectée à votre seule visite des pages publiques du site. Nous ne déposons aucun cookie publicitaire. Une mesure d'audience anonyme via Matomo peut être activée si vous donnez votre consentement.",
     "rightsTitle": "Vos droits",
-    "rightsBody": "Vous disposez d'un droit d'accès, de rectification et de suppression de vos données. Adressez votre demande à privacy@pssfp.net."
+    "rightsBody": "Vous disposez d'un droit d'accès, de rectification et de suppression de vos données. Adressez votre demande à privacy@pssfp.org."
   },
   "sitemap": {
     "title": "Plan du site",
-    "intro": "Tous les espaces et pages publiques accessibles depuis pssfp.net.",
+    "intro": "Tous les espaces et pages publiques accessibles depuis pssfp.org.",
     "main": "Pages principales",
     "transversal": "Pages transversales",
     "external": "Espaces partenaires"
@@ -269,10 +320,140 @@
     "back": "Retour à l'accueil"
   },
   "actualites": {
+    "index": {
+      "eyebrow": "Actualités du Programme",
+      "title": "Actualités du PSSFP",
+      "intro": "Événements, coopération, vie académique et communiqués officiels : suivez les temps forts du Programme.",
+      "facebook": "Sur Facebook",
+      "readMore": "Lire la suite"
+    },
+    "detail": {
+      "eyebrow": "Actualité",
+      "pinned": "À la une",
+      "summaryTitle": "En bref",
+      "summaryBody": "Retrouvez les informations essentielles de cette publication et poursuivez votre découverte du Programme.",
+      "apply": "Candidater à la promotion 14",
+      "back": "Toutes les actualités"
+    },
     "facebook": {
       "title": "Suivez @pssfpcameroun",
       "body": "Le flux Facebook officiel du PSSFP n'est chargé qu'après votre consentement (RGPD). Aucun cookie tiers Facebook n'est déposé tant que vous n'avez pas accepté.",
       "accept": "Charger le flux Facebook"
+    }
+  },
+  "turnstile": {
+    "heading": "Vérification anti-robot",
+    "loadError": "La vérification anti-robot n'a pas pu se charger. Désactivez votre bloqueur de contenu ou réessayez.",
+    "retry": "Réessayer le chargement",
+    "expired": "La vérification anti-robot a expiré, merci de la refaire.",
+    "devPlaceholder": "Captcha Cloudflare Turnstile désactivé en dev (clé non configurée).",
+    "loading": "Chargement de la vérification anti-robot…",
+    "error": "La vérification anti-robot a rencontré une erreur, merci de la refaire."
+  },
+  "contact": {
+    "metaTitle": "Contact",
+    "metaDescription": "Contactez le PSSFP — Campus de Messa, Yaoundé. Formulaire en ligne, adresse, téléphone et carte d'accès.",
+    "eyebrow": "Contactez-nous",
+    "heroTitlePre": "Nous sommes à votre",
+    "heroTitleHighlight": "écoute",
+    "heroLead": "Une question, un projet de partenariat, une demande d'information ? Le secrétariat du PSSFP vous répond — formulaire, téléphone, courriel ou visite sur le Campus de Messa à Yaoundé.",
+    "responseBadge": "Réponse sous 48h ouvrées",
+    "writeEyebrow": "Nous écrire",
+    "writeTitle": "Envoyez-nous un message",
+    "writeHelp": "Remplissez le formulaire ci-dessous. Les champs marqués * sont obligatoires.",
+    "infoEyebrow": "Coordonnées",
+    "infoTitle": "Où nous trouver",
+    "infoHelp": "Trois canaux pour nous joindre directement.",
+    "infos": {
+      "adresse": {
+        "label": "Adresse",
+        "primary": "Campus de Messa",
+        "secondary": "Yaoundé, Cameroun"
+      },
+      "telephone": {
+        "label": "Téléphone",
+        "primary": "+237 222 23 45 67",
+        "secondary": "Lundi – Vendredi · 8h00 – 16h00"
+      },
+      "email": {
+        "label": "Email",
+        "primary": "contact@pssfp.org",
+        "secondary": "Réponse sous 48h ouvrées"
+      }
+    },
+    "mapEyebrow": "Accès",
+    "mapTitle": "Campus de Messa, Yaoundé",
+    "mapHelp": "Repérez l'entrée principale et planifiez votre itinéraire.",
+    "faqEyebrow": "FAQ",
+    "faqTitle": "Questions fréquentes",
+    "faqHelp": "Trouvez rapidement les réponses aux demandes les plus courantes.",
+    "faq": {
+      "horaires": {
+        "q": "Quels sont les horaires d'ouverture du secrétariat ?",
+        "a": "Le secrétariat est ouvert du lundi au vendredi, de 8h00 à 16h00. Nous sommes fermés les week-ends et jours fériés."
+      },
+      "admissions": {
+        "q": "Comment obtenir des informations sur les admissions ?",
+        "a": "Les conditions d'admission, le calendrier et la procédure de candidature sont détaillés sur la rubrique Candidature. Pour toute question spécifique, écrivez-nous via le formulaire ci-contre — réponse sous 48h ouvrées."
+      },
+      "visite": {
+        "q": "Puis-je visiter le campus avant de candidater ?",
+        "a": "Oui, des visites guidées du Campus de Messa sont organisées sur rendez-vous. Contactez le secrétariat pour planifier votre venue."
+      },
+      "departement": {
+        "q": "Comment contacter un département ou un responsable de spécialité ?",
+        "a": "Précisez le nom du département ou de la spécialité dans l'objet du message. Le secrétariat oriente votre demande vers la personne compétente."
+      }
+    },
+    "form": {
+      "nom": "Nom complet *",
+      "email": "Email *",
+      "phone": "Téléphone (optionnel)",
+      "organisation": "Organisation (optionnel)",
+      "subject": "Sujet (optionnel)",
+      "message": "Message *",
+      "consent": "J'ai pris connaissance de la <a>politique de confidentialité</a> et j'accepte que mes données soient traitées pour répondre à ma demande.",
+      "successTitle": "Message envoyé",
+      "submit": "Envoyer le message",
+      "sending": "Envoi…",
+      "fallbackSuccess": "Message envoyé.",
+      "networkError": "Erreur réseau. Vérifiez votre connexion et réessayez."
+    },
+    "map": {
+      "regionAria": "Carte Google Maps Campus de Messa",
+      "consentTitle": "Localisation — Campus de Messa",
+      "consentBody": "Cliquez pour charger la carte Google Maps. Aucun cookie tiers Google n'est déposé tant que vous n'avez pas accepté.",
+      "load": "Charger la carte",
+      "iframeTitle": "Carte Google Maps — Campus de Messa, Yaoundé"
+    }
+  },
+  "formationsIndex": {
+    "metaTitle": "Formations",
+    "metaDescription": "Master en finances publiques (5 spécialités), formation continue et certifications du PSSFP.",
+    "eyebrow": "Catalogue académique",
+    "title": "Formations supérieures",
+    "links": {
+      "master": "Master Professionnel",
+      "specialites": "5 spécialités du Master",
+      "continue": "Formation continue (10 modules)",
+      "certifications": "Certifications internationales",
+      "seminaires": "Séminaires & voyages d'étude",
+      "admission": "Admission (P14 — 2026)",
+      "frais": "Frais de scolarité"
+    }
+  },
+  "vieAcademiqueIndex": {
+    "metaTitle": "Vie académique",
+    "metaDescription": "Promotions, enseignants, calendrier académique, stages, programme MEDIAFIP et coopération internationale au PSSFP.",
+    "eyebrow": "Communauté PSSFP",
+    "title": "Vie académique",
+    "links": {
+      "promotions": "13 promotions",
+      "enseignants": "Corps enseignant",
+      "calendrier": "Calendrier 2026-2027",
+      "stages": "Stages et soutenances",
+      "mediafip": "Programme MEDIAFIP",
+      "cooperation": "Coopération internationale"
     }
   }
 }

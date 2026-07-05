@@ -92,11 +92,11 @@ export async function HomeActualites(): Promise<JSX.Element> {
 
         <ul className="grid gap-6 md:grid-cols-3">
           {hasRealArticles
-            ? realArticles.map((article) => {
+            ? realArticles.map((article, index) => {
                 const accent = ACCENT_BY_CATEGORY[article.category ?? ''] ?? 'violet';
                 const dateIso = article.published_at ?? new Date().toISOString();
                 return (
-                  <li key={article.uuid}>
+                  <li key={article.uuid} className={index > 1 ? 'hidden md:block' : undefined}>
                     <article
                       data-testid={`home-actualites-card-${article.slug}`}
                       className="group flex h-full flex-col overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-[#D4AF6A]/60 hover:shadow-pssfp-elevated dark:border-[#3A2F48] dark:bg-[#1F1A28] dark:hover:border-[#D4AF6A]/60"
@@ -104,7 +104,7 @@ export async function HomeActualites(): Promise<JSX.Element> {
                       {/* Header image MinIO ou gradient fallback */}
                       <div
                         aria-hidden="true"
-                        className={`relative h-48 overflow-hidden ${accentBg[accent]}`}
+                        className={`relative h-40 overflow-hidden md:h-48 ${accentBg[accent]}`}
                       >
                         {article.featured_image_path && (
                           <Image

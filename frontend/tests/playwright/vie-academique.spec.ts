@@ -31,6 +31,13 @@ test.describe('/vie-academique/[...slug] — fallback', () => {
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     }
   });
+
+  test('promotions breadcrumb falls back to the page title when menu label is empty', async ({ page }) => {
+    await page.goto('/vie-academique/promotions');
+    const breadcrumb = page.getByTestId('breadcrumb-current');
+    test.skip((await breadcrumb.count()) === 0, 'Backend CMS indisponible');
+    await expect(breadcrumb).toHaveText('Nos 13 promotions');
+  });
 });
 
 test.describe('/vie-academique — a11y', () => {

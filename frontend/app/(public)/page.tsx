@@ -1,11 +1,10 @@
 import dynamic from 'next/dynamic';
 import { HomeActualites } from '@/components/HomeActualites';
 import { HomeAccessRapide } from '@/components/HomeAccessRapide';
-import { HomeEngagements } from '@/components/HomeEngagements';
-import { HomeHero } from '@/components/HomeHero';
+import { HomeCampusCta } from '@/components/HomeCampusCta';
+import { HomeInstitutionalHero } from '@/components/HomeInstitutionalHero';
 import { HomePartenaires } from '@/components/HomePartenaires';
 import { HomePiliers } from '@/components/HomePiliers';
-import { HomeShowcase } from '@/components/HomeShowcase';
 import { HomeSpecialites } from '@/components/HomeSpecialites';
 import { JsonLd, organizationJsonLd } from '@/components/JsonLd';
 
@@ -26,21 +25,17 @@ export const metadata = {
 };
 
 export default async function HomePage(): Promise<JSX.Element> {
-  const heroVariant = process.env.NEXT_PUBLIC_HERO_VARIANT ?? 'showcase';
-
   return (
     <>
       <JsonLd data={organizationJsonLd()} />
-      {heroVariant === 'legacy' ? <HomeHero /> : <HomeShowcase />}
-      {/* Sprint S5.1 — bandeau institutionnel 4 piliers (ADR-0008 maquette identité 2026) */}
-      <HomePiliers />
+      <HomeInstitutionalHero />
+      <HomeAccessRapide />
       <HomeStats />
       <HomeSpecialites />
-      {/* Sprint S5.1 — section éditoriale "Nos engagements" */}
-      <HomeEngagements />
       <HomeActualites />
+      <HomePiliers />
       <HomePartenaires />
-      <HomeAccessRapide />
+      <HomeCampusCta />
     </>
   );
 }

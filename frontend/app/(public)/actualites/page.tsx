@@ -12,7 +12,10 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { FacebookEmbed } from '@/components/FacebookEmbed';
+import { InternalPageCta } from '@/components/InternalPageCta';
+import { InternalPageHero } from '@/components/InternalPageHero';
 import { listArticles } from '@/lib/api/articles';
 import { mediaUrl } from '@/lib/media';
 
@@ -51,18 +54,13 @@ export default async function ActualitesIndexPage({
   const { page } = await searchParams;
   const pageNum = page ? Math.max(1, Number.parseInt(page, 10) || 1) : 1;
   const result = await listArticles({ page: pageNum });
+  const t = await getTranslations('actualites.index');
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
-      <header className="mb-10 flex flex-wrap items-baseline justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-3xl font-bold text-[#4A2E67] md:text-4xl">Actualités</h1>
-          <p className="mt-3 max-w-2xl text-[#555]">
-            Événements, coopération, vie académique et communiqués officiels du PSSFP.
-          </p>
-        </div>
-      </header>
+    <>
+      <InternalPageHero eyebrow={t('eyebrow')} title={t('title')} excerpt={t('intro')} />
 
+      <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
       {!result.ok ? (
         <p
           role="alert"
@@ -89,7 +87,7 @@ export default async function ActualitesIndexPage({
               <li
                 key={article.slug}
                 data-testid={`actualite-card-${article.slug}`}
-                className="group flex h-full flex-col overflow-hidden rounded-xl border border-[var(--pssfp-border)] bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-pssfp-elevated"
+                className="group flex h-full flex-col overflow-hidden rounded-pssfp-card border border-[var(--pssfp-border)] bg-[var(--pssfp-bg-elevated)] shadow-pssfp-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-pssfp-prune hover:shadow-pssfp-elevated dark:hover:border-[#B084E8]"
               >
                 {/*
                   Sprint S5.2 — Image MinIO si dispo, sinon fallback éditorial
@@ -98,7 +96,7 @@ export default async function ActualitesIndexPage({
                   le fallback couvre les cas Filament-CMS sans upload.
                 */}
                 <div
-                  className="relative h-44 overflow-hidden rounded-t-xl bg-gradient-to-br from-pssfp-prune/85 to-pssfp-bleu-petrole/85"
+                  className="relative h-44 overflow-hidden bg-pssfp-prune"
                   data-has-image={article.featured_image_path ? 'true' : 'false'}
                 >
                   {article.featured_image_path ? (
@@ -155,7 +153,7 @@ export default async function ActualitesIndexPage({
                     href={`/actualites/${article.slug}`}
                     className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#4A2E67] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 rounded"
                   >
-                    Lire la suite
+                    {t('readMore')}
                     <ArrowRight size={14} aria-hidden="true" />
                   </Link>
                 </div>
@@ -166,7 +164,7 @@ export default async function ActualitesIndexPage({
 
           <aside aria-label="Flux Facebook officiel">
             <h2 className="mb-4 font-heading text-lg font-bold text-[#4A2E67]">
-              Sur Facebook
+              {t('facebook')}
             </h2>
             <FacebookEmbed />
           </aside>
@@ -200,6 +198,9 @@ export default async function ActualitesIndexPage({
           )}
         </nav>
       )}
-    </div>
+      </div>
+
+      <InternalPageCta />
+    </>
   );
 }

@@ -22,7 +22,7 @@
 
 ### Décisions à acter par Anatole (avant de lancer les lots)
 
-1. **Hébergement** : cf. §Hébergement en fin de doc. Reco = **Hetzner Cloud CPX21/CX32 (~9 €/mois) + Cloudflare (gratuit)**. (Contabo acceptable si déjà contracté.)
+1. **Hébergement** : **netcup VPS ~8 Go (~7-10 €/mois) + Cloudflare (gratuit)** — cf. §Hébergement en fin de doc. (Hetzner = alternative si besoin de flexibilité/outillage ; Contabo si déjà contracté.)
 2. **OTP SMS au lancement** : brancher **Africa's Talking** maintenant, **ou** partir en *fallback V1* (candidat qui oublie son PIN → réinitialisé par l'admin dans Filament). Le fallback est acceptable pour ~200 candidats et **ne bloque pas** l'ouverture.
 3. **Contenu CGU + Politique de confidentialité candidat** : fournir le texte (obligatoire RGPD — la case d'engagement le référence).
 4. **Dates campagne P14** : ouverture / clôture / résultats, et le préfixe `P14026`.
@@ -111,19 +111,27 @@ Jours 5-6  : LOT D (contenu site) + go-live pssfp.net
 
 ## Hébergement — recommandation
 
-**Architecture retenue : un seul VPS + Cloudflare (gratuit) en frontal.** Un VPS unique garde l'auth cross-sous-domaine (`SESSION_DOMAIN=.pssfp.net`) triviale, coûte le moins cher, et colle à la doc de déploiement existante.
+**Architecture retenue : un seul VPS + Cloudflare (gratuit) en frontal.** Un VPS unique garde l'auth cross-sous-domaine (`SESSION_DOMAIN=.pssfp.org`) triviale, coûte le moins cher, et colle à la doc de déploiement existante.
 
-| Option | Coût | Verdict |
-|---|---|---|
-| **Hetzner Cloud CPX21 / CX32** (3-4 vCPU, 8 Go, 80 Go NVMe) | **~8-9 €/mois** | ★ **Recommandé** — meilleur rapport fiabilité/perf/prix, datacenters UE. |
-| Contabo Cloud VPS (4 vCPU, 8-24 Go) | ~6-8 €/mois | Acceptable **si déjà contracté** (le CDC le prévoit). RAM moins chère mais réseau/support moins fiables. |
-| Vercel + Neon + host Laravel (managé) | variable, plus cher | Rejeté : plus de pièces mobiles, egress Vercel, auth cross-sous-domaine complexifiée. |
+| Option | Specs cibles | Coût | Verdict |
+|---|---|---|---|
+| **netcup VPS ~2000/3000** (4-6 vCPU, 8 Go, 160-256 Go SSD) | ~8 Go RAM | **~7-10 €/mois** | ★ **Retenu (2026-07-04)** — meilleur prix/qualité, souvent + de disque au même prix. Le « milieu » : moins cher que Hetzner, plus fiable que Contabo. DC Nuremberg/Vienne (UE). |
+| Hetzner Cloud CX32 / CPX21 (3-4 vCPU, 8 Go, 80 Go NVMe) | ~8 Go RAM | ~8-9 €/mois | Alternative — un cran + cher, mais facturation horaire, provisioning instantané, snapshots + API cloud. À privilégier si besoin de flexibilité/outillage. |
+| Contabo Cloud VPS (4 vCPU, 8-24 Go) | | ~6-8 €/mois | Acceptable **si déjà contracté** (le CDC le prévoit). RAM moins chère mais réseau/support moins fiables. |
+| Vercel + Neon + host Laravel (managé) | | variable, + cher | Rejeté : plus de pièces mobiles, egress, auth cross-sous-domaine complexifiée. |
+
+**Dimensionnement** : cible **≈ 8 Go RAM / 4-6 vCPU / ≥ 80 Go SSD**. Les apps Next.js en Node (PM2) sont les postes RAM (~150-300 Mo chacune). Site + candidature seuls tiennent large ; ajouter la **bibliothèque** (3ᵉ app Node) plus tard → viser **8 Go dès le départ** pour ne pas re-dimensionner.
+
+**Points de vigilance netcup** (à vérifier avant l'achat) :
+- **Durée d'engagement / frais de setup** selon le produit (certains VPS/RS ont un minimum ou un one-time) — lire la ligne « durée minimale ».
+- **Provisioning pas toujours instantané** (vérification d'identité pour un nouveau compte).
+- **Snapshots/backups en option payante** — de toute façon couverts par `spatie/laravel-backup` vers un stockage externe.
 
 **Le levier qualité clé pour un public camerounais** : mettre **Cloudflare (plan gratuit)** devant le VPS (UE). Cache CDN des assets sur PoPs africains, TLS auto, DDoS/WAF, et Turnstile déjà intégré. Gain de latence majeur pour ~0 €.
 
 **Compléments** :
-- **Sauvegardes** : snapshots Hetzner + dump hebdo vers Storage Box (~3,50 €/mois) ou Scaleway.
-- **Emails transactionnels** : SMTP creawebhosting OK à faible volume, **mais configurer SPF + DKIM + DMARC** sur `pssfp.net` (sinon confirmations candidature en spam). Alternative faible volume : Brevo (300 mails/j gratuits).
+- **Sauvegardes** : `spatie/laravel-backup` quotidien vers Scaleway Object Storage (ou une Storage Box) — indépendant de l'hébergeur.
+- **Emails transactionnels** : SMTP creawebhosting OK à faible volume, **mais configurer SPF + DKIM + DMARC** sur `pssfp.org` (sinon confirmations candidature en spam). Alternative faible volume : Brevo (300 mails/j gratuits).
 - **SMS OTP** : Africa's Talking (~15-25 FCFA/SMS, ≈10 000 FCFA/campagne).
 
-**Coût total v1 ≈ 12-15 €/mois** (VPS + backup) + ~10 000 FCFA/campagne SMS + Cloudflare 0 €.
+**Coût total v1 ≈ 8-12 €/mois** (VPS netcup + backup externe) + ~10 000 FCFA/campagne SMS + Cloudflare 0 €.

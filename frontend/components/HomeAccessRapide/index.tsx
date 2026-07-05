@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
-type Variant = 'forest' | 'ink' | 'gold';
+type Variant = 'petrole' | 'prune' | 'gold';
 
 interface Card {
   key: 'foad' | 'biblio' | 'candidature';
@@ -19,13 +19,9 @@ interface Card {
 }
 
 /**
- * Bloc 3 accès rapides — refonte Editorial Senate.
- *
- * 3 grandes cards avec rotation forest / ink / gold pour casser la dominante
- * violette. La candidature reste la card phare (gold burnished, accent
- * institutionnel fort). FOAD prend l'ancre forest. Biblio prend ink-deep
- * pour l'élévation typographique. Background cream warm — plus de lavande
- * blanc.
+ * Bloc compact d'accès rapides placé immédiatement après le hero.
+ * Il sert les trois parcours transactionnels sans concurrencer la mission
+ * institutionnelle affichée au-dessus.
  */
 export async function HomeAccessRapide(): Promise<JSX.Element> {
   const t = await getTranslations('home.access');
@@ -36,14 +32,14 @@ export async function HomeAccessRapide(): Promise<JSX.Element> {
       href: process.env.NEXT_PUBLIC_FOAD_URL ?? 'https://foad.pssfp.org',
       external: true,
       Icon: GraduationCap,
-      variant: 'forest',
+      variant: 'petrole',
     },
     {
       key: 'biblio',
       href: process.env.NEXT_PUBLIC_LIBRARY_URL ?? '#',
       external: true,
       Icon: BookOpen,
-      variant: 'ink',
+      variant: 'prune',
     },
     {
       key: 'candidature',
@@ -56,39 +52,26 @@ export async function HomeAccessRapide(): Promise<JSX.Element> {
 
   return (
     <section
+      id="acces-rapides"
       aria-labelledby="access-heading"
       data-testid="home-access"
-      className="relative overflow-hidden bg-gradient-ivoire pssfp-paper-grain dark:bg-[#14101A] dark:bg-none"
+      className="border-b border-pssfp-or/35 bg-pssfp-ivoire dark:border-pssfp-or/20 dark:bg-pssfp-prune-dark"
     >
-      {/* Halo décoratifs sobres */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -left-32 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full opacity-15 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #0F3A4A 0%, transparent 70%)' }}
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full opacity-20 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #D4AF6A 0%, transparent 70%)' }}
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4AF6A]/50 to-transparent"
-      />
-
-      <div className="relative mx-auto max-w-7xl px-6 py-20 md:py-24">
-        <header className="mb-12 max-w-3xl">
-          <p className="pssfp-eyebrow">{t('eyebrow')}</p>
-          <h2
-            id="access-heading"
-            className="mt-3 font-heading font-bold text-pssfp-h2 text-[#14101A] dark:text-[#F5EFE3]"
-          >
-            {t('title')}
-          </h2>
-          <p className="mt-4 pssfp-lead dark:text-[#B5A8C8]">{t('intro')}</p>
+      <div className="mx-auto max-w-7xl px-6 py-10 md:py-12">
+        <header className="mb-7 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="pssfp-eyebrow">{t('eyebrow')}</p>
+            <h2
+              id="access-heading"
+              className="mt-2 font-heading text-3xl font-bold text-pssfp-prune-dark dark:text-white"
+            >
+              {t('title')}
+            </h2>
+          </div>
+          <p className="max-w-xl text-base text-pssfp-graphite-light dark:text-white/75">{t('intro')}</p>
         </header>
 
-        <ul className="grid gap-6 md:grid-cols-3">
+        <ul className="grid gap-4 md:grid-cols-3">
           {cards.map((card) => (
             <li key={card.key}>
               <AccessCard
@@ -114,7 +97,6 @@ interface AccessCardProps {
 
 const VARIANT_STYLES: Record<Variant, {
   card: string;
-  haloBg: string;
   iconBg: string;
   titleColor: string;
   bodyColor: string;
@@ -122,35 +104,32 @@ const VARIANT_STYLES: Record<Variant, {
   ctaArrowBg: string;
   focusRing: string;
 }> = {
-  forest: {
-    card: 'bg-gradient-petrole-prune text-white border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
-    haloBg: 'radial-gradient(circle, rgba(255, 255, 255, 0.30) 0%, transparent 70%)',
-    iconBg: 'bg-white/15 text-white backdrop-blur-2xl',
+  petrole: {
+    card: 'border-pssfp-bleu-petrole bg-pssfp-bleu-petrole text-white shadow-pssfp-soft hover:shadow-pssfp-elevated',
+    iconBg: 'bg-white/15 text-white',
     titleColor: 'text-white',
     bodyColor: 'text-white/85',
     ctaColor: 'text-white',
-    ctaArrowBg: 'bg-white/15 text-white group-hover:bg-white group-hover:text-[#0F3A4A]',
-    focusRing: 'focus-visible:ring-[#D4AF6A]',
+    ctaArrowBg: 'bg-white/15 text-white group-hover:bg-white group-hover:text-pssfp-bleu-petrole',
+    focusRing: 'focus-visible:ring-pssfp-or',
   },
-  ink: {
-    card: 'bg-gradient-ink-deep text-white border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
-    haloBg: 'radial-gradient(circle, rgba(176, 132, 232, 0.40) 0%, transparent 70%)',
-    iconBg: 'bg-white/10 text-[#E5C788] backdrop-blur-2xl',
+  prune: {
+    card: 'border-pssfp-prune bg-pssfp-prune text-white shadow-pssfp-soft hover:shadow-pssfp-elevated',
+    iconBg: 'bg-white/10 text-pssfp-or-light',
     titleColor: 'text-white',
     bodyColor: 'text-white/85',
-    ctaColor: 'text-[#E5C788]',
-    ctaArrowBg: 'bg-white/10 text-[#E5C788] group-hover:bg-[#E5C788] group-hover:text-[#14101A]',
-    focusRing: 'focus-visible:ring-[#E5C788]',
+    ctaColor: 'text-pssfp-or-light',
+    ctaArrowBg: 'bg-white/10 text-pssfp-or-light group-hover:bg-pssfp-or-light group-hover:text-pssfp-prune-dark',
+    focusRing: 'focus-visible:ring-pssfp-or-light',
   },
   gold: {
-    card: 'bg-gradient-or text-[#14101A] border-transparent shadow-pssfp-glow-or hover:shadow-pssfp-floating',
-    haloBg: 'radial-gradient(circle, rgba(60, 60, 60, 0.20) 0%, transparent 70%)',
-    iconBg: 'bg-[#14101A]/10 text-[#14101A] backdrop-blur-2xl',
-    titleColor: 'text-[#14101A]',
-    bodyColor: 'text-[#14101A]/80',
-    ctaColor: 'text-[#14101A]',
-    ctaArrowBg: 'bg-[#14101A]/10 text-[#14101A] group-hover:bg-[#14101A] group-hover:text-[#D4AF6A]',
-    focusRing: 'focus-visible:ring-[#0F3A4A]',
+    card: 'border-pssfp-or bg-pssfp-or text-pssfp-prune-dark shadow-pssfp-soft hover:shadow-pssfp-elevated',
+    iconBg: 'bg-pssfp-prune-dark/10 text-pssfp-prune-dark',
+    titleColor: 'text-pssfp-prune-dark',
+    bodyColor: 'text-pssfp-prune-dark/80',
+    ctaColor: 'text-pssfp-prune-dark',
+    ctaArrowBg: 'bg-pssfp-prune-dark/10 text-pssfp-prune-dark group-hover:bg-pssfp-prune-dark group-hover:text-pssfp-or-light',
+    focusRing: 'focus-visible:ring-pssfp-bleu-petrole',
   },
 };
 
@@ -164,35 +143,29 @@ function AccessCard({ card, title, body, openLabel }: AccessCardProps): JSX.Elem
       data-testid={`access-${card.key}`}
       rel={card.external ? 'noopener noreferrer' : undefined}
       target={card.external ? '_blank' : undefined}
-      className={`group relative flex h-full min-h-[260px] flex-col justify-between overflow-hidden rounded-pssfp-card border p-7 transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${v.card} ${v.focusRing}`}
+      className={`group flex h-full min-h-[188px] cursor-pointer flex-col justify-between rounded-pssfp-card border p-6 transition-all duration-200 ease-out hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${v.card} ${v.focusRing}`}
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-60"
-        style={{ background: v.haloBg }}
-      />
-
-      <div className="relative">
+      <div>
         <span
           aria-hidden="true"
-          className={`inline-flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-300 ease-pssfp-out-expo group-hover:scale-110 ${v.iconBg}`}
+          className={`inline-flex h-12 w-12 items-center justify-center rounded-xl transition-transform duration-200 ease-out group-hover:scale-105 ${v.iconBg}`}
         >
-          <Icon size={28} />
+          <Icon size={24} />
         </span>
-        <h3 className={`mt-6 font-heading text-pssfp-h3 font-bold leading-tight ${v.titleColor}`}>
+        <h3 className={`mt-4 font-heading text-pssfp-h3 font-bold leading-tight ${v.titleColor}`}>
           {title}
         </h3>
-        <p className={`mt-3 text-sm leading-relaxed ${v.bodyColor}`}>{body}</p>
+        <p className={`mt-2 text-sm leading-relaxed ${v.bodyColor}`}>{body}</p>
       </div>
 
-      <div className={`relative mt-6 inline-flex items-center justify-between gap-3 ${v.ctaColor}`}>
+      <div className={`mt-5 inline-flex items-center justify-between gap-3 ${v.ctaColor}`}>
         <span className="inline-flex items-center gap-2 text-sm font-semibold">
           {openLabel}
           {card.external ? <ExternalLink size={14} aria-hidden="true" /> : null}
         </span>
         <span
           aria-hidden="true"
-          className={`flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ease-pssfp-out-expo group-hover:scale-110 ${v.ctaArrowBg}`}
+          className={`flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 ease-out group-hover:scale-105 ${v.ctaArrowBg}`}
         >
           <ArrowUpRight
             size={18}

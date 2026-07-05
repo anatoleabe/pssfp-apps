@@ -49,7 +49,7 @@ export function MobileDrawer({
     <div
       aria-hidden={!open}
       className={cn(
-        'fixed inset-0 z-30 lg:hidden',
+        'fixed inset-0 z-30 xl:hidden',
         open ? 'pointer-events-auto' : 'pointer-events-none',
       )}
     >
@@ -184,7 +184,7 @@ export function MobileDrawer({
           <a
             href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
             onClick={onClose}
-            className="group flex items-center justify-between rounded-pssfp-button bg-gradient-prune-or px-4 py-3 font-medium text-white shadow-pssfp-elevated transition-all hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2"
+            className="group flex items-center justify-between rounded-pssfp-button bg-pssfp-prune px-4 py-3 font-medium text-white transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2 dark:bg-[#B084E8] dark:text-[#14101A] dark:hover:bg-[#C9A0F0]"
           >
             {t('candidature')}
             <ArrowRight

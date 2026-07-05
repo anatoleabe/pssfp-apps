@@ -1,15 +1,19 @@
 import { Mail, Phone, MapPin, Clock, ChevronDown } from 'lucide-react';
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { ContactForm } from '@/components/ContactForm';
 import { GoogleMapEmbed } from '@/components/GoogleMapEmbed';
 
-export const metadata: Metadata = {
-  title: 'Contact',
-  description:
-    "Contactez le PSSFP — Campus de Messa, Yaoundé. Formulaire en ligne, adresse, téléphone et carte d'accès.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('contact');
+  return {
+    title: t('metaTitle'),
+    description: t('metaDescription'),
+  };
+}
 
 interface ContactInfo {
+  key: string;
   icon: typeof MapPin;
   label: string;
   primary: string;
@@ -17,54 +21,37 @@ interface ContactInfo {
   href?: string;
 }
 
-const CONTACT_INFOS: ContactInfo[] = [
-  {
-    icon: MapPin,
-    label: 'Adresse',
-    primary: 'Campus de Messa',
-    secondary: 'Yaoundé, Cameroun',
-  },
-  {
-    icon: Phone,
-    label: 'Téléphone',
-    primary: '+237 222 23 45 67',
-    secondary: 'Lundi – Vendredi · 8h00 – 16h00',
-    href: 'tel:+237222234567',
-  },
-  {
-    icon: Mail,
-    label: 'Email',
-    primary: 'contact@pssfp.org',
-    secondary: 'Réponse sous 48h ouvrées',
-    href: 'mailto:contact@pssfp.org',
-  },
-];
+const FAQ_KEYS = ['horaires', 'admissions', 'visite', 'departement'] as const;
 
-interface FaqItem {
-  q: string;
-  a: string;
-}
+export default async function ContactPage(): Promise<JSX.Element> {
+  const t = await getTranslations('contact');
 
-const FAQ: FaqItem[] = [
-  {
-    q: "Quels sont les horaires d'ouverture du secrétariat ?",
-    a: "Le secrétariat est ouvert du lundi au vendredi, de 8h00 à 16h00. Nous sommes fermés les week-ends et jours fériés.",
-  },
-  {
-    q: "Comment obtenir des informations sur les admissions ?",
-    a: "Les conditions d'admission, le calendrier et la procédure de candidature sont détaillés sur la rubrique Candidature. Pour toute question spécifique, écrivez-nous via le formulaire ci-contre — réponse sous 48h ouvrées.",
-  },
-  {
-    q: 'Puis-je visiter le campus avant de candidater ?',
-    a: "Oui, des visites guidées du Campus de Messa sont organisées sur rendez-vous. Contactez le secrétariat pour planifier votre venue.",
-  },
-  {
-    q: 'Comment contacter un département ou un responsable de spécialité ?',
-    a: "Précisez le nom du département ou de la spécialité dans l'objet du message. Le secrétariat oriente votre demande vers la personne compétente.",
-  },
-];
+  const contactInfos: ContactInfo[] = [
+    {
+      key: 'adresse',
+      icon: MapPin,
+      label: t('infos.adresse.label'),
+      primary: t('infos.adresse.primary'),
+      secondary: t('infos.adresse.secondary'),
+    },
+    {
+      key: 'telephone',
+      icon: Phone,
+      label: t('infos.telephone.label'),
+      primary: t('infos.telephone.primary'),
+      secondary: t('infos.telephone.secondary'),
+      href: 'tel:+237222234567',
+    },
+    {
+      key: 'email',
+      icon: Mail,
+      label: t('infos.email.label'),
+      primary: t('infos.email.primary'),
+      secondary: t('infos.email.secondary'),
+      href: 'mailto:contact@pssfp.org',
+    },
+  ];
 
-export default function ContactPage(): JSX.Element {
   return (
     <>
       {/* ──────────────────────────────────────────────────────────────────
@@ -95,15 +82,15 @@ export default function ContactPage(): JSX.Element {
         />
 
         <div className="mx-auto max-w-4xl px-6 py-20 text-center md:py-28">
-          <p className="pssfp-eyebrow">Contactez-nous</p>
+          <p className="pssfp-eyebrow">{t('eyebrow')}</p>
 
           <h1
             id="contact-heading"
             className="mt-5 font-heading font-bold text-pssfp-h1 text-[#1A1A1A] dark:text-[#FAF7F2]"
           >
-            Nous sommes à votre{' '}
+            {t('heroTitlePre')}{' '}
             <span className="relative inline-block">
-              <span className="pssfp-text-gradient-violet-or">écoute</span>
+              <span className="pssfp-text-gradient-violet-or">{t('heroTitleHighlight')}</span>
               <svg
                 aria-hidden="true"
                 className="absolute -bottom-2 left-0 w-full"
@@ -122,16 +109,12 @@ export default function ContactPage(): JSX.Element {
             </span>
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl pssfp-lead">
-            Une question, un projet de partenariat, une demande d'information ?
-            Le secrétariat du PSSFP vous répond — formulaire, téléphone, courriel
-            ou visite sur le Campus de Messa à Yaoundé.
-          </p>
+          <p className="mx-auto mt-6 max-w-2xl pssfp-lead">{t('heroLead')}</p>
 
           <div className="mt-8 flex items-center justify-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-[#4A2E67]/20 bg-[#F4EFFA] px-4 py-1.5 text-sm font-medium text-[#4A2E67] dark:border-[#5C3A7E]/40 dark:bg-[#2A1E3A] dark:text-[#F4EFFA]">
               <Clock size={14} aria-hidden="true" />
-              Réponse sous 48h ouvrées
+              {t('responseBadge')}
             </span>
           </div>
         </div>
@@ -145,13 +128,11 @@ export default function ContactPage(): JSX.Element {
           {/* Formulaire */}
           <div className="lg:col-span-7">
             <header className="mb-8">
-              <p className="pssfp-eyebrow">Nous écrire</p>
+              <p className="pssfp-eyebrow">{t('writeEyebrow')}</p>
               <h2 className="mt-3 font-heading text-pssfp-h2 font-bold text-[#1A1A1A] dark:text-[#FAF7F2]">
-                Envoyez-nous un message
+                {t('writeTitle')}
               </h2>
-              <p className="mt-3 pssfp-body text-[#555] dark:text-[#C9C2D8]">
-                Remplissez le formulaire ci-dessous. Les champs marqués <span aria-hidden="true">*</span> sont obligatoires.
-              </p>
+              <p className="mt-3 pssfp-body text-[#555] dark:text-[#C9C2D8]">{t('writeHelp')}</p>
             </header>
 
             <div className="rounded-pssfp-card border border-[#F4EFFA] bg-white p-6 shadow-pssfp-soft dark:border-[#2A1E3A] dark:bg-[#1A1428] md:p-8">
@@ -162,21 +143,19 @@ export default function ContactPage(): JSX.Element {
           {/* Coordonnées */}
           <aside aria-labelledby="info-heading" className="lg:col-span-5">
             <header className="mb-8">
-              <p className="pssfp-eyebrow">Coordonnées</p>
+              <p className="pssfp-eyebrow">{t('infoEyebrow')}</p>
               <h2
                 id="info-heading"
                 className="mt-3 font-heading text-pssfp-h2 font-bold text-[#1A1A1A] dark:text-[#FAF7F2]"
               >
-                Où nous trouver
+                {t('infoTitle')}
               </h2>
-              <p className="mt-3 pssfp-body text-[#555] dark:text-[#C9C2D8]">
-                Trois canaux pour nous joindre directement.
-              </p>
+              <p className="mt-3 pssfp-body text-[#555] dark:text-[#C9C2D8]">{t('infoHelp')}</p>
             </header>
 
             <ul className="space-y-4">
-              {CONTACT_INFOS.map((info) => (
-                <li key={info.label}>
+              {contactInfos.map((info) => (
+                <li key={info.key}>
                   <ContactCard info={info} />
                 </li>
               ))}
@@ -201,16 +180,14 @@ export default function ContactPage(): JSX.Element {
       >
         <div className="mx-auto max-w-7xl px-6">
           <header className="mx-auto mb-10 max-w-2xl text-center">
-            <p className="pssfp-eyebrow">Accès</p>
+            <p className="pssfp-eyebrow">{t('mapEyebrow')}</p>
             <h2
               id="map-heading"
               className="mt-3 font-heading text-pssfp-h2 font-bold text-[#1A1A1A] dark:text-[#FAF7F2]"
             >
-              Campus de Messa, Yaoundé
+              {t('mapTitle')}
             </h2>
-            <p className="mt-3 pssfp-body text-[#555] dark:text-[#C9C2D8]">
-              Repérez l'entrée principale et planifiez votre itinéraire.
-            </p>
+            <p className="mt-3 pssfp-body text-[#555] dark:text-[#C9C2D8]">{t('mapHelp')}</p>
           </header>
 
           <div className="overflow-hidden rounded-pssfp-card border border-[#F4EFFA] bg-white shadow-pssfp-elevated dark:border-[#2A1E3A] dark:bg-[#1A1428]">
@@ -229,29 +206,27 @@ export default function ContactPage(): JSX.Element {
         <header className="mb-10 text-center">
           <p className="pssfp-eyebrow inline-flex items-center justify-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[#4A2E67]" aria-hidden="true" />
-            FAQ
+            {t('faqEyebrow')}
             <span className="h-1.5 w-1.5 rounded-full bg-[#D4AF6A]" aria-hidden="true" />
           </p>
           <h2
             id="faq-heading"
             className="mt-3 font-heading text-pssfp-h2 font-bold text-[#1A1A1A] dark:text-[#FAF7F2]"
           >
-            Questions fréquentes
+            {t('faqTitle')}
           </h2>
-          <p className="mt-3 pssfp-body text-[#555] dark:text-[#C9C2D8]">
-            Trouvez rapidement les réponses aux demandes les plus courantes.
-          </p>
+          <p className="mt-3 pssfp-body text-[#555] dark:text-[#C9C2D8]">{t('faqHelp')}</p>
         </header>
 
         <ul className="space-y-3">
-          {FAQ.map((item, i) => (
-            <li key={item.q}>
+          {FAQ_KEYS.map((key, i) => (
+            <li key={key}>
               <details
                 className="group rounded-pssfp-card border border-[#F4EFFA] bg-white px-5 py-1 shadow-pssfp-soft transition-shadow open:shadow-pssfp-elevated dark:border-[#2A1E3A] dark:bg-[#1A1428]"
                 {...(i === 0 ? { open: true } : {})}
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 font-heading text-base font-semibold text-[#1A1A1A] outline-none transition-colors hover:text-[#4A2E67] focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 dark:text-[#FAF7F2] dark:hover:text-[#D4AF6A]">
-                  <span>{item.q}</span>
+                  <span>{t(`faq.${key}.q`)}</span>
                   <ChevronDown
                     size={18}
                     aria-hidden="true"
@@ -259,7 +234,7 @@ export default function ContactPage(): JSX.Element {
                   />
                 </summary>
                 <div className="pb-5 pr-8 text-sm leading-relaxed text-[#555] dark:text-[#C9C2D8]">
-                  {item.a}
+                  {t(`faq.${key}.a`)}
                 </div>
               </details>
             </li>
@@ -291,7 +266,7 @@ function ContactCard({ info }: { info: ContactInfo }): JSX.Element {
         <p className="font-heading text-sm font-semibold uppercase tracking-wider text-[#4A2E67] dark:text-[#D4AF6A]">
           {info.label}
         </p>
-        <p className="mt-1 truncate font-heading text-base font-semibold text-[#1A1A1A] dark:text-[#FAF7F2]">
+        <p className="mt-1 break-words font-heading text-base font-semibold text-[#1A1A1A] dark:text-[#FAF7F2]">
           {info.primary}
         </p>
         <p className="mt-0.5 text-sm text-[#555] dark:text-[#C9C2D8]">{info.secondary}</p>

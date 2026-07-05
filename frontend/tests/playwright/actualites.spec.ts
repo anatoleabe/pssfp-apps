@@ -14,13 +14,13 @@ test.describe('/actualites — index', () => {
     await expect(page.getByRole('heading', { level: 1, name: /Actualités/i })).toBeVisible();
   });
 
-  test('renders empty state or error banner depending on backend state', async ({ page }) => {
+  test('renders cards, empty state or error banner depending on backend state', async ({ page }) => {
     await page.goto('/actualites');
-    // Soit backend down (status 0) → bandeau erreur
-    // soit backend up sans articles seedés → bandeau empty
+    // Backend seedé → cards ; backend up sans articles → empty ; backend down → error.
+    const cards = page.locator('[data-testid^="actualite-card-"]');
     const empty = page.getByTestId('actualites-empty');
     const error = page.getByTestId('actualites-error');
-    const visible = (await empty.count()) + (await error.count());
+    const visible = (await cards.count()) + (await empty.count()) + (await error.count());
     expect(visible).toBeGreaterThan(0);
   });
 });

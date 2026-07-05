@@ -26,7 +26,7 @@ interface Specialite {
 // Slugs alignés avec FormationsPagesSeeder (Sprint S5 PR X) : « metiers-* »
 // conformes au catalogue officiel PSSFP.
 const SPECS: ReadonlyArray<Specialite> = [
-  // Card phare en colonne 1-2 / ligne 1-2 (bento large)
+  // Card phare en colonne 1-2, sans allonger artificiellement la grille.
   {
     slug: 'metiers-fiscalite-comptabilite',
     number: '04',
@@ -163,9 +163,9 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
         className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#D4AF6A]/50 to-transparent dark:via-[#D4AF6A]/35"
       />
 
-      <div className="relative mx-auto max-w-7xl px-6 py-20 md:py-28">
+      <div className="relative mx-auto max-w-7xl px-6 py-16 md:py-20">
         {/* ─────────────── Header éditorial unifié ─────────────── */}
-        <header className="mx-auto mb-16 max-w-3xl text-center md:mb-20">
+        <header className="mx-auto mb-10 max-w-3xl text-center md:mb-12">
           <p className="pssfp-eyebrow">{t('eyebrow')}</p>
           <h2
             id="specialites-heading"
@@ -195,7 +195,7 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
         </header>
 
         {/* ─────────────── Niveau 1 : 5 spécialités du Master ─────────────── */}
-        <div className="mb-12 flex items-center gap-4">
+        <div className="mb-8 flex items-center gap-4">
           <div
             aria-hidden="true"
             className="h-px flex-1 bg-gradient-to-r from-transparent to-[#D4AF6A]/30 dark:to-[#D4AF6A]/25"
@@ -207,22 +207,16 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
           />
         </div>
 
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:auto-rows-[minmax(220px,auto)]">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:auto-rows-[minmax(190px,auto)]">
           {SPECS.map((spec) => {
             if (spec.featured) {
               return (
-                <li key={spec.slug} className="lg:col-span-2 lg:row-span-2">
+                <li key={spec.slug} className="lg:col-span-2">
                   <Link
                     href={`/formations/specialites/${spec.slug}`}
                     data-testid={`spec-card-${spec.slug}`}
-                    className="group relative flex h-full min-h-[280px] flex-col overflow-hidden rounded-pssfp-card bg-gradient-ink-deep p-7 text-white shadow-pssfp-elevated transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2 md:p-8"
+                    className="group relative flex h-full min-h-[260px] flex-col overflow-hidden rounded-pssfp-card bg-gradient-ink-deep p-6 text-white shadow-pssfp-elevated transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2 md:p-7"
                   >
-                    {/* Halo or décoratif */}
-                    <div
-                      aria-hidden="true"
-                      className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full opacity-40 blur-3xl transition-opacity duration-500 group-hover:opacity-70"
-                      style={{ background: 'radial-gradient(circle, #D4AF6A 0%, transparent 70%)' }}
-                    />
                     {/* Pattern grille subtile */}
                     <div
                       aria-hidden="true"
@@ -249,7 +243,7 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
                     <div className="relative">
                       <span className="inline-flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-[#FFE9B0]">
                         <span className="h-px w-8 bg-[#D4AF6A]" aria-hidden="true" />
-                        Spécialité phare · {spec.number}
+                        {t('featuredLabel')} · {spec.number}
                       </span>
                       <h3 className="mt-5 font-heading text-2xl font-bold leading-tight md:text-3xl">
                         {t(spec.titleKey)}
@@ -263,25 +257,27 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
                         signalé S5.4 et donnent du contenu éditorial scannable
                         avant la CTA. Puces or alignées charte.
                       */}
-                      <p className="mt-6 font-ui text-[11px] font-medium uppercase tracking-[0.2em] text-[#D4AF6A]/85">
-                        {t('featuredHighlightsLabel')}
-                      </p>
-                      <ul className="mt-3 space-y-2">
-                        {(['featuredHighlight1', 'featuredHighlight2', 'featuredHighlight3'] as const).map(
-                          (key) => (
-                            <li
-                              key={key}
-                              className="flex items-center gap-3 text-sm text-white/90"
-                            >
-                              <span
-                                aria-hidden="true"
-                                className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#D4AF6A]"
-                              />
-                              {t(key)}
-                            </li>
-                          ),
-                        )}
-                      </ul>
+                      <div className="hidden sm:block">
+                        <p className="mt-6 font-ui text-[11px] font-medium uppercase tracking-[0.2em] text-[#D4AF6A]/85">
+                          {t('featuredHighlightsLabel')}
+                        </p>
+                        <ul className="mt-3 space-y-2">
+                          {(['featuredHighlight1', 'featuredHighlight2', 'featuredHighlight3'] as const).map(
+                            (key) => (
+                              <li
+                                key={key}
+                                className="flex items-center gap-3 text-sm text-white/90"
+                              >
+                                <span
+                                  aria-hidden="true"
+                                  className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#D4AF6A]"
+                                />
+                                {t(key)}
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                      </div>
                     </div>
                     <span className="relative mt-7 inline-flex items-center gap-2 self-start rounded-full bg-gradient-or px-5 py-2.5 text-sm font-semibold text-[#14101A] shadow-pssfp-glow-or transition-all duration-200 group-hover:gap-3 group-hover:shadow-pssfp-floating">
                       {t('readMore')}
@@ -300,7 +296,7 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
                 <Link
                   href={`/formations/specialites/${spec.slug}`}
                   data-testid={`spec-card-${spec.slug}`}
-                  className="group relative flex h-full min-h-[220px] flex-col overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white p-6 shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-[#D4AF6A]/50 hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 dark:border-[#3A2F48] dark:bg-[#1F1A28] dark:hover:border-[#D4AF6A]/60"
+                  className="group relative flex h-full min-h-[164px] flex-col overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white p-4 shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-[#D4AF6A]/50 hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 sm:min-h-[190px] sm:p-5 dark:border-[#3A2F48] dark:bg-[#1F1A28] dark:hover:border-[#D4AF6A]/60"
                 >
                   <div className="flex items-start justify-between">
                     <span
@@ -313,13 +309,13 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
                       {spec.number}
                     </span>
                   </div>
-                  <h3 className="mt-5 font-heading text-pssfp-h3 font-bold leading-snug text-[#14101A] dark:text-[#F5EFE3]">
+                  <h3 className="mt-4 font-heading text-pssfp-h3 font-bold leading-snug text-[#14101A] dark:text-[#F5EFE3]">
                     {t(spec.titleKey)}
                   </h3>
-                  <p className="mt-2 grow text-sm leading-relaxed text-[#6B6B6B] dark:text-[#B5A8C8]">
+                  <p className="mt-2 hidden grow text-sm leading-relaxed text-[#6B6B6B] sm:block dark:text-[#B5A8C8]">
                     {t(spec.bodyKey)}
                   </p>
-                  <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0F3A4A] transition-all duration-200 group-hover:gap-2.5 dark:text-[#7FB0C4]">
+                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0F3A4A] transition-all duration-200 group-hover:gap-2.5 dark:text-[#7FB0C4]">
                     {t('readMore')}
                     <ArrowRight
                       size={14}
@@ -334,8 +330,8 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
         </ul>
 
         {/* ─────────────── Niveau 2 : Au-delà du Master (formats courts) ─────────────── */}
-        <div className="mt-20 md:mt-24">
-          <header className="mb-10 max-w-2xl">
+        <div className="mt-12 md:mt-14">
+          <header className="mb-6 max-w-2xl">
             <p className="pssfp-eyebrow">{t('shortFormatsEyebrow')}</p>
             <h3 className="mt-3 font-heading text-pssfp-h3 font-bold text-[#14101A] md:text-3xl dark:text-[#F5EFE3]">
               {t('shortFormatsTitle')}
@@ -351,7 +347,7 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
                   <Link
                     href={fmt.href}
                     data-testid={`short-format-${fmt.labelKey}`}
-                    className={`group relative flex h-full flex-col overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white/80 p-6 shadow-pssfp-soft backdrop-blur-sm transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:bg-white hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 dark:border-[#3A2F48] dark:bg-[#1F1A28]/80 dark:hover:bg-[#1F1A28] ${a.border}`}
+                    className={`group relative flex h-full flex-col overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white/80 p-4 shadow-pssfp-soft backdrop-blur-sm transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:bg-white hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 sm:p-5 dark:border-[#3A2F48] dark:bg-[#1F1A28]/80 dark:hover:bg-[#1F1A28] ${a.border}`}
                   >
                     <div className="flex items-center gap-3">
                       <span
@@ -367,7 +363,7 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
                     <h4 className="mt-5 font-heading text-lg font-bold leading-snug text-[#14101A] dark:text-[#F5EFE3]">
                       {t(fmt.labelKey)}
                     </h4>
-                    <p className="mt-2 grow text-sm leading-relaxed text-[#6B6B6B] dark:text-[#B5A8C8]">
+                    <p className="mt-2 hidden grow text-sm leading-relaxed text-[#6B6B6B] sm:block dark:text-[#B5A8C8]">
                       {t(fmt.descKey)}
                     </p>
                     <span

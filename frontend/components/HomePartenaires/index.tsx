@@ -35,8 +35,8 @@ export async function HomePartenaires(): Promise<JSX.Element> {
       data-testid="home-partenaires"
       className="relative overflow-hidden bg-[#FAF7F2] dark:bg-[#14101A]"
     >
-      <div className="mx-auto max-w-7xl px-6 py-20 md:py-24">
-        <header className="mb-12 max-w-3xl">
+      <div className="mx-auto max-w-7xl px-6 py-14 md:py-16">
+        <header className="mb-8 max-w-3xl">
           <p className="pssfp-eyebrow">{t('eyebrow')}</p>
           <h2
             id="partenaires-heading"
@@ -49,7 +49,7 @@ export async function HomePartenaires(): Promise<JSX.Element> {
       </div>
 
       {/* Marquee infinie en pleine largeur, ml-cap fade sur les bords */}
-      <div className="relative pb-20 md:pb-24">
+      <div className="relative pb-14 md:pb-16">
         {/* Fade gauche/droite pour bord propre */}
         <div
           aria-hidden="true"
@@ -80,7 +80,7 @@ export async function HomePartenaires(): Promise<JSX.Element> {
 function PartnerLogo({ partner }: { partner: Partenaire }): JSX.Element {
   return (
     <div
-      className="group flex h-24 w-44 shrink-0 items-center justify-center rounded-pssfp-card border border-[#D8C9A6] bg-white p-5 shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-0.5 hover:border-[#D4AF6A]/60 hover:shadow-pssfp-elevated dark:border-[#3A2F48] dark:bg-[#1F1A28] dark:hover:border-[#D4AF6A]/60"
+      className="group flex h-20 w-40 shrink-0 items-center justify-center rounded-pssfp-card border border-[#D8C9A6] bg-white p-4 shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-0.5 hover:border-[#D4AF6A]/60 hover:shadow-pssfp-elevated dark:border-[#3A2F48] dark:bg-[#1F1A28] dark:hover:border-[#D4AF6A]/60"
       title={partner.name}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}

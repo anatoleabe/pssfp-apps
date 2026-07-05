@@ -14,7 +14,8 @@ export interface ContactPayload {
 export interface ContactResult {
   ok: boolean;
   status: number;
-  message: string;
+  /** Message serveur (FR). Absent sur panne réseau — l'UI fournit le fallback t(). */
+  message?: string;
   errors?: Record<string, string[]>;
 }
 
@@ -40,14 +41,11 @@ export async function sendContactMessage(payload: ContactPayload): Promise<Conta
     return {
       ok: response.ok,
       status: response.status,
-      message: body.message ?? (response.ok ? 'Message envoyé.' : `API ${response.status}`),
+      message: body.message,
       errors: body.errors,
     };
-  } catch (error) {
-    return {
-      ok: false,
-      status: 0,
-      message: error instanceof Error ? error.message : 'Erreur réseau',
-    };
+  } catch {
+    // Pas de message technique brut (souvent anglais) : l'UI affiche t('networkError').
+    return { ok: false, status: 0 };
   }
 }

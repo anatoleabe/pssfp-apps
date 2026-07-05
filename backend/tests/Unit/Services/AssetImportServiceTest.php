@@ -137,3 +137,31 @@ it('returns null mapping for unrelated files (skipped, no error)', function (): 
     // .txt is not in the Finder name regex, so it's not even collected — count unchanged
     expect($report['errors'])->toBe(0);
 });
+
+it('never imports PDFs from past campaign folders (real candidate PII), only visuals (LOT D)', function (): void {
+    mkdir($this->sourceDir.'/textes/Appel a Candidature 12eme promo', 0755, true);
+    // Simule les documents sensibles réels (listes nominatives, codes d'accès).
+    file_put_contents(
+        $this->sourceDir.'/textes/Appel a Candidature 12eme promo/Liste des candidats retenus PROMO 12 + MATRICULE.pdf',
+        '%PDF-1.4 sensitive'
+    );
+    file_put_contents(
+        $this->sourceDir.'/textes/Appel a Candidature 12eme promo/CODES_ACCES_PROMO12_complet.pdf',
+        '%PDF-1.4 sensitive'
+    );
+    // Un visuel de la même campagne : lui doit passer.
+    file_put_contents(
+        $this->sourceDir.'/textes/Appel a Candidature 12eme promo/affiche.jpg',
+        base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
+    );
+
+    $report = (new AssetImportService($this->sourceDir))->run();
+
+    expect(Asset::query()->where('subcategory', 'appel-candidature')->count())->toBe(0);
+    expect(Storage::disk(AssetImportService::DOCUMENTS_DISK)->allFiles('documents/appels-candidature'))->toBe([]);
+
+    $visuel = Asset::query()->where('subcategory', 'evenements')->first();
+    expect($visuel)->not->toBeNull()
+        ->and($visuel->tags)->toContain('promo-12')
+        ->and($visuel->disk)->toBe(AssetImportService::MEDIA_DISK);
+});

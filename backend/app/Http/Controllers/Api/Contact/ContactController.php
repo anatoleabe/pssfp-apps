@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Contact\SendContactRequest;
 use App\Mail\ContactAutoReplyMailable;
 use App\Mail\ContactMessageMailable;
+use App\Services\Security\TurnstileVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -24,9 +25,23 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class ContactController extends Controller
 {
+    public function __construct(private readonly TurnstileVerifier $turnstile) {}
+
     public function send(SendContactRequest $request): JsonResponse
     {
         $ip = (string) ($request->ip() ?? 'unknown');
+
+        // Anti-spam Turnstile (LOT D.4) — même sémantique que register/forgot-pin :
+        // bypass si secret non configuré, fail-open sur panne Cloudflare.
+        if (! $this->turnstile->verify($request->input('cf_turnstile_response'), $ip)) {
+            $message = 'Vérification anti-robot échouée. Rechargez la page et réessayez.';
+
+            return response()->json([
+                'message' => $message,
+                'errors' => ['cf_turnstile_response' => [$message]],
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         $key = 'contact:'.$ip;
 
         if (RateLimiter::tooManyAttempts($key, 5)) {

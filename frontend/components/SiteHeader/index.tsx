@@ -91,11 +91,6 @@ export function SiteHeader(): JSX.Element {
           className="group flex items-center gap-3 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
         >
           <span className="relative inline-flex transition-transform duration-300 ease-pssfp-out-expo group-hover:scale-105">
-            <span
-              aria-hidden="true"
-              className="absolute inset-0 -z-10 rounded-full opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-60"
-              style={{ background: 'radial-gradient(circle, #5C3A7E 0%, transparent 70%)' }}
-            />
             <PssfpLogo size={48} />
           </span>
           <span className="hidden font-heading text-base font-bold text-[#4A2E67] dark:text-[#B084E8] sm:block">
@@ -103,7 +98,7 @@ export function SiteHeader(): JSX.Element {
           </span>
         </Link>
 
-        <nav aria-label="Navigation principale" className="hidden lg:block">
+        <nav aria-label="Navigation principale" className="hidden xl:block">
           <ul className="flex items-center gap-1 text-sm">
             {NAV_LINKS.map((link) => {
               const active = isActive(link.href);
@@ -166,7 +161,7 @@ export function SiteHeader(): JSX.Element {
           </ul>
         </nav>
 
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden items-center gap-2 xl:flex">
           <ThemeToggle testId="theme-toggle" />
           <a
             href={process.env.NEXT_PUBLIC_LIBRARY_URL ?? '#'}
@@ -177,23 +172,11 @@ export function SiteHeader(): JSX.Element {
             <ExternalLink size={14} aria-hidden="true" />
           </a>
           <span className="group/cta relative inline-flex">
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute -inset-1 rounded-pssfp-button bg-[radial-gradient(circle_at_50%_50%,rgba(212, 175, 106,0.55)_0%,rgba(74, 46, 103,0.35)_45%,transparent_70%)] opacity-0 blur-lg transition-opacity duration-500 ease-pssfp-out-expo motion-reduce:transition-none group-hover/cta:opacity-100 group-focus-within/cta:opacity-100"
-            />
             <a
               href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
-              className="group relative inline-flex h-10 items-center gap-1.5 overflow-hidden rounded-pssfp-button bg-[linear-gradient(135deg,#2D1454_0%,#4A2E67_55%,#C9A040_100%)] bg-[length:200%_200%] px-4 text-sm font-medium text-white shadow-pssfp-elevated transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-0.5 hover:bg-[position:100%_100%] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A040] focus-visible:ring-offset-2 motion-reduce:transition-none"
+              className="group relative inline-flex h-10 items-center gap-1.5 rounded-pssfp-button border border-pssfp-or/75 bg-pssfp-prune px-4 text-sm font-medium text-white shadow-pssfp-soft transition-colors duration-200 hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A040] focus-visible:ring-offset-2 dark:bg-[#B084E8] dark:text-[#14101A] dark:hover:bg-[#C9A0F0]"
               data-testid="nav-candidature"
             >
-              <span
-                aria-hidden="true"
-                className="absolute -inset-px rounded-pssfp-button opacity-0 ring-1 ring-inset ring-[#C9A040]/40 transition-opacity duration-300 group-hover:opacity-100"
-              />
-              <span
-                aria-hidden="true"
-                className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full"
-              />
               <span className="relative">{t('candidature')}</span>
               <ArrowRight
                 size={14}
@@ -204,7 +187,7 @@ export function SiteHeader(): JSX.Element {
           </span>
         </div>
 
-        <div className="flex items-center gap-2 lg:hidden">
+        <div className="flex items-center gap-2 xl:hidden">
           <ThemeToggle testId="theme-toggle-mobile" />
           <button
             type="button"
