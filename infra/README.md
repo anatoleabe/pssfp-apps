@@ -13,6 +13,7 @@
 | `nginx/pssfp.org.conf` | vhost site (proxy :6001, CSP, HSTS) | `/etc/nginx/sites-available/` + symlink |
 | `nginx/apply.pssfp.org.conf` | vhost candidature (proxy :6003, no-store PII, CSP Turnstile) | idem |
 | `nginx/api.pssfp.org.conf` | vhost API/Filament (PHP 8.3-FPM, 12 Mo upload) | idem |
+| `nginx/media.pssfp.org.conf` | **CRITIQUE** : reverse-proxy public MinIO (Host préservé) — sans lui, les URLs présignées (récépissé, photo) pointent vers 127.0.0.1 et sont inaccessibles depuis un navigateur | idem |
 | `nginx/redirects-legacy.conf` | 301 pssfp.net / pssfp.cm / pfinancespubliques.org → .org | idem (filet côté origine) |
 | `nginx/cloudflare-real-ip.conf` | **CRITIQUE** : vraie IP client (sinon les throttles par IP frappent tout le monde) | `include` dans le bloc `http {}` |
 | `systemd/pssfp-queue.service` | **CRITIQUE** : worker queue Redis (emails candidat) | `/etc/systemd/system/` |
@@ -46,7 +47,7 @@ mkdir -p /var/log/pssfp /var/log/pm2 && chown deploy:www-data /var/log/pssfp
 | `www` | CNAME | pssfp.org | 🟠 proxied |
 | `apply` | A | IP VPS | 🟠 proxied |
 | `api` | A | IP VPS | 🟠 proxied |
-| `media` | A | IP VPS | 🟠 proxied (reverse-proxy MinIO médias publics — Phase biblio) |
+| `media` | A | IP VPS | 🟠 proxied — **requis dès la v1** (reverse-proxy MinIO : sans lui, aucune URL présignée récépissé/photo n'est accessible) |
 
 Côté Cloudflare : SSL/TLS **Full (strict)** · Always Use HTTPS · Turnstile
 (créer le widget → `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY`).
