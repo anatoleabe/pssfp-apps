@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Applications;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * PUT /v1/applications/me — partial update du dossier en draft.
@@ -55,7 +56,11 @@ final class UpdateCandidatureRequest extends FormRequest
             'email' => ['sometimes', 'nullable', 'email', 'max:150'],
 
             // Pédagogique
-            'specialite' => ['sometimes', 'string', 'in:'.implode(',', array_values((array) config('specialites', [])))],
+            // Rule::in() (tableau) plutôt que la syntaxe 'in:a,b,c' : les
+            // intitulés officiels contiennent des virgules (ex. « Fiscalité,
+            // Finance et Comptabilité Publique »), qui casseraient le
+            // parsing par virgule de la syntaxe string.
+            'specialite' => ['sometimes', 'string', Rule::in(array_values((array) config('specialites', [])))],
             'second_choix' => ['sometimes', 'nullable', 'string', 'max:100'],
             'type_etude' => ['sometimes', 'string', 'in:presentiel,distanciel'],
             'premiere_langue' => ['sometimes', 'string', 'in:fr,en'],
