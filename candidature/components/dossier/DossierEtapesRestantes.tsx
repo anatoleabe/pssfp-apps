@@ -22,9 +22,13 @@ export function DossierEtapesRestantes({ candidature }: { candidature: MyCandida
       label: 'Régler les frais 50 000 FCFA en agence CREMINCAM',
     },
     {
-      done: false,
+      done: candidature.documents.length > 0,
       label:
-        'Apporter au PSSFP : récépissé CREMINCAM + dossier physique (CV, copies diplômes, lettre, photo, pièce d\'identité, relevés)',
+        'Ajouter vos pièces justificatives en ligne (facultatif) ou les apporter au bureau de la scolarité — Yaoundé-Messa, porte 231',
+    },
+    {
+      done: false,
+      label: 'Apporter au bureau de la scolarité le récépissé de versement CREMINCAM',
     },
     {
       done: candidature.decided_at !== null,

@@ -170,6 +170,24 @@ export function putApplicationsMe(
   return apiPut<unknown>('/applications/me', body, { token });
 }
 
+export type CandidatureDocumentType =
+  | 'diplome'
+  | 'acte_naissance'
+  | 'releves_notes'
+  | 'cv'
+  | 'lettre_motivation'
+  | 'attestation_employeur'
+  | 'autre';
+
+export interface CandidatureDocumentItem {
+  uuid: string;
+  type: CandidatureDocumentType;
+  original_filename: string;
+  size: number;
+  url: string;
+  uploaded_at: string;
+}
+
 export interface MyCandidature extends CandidatureProfile {
   uuid: string;
   numero_dossier: string;
@@ -185,6 +203,7 @@ export interface MyCandidature extends CandidatureProfile {
   recipisse_available: boolean;
   has_photo: boolean;
   photo_url: string | null;
+  documents: CandidatureDocumentItem[];
   campagne: { slug: string; nom: string; closes_at: string | null } | null;
 }
 
@@ -265,6 +284,91 @@ export async function uploadPhoto(
 
 export async function deleteMyPhoto(token: string): Promise<ApiResult<null>> {
   const url = `${API_BASE_URL}/applications/me/photo`;
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      let message = `API ${response.status}`;
+      try {
+        const body = (await response.json()) as { message?: string };
+        if (body?.message) {
+          message = body.message;
+        }
+      } catch {
+        // ignore
+      }
+      return { ok: false, status: response.status, message };
+    }
+    return { ok: true, data: null };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      message: error instanceof Error ? error.message : 'Erreur réseau',
+    };
+  }
+}
+
+/**
+ * POST /v1/applications/me/documents (multipart/form-data).
+ *
+ * Pièce justificative optionnelle — même limitation que uploadPhoto : pas
+ * de Content-Type explicite, laissé au fetch/boundary automatique.
+ */
+export async function uploadCandidatureDocument(
+  file: File | Blob,
+  type: CandidatureDocumentType,
+  token: string,
+): Promise<ApiResult<CandidatureDocumentItem>> {
+  const fd = new FormData();
+  fd.append('fichier', file);
+  fd.append('type', type);
+
+  const url = `${API_BASE_URL}/applications/me/documents`;
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Accept-Language': 'fr',
+    Authorization: `Bearer ${token}`,
+  };
+
+  try {
+    const response = await fetch(url, { method: 'POST', headers, body: fd });
+    let payload: unknown = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+    if (!response.ok) {
+      const errorPayload = (payload ?? {}) as { message?: string; errors?: Record<string, string[]> };
+      return {
+        ok: false,
+        status: response.status,
+        message: errorPayload.message ?? `API ${response.status}`,
+        errors: errorPayload.errors,
+      };
+    }
+    const data = (payload as { data?: CandidatureDocumentItem })?.data ?? (payload as CandidatureDocumentItem);
+    return { ok: true, data };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      message: error instanceof Error ? error.message : 'Erreur réseau',
+    };
+  }
+}
+
+export async function deleteCandidatureDocument(
+  uuid: string,
+  token: string,
+): Promise<ApiResult<null>> {
+  const url = `${API_BASE_URL}/applications/me/documents/${uuid}`;
   try {
     const response = await fetch(url, {
       method: 'DELETE',

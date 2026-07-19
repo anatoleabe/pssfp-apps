@@ -5,6 +5,7 @@ import { DossierCompleteness } from '@/components/dossier/DossierCompleteness';
 import { DossierEtapesRestantes } from '@/components/dossier/DossierEtapesRestantes';
 import { DossierFraisCard } from '@/components/dossier/DossierFraisCard';
 import { DossierPhotoCard } from '@/components/dossier/DossierPhotoCard';
+import { DossierPiecesCard } from '@/components/dossier/DossierPiecesCard';
 import { DossierStatutCard } from '@/components/dossier/DossierStatutCard';
 import { getMyCandidature } from '@/lib/api/client';
 import { clearCandidatToken, getCandidatToken } from '@/lib/auth/session';
@@ -177,6 +178,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
             <DossierCompleteness candidature={candidature} />
             <DossierPhotoCard candidature={candidature} />
           </div>
+          <DossierPiecesCard candidature={candidature} />
           <DossierFraisCard candidature={candidature} />
           <DossierActionsCard candidature={candidature} />
         </div>
