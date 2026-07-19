@@ -97,7 +97,7 @@ export default async function AProposPage({ params }: PageProps): Promise<JSX.El
                     priority
                   />
                 </div>
-                <figcaption className="border-t border-[#F4EFFA] bg-gradient-lavande-blanc px-5 py-4 text-center dark:border-[#3A2A55] dark:bg-[#2A1640]">
+                <figcaption className="border-t border-[#F4EFFA] bg-[#FAF7F2] px-5 py-4 text-center dark:border-[#3A2A55] dark:bg-[#2A1640]">
                   <p className="font-heading text-base font-bold text-[#4A2E67] dark:text-[#B084E8]">
                     Dr. BASAHAG Achile Nestor
                   </p>

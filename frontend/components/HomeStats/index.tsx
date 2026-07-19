@@ -27,22 +27,22 @@ const STATS: ReadonlyArray<Stat> = [
 const ACCENT_CLASSES = {
   violet: {
     pill: 'bg-[#F4EFFA] text-[#4A2E67] dark:bg-[#4A2E67]/30 dark:text-[#B084E8]',
-    halo: 'radial-gradient(circle at 30% 0%, rgba(74, 46, 103, 0.08) 0%, transparent 60%)',
+    halo: 'bg-[#4A2E67]/[0.08]',
     value: 'text-[#4A2E67] dark:text-[#B084E8]',
   },
   forest: {
     pill: 'bg-[#D6E4EC] text-[#0F3A4A] dark:bg-[#0F3A4A]/45 dark:text-[#7FB0C4]',
-    halo: 'radial-gradient(circle at 30% 0%, rgba(15, 58, 74, 0.10) 0%, transparent 60%)',
+    halo: 'bg-[#0F3A4A]/10',
     value: 'text-[#0F3A4A] dark:text-[#7FB0C4]',
   },
   or: {
     pill: 'bg-[#FBEFC9] text-[#9A7B12] dark:bg-[#D4AF6A]/20 dark:text-[#E5C788]',
-    halo: 'radial-gradient(circle at 30% 0%, rgba(212, 175, 106, 0.12) 0%, transparent 60%)',
-    value: 'pssfp-text-gradient-violet-or dark:text-[#E5C788]',
+    halo: 'bg-[#D4AF6A]/[0.12]',
+    value: 'text-[#4A2E67] dark:text-[#E5C788]',
   },
   ink: {
     pill: 'bg-[#EFE9DF] text-[#14101A] dark:bg-[#3A2F48]/55 dark:text-[#F5EFE3]',
-    halo: 'radial-gradient(circle at 30% 0%, rgba(60, 60, 60, 0.06) 0%, transparent 60%)',
+    halo: 'bg-[#3C3C3C]/[0.06]',
     value: 'text-[#14101A] dark:text-[#F5EFE3]',
   },
 } as const;
@@ -69,7 +69,7 @@ export function HomeStats(): JSX.Element {
       {/* Hairline gold éditorial */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4AF6A]/60 to-transparent dark:via-[#D4AF6A]/45"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[#D4AF6A]/60 dark:bg-[#D4AF6A]/45"
       />
 
       <div className="mx-auto max-w-7xl px-6 py-16 md:py-20">
@@ -83,7 +83,7 @@ export function HomeStats(): JSX.Element {
             >
               {t('heading')}{' '}
               <span className="relative inline-block">
-                <span className="pssfp-text-gradient-violet-or">{t('headingAccent')}</span>
+                <span className="text-[#4A2E67] dark:text-[#E5C788]">{t('headingAccent')}</span>
                 <svg
                   aria-hidden="true"
                   className="absolute -bottom-2 left-0 w-full"
@@ -108,9 +108,9 @@ export function HomeStats(): JSX.Element {
               aria-hidden="true"
               className="mx-auto mt-8 flex w-32 items-center justify-center gap-3"
             >
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#D4AF6A]/50" />
+              <div className="h-px flex-1 bg-[#D4AF6A]/50" />
               <div className="h-1.5 w-1.5 rounded-full bg-[#D4AF6A]" />
-              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#D4AF6A]/50" />
+              <div className="h-px flex-1 bg-[#D4AF6A]/50" />
             </div>
           </header>
         </BlurFade>
@@ -124,8 +124,7 @@ export function HomeStats(): JSX.Element {
                   <div className="group relative h-full overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white p-5 shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-transparent hover:shadow-pssfp-elevated dark:border-[#3A2F48] dark:bg-[#1F1A28]">
                     <div
                       aria-hidden="true"
-                      className="pointer-events-none absolute inset-0 -z-10 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-                      style={{ background: a.halo }}
+                      className={`pointer-events-none absolute inset-0 -z-10 opacity-0 transition-opacity duration-500 group-hover:opacity-100 ${a.halo}`}
                     />
 
                     {/*

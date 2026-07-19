@@ -2,18 +2,18 @@ import { test, expect } from '@playwright/test';
 
 /**
  * Tests Sprint S5.2 (#46) — vérifie que les cards `/actualites` affichent
- * de vraies photos et pas un placeholder gradient vide.
+ * de vraies photos et pas un placeholder à fond plat vide.
  *
  * Cause racine du bug : les articles non épinglés n'avaient pas de
  * `featured_image_path` en BDD (seul les épinglés en avaient via le
- * seeder S5 PR Z). Le frontend tombait sur le fallback gradient.
+ * seeder S5 PR Z). Le frontend tombait sur le fallback à fond plat.
  *
  * Fix S5.2 :
  *   1. Backend — `ArticlesSeeder` complète `featured_image_path` pour
  *      les 6 articles legacy (photos de la collection MinIO existante).
  *   2. Frontend — fallback amélioré : si jamais un article n'a pas
- *      d'image (ex. Filament-CMS sans upload), gradient prune→bleu
- *      pétrole + icône thématique + label catégorie, pas un placeholder
+ *      d'image (ex. Filament-CMS sans upload), fond plat prune
+ *      + icône thématique + label catégorie, pas un placeholder
  *      vide qui fait pauvre.
  */
 

@@ -107,17 +107,17 @@ const SHORT_FORMATS: ReadonlyArray<ShortFormat> = [
 
 const SHORT_ACCENT_CLASSES = {
   forest: {
-    iconBg: 'bg-[#D6E4EC] text-[#0F3A4A] group-hover:bg-gradient-petrole-prune group-hover:text-white',
+    iconBg: 'bg-[#D6E4EC] text-[#0F3A4A] group-hover:bg-[#0F3A4A] group-hover:text-white',
     cta: 'text-[#0F3A4A]',
     border: 'hover:border-[#0F3A4A]/40',
   },
   or: {
-    iconBg: 'bg-[#FBEFC9] text-[#9A7B12] group-hover:bg-gradient-or group-hover:text-[#14101A]',
+    iconBg: 'bg-[#FBEFC9] text-[#9A7B12] group-hover:bg-[#D4AF6A] group-hover:text-[#14101A]',
     cta: 'text-[#9A7B12]',
     border: 'hover:border-[#D4AF6A]/60',
   },
   violet: {
-    iconBg: 'bg-[#F4EFFA] text-[#4A2E67] group-hover:bg-gradient-prune group-hover:text-white',
+    iconBg: 'bg-[#F4EFFA] text-[#4A2E67] group-hover:bg-[#4A2E67] group-hover:text-white',
     cta: 'text-[#4A2E67]',
     border: 'hover:border-[#4A2E67]/40',
   },
@@ -127,8 +127,8 @@ const SHORT_ACCENT_CLASSES = {
  * Bloc Formations — refonte UX/UI Pro Max.
  *
  * Architecture éditoriale en deux niveaux :
- *  1. Header éditorial (eyebrow + titre Playfair + accent gradient + intro)
- *  2. BentoGrid 5 spécialités (1 phare gradient ink + 4 cards classiques)
+ *  1. Header éditorial (eyebrow + titre Playfair + accent plat + intro)
+ *  2. BentoGrid 5 spécialités (1 phare fond ink + 4 cards classiques)
  *  3. Bande "Au-delà du Master" — 3 cards Formats courts (continue / certifs / séminaires)
  *
  * Aligne le home sur le catalogue officiel : Master + Continue + Certifications + Séminaires.
@@ -142,25 +142,19 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
       data-testid="home-specialites"
       className="relative bg-[#F4F0EA] dark:bg-[#14101A]"
     >
-      {/* Texture grain doux — pointillés ink (light) / ivoire (dark) */}
+      {/* Teinte grain douce — ink (light) / ivoire (dark) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.06]"
-        style={{
-          backgroundImage:
-            'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)',
-          backgroundSize: '32px 32px',
-          color: 'var(--pssfp-grain, #14101A)',
-        }}
+        className="pointer-events-none absolute inset-0 bg-[#14101A] opacity-[0.04] dark:bg-[#F5EFE3] dark:opacity-[0.06]"
       />
       {/* Hairline gold haut + bas */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4AF6A]/50 to-transparent dark:via-[#D4AF6A]/35"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[#D4AF6A]/50 dark:bg-[#D4AF6A]/35"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#D4AF6A]/50 to-transparent dark:via-[#D4AF6A]/35"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[#D4AF6A]/50 dark:bg-[#D4AF6A]/35"
       />
 
       <div className="relative mx-auto max-w-7xl px-6 py-16 md:py-20">
@@ -173,7 +167,7 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
           >
             {t('title')}{' '}
             <span className="relative inline-block">
-              <span className="pssfp-text-gradient-violet-or">{t('titleAccent')}</span>
+              <span className="text-[#4A2E67] dark:text-[#E5C788]">{t('titleAccent')}</span>
               <svg
                 aria-hidden="true"
                 className="absolute -bottom-2 left-0 w-full"
@@ -198,12 +192,12 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
         <div className="mb-8 flex items-center gap-4">
           <div
             aria-hidden="true"
-            className="h-px flex-1 bg-gradient-to-r from-transparent to-[#D4AF6A]/30 dark:to-[#D4AF6A]/25"
+            className="h-px flex-1 bg-[#D4AF6A]/30 dark:bg-[#D4AF6A]/25"
           />
           <p className="pssfp-eyebrow text-[#4A2E67] dark:text-[#B084E8]">{t('specialitiesEyebrow')}</p>
           <div
             aria-hidden="true"
-            className="h-px flex-1 bg-gradient-to-l from-transparent to-[#D4AF6A]/30 dark:to-[#D4AF6A]/25"
+            className="h-px flex-1 bg-[#D4AF6A]/30 dark:bg-[#D4AF6A]/25"
           />
         </div>
 
@@ -215,17 +209,12 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
                   <Link
                     href={`/formations/specialites/${spec.slug}`}
                     data-testid={`spec-card-${spec.slug}`}
-                    className="group relative flex h-full min-h-[260px] flex-col overflow-hidden rounded-pssfp-card bg-gradient-ink-deep p-6 text-white shadow-pssfp-elevated transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2 md:p-7"
+                    className="group relative flex h-full min-h-[260px] flex-col overflow-hidden rounded-pssfp-card bg-[#14101A] p-6 text-white shadow-pssfp-elevated transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2 md:p-7"
                   >
-                    {/* Pattern grille subtile */}
+                    {/* Voile clair subtil */}
                     <div
                       aria-hidden="true"
-                      className="pointer-events-none absolute inset-0 opacity-[0.06]"
-                      style={{
-                        backgroundImage:
-                          'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)',
-                        backgroundSize: '40px 40px',
-                      }}
+                      className="pointer-events-none absolute inset-0 bg-white opacity-[0.03]"
                     />
                     {/*
                       Icône repositionnée en arrière-plan décoratif bas-droite —
@@ -279,7 +268,7 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
                         </ul>
                       </div>
                     </div>
-                    <span className="relative mt-7 inline-flex items-center gap-2 self-start rounded-full bg-gradient-or px-5 py-2.5 text-sm font-semibold text-[#14101A] shadow-pssfp-glow-or transition-all duration-200 group-hover:gap-3 group-hover:shadow-pssfp-floating">
+                    <span className="relative mt-7 inline-flex items-center gap-2 self-start rounded-full bg-[#D4AF6A] px-5 py-2.5 text-sm font-semibold text-[#14101A] shadow-pssfp-glow-or transition-all duration-200 group-hover:gap-3 group-hover:shadow-pssfp-floating">
                       {t('readMore')}
                       <ArrowRight
                         size={16}
@@ -301,7 +290,7 @@ export async function HomeSpecialites(): Promise<JSX.Element> {
                   <div className="flex items-start justify-between">
                     <span
                       aria-hidden="true"
-                      className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#EFE9DF] text-[#14101A] transition-all duration-300 ease-pssfp-out-expo group-hover:scale-110 group-hover:bg-gradient-petrole-or group-hover:text-white dark:bg-[#3A2F48]/60 dark:text-[#E5C788]"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#EFE9DF] text-[#14101A] transition-all duration-300 ease-pssfp-out-expo group-hover:scale-110 group-hover:bg-[#0F3A4A] group-hover:text-white dark:bg-[#3A2F48]/60 dark:text-[#E5C788]"
                     >
                       <spec.Icon size={22} />
                     </span>

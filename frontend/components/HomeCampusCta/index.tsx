@@ -21,7 +21,7 @@ export async function HomeCampusCta(): Promise<JSX.Element> {
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-gradient-to-r from-pssfp-prune-dark via-pssfp-prune-dark/90 to-pssfp-bleu-petrole-dark/45"
+        className="absolute inset-0 bg-pssfp-prune-dark/85"
       />
 
       <div className="relative mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-20">

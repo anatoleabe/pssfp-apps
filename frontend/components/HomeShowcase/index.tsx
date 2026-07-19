@@ -3,7 +3,7 @@
 /**
  * HomeShowcase — carousel hero 5 slides (cf. spec sprint S5 PR Y, refonte S5.3).
  *
- * S5.3 — Rendu visuel épuré : photo plein cadre + overlay gradient L→R +
+ * S5.3 — Rendu visuel épuré : photo plein cadre + voile plat +
  * eyebrow or + titre Cormorant XL + 2 badges-cards translucides bordure or
  * dont les icônes s'adaptent à chaque slide. Pas de top bar / bottom bar
  * institutionnels — l'identité PSSFP est portée par le SiteHeader global.
@@ -207,16 +207,12 @@ export function HomeShowcase(): JSX.Element {
               className="relative h-[70vh] min-h-[520px] w-full shrink-0 grow-0 basis-full md:h-[78vh] md:min-h-[580px] md:max-h-[760px]"
             >
               {/*
-                Gradient de secours : ne jamais laisser de vide noir tant que
+                Fond plat de secours : ne jamais laisser de vide noir tant que
                 MinIO charge (S5.1, audit P1 #4).
               */}
               <div
                 aria-hidden="true"
-                className="absolute inset-0 -z-10"
-                style={{
-                  background:
-                    'linear-gradient(135deg, #0A1B2E 0%, #0F3A4A 50%, #1F2A4A 100%)',
-                }}
+                className="absolute inset-0 -z-10 bg-[#0A1B2E]"
               />
 
               {/*
@@ -237,13 +233,12 @@ export function HomeShowcase(): JSX.Element {
               />
 
               {/*
-                S5.3 — Overlay gradient gauche → droite. Sombre côté texte
-                (lisibilité) et transparent côté droit pour révéler la photo.
+                S5.3 — Voile plat pour la lisibilité du texte sur la photo.
                 Différenciateur visuel majeur de la nouvelle maquette.
               */}
               <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-r from-[#0A1B2E]/95 via-[#0F3A4A]/70 to-transparent md:via-[#0F3A4A]/55"
+                className="absolute inset-0 bg-[#0A1B2E]/70"
               />
 
               {/*

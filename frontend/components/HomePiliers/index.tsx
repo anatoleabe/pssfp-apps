@@ -38,16 +38,12 @@ export async function HomePiliers(): Promise<JSX.Element> {
       {/* Hairline or de bord supérieur (référence éditoriale) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-pssfp-or/60 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-pssfp-or/60"
       />
       {/* Halo or doux en fond, compositor-friendly */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-0 opacity-40"
-        style={{
-          background:
-            'radial-gradient(circle at 80% 0%, rgba(212, 175, 106, 0.18) 0%, transparent 60%)',
-        }}
+        className="pointer-events-none absolute inset-0 -z-0 bg-[#D4AF6A]/20 opacity-40"
       />
 
       <div className="relative mx-auto max-w-7xl px-6 py-12 md:py-16">

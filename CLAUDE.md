@@ -38,14 +38,19 @@ Refonte du site institutionnel PSSFP, de la bibliothèque virtuelle, et du formu
 9. **PostgreSQL** : pas de SQL brut sauf justification ADR. Eloquent + Scopes nommés. Eager loading systématique pour éviter N+1.
 10. **API publique** : pas d'`id` interne BIGSERIAL exposé — UUID pour tout ce qui est routé publiquement.
 
-## Charte graphique (CDC §10.1)
+## Charte graphique (ADR-0008 — remplace CDC §10.1 couleurs/typo depuis 2026-05-14)
 
-- **Violet institutionnel** : `#6B2FA0` — titres, CTA principaux, navigation.
-- **Violet moyen** : `#9B59B6` — hover, liens actifs.
-- **Lavande** : `#EDE7F6` — fonds doux.
-- **Or** : `#C9A227` — badges, accents partenaires.
-- **Texte** : `#333333` sur fond `#FFFFFF` (contraste WCAG AA).
-- **Polices** : Playfair Display Bold (titres H1/H2), Inter Regular 16px+ (corps), DM Sans Medium (UI).
+Le reste du CDC §10 (grille, accessibilité, hiérarchie) reste valide. Seules couleurs et typographies ont évolué, cf. `docs/adr/0008-evolution-charte-2026.md`.
+
+- **Prune institutionnelle** : `#4A2E67` — titres, navigation, CTA principal (couleur plate, pas de dégradé).
+- **Prune profonde** : `#3A2452` — hover/active.
+- **Prune claire** : `#5C3A7E` — accents.
+- **Lavande** : `#A592BD` — fonds doux, dividers.
+- **Bleu pétrole** : `#0F3A4A` — 2e ancrage d'autorité, bandeaux institutionnels.
+- **Or champagne** : `#D4AF6A` — accents, excellence, partenariats.
+- **Ivoire** : `#FAF7F2` — background clair.
+- **Texte** : `#3C3C3C` (graphite) sur fond `#FFFFFF`/`#FAF7F2` (contraste WCAG AA).
+- **Polices** : Cormorant Garamond SemiBold/Bold (titres), Source Sans 3 (corps), DM Sans Medium (UI micro-texte). Playfair Display et Inter sont sortis du design system.
 
 ## Arborescence publique
 

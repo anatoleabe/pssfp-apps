@@ -40,7 +40,7 @@ export function DossierPhotoCard({ candidature }: DossierPhotoCardProps): JSX.El
         <div
           aria-hidden={!hasPhoto}
           data-testid="dossier-photo-thumbnail"
-          className="relative aspect-square w-[120px] overflow-hidden rounded-pssfp-card border border-[#F4EFFA] bg-gradient-lavande-blanc shadow-pssfp-soft"
+          className="relative aspect-square w-[120px] overflow-hidden rounded-pssfp-card border border-[#F4EFFA] bg-[#FAF7F2] shadow-pssfp-soft"
         >
           {hasPhoto && candidature.photo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -74,7 +74,7 @@ export function DossierPhotoCard({ candidature }: DossierPhotoCardProps): JSX.El
             <Link
               href="/dossier/photo"
               data-testid="dossier-photo-cta"
-              className="group inline-flex w-fit items-center gap-2 rounded-pssfp-button bg-gradient-prune px-4 py-2.5 text-sm font-semibold text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
+              className="group inline-flex w-fit items-center gap-2 rounded-pssfp-button bg-[#4A2E67] px-4 py-2.5 text-sm font-semibold text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
             >
               {hasPhoto ? 'Modifier ma photo' : 'Ajouter ma photo'}
               <ArrowRight

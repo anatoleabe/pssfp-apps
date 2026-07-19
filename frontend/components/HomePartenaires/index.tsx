@@ -53,11 +53,11 @@ export async function HomePartenaires(): Promise<JSX.Element> {
         {/* Fade gauche/droite pour bord propre */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-[#FAF7F2] to-transparent dark:from-[#14101A]"
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-[#FAF7F2]/70 dark:bg-[#14101A]/70"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#FAF7F2] to-transparent dark:from-[#14101A]"
+          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-[#FAF7F2]/70 dark:bg-[#14101A]/70"
         />
 
         <Marquee pauseOnHover duration={45} className="[--gap:2.5rem]">

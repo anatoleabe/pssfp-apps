@@ -25,11 +25,11 @@ export async function HomeInstitutionalHero(): Promise<JSX.Element> {
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-gradient-to-r from-black/90 via-pssfp-bleu-petrole-dark/75 to-black/15"
+        className="absolute inset-0 bg-black/65"
       />
       <div
         aria-hidden="true"
-        className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/75 to-transparent"
+        className="absolute inset-x-0 bottom-0 h-56 bg-black/35"
       />
 
       <div className="relative mx-auto flex min-h-[620px] max-w-7xl items-center px-6 py-16 md:min-h-[680px] md:px-10">

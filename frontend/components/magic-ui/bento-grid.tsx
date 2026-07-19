@@ -13,7 +13,7 @@ export interface BentoCardProps {
   /** Span lignes desktop (1-2). */
   rowSpan?: 1 | 2;
   /** Variante visuelle. */
-  variant?: 'default' | 'gradient' | 'lavande' | 'or';
+  variant?: 'default' | 'prune' | 'lavande' | 'or';
   children: ReactNode;
 }
 
@@ -31,12 +31,12 @@ const rowSpanMap: Record<NonNullable<BentoCardProps['rowSpan']>, string> = {
 const variantMap: Record<NonNullable<BentoCardProps['variant']>, string> = {
   default:
     'bg-white border border-[#F4EFFA] shadow-pssfp-soft hover:shadow-pssfp-elevated',
-  gradient:
-    'bg-gradient-prune-or text-white border border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
+  prune:
+    'bg-[#4A2E67] text-white border border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
   lavande:
-    'bg-gradient-lavande-blanc border border-[#F4EFFA] shadow-pssfp-soft hover:shadow-pssfp-elevated',
+    'bg-[#FAF7F2] border border-[#F4EFFA] shadow-pssfp-soft hover:shadow-pssfp-elevated',
   or:
-    'bg-gradient-or text-[#1A1A1A] border border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
+    'bg-[#D4AF6A] text-[#1A1A1A] border border-transparent shadow-pssfp-elevated hover:shadow-pssfp-floating',
 };
 
 export function BentoGrid({ className, children }: BentoGridProps): JSX.Element {

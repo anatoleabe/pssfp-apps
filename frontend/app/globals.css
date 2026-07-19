@@ -160,73 +160,9 @@
     @apply py-12 md:py-16;
   }
 
-  /* Title gradient — accent éditorial, 1 mot par section max */
-  .pssfp-text-gradient-prune-or {
-    background: linear-gradient(135deg, #4A2E67 0%, #D4AF6A 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
-  .dark .pssfp-text-gradient-prune-or {
-    background: linear-gradient(135deg, #B084E8 0%, #E5C788 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
-  /* Legacy alias kept for compat during migration — same effect as prune-or */
-  .pssfp-text-gradient-violet-or {
-    background: linear-gradient(135deg, #4A2E67 0%, #D4AF6A 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
-  .dark .pssfp-text-gradient-violet-or {
-    background: linear-gradient(135deg, #B084E8 0%, #E5C788 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
-  .pssfp-text-gradient-petrole-or {
-    background: linear-gradient(135deg, #0F3A4A 0%, #D4AF6A 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
-  .dark .pssfp-text-gradient-petrole-or {
-    background: linear-gradient(135deg, #7FB0C4 0%, #E5C788 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
-  /* Legacy alias forest-or — désormais petrole-or */
-  .pssfp-text-gradient-forest-or {
-    background: linear-gradient(135deg, #0F3A4A 0%, #D4AF6A 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
-  .dark .pssfp-text-gradient-forest-or {
-    background: linear-gradient(135deg, #7FB0C4 0%, #E5C788 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
-
-  /* Hairline gold — séparateur éditorial */
-  .pssfp-hairline-gold {
-    background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 106, 0.55) 30%, rgba(212, 175, 106, 0.55) 70%, transparent 100%);
-    height: 1px;
-  }
+  /* Hairline gold — séparateur éditorial (flat color, ADR-0008) */
   .pssfp-hairline-prune-or {
-    background: linear-gradient(90deg, transparent 0%, rgba(74, 46, 103, 0.55) 20%, rgba(212, 175, 106, 0.75) 50%, rgba(74, 46, 103, 0.55) 80%, transparent 100%);
+    background-color: rgba(74, 46, 103, 0.65);
     height: 1px;
   }
 
@@ -253,18 +189,6 @@
     [data-testid="home-showcase"] [data-embla-container] {
       animation: none !important;
     }
-  }
-
-  /* Paper-grain texture overlay — atmosphère éditoriale */
-  .pssfp-paper-grain {
-    background-image:
-      radial-gradient(circle at 20% 10%, rgba(60, 60, 60, 0.025) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(212, 175, 106, 0.04) 0%, transparent 50%);
-  }
-  .dark .pssfp-paper-grain {
-    background-image:
-      radial-gradient(circle at 20% 10%, rgba(229, 199, 136, 0.04) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(176, 132, 232, 0.05) 0%, transparent 50%);
   }
 }
 

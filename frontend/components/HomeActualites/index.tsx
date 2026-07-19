@@ -8,7 +8,7 @@ import { mediaUrl } from '@/lib/media';
 /**
  * Bloc « 3 actualités à la une » — refonte PR R + Sprint S5 PR Z.
  *
- * Cards avec image header (photo MinIO ou gradient fallback) + animation
+ * Cards avec image header (photo MinIO ou fond plat fallback) + animation
  * reveal au hover, badge catégorie en pill, footer avec read-more.
  *
  * Sprint S5 PR Z : remplace les MOCK_ARTICLES par un fetch réel sur
@@ -34,9 +34,9 @@ export async function HomeActualites(): Promise<JSX.Element> {
   const t = await getTranslations('home.actualites');
 
   const accentBg = {
-    violet: 'bg-gradient-prune',
-    or: 'bg-gradient-or',
-    forest: 'bg-gradient-petrole-prune',
+    violet: 'bg-[#4A2E67]',
+    or: 'bg-[#D4AF6A]',
+    forest: 'bg-[#0F3A4A]',
   } as const;
 
   const articlesResult = await listArticles({ featured: true });
@@ -101,7 +101,7 @@ export async function HomeActualites(): Promise<JSX.Element> {
                       data-testid={`home-actualites-card-${article.slug}`}
                       className="group flex h-full flex-col overflow-hidden rounded-pssfp-card border border-[#D8C9A6] bg-white shadow-pssfp-soft transition-all duration-300 ease-pssfp-out-expo hover:-translate-y-1 hover:border-[#D4AF6A]/60 hover:shadow-pssfp-elevated dark:border-[#3A2F48] dark:bg-[#1F1A28] dark:hover:border-[#D4AF6A]/60"
                     >
-                      {/* Header image MinIO ou gradient fallback */}
+                      {/* Header image MinIO ou fond plat fallback */}
                       <div
                         aria-hidden="true"
                         className={`relative h-40 overflow-hidden md:h-48 ${accentBg[accent]}`}
@@ -116,7 +116,7 @@ export async function HomeActualites(): Promise<JSX.Element> {
                           />
                         )}
                         {/* Overlay prune (au lieu de noir) — cohérence charte. */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#4A2E67]/45 via-[#4A2E67]/10 to-transparent dark:from-[#14101A]/55 dark:via-[#14101A]/15" />
+                        <div className="absolute inset-0 bg-[#4A2E67]/20 dark:bg-[#14101A]/25" />
                       </div>
 
                       <div className="flex grow flex-col p-6">

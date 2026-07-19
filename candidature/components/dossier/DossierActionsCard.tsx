@@ -24,12 +24,8 @@ export function DossierActionsCard({ candidature }: { candidature: MyCandidature
             <Link
               href="/dossier/edition"
               data-testid="dossier-link-edition"
-              className="group relative flex h-14 items-center gap-3 overflow-hidden rounded-pssfp-button bg-gradient-prune-or px-5 text-base font-semibold text-white shadow-pssfp-elevated transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2"
+              className="group relative flex h-14 items-center gap-3 overflow-hidden rounded-pssfp-button bg-[#4A2E67] px-5 text-base font-semibold text-white shadow-pssfp-elevated transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:bg-[#3A2452] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2"
             >
-              <span
-                aria-hidden="true"
-                className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full"
-              />
               <span aria-hidden="true" className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur-2xl">
                 <Pencil size={18} />
               </span>

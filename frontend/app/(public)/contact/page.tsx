@@ -59,17 +59,12 @@ export default async function ContactPage(): Promise<JSX.Element> {
          ────────────────────────────────────────────────────────────────── */}
       <section
         aria-labelledby="contact-heading"
-        className="relative isolate overflow-hidden bg-gradient-lavande-blanc dark:bg-[#14091F] dark:bg-none"
+        className="relative isolate overflow-hidden bg-[#FAF7F2] dark:bg-[#14091F]"
       >
         {/* Grain dotted décoratif (aria-hidden) */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 -z-10 opacity-[0.025]"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 1px 1px, #4A2E67 1px, transparent 0)',
-            backgroundSize: '24px 24px',
-          }}
+          className="pointer-events-none absolute inset-0 -z-10 bg-[#4A2E67] opacity-[0.025]"
         />
         {/* Halos colorés (aria-hidden) */}
         <div
@@ -90,7 +85,7 @@ export default async function ContactPage(): Promise<JSX.Element> {
           >
             {t('heroTitlePre')}{' '}
             <span className="relative inline-block">
-              <span className="pssfp-text-gradient-violet-or">{t('heroTitleHighlight')}</span>
+              <span className="text-[#4A2E67] dark:text-[#E5C788]">{t('heroTitleHighlight')}</span>
               <svg
                 aria-hidden="true"
                 className="absolute -bottom-2 left-0 w-full"
@@ -163,9 +158,9 @@ export default async function ContactPage(): Promise<JSX.Element> {
 
             {/* Séparateur ornement */}
             <div className="mt-10 flex items-center gap-4" aria-hidden="true">
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#D4AF6A]/40" />
+              <div className="h-px flex-1 bg-[#D4AF6A]/40" />
               <span className="text-[#D4AF6A]">✦</span>
-              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#D4AF6A]/40" />
+              <div className="h-px flex-1 bg-[#D4AF6A]/40" />
             </div>
           </aside>
         </div>
@@ -176,7 +171,7 @@ export default async function ContactPage(): Promise<JSX.Element> {
          ────────────────────────────────────────────────────────────────── */}
       <section
         aria-labelledby="map-heading"
-        className="bg-gradient-lavande-blanc py-16 dark:bg-[#14091F] dark:bg-none md:py-20"
+        className="bg-[#FAF7F2] py-16 dark:bg-[#14091F] md:py-20"
       >
         <div className="mx-auto max-w-7xl px-6">
           <header className="mx-auto mb-10 max-w-2xl text-center">
@@ -243,9 +238,9 @@ export default async function ContactPage(): Promise<JSX.Element> {
 
         {/* Ornement de clôture */}
         <div className="mt-12 flex items-center justify-center gap-4" aria-hidden="true">
-          <div className="h-px w-20 bg-gradient-to-r from-transparent to-[#4A2E67]/40" />
+          <div className="h-px w-20 bg-[#4A2E67]/40" />
           <div className="h-2 w-2 rounded-full bg-[#D4AF6A]" />
-          <div className="h-px w-20 bg-gradient-to-l from-transparent to-[#4A2E67]/40" />
+          <div className="h-px w-20 bg-[#4A2E67]/40" />
         </div>
       </section>
     </>
@@ -258,7 +253,7 @@ function ContactCard({ info }: { info: ContactInfo }): JSX.Element {
     <div className="group relative flex items-start gap-4 rounded-pssfp-card border border-[#F4EFFA] bg-white p-5 shadow-pssfp-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[#4A2E67]/30 hover:shadow-pssfp-elevated dark:border-[#2A1E3A] dark:bg-[#1A1428] dark:hover:border-[#5C3A7E]/40">
       <span
         aria-hidden="true"
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-prune-or text-white shadow-pssfp-glow-prune transition-transform duration-200 group-hover:scale-105"
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#4A2E67] text-white shadow-pssfp-glow-prune transition-transform duration-200 group-hover:scale-105"
       >
         <Icon size={20} />
       </span>

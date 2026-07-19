@@ -73,7 +73,7 @@ export function DossierFraisCard({ candidature }: { candidature: MyCandidature }
           </p>
 
           {/* Bloc CREMINCAM avec illustration banque */}
-          <div className="relative overflow-hidden rounded-pssfp-card border border-[#F4EFFA] bg-gradient-lavande-blanc p-5">
+          <div className="relative overflow-hidden rounded-pssfp-card border border-[#F4EFFA] bg-[#FAF7F2] p-5">
             {/* Illustration banque décorative */}
             <div
               aria-hidden="true"
@@ -86,7 +86,7 @@ export function DossierFraisCard({ candidature }: { candidature: MyCandidature }
               <div className="flex items-center gap-3">
                 <span
                   aria-hidden="true"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-prune text-white shadow-pssfp-glow-prune"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#4A2E67] text-white shadow-pssfp-glow-prune"
                 >
                   <Banknote size={22} />
                 </span>

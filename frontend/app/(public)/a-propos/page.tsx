@@ -73,8 +73,8 @@ export default async function AProposIndexPage(): Promise<JSX.Element> {
 
   return (
     <article>
-      {/* HERO ÉDITORIAL — display typo, gradient subtil, motif géométrique */}
-      <header className="relative overflow-hidden border-b border-[var(--pssfp-border)] bg-gradient-lavande-blanc dark:bg-[#1A1A1A] dark:bg-none">
+      {/* HERO ÉDITORIAL — display typo, accent plat, motif géométrique */}
+      <header className="relative overflow-hidden border-b border-[var(--pssfp-border)] bg-[#FAF7F2] dark:bg-[#1A1A1A]">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-0 opacity-50 dark:opacity-30">
           <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-[var(--pssfp-prune-light)]/15 blur-3xl dark:bg-[#B084E8]/10" />
           <div className="absolute -bottom-32 -left-16 h-[28rem] w-[28rem] rounded-full bg-[var(--pssfp-or)]/10 blur-3xl dark:bg-[#E5C788]/10" />
@@ -88,7 +88,7 @@ export default async function AProposIndexPage(): Promise<JSX.Element> {
           <RevealOnScroll delay={120}>
             <h1 className="mt-4 font-heading text-pssfp-h1 font-bold leading-[1.05] tracking-tight text-[var(--pssfp-text-strong)]">
               {t('title')}
-              <span className="block italic font-normal pssfp-text-gradient-prune-or">
+              <span className="block italic font-normal text-[#4A2E67] dark:text-[#E5C788]">
                 — {t('titleAccent')}
               </span>
             </h1>
@@ -142,7 +142,7 @@ export default async function AProposIndexPage(): Promise<JSX.Element> {
               >
                 <span
                   aria-hidden="true"
-                  className="absolute inset-x-0 top-0 h-1 bg-gradient-prune-or opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                  className="absolute inset-x-0 top-0 h-1 bg-[#4A2E67] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                 />
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-[var(--pssfp-surface)] text-[var(--pssfp-primary)]">
                   <p.Icon size={22} aria-hidden="true" strokeWidth={1.75} />
@@ -195,7 +195,7 @@ export default async function AProposIndexPage(): Promise<JSX.Element> {
                     >
                       <span
                         aria-hidden="true"
-                        className="absolute inset-x-0 top-0 h-0.5 bg-gradient-prune-or opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                        className="absolute inset-x-0 top-0 h-0.5 bg-[#4A2E67] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                       />
                       <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--pssfp-primary-soft)] text-pssfp-prune dark:text-[#B084E8]">
                         <Icon size={20} aria-hidden="true" strokeWidth={1.75} />
@@ -229,7 +229,7 @@ export default async function AProposIndexPage(): Promise<JSX.Element> {
       <section className="bg-[var(--pssfp-bg-subtle)] pssfp-section-tight">
         <div className="mx-auto max-w-5xl px-6">
           <RevealOnScroll>
-            <div className="relative overflow-hidden rounded-pssfp-card border border-[var(--pssfp-border)] bg-gradient-prune p-8 text-white shadow-pssfp-elevated md:p-12">
+            <div className="relative overflow-hidden rounded-pssfp-card border border-[var(--pssfp-border)] bg-[#4A2E67] p-8 text-white shadow-pssfp-elevated md:p-12">
               <div
                 aria-hidden="true"
                 className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl"

@@ -31,7 +31,7 @@ export function CamesGrid(): JSX.Element {
     <section
       aria-labelledby="cames-heading"
       data-testid="cames-grid"
-      className="rounded-xl border border-[#D4AF6A]/40 bg-gradient-to-br from-white to-[#FFFBEA] p-6 md:p-8"
+      className="rounded-xl border border-[#D4AF6A]/40 bg-white p-6 md:p-8"
     >
       <h2
         id="cames-heading"

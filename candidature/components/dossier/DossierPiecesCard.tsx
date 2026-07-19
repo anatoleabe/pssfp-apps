@@ -49,7 +49,7 @@ export function DossierPiecesCard({ candidature }: DossierPiecesCardProps): JSX.
           <Link
             href="/dossier/pieces"
             data-testid="dossier-pieces-cta"
-            className="group inline-flex w-fit items-center gap-2 rounded-pssfp-button bg-gradient-prune px-4 py-2.5 text-sm font-semibold text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
+            className="group inline-flex w-fit items-center gap-2 rounded-pssfp-button bg-[#4A2E67] px-4 py-2.5 text-sm font-semibold text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
           >
             {count > 0 ? 'Gérer mes pièces' : 'Ajouter des pièces'}
             <ArrowRight

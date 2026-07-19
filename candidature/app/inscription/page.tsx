@@ -1,11 +1,16 @@
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { WizardContainer } from '@/components/wizard/WizardContainer';
-import { getPays, getSpecialites } from '@/lib/api/client';
-import { FALLBACK_PAYS, FALLBACK_SPECIALITES } from '@/lib/api/fallbacks';
+import { getDiplomes, getPays, getSpecialites, getUniversites } from '@/lib/api/client';
+import {
+  FALLBACK_DIPLOMES,
+  FALLBACK_PAYS,
+  FALLBACK_SPECIALITES,
+  FALLBACK_UNIVERSITES,
+} from '@/lib/api/fallbacks';
 import { getCandidatToken } from '@/lib/auth/session';
 import { submitInscription } from './actions';
-import type { Pays, Specialite } from '@/lib/api/types';
+import type { Diplome, Pays, Specialite, UniversitePays } from '@/lib/api/types';
 
 export const metadata = {
   title: 'Inscription candidat',
@@ -20,7 +25,12 @@ export default async function InscriptionPage(): Promise<JSX.Element> {
 
   const t = await getTranslations('inscription');
 
-  const [paysResult, specialitesResult] = await Promise.all([getPays(), getSpecialites()]);
+  const [paysResult, specialitesResult, diplomesResult, universitesResult] = await Promise.all([
+    getPays(),
+    getSpecialites(),
+    getDiplomes(),
+    getUniversites(),
+  ]);
 
   // Fallback hardcoded utilisé quand le backend est temporairement
   // indisponible (incident, déploiement, ou CI candidature sans backend live).
@@ -31,18 +41,23 @@ export default async function InscriptionPage(): Promise<JSX.Element> {
   const specialites: Specialite[] = specialitesResult.ok && specialitesResult.data.length > 0
     ? specialitesResult.data
     : [...FALLBACK_SPECIALITES];
+  const diplomes: Diplome[] = diplomesResult.ok && diplomesResult.data.length > 0
+    ? diplomesResult.data
+    : [...FALLBACK_DIPLOMES];
+  const universites: UniversitePays[] = universitesResult.ok && universitesResult.data.length > 0
+    ? universitesResult.data
+    : [...FALLBACK_UNIVERSITES];
 
   return (
     <div className="relative isolate min-h-[60vh]">
       {/* Background décoratif */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-gradient-lavande-blanc"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-[#FAF7F2]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-32 top-12 -z-10 h-72 w-72 rounded-full opacity-20 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #D4AF6A 0%, transparent 70%)' }}
+        className="pointer-events-none absolute -right-32 top-12 -z-10 h-72 w-72 rounded-full bg-[#D4AF6A]/20 opacity-20 blur-3xl"
       />
 
       <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">
@@ -57,6 +72,8 @@ export default async function InscriptionPage(): Promise<JSX.Element> {
         <WizardContainer
           pays={pays}
           specialites={specialites}
+          diplomes={diplomes}
+          universites={universites}
           submitAction={submitInscription}
         />
       </div>

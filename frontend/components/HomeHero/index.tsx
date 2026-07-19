@@ -7,9 +7,9 @@ import { Sparkles } from '../magic-ui/sparkles';
 /**
  * Hero d'accueil pssfp.org — refonte PR R.
  *
- * Direction visuelle : background gradient lavande→blanc subtil + faisceaux
+ * Direction visuelle : fond plat lavande subtil + faisceaux
  * SVG animés (AnimatedBeam) + sparkles or sur le mot clé "excellence" +
- * CTA gradient violet→or avec shadow floating + carte campus en glass card.
+ * CTA prune/or plat avec shadow floating + carte campus en glass card.
  *
  * <!-- TODO replace background with assets-source/photos/campus/facade-messa-1.jpg -->
  */
@@ -24,7 +24,7 @@ export async function HomeHero(): Promise<JSX.Element> {
         <>
           {splitMatch[1]}
           <Sparkles color="#D4AF6A" count={6}>
-            <span className="pssfp-text-gradient-violet-or">{splitMatch[2]}</span>
+            <span className="text-[#4A2E67] dark:text-[#E5C788]">{splitMatch[2]}</span>
           </Sparkles>
           {splitMatch[3]}
         </>
@@ -34,7 +34,7 @@ export async function HomeHero(): Promise<JSX.Element> {
   return (
     <section
       aria-labelledby="hero-heading"
-      className="relative isolate overflow-hidden bg-gradient-lavande-blanc dark:bg-[#14091F] dark:bg-none"
+      className="relative isolate overflow-hidden bg-[#FAF7F2] dark:bg-[#14091F]"
     >
       {/* Faisceaux décoratifs animés (aria-hidden) */}
       <AnimatedBeam className="opacity-70" />
@@ -42,12 +42,7 @@ export async function HomeHero(): Promise<JSX.Element> {
       {/* Grain léger pour atmosphère */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.025]"
-        style={{
-          backgroundImage:
-            'radial-gradient(circle at 1px 1px, #4A2E67 1px, transparent 0)',
-          backgroundSize: '24px 24px',
-        }}
+        className="pointer-events-none absolute inset-0 -z-10 bg-[#4A2E67] opacity-[0.025]"
       />
 
       <div className="mx-auto grid max-w-7xl gap-12 px-6 py-20 md:grid-cols-[3fr_2fr] md:py-28 lg:py-32">
@@ -64,12 +59,8 @@ export async function HomeHero(): Promise<JSX.Element> {
             <a
               href={process.env.NEXT_PUBLIC_CANDIDATURE_URL ?? '#'}
               data-testid="hero-cta-candidature"
-              className="group relative inline-flex h-14 items-center gap-2 overflow-hidden rounded-pssfp-button bg-gradient-prune-or px-7 text-base font-semibold text-white shadow-pssfp-floating transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:shadow-pssfp-glow-or focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2"
+              className="group relative inline-flex h-14 items-center gap-2 overflow-hidden rounded-pssfp-button bg-[#4A2E67] px-7 text-base font-semibold text-white shadow-pssfp-floating transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:bg-[#3A2452] hover:shadow-pssfp-glow-or focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2"
             >
-              <span
-                aria-hidden="true"
-                className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full"
-              />
               <span className="relative">{t('ctaPrimary')}</span>
               <ArrowRight
                 size={18}
@@ -108,8 +99,7 @@ export async function HomeHero(): Promise<JSX.Element> {
             {/* Halo or derrière la card */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute -inset-1 -z-10 rounded-pssfp-card opacity-30 blur-xl"
-              style={{ background: 'radial-gradient(circle, #D4AF6A 0%, transparent 70%)' }}
+              className="pointer-events-none absolute -inset-1 -z-10 rounded-pssfp-card bg-[#D4AF6A]/20 opacity-30 blur-xl"
             />
             <p className="pssfp-eyebrow">{t('campusEyebrow')}</p>
             <p className="mt-3 font-heading text-pssfp-h3 font-bold text-[#1A1A1A] dark:text-[#FAF7F2]">

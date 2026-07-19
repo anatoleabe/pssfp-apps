@@ -135,19 +135,19 @@ const UNITES: OrgNode[] = [
 const accentClasses = {
   primary: {
     border: 'border-[#4A2E67]',
-    bg: 'bg-gradient-to-br from-[#4A2E67] to-[#5C3A7E]',
+    bg: 'bg-[#4A2E67]',
     text: 'text-white',
     glow: 'shadow-[0_8px_32px_-8px_rgba(74, 46, 103,0.45)]',
   },
   or: {
     border: 'border-[#D4AF6A]',
-    bg: 'bg-gradient-to-br from-[#FFFBEA] to-[#FFE9B0]',
+    bg: 'bg-[#FFFBEA]',
     text: 'text-[#1A1A1A]',
     glow: 'shadow-[0_8px_32px_-8px_rgba(212, 175, 106,0.35)]',
   },
   lavande: {
     border: 'border-[#5C3A7E]/40',
-    bg: 'bg-gradient-to-br from-[#F4EFFA] to-[#FAF7FF]',
+    bg: 'bg-[#F4EFFA]',
     text: 'text-[#1A1A1A]',
     glow: 'shadow-pssfp-soft',
   },
@@ -217,7 +217,7 @@ function PersonCard({ node, size = 'md' }: { node: OrgNode; size?: 'lg' | 'md' |
 function Connector(): JSX.Element {
   return (
     <div aria-hidden="true" className="flex justify-center">
-      <div className="h-8 w-0.5 bg-gradient-to-b from-[#4A2E67] to-[#D4AF6A]" />
+      <div className="h-8 w-0.5 bg-[#4A2E67]" />
     </div>
   );
 }

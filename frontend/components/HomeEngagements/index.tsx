@@ -53,7 +53,7 @@ export async function HomeEngagements(): Promise<JSX.Element> {
               {/* Hairline or supérieur révélée au hover */}
               <span
                 aria-hidden="true"
-                className="absolute inset-x-0 top-0 h-1 rounded-t-pssfp-card bg-gradient-prune-or opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                className="absolute inset-x-0 top-0 h-1 rounded-t-pssfp-card bg-[#4A2E67] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
               />
               {/*
                 Eyebrow numéroté éditorial — parité hiérarchique avec

@@ -68,35 +68,6 @@ const config: Pick<Config, 'darkMode' | 'theme' | 'plugins'> = {
         'pssfp-button': '0.625rem',
       },
       screens: breakpoints,
-      backgroundImage: {
-        // Prune
-        'gradient-prune':
-          'linear-gradient(135deg, #4A2E67 0%, #5C3A7E 100%)',
-        'gradient-prune-deep':
-          'linear-gradient(135deg, #3A2452 0%, #4A2E67 60%, #5C3A7E 100%)',
-        'gradient-prune-lavande':
-          'linear-gradient(135deg, #4A2E67 0%, #A592BD 100%)',
-        // Combinés autorité
-        'gradient-prune-petrole':
-          'linear-gradient(135deg, #4A2E67 0%, #0F3A4A 100%)',
-        'gradient-petrole-prune':
-          'linear-gradient(135deg, #0F3A4A 0%, #4A2E67 100%)',
-        // Or champagne
-        'gradient-or':
-          'linear-gradient(135deg, #D4AF6A 0%, #E5C788 100%)',
-        'gradient-prune-or':
-          'linear-gradient(135deg, #4A2E67 0%, #D4AF6A 100%)',
-        'gradient-petrole-or':
-          'linear-gradient(135deg, #0F3A4A 0%, #D4AF6A 100%)',
-        // Ivoire / lavande
-        'gradient-lavande-blanc':
-          'linear-gradient(180deg, rgba(165, 146, 189, 0.18) 0%, #FFFFFF 100%)',
-        'gradient-ivoire':
-          'linear-gradient(180deg, #FAF7F2 0%, #FFFFFF 100%)',
-        // Hero institutionnel sombre
-        'gradient-ink-deep':
-          'linear-gradient(135deg, #14101A 0%, #2A1E3A 60%, #4A2E67 100%)',
-      },
       boxShadow: {
         'pssfp-soft':
           '0 1px 2px 0 rgba(60, 60, 60, 0.04), 0 1px 3px 0 rgba(60, 60, 60, 0.06)',
@@ -136,10 +107,6 @@ const config: Pick<Config, 'darkMode' | 'theme' | 'plugins'> = {
           '0%': { transform: 'translateY(0)' },
           '100%': { transform: 'translateY(calc(-100% - var(--gap, 1rem)))' },
         },
-        'pssfp-shimmer': {
-          '0%': { backgroundPosition: '-200% 0' },
-          '100%': { backgroundPosition: '200% 0' },
-        },
       },
       animation: {
         'pssfp-fade-up': 'pssfp-fade-up 600ms cubic-bezier(0.16, 1, 0.3, 1) both',
@@ -147,7 +114,6 @@ const config: Pick<Config, 'darkMode' | 'theme' | 'plugins'> = {
         'pssfp-pulse-prune': 'pssfp-pulse-prune 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'pssfp-marquee': 'pssfp-marquee var(--duration, 40s) linear infinite',
         'pssfp-marquee-vertical': 'pssfp-marquee-vertical var(--duration, 40s) linear infinite',
-        'pssfp-shimmer': 'pssfp-shimmer 2s linear infinite',
       },
       transitionTimingFunction: {
         'pssfp-out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',

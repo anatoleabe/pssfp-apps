@@ -41,7 +41,7 @@ export function InternalPageHero({
           />
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-[linear-gradient(90deg,rgba(32,18,49,0.96)_0%,rgba(32,18,49,0.88)_48%,rgba(15,58,74,0.56)_100%)]"
+            className="absolute inset-0 bg-[#201231]/80"
           />
         </>
       )}

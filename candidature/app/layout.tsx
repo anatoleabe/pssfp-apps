@@ -35,8 +35,7 @@ async function CandidatureHeader() {
           <span className="relative inline-flex transition-transform duration-300 ease-pssfp-out-expo group-hover:scale-105">
             <span
               aria-hidden="true"
-              className="absolute inset-0 -z-10 rounded-full opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-60"
-              style={{ background: 'radial-gradient(circle, #5C3A7E 0%, transparent 70%)' }}
+              className="absolute inset-0 -z-10 rounded-full bg-[#5C3A7E]/20 opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-60"
             />
             <PssfpLogo size={40} />
           </span>
@@ -77,12 +76,8 @@ async function CandidatureHeader() {
           ) : (
             <Link
               href="/login"
-              className="group relative inline-flex h-10 items-center gap-1.5 overflow-hidden rounded-pssfp-button bg-gradient-prune-or px-4 text-sm font-medium text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2"
+              className="group relative inline-flex h-10 items-center gap-1.5 overflow-hidden rounded-pssfp-button bg-[#4A2E67] px-4 text-sm font-medium text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#3A2452] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2"
             >
-              <span
-                aria-hidden="true"
-                className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full"
-              />
               <span className="relative">{t('login')}</span>
             </Link>
           )}

@@ -9,7 +9,7 @@ const buttonVariants = cva(
       variant: {
         primary: [
           'relative bg-[#4A2E67] text-white shadow-pssfp-soft',
-          'hover:bg-gradient-prune hover:shadow-pssfp-elevated hover:-translate-y-0.5',
+          'hover:bg-[#3A2452] hover:shadow-pssfp-elevated hover:-translate-y-0.5',
           'focus-visible:ring-[#4A2E67]',
         ].join(' '),
         secondary: [
@@ -18,11 +18,9 @@ const buttonVariants = cva(
           'focus-visible:ring-[#4A2E67]',
         ].join(' '),
         cta: [
-          'relative overflow-hidden bg-gradient-prune-or text-white shadow-pssfp-elevated',
-          'hover:shadow-pssfp-floating hover:-translate-y-0.5',
+          'relative bg-[#4A2E67] text-white shadow-pssfp-elevated',
+          'hover:bg-[#3A2452] hover:shadow-pssfp-floating hover:-translate-y-0.5',
           'focus-visible:ring-[#D4AF6A]',
-          'before:absolute before:inset-0 before:-translate-x-full before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:transition-transform before:duration-700',
-          'hover:before:translate-x-full',
         ].join(' '),
         ghost: [
           'relative bg-transparent text-[#4A2E67]',
@@ -33,7 +31,7 @@ const buttonVariants = cva(
         ].join(' '),
         accent: [
           'bg-[#D4AF6A] text-[#1A1A1A] shadow-pssfp-soft',
-          'hover:bg-gradient-or hover:shadow-pssfp-elevated hover:-translate-y-0.5',
+          'hover:bg-[#E5C788] hover:shadow-pssfp-elevated hover:-translate-y-0.5',
           'focus-visible:ring-[#D4AF6A]',
         ].join(' '),
         outline: [

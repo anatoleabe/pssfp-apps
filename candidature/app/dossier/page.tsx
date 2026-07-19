@@ -9,13 +9,14 @@ import { DossierPiecesCard } from '@/components/dossier/DossierPiecesCard';
 import { DossierStatutCard } from '@/components/dossier/DossierStatutCard';
 import { getMyCandidature } from '@/lib/api/client';
 import { clearCandidatToken, getCandidatToken } from '@/lib/auth/session';
+import { initDossierAction } from './actions';
 
 export const metadata = {
   title: 'Mon dossier candidat',
 };
 
 interface DossierPageProps {
-  searchParams: Promise<{ profile_pending?: string; reason?: string }>;
+  searchParams: Promise<{ profile_pending?: string; reason?: string; init_error?: string }>;
 }
 
 function getInitials(prenom?: string | null, nom?: string | null): string {
@@ -30,7 +31,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
     redirect('/login?reason=session_expired');
   }
 
-  const { profile_pending, reason } = await searchParams;
+  const { profile_pending, reason, init_error } = await searchParams;
   const result = await getMyCandidature(token);
 
   if (!result.ok) {
@@ -38,7 +39,34 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
       await clearCandidatToken();
       redirect('/login?reason=session_expired');
     }
-    if (result.status === 404) {
+    if (result.status === 404 && result.code === 'campaign_closed') {
+      return (
+        <div className="mx-auto max-w-4xl px-6 py-12 md:py-16">
+          <h1 className="pssfp-h1">Mon dossier</h1>
+          <div className="mt-8 rounded-pssfp-card border border-amber-200 bg-amber-50/80 p-7 shadow-pssfp-soft backdrop-blur-2xs">
+            <div className="flex items-start gap-4">
+              <span
+                aria-hidden="true"
+                className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700"
+              >
+                <AlertCircle size={24} />
+              </span>
+              <div>
+                <p className="font-heading text-lg font-bold text-amber-900">
+                  Aucune campagne de candidature n&apos;est ouverte actuellement.
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-amber-900/90">
+                  Votre compte est bien créé. Revenez dès l&apos;ouverture de la prochaine
+                  campagne pour constituer votre dossier.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (result.status === 404 && result.code === 'candidature_missing') {
       return (
         <div className="mx-auto max-w-4xl px-6 py-12 md:py-16">
           <h1 className="pssfp-h1">Mon dossier</h1>
@@ -55,16 +83,23 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
                   Votre dossier n&apos;a pas encore été initialisé.
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-amber-900/90">
-                  Cela peut arriver si la connexion a été interrompue à l&apos;inscription. Reprenez
-                  le formulaire pour finaliser la création de votre profil.
+                  Cela peut arriver si la connexion a été interrompue à l&apos;inscription. Votre
+                  compte existe déjà — il suffit d&apos;initialiser votre dossier pour continuer.
                 </p>
-                <a
-                  href="/inscription"
-                  className="mt-5 inline-flex items-center gap-2 rounded-pssfp-button bg-gradient-prune-or px-5 py-2.5 text-sm font-semibold text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2"
-                >
-                  Reprendre l&apos;inscription
-                  <ArrowRight size={14} aria-hidden="true" />
-                </a>
+                {init_error === '1' && (
+                  <p role="alert" className="mt-3 text-sm font-medium text-red-700">
+                    Une erreur est survenue. Réessayez dans quelques instants.
+                  </p>
+                )}
+                <form action={initDossierAction}>
+                  <button
+                    type="submit"
+                    className="mt-5 inline-flex items-center gap-2 rounded-pssfp-button bg-[#4A2E67] px-5 py-2.5 text-sm font-semibold text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#3A2452] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
+                  >
+                    Initialiser mon dossier
+                    <ArrowRight size={14} aria-hidden="true" />
+                  </button>
+                </form>
               </div>
             </div>
           </div>
@@ -93,12 +128,11 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
       {/* Background décoratif */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-gradient-lavande-blanc"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-[#FAF7F2]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-32 top-12 -z-10 h-72 w-72 rounded-full opacity-20 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #4A2E67 0%, transparent 70%)' }}
+        className="pointer-events-none absolute -left-32 top-12 -z-10 h-72 w-72 rounded-full bg-[#4A2E67]/20 opacity-20 blur-3xl"
       />
 
       <div className="mx-auto max-w-5xl px-6 py-10 md:py-16">
@@ -107,12 +141,11 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
           <div className="relative">
             <div
               aria-hidden="true"
-              className="absolute -inset-1 -z-10 rounded-full opacity-50 blur-xl"
-              style={{ background: 'radial-gradient(circle, #D4AF6A 0%, transparent 70%)' }}
+              className="absolute -inset-1 -z-10 rounded-full bg-[#D4AF6A]/20 opacity-50 blur-xl"
             />
             <span
               aria-hidden="true"
-              className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-gradient-prune-or font-heading text-xl font-bold text-white shadow-pssfp-elevated ring-4 ring-white"
+              className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#4A2E67] font-heading text-xl font-bold text-white shadow-pssfp-elevated ring-4 ring-white"
             >
               {initials}
             </span>
@@ -123,7 +156,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
               Espace candidat
             </p>
             <h1 className="mt-1 font-heading text-2xl font-bold text-[#1A1A1A] md:text-3xl">
-              Bonjour <span className="pssfp-text-gradient-violet-or">{candidature.prenom || 'candidat'}</span>
+              Bonjour <span className="text-[#4A2E67]">{candidature.prenom || 'candidat'}</span>
               <span aria-hidden="true">,</span>
             </h1>
             {fullName && (

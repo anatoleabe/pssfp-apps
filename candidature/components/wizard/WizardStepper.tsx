@@ -12,10 +12,10 @@ interface WizardStepperProps {
 /**
  * Stepper visuel premium avec progression animée Framer Motion.
  *
- * - Cercle gradient pour étape actuelle (anneau pulsé subtil)
+ * - Cercle plein prune pour étape actuelle (anneau pulsé subtil)
  * - Check vert pour étapes complétées
  * - Cercle outline neutre pour étapes futures
- * - Connecteurs avec gradient de remplissage animé
+ * - Connecteurs avec remplissage animé (couleur plate)
  * - Labels masqués sur mobile (steppers compacts) + barre de progression
  */
 export function WizardStepper({ current, steps }: WizardStepperProps): JSX.Element {
@@ -36,7 +36,7 @@ export function WizardStepper({ current, steps }: WizardStepperProps): JSX.Eleme
       {/* Bar de progression mobile */}
       <div className="relative mb-6 h-1.5 w-full overflow-hidden rounded-full bg-[#F4EFFA] md:hidden">
         <motion.div
-          className="h-full rounded-full bg-gradient-prune-or"
+          className="h-full rounded-full bg-[#4A2E67]"
           initial={false}
           animate={{ width: `${completedRatio * 100}%` }}
           transition={
@@ -60,7 +60,7 @@ export function WizardStepper({ current, steps }: WizardStepperProps): JSX.Eleme
                   className={cn(
                     'relative flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ease-pssfp-out-expo',
                     isDone && 'bg-emerald-500 text-white shadow-pssfp-soft',
-                    isActive && 'bg-gradient-prune-or text-white shadow-pssfp-glow-or',
+                    isActive && 'bg-[#4A2E67] text-white shadow-pssfp-glow-or',
                     isFuture && 'border-2 border-[#F4EFFA] bg-white text-gray-500',
                   )}
                 >
@@ -89,7 +89,7 @@ export function WizardStepper({ current, steps }: WizardStepperProps): JSX.Eleme
                     aria-hidden="true"
                     className={cn(
                       'h-full rounded-full',
-                      isDone ? 'bg-emerald-500' : 'bg-gradient-prune-or',
+                      isDone ? 'bg-emerald-500' : 'bg-[#4A2E67]',
                     )}
                     initial={false}
                     animate={{ width: isDone ? '100%' : isActive ? '50%' : '0%' }}

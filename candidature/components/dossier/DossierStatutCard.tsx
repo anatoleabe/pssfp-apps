@@ -66,8 +66,7 @@ export function DossierStatutCard({ candidature }: { candidature: MyCandidature 
       {/* Halo décoratif gauche */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-12 -top-12 h-44 w-44 rounded-full opacity-30 blur-3xl"
-        style={{ background: 'radial-gradient(circle, rgba(74, 46, 103, 0.18) 0%, transparent 70%)' }}
+        className="pointer-events-none absolute -left-12 -top-12 h-44 w-44 rounded-full bg-[#4A2E67]/20 opacity-30 blur-3xl"
       />
 
       <div className="relative flex flex-wrap items-start justify-between gap-4">

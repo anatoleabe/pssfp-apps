@@ -139,7 +139,7 @@ export function SiteHeader(): JSX.Element {
                     <span
                       aria-hidden="true"
                       className={cn(
-                        'pointer-events-none absolute inset-x-2 bottom-1 h-0.5 origin-left rounded-full bg-[linear-gradient(90deg,#4A2E67_0%,#5C3A7E_50%,#C9A040_100%)] transition-transform duration-300 ease-pssfp-out-expo motion-reduce:transition-none',
+                        'pointer-events-none absolute inset-x-2 bottom-1 h-0.5 origin-left rounded-full bg-[#4A2E67] transition-transform duration-300 ease-pssfp-out-expo motion-reduce:transition-none',
                         active
                           ? 'scale-x-100'
                           : 'scale-x-0 group-hover/nav:scale-x-100 group-focus-visible/nav:scale-x-100',
@@ -206,7 +206,7 @@ export function SiteHeader(): JSX.Element {
       <div
         aria-hidden="true"
         className={cn(
-          'pointer-events-none h-px origin-left bg-[linear-gradient(90deg,#2D1454_0%,#4A2E67_45%,#C9A040_100%)] transition-opacity duration-300 motion-reduce:transition-none',
+          'pointer-events-none h-px origin-left bg-[#4A2E67] transition-opacity duration-300 motion-reduce:transition-none',
           scrolled ? 'opacity-100' : 'opacity-0',
         )}
         style={{ transform: `scaleX(${scrollProgress / 100})` }}

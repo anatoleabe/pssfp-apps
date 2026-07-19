@@ -7,7 +7,7 @@ import { Mail, Phone, MapPin, Facebook, Linkedin, Youtube, Twitter } from 'lucid
  * Footer institutionnel — Sprint S5.1 (charte 2026 ADR-0008).
  *
  * Évolutions vs PR Q :
- *   - Séparateur gradient prune→or→prune avant la baseline.
+ *   - Séparateur plat prune→or→prune avant la baseline.
  *   - 4 réseaux sociaux (Facebook, LinkedIn, YouTube, Twitter/X) en cercles or.
  *   - Tagline officielle « Former. Moderniser. Transformer les finances publiques. »
  *   - Tokens charte 2026 (prune/or/graphite) au lieu des anciens hex.
@@ -32,9 +32,9 @@ export function SiteFooter(): JSX.Element {
   return (
     <footer
       data-testid="site-footer"
-      className="mt-20 border-t border-[var(--pssfp-border)] bg-gradient-to-b from-white to-[var(--pssfp-bg-subtle)] dark:from-[#14091F] dark:to-[#1A1A1A]"
+      className="mt-20 border-t border-[var(--pssfp-border)] bg-white dark:bg-[#14091F]"
     >
-      {/* Tagline + séparateur gradient prune→or→prune */}
+      {/* Tagline + séparateur plat prune→or→prune */}
       <div className="mx-auto max-w-7xl px-6 pt-12">
         <p className="font-heading text-pssfp-h3 italic font-medium text-pssfp-prune dark:text-[#B084E8]">
           « Former. Moderniser. Transformer les finances publiques. »

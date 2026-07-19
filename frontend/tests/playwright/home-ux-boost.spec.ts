@@ -8,7 +8,7 @@ import AxeBuilder from '@axe-core/playwright';
  * - Hero avec Sparkles + AnimatedBeam + glass-card campus
  * - Stats avec NumberTicker (count-up animé)
  * - Spécialités BentoGrid asymétrique avec card phare Fiscalité
- * - Actualités cards avec headers gradient
+ * - Actualités cards avec headers à fond plat
  * - Partenaires Marquee infinie
  * - Accès rapides 3 grandes cards thématiques
  * - Reduced-motion bypass

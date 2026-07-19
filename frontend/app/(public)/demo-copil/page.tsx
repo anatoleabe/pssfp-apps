@@ -154,7 +154,7 @@ export default function DemoCopilPage(): JSX.Element {
           {KPIS.map((kpi) => (
             <li
               key={kpi.label}
-              className="rounded-pssfp-card border border-[#F4EFFA] bg-gradient-lavande-blanc p-6 text-center"
+              className="rounded-pssfp-card border border-[#F4EFFA] bg-[#FAF7F2] p-6 text-center"
             >
               <p className="font-heading text-4xl font-bold text-[#4A2E67]">{kpi.value}</p>
               <p className="mt-2 text-sm text-[#555]">{kpi.label}</p>
@@ -175,7 +175,7 @@ export default function DemoCopilPage(): JSX.Element {
               className="rounded-pssfp-card border border-[#F4EFFA] bg-white p-6 shadow-pssfp-soft transition-all hover:shadow-pssfp-elevated md:p-8"
             >
               <div className="flex items-start gap-4">
-                <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-prune-or text-white">
+                <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#4A2E67] text-white">
                   <pr.Icon size={22} aria-hidden="true" />
                 </span>
                 <div className="grow">

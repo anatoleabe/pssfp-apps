@@ -13,10 +13,10 @@ const cardVariants = cva(
           'bg-white border border-[#F4EFFA]',
         glass:
           'border border-white/30 bg-white/60 shadow-pssfp-soft backdrop-blur-2xl',
-        gradient:
-          'bg-gradient-prune-or text-white shadow-pssfp-elevated hover:-translate-y-1 hover:shadow-pssfp-floating',
+        solid:
+          'bg-[#4A2E67] text-white shadow-pssfp-elevated hover:-translate-y-1 hover:shadow-pssfp-floating',
         lavande:
-          'bg-gradient-lavande-blanc border border-[#F4EFFA] shadow-pssfp-soft hover:-translate-y-1 hover:shadow-pssfp-elevated',
+          'bg-[#A592BD]/10 border border-[#F4EFFA] shadow-pssfp-soft hover:-translate-y-1 hover:shadow-pssfp-elevated',
         outline:
           'bg-transparent border-2 border-[#4A2E67]/20 hover:border-[#4A2E67]/60 hover:shadow-pssfp-soft',
       },
