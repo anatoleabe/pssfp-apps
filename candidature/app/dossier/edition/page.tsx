@@ -1,11 +1,16 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DossierEditionForm } from '@/components/DossierEditionForm';
-import { getMyCandidature, getPays, getSpecialites } from '@/lib/api/client';
+import { getDiplomes, getMyCandidature, getPays, getSpecialites, getUniversites } from '@/lib/api/client';
 import { clearCandidatToken, getCandidatToken } from '@/lib/auth/session';
 import { EDITABLE_FIELDS, type EditableField } from '@/lib/dossier/editableFields';
-import { FALLBACK_PAYS, FALLBACK_SPECIALITES } from '@/lib/api/fallbacks';
-import type { Pays, Specialite } from '@/lib/api/types';
+import {
+  FALLBACK_DIPLOMES,
+  FALLBACK_PAYS,
+  FALLBACK_SPECIALITES,
+  FALLBACK_UNIVERSITES,
+} from '@/lib/api/fallbacks';
+import type { Diplome, Pays, Specialite, UniversitePays } from '@/lib/api/types';
 
 export const metadata = {
   title: 'Éditer mon dossier',
@@ -57,7 +62,12 @@ export default async function DossierEditionPage({
   }
 
   // Référentiels : avec fallbacks sur indisponibilité backend (cf. PR E ajout 4).
-  const [paysResult, specialitesResult] = await Promise.all([getPays(), getSpecialites()]);
+  const [paysResult, specialitesResult, diplomesResult, universitesResult] = await Promise.all([
+    getPays(),
+    getSpecialites(),
+    getDiplomes(),
+    getUniversites(),
+  ]);
   const pays: Pays[] =
     paysResult.ok && Array.isArray(paysResult.data) && paysResult.data.length > 0
       ? paysResult.data
@@ -66,6 +76,14 @@ export default async function DossierEditionPage({
     specialitesResult.ok && Array.isArray(specialitesResult.data) && specialitesResult.data.length > 0
       ? specialitesResult.data
       : [...FALLBACK_SPECIALITES];
+  const diplomes: Diplome[] =
+    diplomesResult.ok && Array.isArray(diplomesResult.data) && diplomesResult.data.length > 0
+      ? diplomesResult.data
+      : [...FALLBACK_DIPLOMES];
+  const universites: UniversitePays[] =
+    universitesResult.ok && Array.isArray(universitesResult.data) && universitesResult.data.length > 0
+      ? universitesResult.data
+      : [...FALLBACK_UNIVERSITES];
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10 md:py-16">
@@ -97,6 +115,8 @@ export default async function DossierEditionPage({
         candidature={candidature}
         pays={pays}
         specialites={specialites}
+        diplomes={diplomes}
+        universites={universites}
         focusField={focusField}
       />
     </div>

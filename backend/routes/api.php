@@ -61,6 +61,8 @@ Route::prefix('reference')->name('reference.')->group(function (): void {
     Route::get('/regions-cameroun', [ReferenceController::class, 'regions'])->name('regions');
     Route::get('/departements-cameroun', [ReferenceController::class, 'departements'])->name('departements');
     Route::get('/specialites', [ReferenceController::class, 'specialites'])->name('specialites');
+    Route::get('/diplomes', [ReferenceController::class, 'diplomes'])->name('diplomes');
+    Route::get('/universites', [ReferenceController::class, 'universites'])->name('universites');
 });
 
 /*

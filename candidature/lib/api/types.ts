@@ -5,7 +5,7 @@
 
 export type ApiResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: number; message: string; errors?: Record<string, string[]> };
+  | { ok: false; status: number; message: string; code?: string; errors?: Record<string, string[]> };
 
 export interface Campagne {
   slug: string;
@@ -43,6 +43,16 @@ export interface Departement {
 export interface Specialite {
   slug: string;
   label: string;
+}
+
+export interface Diplome {
+  slug: string;
+  label: string;
+}
+
+export interface UniversitePays {
+  pays: string;
+  universites: string[];
 }
 
 export interface RegisterCandidatPayload {

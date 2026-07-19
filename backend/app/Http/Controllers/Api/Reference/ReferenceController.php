@@ -27,6 +27,8 @@ use Illuminate\Support\Facades\Cache;
  * - GET /v1/reference/regions-cameroun
  * - GET /v1/reference/departements-cameroun?region={code}
  * - GET /v1/reference/specialites (V1 : config statique, V2 : table CMS)
+ * - GET /v1/reference/diplomes (V1 : config statique)
+ * - GET /v1/reference/universites (V1 : config statique, groupé par pays CEMAC)
  */
 final class ReferenceController extends Controller
 {
@@ -77,6 +79,30 @@ final class ReferenceController extends Controller
         $items = [];
         foreach ($specs as $slug => $label) {
             $items[] = ['slug' => $slug, 'label' => $label];
+        }
+
+        return response()->json(['data' => $items]);
+    }
+
+    public function diplomes(): JsonResponse
+    {
+        $diplomes = (array) config('diplomes', []);
+
+        $items = [];
+        foreach ($diplomes as $slug => $label) {
+            $items[] = ['slug' => $slug, 'label' => $label];
+        }
+
+        return response()->json(['data' => $items]);
+    }
+
+    public function universites(): JsonResponse
+    {
+        $universites = (array) config('universites', []);
+
+        $items = [];
+        foreach ($universites as $pays => $noms) {
+            $items[] = ['pays' => $pays, 'universites' => array_values((array) $noms)];
         }
 
         return response()->json(['data' => $items]);

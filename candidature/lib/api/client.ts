@@ -3,11 +3,13 @@ import type {
   Campagne,
   CandidatureProfile,
   Departement,
+  Diplome,
   Pays,
   Region,
   RegisterCandidatPayload,
   RegisterCandidatResponse,
   Specialite,
+  UniversitePays,
 } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/v1';
@@ -62,12 +64,14 @@ async function apiCall<T>(
     if (!response.ok) {
       const errorPayload = (payload ?? {}) as {
         message?: string;
+        code?: string;
         errors?: Record<string, string[]>;
       };
       return {
         ok: false,
         status: response.status,
         message: errorPayload.message ?? `API ${response.status}`,
+        code: errorPayload.code,
         errors: errorPayload.errors,
       };
     }
@@ -123,6 +127,14 @@ export function getDepartements(regionCode: string): Promise<ApiResult<Departeme
 
 export function getSpecialites(): Promise<ApiResult<Specialite[]>> {
   return apiGet<Specialite[]>('/reference/specialites', { revalidate: 86400 });
+}
+
+export function getDiplomes(): Promise<ApiResult<Diplome[]>> {
+  return apiGet<Diplome[]>('/reference/diplomes', { revalidate: 86400 });
+}
+
+export function getUniversites(): Promise<ApiResult<UniversitePays[]>> {
+  return apiGet<UniversitePays[]>('/reference/universites', { revalidate: 86400 });
 }
 
 export function registerCandidat(

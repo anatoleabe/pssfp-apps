@@ -67,6 +67,25 @@ it('returns the V1 specialites whitelist', function (): void {
     expect(collect($items)->pluck('slug'))->toContain('fiscalite-finance-comptabilite-publique');
 });
 
+it('returns the V1 diplomes whitelist', function (): void {
+    $response = $this->getJson('/v1/reference/diplomes');
+    $response->assertOk();
+    $items = $response->json('data');
+    expect(count($items))->toBeGreaterThanOrEqual(5);
+    expect(collect($items)->pluck('slug'))->toContain('master');
+});
+
+it('returns universites grouped by pays CEMAC including Cameroun', function (): void {
+    $response = $this->getJson('/v1/reference/universites');
+    $response->assertOk();
+    $items = $response->json('data');
+    expect(count($items))->toBeGreaterThanOrEqual(5);
+
+    $cameroun = collect($items)->firstWhere('pays', 'Cameroun');
+    expect($cameroun)->not->toBeNull();
+    expect($cameroun['universites'])->toContain('Université de Yaoundé I');
+});
+
 it('caches pays for 24h on Redis', function (): void {
     // Premier appel : MISS, peuple Cache.
     $this->getJson('/v1/reference/pays')->assertOk();

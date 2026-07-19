@@ -1,14 +1,25 @@
 'use client';
 
+import { DiplomeSelect } from '@/components/DiplomeSelect';
+import { InstitutSelect } from '@/components/InstitutSelect';
+import type { Diplome, UniversitePays } from '@/lib/api/types';
 import type { WizardData } from './types';
 
 export interface WizardStep3Props {
   data: WizardData;
   errors: Partial<Record<keyof WizardData, string>>;
   onChange: (patch: Partial<WizardData>) => void;
+  diplomes: Diplome[];
+  universites: UniversitePays[];
 }
 
-export function WizardStep3Diplome({ data, errors, onChange }: WizardStep3Props): JSX.Element {
+export function WizardStep3Diplome({
+  data,
+  errors,
+  onChange,
+  diplomes,
+  universites,
+}: WizardStep3Props): JSX.Element {
   const showEmployer = data.statut_actuel && data.statut_actuel !== 'Etudiant';
 
   return (
@@ -16,13 +27,12 @@ export function WizardStep3Diplome({ data, errors, onChange }: WizardStep3Props)
       <h2 className="font-heading text-xl font-bold text-[#4A2E67]">Étape 3 — Diplôme &amp; situation professionnelle</h2>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Diplôme le plus élevé obtenu" error={errors.diplome_obtenu}>
-          <input
-            type="text"
+        <Field label="Diplôme le plus élevé obtenu" error={undefined}>
+          <DiplomeSelect
+            diplomes={diplomes}
             value={data.diplome_obtenu}
-            onChange={(e) => onChange({ diplome_obtenu: e.target.value })}
-            placeholder="Master, Licence…"
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
+            onChange={(v) => onChange({ diplome_obtenu: v })}
+            error={errors.diplome_obtenu}
           />
         </Field>
         <Field label="Année d'obtention" error={errors.annee_diplome}>
@@ -42,12 +52,12 @@ export function WizardStep3Diplome({ data, errors, onChange }: WizardStep3Props)
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Établissement de délivrance" error={errors.institut}>
-          <input
-            type="text"
+        <Field label="Établissement de délivrance" error={undefined}>
+          <InstitutSelect
+            universites={universites}
             value={data.institut}
-            onChange={(e) => onChange({ institut: e.target.value })}
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
+            onChange={(v) => onChange({ institut: v })}
+            error={errors.institut}
           />
         </Field>
         <Field label="Spécialité du diplôme" error={errors.specialite_diplome}>

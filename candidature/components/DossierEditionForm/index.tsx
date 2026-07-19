@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveDossierFieldsAction } from '@/app/dossier/edition/actions';
+import { DiplomeSelect } from '@/components/DiplomeSelect';
+import { InstitutSelect } from '@/components/InstitutSelect';
 import { PaysRegionDepartementSelect } from '@/components/PaysRegionDepartementSelect';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import type { MyCandidature } from '@/lib/api/client';
 import type { EditableField, EditableFields } from '@/lib/dossier/editableFields';
-import type { Pays, Specialite } from '@/lib/api/types';
+import type { Diplome, Pays, Specialite, UniversitePays } from '@/lib/api/types';
 
 const DEBOUNCE_MS = 2000;
 const MAX_RETRIES = 3;
@@ -24,6 +26,8 @@ interface DossierEditionFormProps {
   candidature: MyCandidature;
   pays: Pays[];
   specialites: Specialite[];
+  diplomes: Diplome[];
+  universites: UniversitePays[];
   focusField: EditableField | null;
 }
 
@@ -70,6 +74,8 @@ export function DossierEditionForm({
   candidature,
   pays,
   specialites,
+  diplomes,
+  universites,
   focusField,
 }: DossierEditionFormProps): JSX.Element {
   const router = useRouter();
@@ -207,7 +213,13 @@ export function DossierEditionForm({
         }}
       />
 
-      <SectionDiplome form={form} errors={fieldErrors} setField={setField} />
+      <SectionDiplome
+        form={form}
+        errors={fieldErrors}
+        setField={setField}
+        diplomes={diplomes}
+        universites={universites}
+      />
 
       <SectionEngagement form={form} errors={fieldErrors} setField={setField} />
     </div>
@@ -525,20 +537,24 @@ function SectionCoordonnees({
   );
 }
 
-function SectionDiplome({ form, errors, setField }: SectionPropsBase): JSX.Element {
+function SectionDiplome({
+  form,
+  errors,
+  setField,
+  diplomes,
+  universites,
+}: SectionPropsBase & { diplomes: Diplome[]; universites: UniversitePays[] }): JSX.Element {
   const showEmployer = form.statut_actuel && form.statut_actuel !== 'Etudiant';
 
   return (
     <Card id="diplome" title="Diplôme & profession" description="Parcours académique et activité actuelle.">
       <div className="grid gap-4 md:grid-cols-2">
-        <Field field="diplome_obtenu" label="Diplôme le plus élevé obtenu" error={errors.diplome_obtenu}>
-          <input
-            data-testid="edit-diplome-obtenu"
-            type="text"
+        <Field field="diplome_obtenu" label="Diplôme le plus élevé obtenu" error={undefined}>
+          <DiplomeSelect
+            diplomes={diplomes}
             value={String(form.diplome_obtenu ?? '')}
-            onChange={(e) => setField('diplome_obtenu', e.target.value)}
-            placeholder="Master, Licence…"
-            className={inputCls}
+            onChange={(v) => setField('diplome_obtenu', v)}
+            error={errors.diplome_obtenu}
           />
         </Field>
         <Field field="annee_diplome" label="Année d'obtention" error={errors.annee_diplome}>
@@ -556,12 +572,12 @@ function SectionDiplome({ form, errors, setField }: SectionPropsBase): JSX.Eleme
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field field="institut" label="Établissement de délivrance" error={errors.institut}>
-          <input
-            type="text"
+        <Field field="institut" label="Établissement de délivrance" error={undefined}>
+          <InstitutSelect
+            universites={universites}
             value={String(form.institut ?? '')}
-            onChange={(e) => setField('institut', e.target.value)}
-            className={inputCls}
+            onChange={(v) => setField('institut', v)}
+            error={errors.institut}
           />
         </Field>
         <Field field="specialite_diplome" label="Spécialité du diplôme" error={errors.specialite_diplome}>

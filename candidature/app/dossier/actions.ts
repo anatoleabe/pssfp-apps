@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import {
   logoutCandidat,
+  putApplicationsMe,
   submitMyCandidature,
   withdrawMyCandidature,
 } from '@/lib/api/client';
@@ -15,6 +16,31 @@ export interface DossierActionResult {
   recipisseUrl?: string;
   errorKind?: 'unauthenticated' | 'incomplete' | 'already_submitted' | 'already_decided' | 'already_withdrawn' | 'network';
   message?: string;
+}
+
+/**
+ * Crée le dossier candidat s'il n'existe pas encore pour la campagne courante
+ * (compte déjà inscrit mais dossier jamais initialisé, ex. tentative pendant
+ * une fenêtre où aucune campagne n'était ouverte). PUT vide → upsertForUser
+ * côté backend crée la Candidature à partir des infos déjà connues du compte
+ * (téléphone, nom, date de naissance).
+ *
+ * Signature `Promise<void>` imposée par l'usage en `<form action={...}>`
+ * direct (server action) — le résultat se lit via redirect + query param.
+ */
+export async function initDossierAction(): Promise<void> {
+  const token = await getCandidatToken();
+  if (!token) {
+    redirect('/login?reason=session_expired');
+  }
+
+  const r = await putApplicationsMe({}, token);
+  if (r.ok) {
+    revalidatePath('/dossier');
+    redirect('/dossier');
+  }
+
+  redirect('/dossier?init_error=1');
 }
 
 export async function submitDossierAction(

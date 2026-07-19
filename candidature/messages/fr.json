@@ -30,7 +30,26 @@
         "title": "FOAD disponible",
         "body": "Formation à distance pour les fonctionnaires en activité, avec accès à la plateforme Moodle PSSFP."
       }
-    }
+    },
+    "filieresHeading": "Cinq filières de spécialisation",
+    "filieresIntro": "Choisissez la filière qui correspond à votre projet professionnel — un seul vœu par candidature.",
+    "filieres": {
+      "economie-publique-gestion-publique": "Pilotage économique et gestion des politiques publiques.",
+      "fiscalite-finance-comptabilite-publique": "Fiscalité, exécution budgétaire et comptabilité de l'État.",
+      "gouvernance-territoriale-finances-publiques-locales": "Décentralisation et finances des collectivités territoriales.",
+      "marches-publics-partenariats-public-prive": "Commande publique et montages en partenariat public-privé.",
+      "audit-controle-finances-publiques": "Audit interne, contrôle et conformité des finances publiques."
+    },
+    "conditionsHeading": "Conditions d'admission",
+    "conditionsList": [
+      "Diplôme Bac+3 minimum en économie, gestion, droit ou domaine assimilé.",
+      "5 ans d'expérience professionnelle en lien avec les finances publiques (validation des acquis de l'expérience possible).",
+      "Dossier complet déposé avant la clôture de la campagne."
+    ],
+    "modalitesHeading": "Deux modalités",
+    "modalitesPresentiel": "Présentiel — Campus Messa, Yaoundé (25 places par filière).",
+    "modalitesDistanciel": "Distanciel — formation à distance (10 places par filière).",
+    "learnMoreAdmission": "Voir le détail complet des conditions d'admission"
   },
   "login": {
     "title": "Connexion candidat",

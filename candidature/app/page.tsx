@@ -1,13 +1,25 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
+import { ArrowUpRight, CheckCircle2, Laptop, MapPin } from 'lucide-react';
 import { CountdownToClose } from '@/components/CountdownToClose';
-import { getCurrentCampaign } from '@/lib/api/client';
+import { getCurrentCampaign, getSpecialites } from '@/lib/api/client';
+import { FALLBACK_SPECIALITES } from '@/lib/api/fallbacks';
+
+const MAIN_SITE_URL = process.env.NEXT_PUBLIC_MAIN_SITE_URL ?? 'https://pssfp.org';
 
 export default async function HomePage(): Promise<JSX.Element> {
   const t = await getTranslations('home');
-  const result = await getCurrentCampaign();
-  const campagne = result.ok ? result.data : null;
+  const [campaignResult, specialitesResult] = await Promise.all([
+    getCurrentCampaign(),
+    getSpecialites(),
+  ]);
+  const campagne = campaignResult.ok ? campaignResult.data : null;
   const isOpen = campagne?.is_currently_open === true;
+  const specialites = specialitesResult.ok && specialitesResult.data.length > 0
+    ? specialitesResult.data
+    : [...FALLBACK_SPECIALITES];
+  const conditionsList = t.raw('conditionsList') as string[];
+  const filiereTaglines = t.raw('filieres') as Record<string, string>;
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-16">
@@ -52,6 +64,79 @@ export default async function HomePage(): Promise<JSX.Element> {
             {t('campaignClosedNotice')}
           </div>
         )}
+      </section>
+
+      <section aria-labelledby="filieres-heading" className="mt-14">
+        <h2
+          id="filieres-heading"
+          className="font-heading text-2xl font-bold text-[#4A2E67]"
+        >
+          {t('filieresHeading')}
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm text-[#666]">{t('filieresIntro')}</p>
+
+        <ol className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {specialites.map((s, i) => (
+            <li
+              key={s.slug}
+              className="rounded-lg border border-[#F4EFFA] bg-white p-5 shadow-sm"
+            >
+              <span
+                aria-hidden="true"
+                className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#4A2E67] text-sm font-bold text-white"
+              >
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <h3 className="font-heading text-base font-semibold text-[#1A1A1A]">{s.label}</h3>
+              {filiereTaglines[s.slug] && (
+                <p className="mt-1 text-sm text-[#666]">{filiereTaglines[s.slug]}</p>
+              )}
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section aria-labelledby="conditions-heading" className="mt-14 grid gap-4 md:grid-cols-2">
+        <div className="rounded-lg border border-[#F4EFFA] bg-white p-6 shadow-sm">
+          <h2
+            id="conditions-heading"
+            className="font-heading text-lg font-bold text-[#4A2E67]"
+          >
+            {t('conditionsHeading')}
+          </h2>
+          <ul className="mt-4 space-y-3">
+            {conditionsList.map((item) => (
+              <li key={item} className="flex items-start gap-2.5 text-sm text-[#333333]">
+                <CheckCircle2 size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-[#4A2E67]" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-lg border border-[#0F3A4A]/15 bg-[#0F3A4A] p-6 text-white">
+          <h2 className="font-heading text-lg font-bold text-white">{t('modalitesHeading')}</h2>
+          <ul className="mt-4 space-y-3">
+            <li className="flex items-start gap-2.5 text-sm text-white/90">
+              <MapPin size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-[#D4AF6A]" />
+              <span>{t('modalitesPresentiel')}</span>
+            </li>
+            <li className="flex items-start gap-2.5 text-sm text-white/90">
+              <Laptop size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-[#D4AF6A]" />
+              <span>{t('modalitesDistanciel')}</span>
+            </li>
+          </ul>
+        </div>
+
+        <a
+          href={`${MAIN_SITE_URL}/formations/admission`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-[#4A2E67] hover:underline md:col-span-2"
+        >
+          {t('learnMoreAdmission')}
+          <ArrowUpRight size={14} aria-hidden="true" />
+        </a>
       </section>
 
       <section

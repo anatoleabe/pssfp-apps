@@ -1,4 +1,4 @@
-import type { Pays, Specialite } from './types';
+import type { Diplome, Pays, Specialite, UniversitePays } from './types';
 
 /**
  * Données de fallback utilisées par les Server Components quand le backend
@@ -42,4 +42,31 @@ export const FALLBACK_PAYS: ReadonlyArray<Pays> = [
   { code_iso: 'TN', nom: 'Tunisie', indicatif: '+216' },
   { code_iso: 'US', nom: 'États-Unis', indicatif: '+1' },
   { code_iso: 'GB', nom: 'Royaume-Uni', indicatif: '+44' },
+];
+
+export const FALLBACK_DIPLOMES: ReadonlyArray<Diplome> = [
+  { slug: 'baccalaureat', label: 'Baccalauréat' },
+  { slug: 'bts-dut', label: 'BTS / DUT' },
+  { slug: 'licence', label: 'Licence' },
+  { slug: 'licence-professionnelle', label: 'Licence professionnelle' },
+  { slug: 'maitrise', label: 'Maîtrise' },
+  { slug: 'master', label: 'Master' },
+  { slug: 'ingenieur', label: "Diplôme d'Ingénieur" },
+  { slug: 'doctorat', label: 'Doctorat' },
+];
+
+export const FALLBACK_UNIVERSITES: ReadonlyArray<UniversitePays> = [
+  {
+    pays: 'Cameroun',
+    universites: [
+      'Université de Yaoundé I',
+      'Université de Yaoundé II (Soa)',
+      'Université de Douala',
+      'Université de Dschang',
+      'Université de Ngaoundéré',
+      'Université de Buea',
+      'Université de Bamenda',
+      'Université de Maroua',
+    ],
+  },
 ];

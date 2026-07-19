@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import type { Pays, Specialite } from '@/lib/api/types';
+import type { Diplome, Pays, Specialite, UniversitePays } from '@/lib/api/types';
 import { isTurnstileEnabled } from '@/components/TurnstileWidget';
 import { isValidEngagement } from '@/lib/format/engagement';
 import { isValidE164 } from '@/lib/format/phone';
@@ -31,11 +31,19 @@ const INACTIVITY_WARNING_MS = INACTIVITY_TIMEOUT_MS - 2 * 60 * 1000;
 export interface WizardContainerProps {
   pays: Pays[];
   specialites: Specialite[];
+  diplomes: Diplome[];
+  universites: UniversitePays[];
   /** Server Action injectée — appelée à la soumission finale. */
   submitAction: (data: WizardData) => Promise<WizardServerActionResult>;
 }
 
-export function WizardContainer({ pays, specialites, submitAction }: WizardContainerProps): JSX.Element {
+export function WizardContainer({
+  pays,
+  specialites,
+  diplomes,
+  universites,
+  submitAction,
+}: WizardContainerProps): JSX.Element {
   const t = useTranslations('wizard');
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -261,7 +269,15 @@ export function WizardContainer({ pays, specialites, submitAction }: WizardConta
         {step === 2 && (
           <WizardStep2Coordonnees data={data} errors={mergedErrors} pays={pays} onChange={patch} />
         )}
-        {step === 3 && <WizardStep3Diplome data={data} errors={mergedErrors} onChange={patch} />}
+        {step === 3 && (
+          <WizardStep3Diplome
+            data={data}
+            errors={mergedErrors}
+            onChange={patch}
+            diplomes={diplomes}
+            universites={universites}
+          />
+        )}
         {step === 4 && (
           <WizardStep4Engagement
             data={data}

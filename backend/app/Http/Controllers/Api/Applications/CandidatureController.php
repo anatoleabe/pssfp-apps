@@ -59,6 +59,7 @@ final class CandidatureController extends Controller
         if ($campagne === null) {
             return response()->json([
                 'message' => 'Aucune campagne de candidature n\'est ouverte actuellement.',
+                'code' => 'campaign_closed',
             ], Response::HTTP_NOT_FOUND);
         }
 
@@ -66,6 +67,7 @@ final class CandidatureController extends Controller
         if ($candidature === null) {
             return response()->json([
                 'message' => 'Aucune candidature n\'a encore été créée pour cette campagne.',
+                'code' => 'candidature_missing',
             ], Response::HTTP_NOT_FOUND);
         }
 
