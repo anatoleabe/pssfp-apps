@@ -105,6 +105,16 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
         Route::delete('/me/photo', [CandidatureController::class, 'deletePhoto'])
             ->middleware('ability:application:create')
             ->name('me.photo.delete');
+
+        // Pièces justificatives optionnelles (LOT candidature P14) — cf.
+        // migration candidature_documents. Non-bloquantes pour submit.
+        Route::post('/me/documents', [CandidatureController::class, 'uploadDocument'])
+            ->middleware('ability:application:create')
+            ->name('me.documents.upload');
+
+        Route::delete('/me/documents/{document:uuid}', [CandidatureController::class, 'deleteDocument'])
+            ->middleware('ability:application:create')
+            ->name('me.documents.delete');
     });
 });
 

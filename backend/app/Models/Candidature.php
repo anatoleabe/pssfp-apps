@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Candidature extends Model
@@ -124,6 +125,12 @@ class Candidature extends Model
     public function departementRel(): BelongsTo
     {
         return $this->belongsTo(DepartementCameroun::class, 'departement', 'code');
+    }
+
+    /** Pièces justificatives optionnelles (diplôme, acte naissance, etc.). */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(CandidatureDocument::class);
     }
 
     public function scopeForCampagne(Builder $query, int $campagneId): Builder

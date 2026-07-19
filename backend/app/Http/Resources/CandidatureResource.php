@@ -75,6 +75,10 @@ final class CandidatureResource extends JsonResource
                 ? app(PhotoUploadService::class)->signedUrl($this->photo_path)
                 : null,
             'recipisse_available' => $this->recipisse_pdf_path !== null,
+            // Pièces justificatives optionnelles (cf. migration
+            // candidature_documents) — non-bloquantes, dépôt physique
+            // alternatif possible au bureau de la scolarité.
+            'documents' => CandidatureDocumentResource::collection($this->whenLoaded('documents')),
 
             // Frais (informatif candidat)
             'frais_paye' => (bool) $this->frais_paye,

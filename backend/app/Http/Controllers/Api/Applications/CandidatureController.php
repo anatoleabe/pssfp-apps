@@ -7,12 +7,16 @@ namespace App\Http\Controllers\Api\Applications;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Applications\SubmitCandidatureRequest;
 use App\Http\Requests\Applications\UpdateCandidatureRequest;
+use App\Http\Requests\Applications\UploadCandidatureDocumentRequest;
 use App\Http\Requests\Applications\UploadPhotoRequest;
 use App\Http\Requests\Applications\WithdrawCandidatureRequest;
 use App\Http\Resources\CampagneCandidatureResource;
+use App\Http\Resources\CandidatureDocumentResource;
 use App\Http\Resources\CandidatureResource;
 use App\Models\Candidature;
+use App\Models\CandidatureDocument;
 use App\Services\CandidatureService;
+use App\Services\DocumentUploadService;
 use App\Services\PhotoUploadService;
 use App\Services\RecipisseService;
 use Illuminate\Http\JsonResponse;
@@ -35,6 +39,7 @@ final class CandidatureController extends Controller
         private readonly CandidatureService $service,
         private readonly RecipisseService $recipisse,
         private readonly PhotoUploadService $photo,
+        private readonly DocumentUploadService $documents,
     ) {}
 
     public function currentCampaign(): JsonResponse
@@ -64,7 +69,7 @@ final class CandidatureController extends Controller
             ], Response::HTTP_NOT_FOUND);
         }
 
-        $candidature->load(['campagne', 'paysNationalite', 'regionRel', 'departementRel']);
+        $candidature->load(['campagne', 'paysNationalite', 'regionRel', 'departementRel', 'documents']);
 
         return CandidatureResource::make($candidature)->response();
     }
@@ -268,5 +273,67 @@ final class CandidatureController extends Controller
         return CandidatureResource::make($candidature)
             ->response()
             ->setStatusCode(Response::HTTP_OK);
+    }
+
+    /**
+     * Pièce justificative optionnelle — non-bloquante pour la soumission
+     * (dépôt physique alternatif au bureau de la scolarité, cf. communiqué).
+     */
+    public function uploadDocument(UploadCandidatureDocumentRequest $request): JsonResponse
+    {
+        $campagne = $this->service->currentCampagne();
+        if ($campagne === null) {
+            return response()->json([
+                'message' => 'Aucune campagne ouverte.',
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $candidature = $this->service->upsertForUser($request->user(), $campagne);
+
+        if ($candidature->statut !== Candidature::STATUT_POSTULANT) {
+            return response()->json([
+                'message' => 'Le dossier est verrouillé : les pièces ne peuvent plus être modifiées.',
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $document = $this->documents->upload(
+            $request->file('fichier'),
+            $candidature,
+            (string) $request->input('type'),
+        );
+
+        return CandidatureDocumentResource::make($document)
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
+    }
+
+    public function deleteDocument(Request $request, CandidatureDocument $document): JsonResponse
+    {
+        $campagne = $this->service->currentCampagne();
+        if ($campagne === null) {
+            return response()->json([
+                'message' => 'Aucune campagne ouverte.',
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $candidature = $this->service->findForUser($request->user(), $campagne);
+
+        // Ownership strict : la pièce doit appartenir à la candidature du
+        // candidat authentifié pour la campagne courante (anti-IDOR).
+        if ($candidature === null || $document->candidature_id !== $candidature->id) {
+            return response()->json([
+                'message' => 'Pièce introuvable.',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($candidature->statut !== Candidature::STATUT_POSTULANT) {
+            return response()->json([
+                'message' => 'Le dossier est verrouillé : les pièces ne peuvent plus être supprimées.',
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $this->documents->delete($document);
+
+        return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 }

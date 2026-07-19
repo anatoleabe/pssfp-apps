@@ -12,13 +12,16 @@ use App\Models\Candidature;
 use App\Models\DepartementCameroun;
 use App\Models\Pays;
 use App\Models\RegionCameroun;
+use App\Services\DocumentUploadService;
 use App\Services\RecipisseService;
+use App\Support\CandidatureDocumentTypeLabel;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\IconPosition;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -195,6 +198,7 @@ class CandidatureResource extends Resource
             ->persistFiltersInSession()
             ->persistSearchInSession()
             ->defaultSort('submitted_at', 'desc')
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->withCount('documents'))
             ->columns([
                 Tables\Columns\TextColumn::make('numero_dossier')
                     ->label('N° dossier')
@@ -224,6 +228,12 @@ class CandidatureResource extends Resource
                     }),
                 Tables\Columns\IconColumn::make('frais_paye')->label('Frais')
                     ->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle'),
+                Tables\Columns\TextColumn::make('documents_count')
+                    ->label('Pièces')
+                    ->badge()
+                    ->color(fn (int $state): string => $state > 0 ? 'success' : 'gray')
+                    ->formatStateUsing(fn (int $state): string => (string) $state)
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('submitted_at')->label('Soumis le')
                     ->dateTime('d/m/Y H:i')->sortable()->toggleable(),
                 Tables\Columns\TextColumn::make('decided_at')->label('Décidé le')
@@ -267,6 +277,26 @@ class CandidatureResource extends Resource
 
                         $url = app(RecipisseService::class)->signedUrl($r->recipisse_pdf_path);
                         redirect($url);
+                    }),
+                Tables\Actions\Action::make('viewDocuments')
+                    ->label(fn (Candidature $r): string => 'Pièces ('.($r->documents_count ?? $r->documents()->count()).')')
+                    ->icon('heroicon-o-paper-clip')
+                    ->iconPosition(IconPosition::Before)
+                    ->visible(fn (Candidature $r): bool => ($r->documents_count ?? $r->documents()->count()) > 0)
+                    ->modalHeading('Pièces justificatives')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Fermer')
+                    ->modalContent(function (Candidature $r): View {
+                        $service = app(DocumentUploadService::class);
+
+                        return view('filament.candidature.documents-modal', [
+                            'documents' => $r->documents()->latest()->get()->map(fn ($d) => [
+                                'label' => CandidatureDocumentTypeLabel::for($d->type),
+                                'filename' => $d->original_filename,
+                                'uploaded_at' => $d->created_at,
+                                'url' => $service->signedUrl($d),
+                            ]),
+                        ]);
                     }),
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('markAsCandidat')
