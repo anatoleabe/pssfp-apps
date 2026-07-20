@@ -19,6 +19,14 @@ interface FetchOptions {
   signal?: AbortSignal;
   token?: string | null;
   headers?: Record<string, string>;
+  /**
+   * Force `cache: 'no-store'`. Utilisé pour les lectures authentifiées
+   * spécifiques au candidat (PII) : ne JAMAIS mettre en Data Cache Next.js
+   * une réponse `/applications/me` — sinon un candidat verrait des données
+   * périmées après un auto-save (cf. bug « champ rempli affiché manquant »)
+   * et les données sensibles resteraient en cache partagé côté serveur.
+   */
+  noStore?: boolean;
 }
 
 async function apiCall<T>(
@@ -45,10 +53,13 @@ async function apiCall<T>(
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
-      next:
-        options.revalidate !== undefined
-          ? { revalidate: options.revalidate }
-          : undefined,
+      // `cache: no-store` a priorité (données PII authentifiées) ; sinon
+      // `next.revalidate` si fourni ; sinon comportement par défaut Next.js.
+      ...(options.noStore
+        ? { cache: 'no-store' as const }
+        : options.revalidate !== undefined
+          ? { next: { revalidate: options.revalidate } }
+          : {}),
       signal: options.signal,
     });
 
@@ -220,7 +231,9 @@ export interface MyCandidature extends CandidatureProfile {
 }
 
 export function getMyCandidature(token: string): Promise<ApiResult<MyCandidature>> {
-  return apiGet<MyCandidature>('/applications/me', { token });
+  // no-store : données candidat sensibles + doit toujours refléter le dernier
+  // état sauvegardé (auto-save /dossier/edition) sans passer par le Data Cache.
+  return apiGet<MyCandidature>('/applications/me', { token, noStore: true });
 }
 
 export function submitMyCandidature(

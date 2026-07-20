@@ -2,7 +2,9 @@
  * Liste des champs éditables depuis /dossier/edition (PR H).
  *
  * Tout ce qui n'est PAS dans cette liste reste verrouillé côté UI :
- * - `phone_e164` / `indicatif1` / `telephone1` : login candidat (modif via support).
+ * - `phone_e164` : téléphone de CONNEXION du candidat (modif via support).
+ *   Distinct de `indicatif1`/`telephone1` qui sont le téléphone de CONTACT
+ *   principal — ceux-ci sont requis pour la soumission et donc éditables ici.
  * - `pin` : modifiable uniquement via /forgot-pin.
  * - `numero_dossier`, `uuid`, `statut`, dates, `frais_paye` : champs systèmes
  *   (filtrés côté backend par CandidatureService::updateDraft).
@@ -33,6 +35,8 @@ export const EDITABLE_FIELDS = [
   'departement',
   'adresse',
   'ville_residence',
+  'indicatif1',
+  'telephone1',
   'indicatif2',
   'telephone2',
   'email',
@@ -74,6 +78,8 @@ export const SECTION_OF_FIELD: Record<EditableField, 'identite' | 'coordonnees' 
   departement: 'coordonnees',
   adresse: 'coordonnees',
   ville_residence: 'coordonnees',
+  indicatif1: 'coordonnees',
+  telephone1: 'coordonnees',
   indicatif2: 'coordonnees',
   telephone2: 'coordonnees',
   email: 'coordonnees',

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { saveDossierFieldsAction } from '@/app/dossier/edition/actions';
 import { DiplomeSelect } from '@/components/DiplomeSelect';
@@ -54,6 +55,8 @@ function buildInitialState(c: MyCandidature): FormState {
     departement: c.departement ?? '',
     adresse: c.adresse ?? '',
     ville_residence: c.ville_residence ?? '',
+    indicatif1: c.indicatif1 ?? '',
+    telephone1: c.telephone1 ?? '',
     indicatif2: c.indicatif2 ?? '',
     telephone2: c.telephone2 ?? '',
     email: c.email ?? '',
@@ -222,6 +225,16 @@ export function DossierEditionForm({
       />
 
       <SectionEngagement form={form} errors={fieldErrors} setField={setField} />
+
+      <div className="flex justify-start">
+        <Link
+          href="/dossier"
+          data-testid="edition-back-bottom"
+          className="inline-flex h-11 items-center rounded-md border border-gray-300 bg-white px-4 text-sm text-[#333] hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
+        >
+          ← Retour au dossier
+        </Link>
+      </div>
     </div>
   );
 }
@@ -496,12 +509,34 @@ function SectionCoordonnees({
         </Field>
       </div>
 
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field field="indicatif1" label="Indicatif téléphone" error={errors.indicatif1}>
+          <input
+            data-testid="edit-indicatif1"
+            type="text"
+            value={String(form.indicatif1 ?? '')}
+            onChange={(e) => setField('indicatif1', e.target.value)}
+            placeholder="+237"
+            className={inputCls}
+          />
+        </Field>
+        <Field field="telephone1" label="Numéro de téléphone" error={errors.telephone1}>
+          <input
+            data-testid="edit-telephone1"
+            type="tel"
+            value={String(form.telephone1 ?? '')}
+            onChange={(e) => setField('telephone1', e.target.value)}
+            className={inputCls}
+          />
+        </Field>
+      </div>
+
       <p
         className="rounded-md border border-gray-200 bg-gray-50 p-3 text-xs text-[#666]"
         role="note"
       >
-        Votre numéro de téléphone principal sert d'identifiant de connexion et ne peut être
-        modifié depuis ce formulaire. Contactez le PSSFP en cas de nécessité.
+        Le numéro qui vous sert d'identifiant de connexion est distinct et ne peut être modifié
+        depuis ce formulaire. Contactez le PSSFP en cas de nécessité.
       </p>
 
       <div className="grid gap-4 md:grid-cols-2">
