@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Candidature;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -13,12 +14,15 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 /**
  * Génère le PDF récépissé d'une candidature soumise (cf. spec module 5 §M8).
  *
- * Caractéristiques du PDF :
- * - 2 pages : « Copie Étudiant » (filigrane discret) + « Copie Administration »
- *   (filigrane prominent « DOCUMENT ADMINISTRATIF »).
- * - Logo + entête PSSFP institutionnels (assets dans backend/resources/images/pdf/).
- * - QR code en pied de page pointant vers /v1/c/{uuid}/qr (page récap public PR C).
- * - Hash SHA256 du PDF binaire imprimé en bas pour traçabilité (cf. P-min-1 PR C).
+ * Design institutionnel moderne (2 pages A4 exactement) :
+ * - Page 1 « Copie candidat » : en-tête bilingue compact, bloc de confirmation
+ *   (numéro de dossier proéminent + badge de statut), carte profil avec photo
+ *   du candidat, choix académique, parcours, et QR de vérification en bas.
+ * - Page 2 « Copie administration » : fiche de contrôle (suivi du dossier,
+ *   décision, signature/cachet) à l'usage interne de la scolarité.
+ * - Charte violet PSSFP (#4A2E67) sur cartes claires, lisible en niveaux de gris.
+ * - QR code vers /v1/c/{uuid}/qr + code de vérification court (8 hex lisibles).
+ *   Le SHA-256 complet reste discret en pied de la page administration.
  *
  * Le PDF est stocké dans MinIO bucket `pssfp-candidatures` à la clé
  * `{uuid}/recipisse.pdf`. Téléchargement via URL signée 30 min (P-min-2 PR C).
@@ -42,15 +46,18 @@ class RecipisseService
     {
         $candidature->loadMissing(['campagne', 'paysNationalite', 'regionRel', 'departementRel']);
 
+        // Dates en français ("20 juillet 2026 à 20 h 47") côté template.
+        Carbon::setLocale('fr');
+
         $qrUrl = url("/v1/c/{$candidature->uuid}/qr");
-        $qrSvg = (string) QrCode::format('svg')->size(140)->margin(0)->generate($qrUrl);
+        $qrSvg = (string) QrCode::format('svg')->size(150)->margin(0)->generate($qrUrl);
         $qrSvgBase64 = 'data:image/svg+xml;base64,'.base64_encode($qrSvg);
 
         $logoBase64 = $this->embedImage(resource_path('images/pdf/logo.png'));
         $enteteBase64 = $this->embedImage(resource_path('images/pdf/entete.png'));
         $photoBase64 = $this->embedCandidatePhoto($candidature);
 
-        $html = view('pdf.candidature-recipisse', [
+        $viewData = [
             'candidature' => $candidature,
             'campagne' => $candidature->campagne,
             'qrSvg' => $qrSvgBase64,
@@ -58,19 +65,34 @@ class RecipisseService
             'enteteSrc' => $enteteBase64,
             'photoSrc' => $photoBase64,
             'generatedAt' => now(),
-            // hash placeholder remplacé après génération binaire
+            'programName' => 'Master Professionnel en Finances Publiques',
+            'contact' => [
+                'adresse' => 'Campus de Messa, Yaoundé — Cameroun',
+                'tel' => '+237 222 234 567',
+                'web' => 'www.pssfp.org',
+                'email' => 'contact@pssfp.org',
+            ],
+            // Placeholders remplacés après le 1er rendu (auto-référence hash).
             'hashPlaceholder' => '__HASH_PLACEHOLDER__',
-        ])->render();
+            'vcodePlaceholder' => '__VCODE_PLACEHOLDER__',
+        ];
+
+        $html = view('pdf.candidature-recipisse', $viewData)->render();
 
         $pdfBytes = Pdf::loadHTML($html)
             ->setPaper('a4', 'portrait')
             ->output();
 
         // Hash SHA256 du binaire généré (cf. P-min-1 PR C). On regénère le PDF
-        // une seconde fois en injectant le hash réel dans le placeholder pour
-        // que le hash imprimé corresponde au PDF qui le porte (autoreferencé).
+        // une seconde fois en injectant le hash réel + un code de vérification
+        // court (8 hex, lisible) dans les placeholders.
         $firstHash = hash('sha256', $pdfBytes);
-        $finalHtml = str_replace('__HASH_PLACEHOLDER__', $firstHash, $html);
+        $vcode = strtoupper(substr($firstHash, 0, 4).'-'.substr($firstHash, 4, 4));
+        $finalHtml = str_replace(
+            ['__HASH_PLACEHOLDER__', '__VCODE_PLACEHOLDER__'],
+            [$firstHash, $vcode],
+            $html,
+        );
         $finalBytes = Pdf::loadHTML($finalHtml)
             ->setPaper('a4', 'portrait')
             ->output();
