@@ -48,6 +48,7 @@ class RecipisseService
 
         $logoBase64 = $this->embedImage(resource_path('images/pdf/logo.png'));
         $enteteBase64 = $this->embedImage(resource_path('images/pdf/entete.png'));
+        $photoBase64 = $this->embedCandidatePhoto($candidature);
 
         $html = view('pdf.candidature-recipisse', [
             'candidature' => $candidature,
@@ -55,6 +56,7 @@ class RecipisseService
             'qrSvg' => $qrSvgBase64,
             'logoSrc' => $logoBase64,
             'enteteSrc' => $enteteBase64,
+            'photoSrc' => $photoBase64,
             'generatedAt' => now(),
             // hash placeholder remplacé après génération binaire
             'hashPlaceholder' => '__HASH_PLACEHOLDER__',
@@ -118,5 +120,41 @@ class RecipisseService
         };
 
         return 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($absolutePath));
+    }
+
+    /**
+     * Lit la photo 4×4 du candidat sur le disque MinIO privé et l'embarque en
+     * base64 pour l'afficher sur le récépissé. Retourne '' si aucune photo
+     * (dépôt physique de la photo au bureau) ou si la lecture échoue —
+     * le template dégrade alors sur un cadre « Photo » vide.
+     */
+    private function embedCandidatePhoto(Candidature $candidature): string
+    {
+        $path = $candidature->photo_path;
+        if ($path === null || $path === '') {
+            return '';
+        }
+
+        try {
+            $disk = Storage::disk('minio_candidatures');
+            if (! $disk->exists($path)) {
+                return '';
+            }
+            $bytes = (string) $disk->get($path);
+        } catch (\Throwable) {
+            return '';
+        }
+
+        if ($bytes === '') {
+            return '';
+        }
+
+        $mime = match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            default => 'image/jpeg',
+        };
+
+        return 'data:'.$mime.';base64,'.base64_encode($bytes);
     }
 }

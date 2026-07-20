@@ -3,8 +3,11 @@ import { Pencil, ListChecks, FileDown, ArrowRight } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
 
 export function DossierActionsCard({ candidature }: { candidature: MyCandidature }): JSX.Element {
-  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/v1';
-  const recipisseUrl = `${apiBase}/applications/me/recipisse`;
+  // Passe par une route Next.js (et non l'API directement) : le token est un
+  // cookie httpOnly côté apply.pssfp.org, jamais envoyé en Bearer vers l'API
+  // depuis le navigateur. La route lit le cookie, appelle l'API authentifiée,
+  // et redirige vers l'URL signée MinIO. Sinon → 500 auth côté Laravel.
+  const recipisseUrl = '/dossier/recipisse';
 
   return (
     <section

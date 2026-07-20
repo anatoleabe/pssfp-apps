@@ -16,7 +16,12 @@ export const metadata = {
 };
 
 interface DossierPageProps {
-  searchParams: Promise<{ profile_pending?: string; reason?: string; init_error?: string }>;
+  searchParams: Promise<{
+    profile_pending?: string;
+    reason?: string;
+    init_error?: string;
+    recipisse_error?: string;
+  }>;
 }
 
 function getInitials(prenom?: string | null, nom?: string | null): string {
@@ -31,7 +36,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
     redirect('/login?reason=session_expired');
   }
 
-  const { profile_pending, reason, init_error } = await searchParams;
+  const { profile_pending, reason, init_error, recipisse_error } = await searchParams;
   const result = await getMyCandidature(token);
 
   if (!result.ok) {
@@ -180,6 +185,23 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
               <p className="mt-1 leading-relaxed">
                 Votre compte a bien été créé, mais certaines informations de profil n&apos;ont pas
                 pu être enregistrées. Vous pouvez compléter votre dossier ci-dessous.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {recipisse_error && (
+          <div
+            role="alert"
+            className="mb-6 flex items-start gap-3 rounded-pssfp-card border border-red-200 bg-red-50/90 p-5 text-sm text-red-800 shadow-pssfp-soft backdrop-blur-2xs"
+          >
+            <AlertCircle size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-red-600" />
+            <div>
+              <p className="font-semibold">Récépissé indisponible</p>
+              <p className="mt-1 leading-relaxed">
+                {recipisse_error === 'not_ready'
+                  ? "Votre récépissé n'est pas encore disponible — il est généré à la soumission de votre candidature."
+                  : 'Le téléchargement du récépissé a échoué. Réessayez dans quelques instants.'}
               </p>
             </div>
           </div>

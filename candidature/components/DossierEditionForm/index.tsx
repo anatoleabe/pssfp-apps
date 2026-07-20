@@ -297,6 +297,47 @@ function Field({
 const inputCls =
   'h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30';
 
+/**
+ * Liste déroulante d'indicatif téléphonique par pays (format « +237 · Cameroun »).
+ * La valeur stockée est l'indicatif seul (ex. « +237 »). Si l'indicatif courant
+ * n'est pas dans la liste (donnée héritée), une option « valeur actuelle » est
+ * ajoutée pour ne pas l'écraser silencieusement.
+ */
+function IndicatifSelect({
+  pays,
+  value,
+  onChange,
+  testId,
+  includeEmpty,
+}: {
+  pays: Pays[];
+  value: string;
+  onChange: (next: string) => void;
+  testId?: string;
+  includeEmpty?: boolean;
+}): JSX.Element {
+  const knownIndicatifs = new Set(pays.map((p) => p.indicatif));
+  const hasUnknownCurrent = value !== '' && !knownIndicatifs.has(value);
+
+  return (
+    <select
+      data-testid={testId}
+      aria-label="Indicatif téléphonique"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={inputCls}
+    >
+      {(includeEmpty || value === '') && <option value="">— Indicatif —</option>}
+      {hasUnknownCurrent && <option value={value}>{value}</option>}
+      {pays.map((p) => (
+        <option key={p.code_iso} value={p.indicatif}>
+          {p.indicatif} · {p.nom}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 interface SectionPropsBase {
   form: FormState;
   errors: Partial<Record<EditableField, string>>;
@@ -511,21 +552,21 @@ function SectionCoordonnees({
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field field="indicatif1" label="Indicatif téléphone" error={errors.indicatif1}>
-          <input
-            data-testid="edit-indicatif1"
-            type="text"
+          <IndicatifSelect
+            pays={pays}
+            testId="edit-indicatif1"
             value={String(form.indicatif1 ?? '')}
-            onChange={(e) => setField('indicatif1', e.target.value)}
-            placeholder="+237"
-            className={inputCls}
+            onChange={(v) => setField('indicatif1', v)}
           />
         </Field>
         <Field field="telephone1" label="Numéro de téléphone" error={errors.telephone1}>
           <input
             data-testid="edit-telephone1"
             type="tel"
+            inputMode="numeric"
             value={String(form.telephone1 ?? '')}
-            onChange={(e) => setField('telephone1', e.target.value)}
+            onChange={(e) => setField('telephone1', e.target.value.replace(/\D/g, ''))}
+            placeholder="691234567"
             className={inputCls}
           />
         </Field>
@@ -541,19 +582,20 @@ function SectionCoordonnees({
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field field="indicatif2" label="Indicatif téléphone secondaire" error={errors.indicatif2}>
-          <input
-            type="text"
+          <IndicatifSelect
+            pays={pays}
+            testId="edit-indicatif2"
             value={String(form.indicatif2 ?? '')}
-            onChange={(e) => setField('indicatif2', e.target.value)}
-            placeholder="+237"
-            className={inputCls}
+            onChange={(v) => setField('indicatif2', v)}
+            includeEmpty
           />
         </Field>
         <Field field="telephone2" label="Téléphone secondaire (optionnel)" error={errors.telephone2}>
           <input
             type="tel"
+            inputMode="numeric"
             value={String(form.telephone2 ?? '')}
-            onChange={(e) => setField('telephone2', e.target.value)}
+            onChange={(e) => setField('telephone2', e.target.value.replace(/\D/g, ''))}
             className={inputCls}
           />
         </Field>
