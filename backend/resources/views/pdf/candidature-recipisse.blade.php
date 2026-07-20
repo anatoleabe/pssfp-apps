@@ -76,31 +76,31 @@
   table.head td.logo { width: 24%; text-align: center; }
   table.head td.logo img { height: 15mm; }
   .head .big { font-size: 7pt; font-weight: bold; letter-spacing: 0.2mm; }
-  .band { height: 1.4mm; background: #4A2E67; border-radius: 1mm; margin: 2mm 0 2.5mm; }
+  .band { height: 1.4mm; background: #4A2E67; border-radius: 1mm; margin: 1.5mm 0 2mm; }
 
-  .pagemark { font-size: 7.3pt; color: #8a8a8a; text-align: right; margin-bottom: 1mm; }
+  .pagemark { font-size: 7.3pt; color: #8a8a8a; text-align: right; margin-bottom: 0.8mm; }
 
   /* Bloc confirmation */
-  .confirm { background: #F7F5FB; border: 0.4pt solid #E6E2EE; border-radius: 2.4mm; padding: 3mm 4.5mm; margin-bottom: 2.5mm; }
-  .confirm .title { font-size: 13.5pt; font-weight: bold; color: #4A2E67; letter-spacing: 0.2mm; }
-  .confirm .prog { font-size: 8.2pt; color: #6B6B6B; margin-top: 0.5mm; }
-  table.cline { width: 100%; border-collapse: collapse; margin-top: 2mm; }
+  .confirm { background: #F7F5FB; border: 0.4pt solid #E6E2EE; border-radius: 2.4mm; padding: 2.5mm 4mm; margin-bottom: 2mm; }
+  .confirm .title { font-size: 13pt; font-weight: bold; color: #4A2E67; letter-spacing: 0.2mm; }
+  .confirm .prog { font-size: 8pt; color: #6B6B6B; margin-top: 0.4mm; }
+  table.cline { width: 100%; border-collapse: collapse; margin-top: 1.6mm; }
   table.cline td { vertical-align: middle; }
   .dossier-lbl { font-size: 7.3pt; color: #6B6B6B; letter-spacing: 0.8mm; text-transform: uppercase; }
-  .dossier-num { font-size: 16pt; font-weight: bold; color: #2a2a2a; letter-spacing: 0.3mm; }
-  .submitted { font-size: 8.3pt; color: #444; margin-top: 0.4mm; }
+  .dossier-num { font-size: 15pt; font-weight: bold; color: #2a2a2a; letter-spacing: 0.3mm; }
+  .submitted { font-size: 8.2pt; color: #444; margin-top: 0.3mm; }
   .badge { display: inline-block; border-radius: 6mm; padding: 1.4mm 4.5mm; font-size: 8.5pt; font-weight: bold; }
   .badge.ok  { background: #E7F4E8; color: #1F6B2B; border: 0.4pt solid #B8DDBd; }
   .badge.red { background: #FBEAE9; color: #A3271F; border: 0.4pt solid #E7B7B3; }
   .badge.amber { background: #FBF1E2; color: #9A5B00; border: 0.4pt solid #E6CDA1; }
 
   /* Cartes de section */
-  .card { border: 0.4pt solid #E6E2EE; border-radius: 2.4mm; padding: 2.4mm 3.5mm; margin-bottom: 2.2mm; }
-  .card > .h { font-size: 10pt; font-weight: bold; color: #4A2E67; margin-bottom: 1.4mm; }
+  .card { border: 0.4pt solid #E6E2EE; border-radius: 2.4mm; padding: 2mm 3.5mm; margin-bottom: 1.8mm; }
+  .card > .h { font-size: 9.6pt; font-weight: bold; color: #4A2E67; margin-bottom: 1.1mm; }
   .card.accent { background: #FBFAFD; }
 
   table.kv { width: 100%; border-collapse: collapse; }
-  table.kv td { padding: 0.7mm 0; vertical-align: top; font-size: 8.6pt; }
+  table.kv td { padding: 0.55mm 0; vertical-align: top; font-size: 8.6pt; }
   table.kv td.k { width: 42%; color: #6B6B6B; padding-right: 3mm; }
   table.kv td.v { width: 58%; color: #222; font-weight: 600; }
 
@@ -240,7 +240,7 @@
 <div class="card accent">
   <div class="h">Choix académique</div>
   @if($candidature->specialite)<div class="highlight">{{ $candidature->specialite }}</div>@endif
-  <table class="two" style="margin-top:1.5mm;">
+  <table class="two" style="margin-top:1mm;">
     <tr>
       <td>
         <table class="kv">
@@ -250,8 +250,8 @@
       </td>
       <td>
         <table class="kv">
-          {!! $row('Programme', $programName) !!}
           {!! $row('Promotion', $promotion ? 'Promotion '.$promotion : null) !!}
+          {!! $row('Programme', $programName) !!}
         </table>
       </td>
     </tr>
@@ -283,10 +283,8 @@
 <div class="card">
   <div class="h">Confirmation de dépôt</div>
   <div class="note">
-    Votre candidature a été enregistrée avec succès par le Programme Supérieur de Spécialisation
-    en Finances Publiques. Ce récépissé confirme uniquement la réception de votre dossier et ne
-    vaut pas admission définitive : le dossier reste soumis à la vérification des informations et
-    des pièces justificatives.
+    Votre candidature a été enregistrée avec succès. Ce récépissé confirme la réception de votre
+    dossier et ne vaut pas admission : le dossier reste soumis à la vérification des pièces justificatives.
     <span class="certif">Le candidat certifie l'exactitude des informations transmises et s'engage à respecter les conditions de l'appel à candidatures et le règlement du PSSFP.</span>
   </div>
 </div>
