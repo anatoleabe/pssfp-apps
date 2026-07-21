@@ -301,6 +301,10 @@ it('does not block submission when no documents were uploaded (non-blocking by d
         ->putJson('/v1/applications/me', $profile)
         ->assertOk();
 
+    Candidature::where('user_id', $user->id)->update([
+        'photo_path' => 'candidat-photos/test/photo.jpg',
+    ]);
+
     $response = $this->withHeader('Authorization', "Bearer {$token}")
         ->postJson('/v1/applications/me/submit', ['confirmation_engagement' => true]);
 

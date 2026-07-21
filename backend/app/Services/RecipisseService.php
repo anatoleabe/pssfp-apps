@@ -22,7 +22,8 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
  *   décision, signature/cachet) à l'usage interne de la scolarité.
  * - Charte violet PSSFP (#4A2E67) sur cartes claires, lisible en niveaux de gris.
  * - QR code vers /v1/c/{uuid}/qr + code de vérification court (8 hex lisibles).
- *   Le SHA-256 complet reste discret en pied de la page administration.
+ *   Les identifiants techniques et le SHA-256 restent stockés côté serveur,
+ *   mais ne sont jamais imprimés sur le document remis au candidat.
  *
  * Le PDF est stocké dans MinIO bucket `pssfp-candidatures` à la clé
  * `{uuid}/recipisse.pdf`. Téléchargement via URL signée 30 min (P-min-2 PR C).

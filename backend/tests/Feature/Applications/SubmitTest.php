@@ -89,6 +89,10 @@ function authedFullCandidat(CampagneCandidature $campagne): array
         ->putJson('/v1/applications/me', fullProfilePayload())
         ->assertOk();
 
+    Candidature::where('user_id', $user->id)->update([
+        'photo_path' => 'candidat-photos/test/photo.jpg',
+    ]);
+
     return [$user, $token];
 }
 
@@ -128,6 +132,17 @@ it('returns 422 with field list when profile is incomplete', function (): void {
     $response->assertStatus(422);
     expect($response->json('errors'))->toHaveKey('specialite');
     expect($response->json('errors'))->toHaveKey('engagement_nom');
+});
+
+it('returns 422 when the required identity photo is missing', function (): void {
+    [$user, $token] = authedFullCandidat($this->campagne);
+    Candidature::where('user_id', $user->id)->update(['photo_path' => null]);
+
+    $response = $this->withHeader('Authorization', "Bearer {$token}")
+        ->postJson('/v1/applications/me/submit', ['confirmation_engagement' => true]);
+
+    $response->assertStatus(422);
+    expect($response->json('errors'))->toHaveKey('photo');
 });
 
 it('returns 422 when confirmation_engagement is missing', function (): void {

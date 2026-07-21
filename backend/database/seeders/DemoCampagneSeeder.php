@@ -27,7 +27,7 @@ class DemoCampagneSeeder extends Seeder
             ['slug' => 'p14-2026'],
             [
                 'prefix_numero' => 'P14026-',
-                'nom' => 'Promotion 14 — Campagne 2026',
+                'nom' => 'Année académique 2026-2027',
                 'promotion_numero' => 14,
                 'opens_at' => '2026-06-01 00:00:00',
                 'closes_at' => '2026-09-30 23:59:59',

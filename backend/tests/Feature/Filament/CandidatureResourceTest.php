@@ -197,6 +197,21 @@ it('forbids accept action for librarian (no candidature.accept)', function (): v
         ->assertTableActionHidden('accept', $cand);
 });
 
+it('shows test account deletion only to super_admin for an unsubmitted applicant', function (): void {
+    $cand = Candidature::factory()->forCampagne($this->campagne)->create([
+        'user_id' => $this->candidat->id,
+        'phone_e164' => $this->candidat->phone_e164,
+    ]);
+
+    $this->actingAs($this->admissionCommittee);
+    $this->livewire(ListCandidatures::class)
+        ->assertTableActionHidden('deleteTestAccount', $cand);
+
+    $this->actingAs($this->superAdmin);
+    $this->livewire(ListCandidatures::class)
+        ->assertTableActionVisible('deleteTestAccount', $cand);
+});
+
 it('hides bulk accept/refuse for non-super_admin', function (): void {
     $this->actingAs($this->admissionCommittee);
     $this->livewire(ListCandidatures::class)

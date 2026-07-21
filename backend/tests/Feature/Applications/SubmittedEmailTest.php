@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Mail\CandidatureSubmittedMail;
 use App\Models\CampagneCandidature;
+use App\Models\Candidature;
 use App\Models\User;
 use App\Services\RecipisseService;
 use Database\Seeders\DepartementsCamerounSeeder;
@@ -90,6 +91,10 @@ function submittedEmailAuthedCandidat(array $extra = []): array
     test()->withHeader('Authorization', "Bearer {$token}")
         ->putJson('/v1/applications/me', $payload)
         ->assertOk();
+
+    Candidature::where('user_id', $user->id)->update([
+        'photo_path' => 'candidat-photos/test/photo.jpg',
+    ]);
 
     return [$user, $token];
 }

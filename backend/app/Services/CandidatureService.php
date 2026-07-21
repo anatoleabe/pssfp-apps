@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Events\CandidatureCreated;
 use App\Events\CandidatureSubmitted;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
@@ -61,7 +62,7 @@ final class CandidatureService
             return $existing;
         }
 
-        return $this->db->transaction(function () use ($user, $campagne, $initialFields): Candidature {
+        $candidature = $this->db->transaction(function () use ($user, $campagne, $initialFields): Candidature {
             return Candidature::create(array_merge([
                 'campagne_id' => $campagne->id,
                 'user_id' => $user->id,
@@ -74,6 +75,17 @@ final class CandidatureService
                 'frais_paye' => false,
             ], $initialFields));
         });
+
+        try {
+            CandidatureCreated::dispatch($candidature);
+        } catch (\Throwable $e) {
+            Log::channel('single')->error('Dispatch CandidatureCreated échoué — dossier créé.', [
+                'candidature_uuid' => $candidature->uuid,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $candidature;
     }
 
     /**
@@ -118,6 +130,10 @@ final class CandidatureService
     public function checkSubmittable(Candidature $candidature): array
     {
         $errors = [];
+
+        if (empty($candidature->photo_path)) {
+            $errors['photo'] = 'La photo d\'identité est obligatoire pour soumettre la candidature.';
+        }
 
         $required = [
             'civilite', 'nom', 'prenom', 'date_naissance', 'lieu_naissance',

@@ -50,7 +50,7 @@ final class ProdCampagneP14Seeder extends Seeder
             ['slug' => 'p14-2026'],
             [
                 'prefix_numero' => 'P14026-',
-                'nom' => 'Promotion 14 — Campagne 2026',
+                'nom' => 'Année académique 2026-2027',
                 'promotion_numero' => 14,
                 'opens_at' => $opens,
                 'closes_at' => $closes,

@@ -14,6 +14,7 @@ use App\Models\Pays;
 use App\Models\RegionCameroun;
 use App\Services\DocumentUploadService;
 use App\Services\RecipisseService;
+use App\Services\TestCandidaturePurgeService;
 use App\Support\CandidatureDocumentTypeLabel;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -23,6 +24,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -198,7 +200,7 @@ class CandidatureResource extends Resource
             ->persistFiltersInSession()
             ->persistSearchInSession()
             ->defaultSort('submitted_at', 'desc')
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->withCount('documents'))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('campagne')->withCount('documents'))
             ->columns([
                 Tables\Columns\TextColumn::make('numero_dossier')
                     ->label('N° dossier')
@@ -208,6 +210,7 @@ class CandidatureResource extends Resource
                     ->color('primary'),
                 Tables\Columns\TextColumn::make('nom_complet')
                     ->label('Candidat')
+                    ->wrap()
                     ->state(fn (Candidature $r): string => trim("{$r->prenom} {$r->nom}"))
                     ->searchable(query: function (Builder $query, string $search): Builder {
                         return $query->where('nom', 'ilike', "%{$search}%")
@@ -215,6 +218,7 @@ class CandidatureResource extends Resource
                             ->orWhere('email', 'ilike', "%{$search}%");
                     }),
                 Tables\Columns\TextColumn::make('phone_e164')->label('Téléphone')->searchable(),
+                Tables\Columns\TextColumn::make('campagne.nom')->label('Année académique')->wrap()->toggleable(),
                 Tables\Columns\TextColumn::make('specialite')->limit(28)->toggleable(),
                 Tables\Columns\TextColumn::make('region')->label('Région')->toggleable(),
                 Tables\Columns\TextColumn::make('statut')
@@ -299,6 +303,28 @@ class CandidatureResource extends Resource
                         ]);
                     }),
                 Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('deleteTestAccount')
+                        ->label('Supprimer le compte de test')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->visible(fn (Candidature $r): bool => auth()->user()?->can('candidature.delete_test')
+                            && $r->statut === Candidature::STATUT_POSTULANT
+                            && $r->submitted_at === null)
+                        ->modalHeading('Suppression définitive du compte de recette')
+                        ->modalDescription('Le dossier sera soft-deleted ; sa photo et ses pièces seront purgées de MinIO. Cette action est réservée aux données de test.')
+                        ->form([
+                            Forms\Components\TextInput::make('numero_confirmation')
+                                ->label('Saisissez le numéro de dossier pour confirmer')
+                                ->required(),
+                        ])
+                        ->action(function (Candidature $r, array $data): void {
+                            if (($data['numero_confirmation'] ?? '') !== $r->numero_dossier) {
+                                throw ValidationException::withMessages([
+                                    'numero_confirmation' => 'Le numéro de dossier ne correspond pas.',
+                                ]);
+                            }
+                            app(TestCandidaturePurgeService::class)->purge($r);
+                        }),
                     Tables\Actions\Action::make('markAsCandidat')
                         ->label('Marquer comme candidat')
                         ->icon('heroicon-o-arrow-right-circle')
@@ -510,13 +536,13 @@ class CandidatureResource extends Resource
             $out = fopen('php://output', 'wb');
             fwrite($out, "\xEF\xBB\xBF"); // BOM UTF-8 (Excel)
             fputcsv($out, [
-                'numero_dossier', 'nom', 'prenom', 'phone_e164', 'email',
+                'numero_dossier', 'nom', 'prenom', 'phone_e164', 'email', 'annee_academique',
                 'date_naissance', 'region', 'departement', 'specialite', 'type_etude',
                 'statut', 'submitted_at', 'frais_paye', 'mode_paiement', 'reference_paiement',
             ]);
             foreach ($records as $r) {
                 fputcsv($out, [
-                    $r->numero_dossier, $r->nom, $r->prenom, $r->phone_e164, $r->email,
+                    $r->numero_dossier, $r->nom, $r->prenom, $r->phone_e164, $r->email, $r->campagne?->nom,
                     optional($r->date_naissance)->toDateString(), $r->region, $r->departement,
                     $r->specialite, $r->type_etude,
                     $r->statut, optional($r->submitted_at)->toDateTimeString(),

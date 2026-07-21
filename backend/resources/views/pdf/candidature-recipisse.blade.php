@@ -146,7 +146,7 @@
   .writeline { border-bottom: 0.4pt solid #cfc8dc; height: 4.5mm; }
   .opt { display: inline-block; border: 0.5pt solid #C9C2D6; border-radius: 5mm; padding: 1mm 3.5mm; font-size: 8.2pt; color: #444; margin: 0 2mm 1.5mm 0; }
 
-  .page-break { page-break-after: always; }
+  .page-two { page-break-before: always; }
 </style>
 </head>
 <body>
@@ -192,7 +192,7 @@
     <tr>
       <td style="vertical-align:top;">
         <div class="title">Récépissé de dépôt de candidature</div>
-        <div class="prog">{{ $programName }}@if($promotion) — Promotion {{ $promotion }}@endif@if($campaignName) · {{ $campaignName }}@endif</div>
+        <div class="prog">{{ $programName }}@if($promotion) — Promotion {{ $promotion }}@endif@if($campaignName) — {{ $campaignName }}@endif</div>
       </td>
     </tr>
   </table>
@@ -218,7 +218,7 @@
         <table class="kv">
           {!! $row('Civilité', $candidature->civilite) !!}
           {!! $row('Nom complet', $fullName) !!}
-          @if($candidature->epouse){!! $row('Épouse', $candidature->epouse) !!}@endif
+          @if($candidature->genre === 'F' && filled($candidature->epouse) && mb_strtolower(trim($candidature->epouse)) !== mb_strtolower(trim($fullName))){!! $row('Épouse', $candidature->epouse) !!}@endif
           {!! $row('Naissance', $birth) !!}
           {!! $row('Nationalité', $nationality) !!}
           {!! $row('Téléphone', $phone) !!}
@@ -250,7 +250,7 @@
       </td>
       <td>
         <table class="kv">
-          {!! $row('Promotion', $promotion ? 'Promotion '.$promotion : null) !!}
+          {!! $row('Promotion', $promotion ? (string) $promotion : null) !!}
           {!! $row('Programme', $programName) !!}
         </table>
       </td>
@@ -304,9 +304,8 @@
   </tr>
 </table>
 
-<div class="page-break"></div>
-
 {{-- ===================== PAGE 2 — FICHE DE CONTRÔLE ADMINISTRATIF ===================== --}}
+<div class="page-two">
 <table class="head">
   <tr>
     <td class="fr">
@@ -429,12 +428,13 @@
       <div class="vmeta">
         Dossier <strong>{{ $candidature->numero_dossier }}</strong>
         &nbsp;·&nbsp; Code <span class="vcode">{{ $vcodePlaceholder }}</span><br>
-        Identifiant technique : {{ $candidature->uuid }}<br>
-        Généré le {{ $generation }} &nbsp;·&nbsp; <span style="font-size:6.5pt; color:#9a9a9a;">SHA-256 {{ $hashPlaceholder }}</span>
+        Généré le {{ $generation }}
       </div>
     </td>
   </tr>
 </table>
+
+</div>
 
 </body>
 </html>

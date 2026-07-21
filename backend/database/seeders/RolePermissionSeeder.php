@@ -73,8 +73,7 @@ final class RolePermissionSeeder extends Seeder
             'view_any_candidature',
             'view_candidature',
             'update_candidature',
-            // `delete` volontairement absent — pas de delete via panel
-            // (RGPD : passer par CLI artisan dédiée).
+            'candidature.delete_test', // uniquement postulant jamais soumis, super_admin
 
             // CRUD Filament-Shield style sur CampagneCandidature.
             'view_any_campagne::candidature',

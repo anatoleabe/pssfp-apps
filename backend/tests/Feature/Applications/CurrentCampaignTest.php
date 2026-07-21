@@ -9,7 +9,7 @@ uses()->group('applications');
 it('returns the open campagne when one is open', function (): void {
     CampagneCandidature::factory()->create([
         'slug' => 'p14-2026',
-        'nom' => 'Promotion 14 — Campagne 2026',
+        'nom' => 'Année académique 2026-2027',
         'status' => 'open',
         'opens_at' => now()->subMonth(),
         'closes_at' => now()->addMonth(),
