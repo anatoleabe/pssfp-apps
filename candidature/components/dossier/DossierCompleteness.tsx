@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { submitDossierAction } from '@/app/dossier/actions';
@@ -24,6 +24,8 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
   const result = checkSubmittable(candidature);
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const confirmButtonRef = useRef<HTMLButtonElement | null>(null);
   const router = useRouter();
 
   const fieldLabel = (field: string): string =>
@@ -36,7 +38,12 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
   const idempotencyKeyRef = useRef<string | null>(null);
 
   const isAlreadySubmitted = candidature.statut !== 'postulant';
-  const canSubmit = result.ok && !isAlreadySubmitted && candidature.withdrawn_at === null;
+  const canSubmit = result.ok && candidature.has_photo && !isAlreadySubmitted && candidature.withdrawn_at === null;
+  const hasRecommendedDocuments = candidature.documents.length > 0;
+
+  useEffect(() => {
+    if (confirmOpen) confirmButtonRef.current?.focus();
+  }, [confirmOpen]);
 
   const handleSubmit = (): void => {
     setServerError(null);
@@ -83,6 +90,17 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
       <h2 id="completeness-heading" className="font-heading text-lg font-bold text-[#4A2E67]">
         {t('completeness.title')}
       </h2>
+
+      <ul className="mt-4 space-y-2 text-sm" aria-label="Checklist avant soumission">
+        <li className={candidature.has_photo ? 'text-emerald-800' : 'text-amber-900'}>
+          <span aria-hidden="true">{candidature.has_photo ? '☑' : '☐'} </span>
+          Photo d&apos;identité — obligatoire
+        </li>
+        <li className={hasRecommendedDocuments ? 'text-emerald-800' : 'text-[#595959]'}>
+          <span aria-hidden="true">{hasRecommendedDocuments ? '☑' : '☐'} </span>
+          Pièces justificatives — recommandées
+        </li>
+      </ul>
 
       {result.missing.length === 0 && Object.keys(result.errors).length === 0 ? (
         <p className="mt-3 text-sm text-emerald-700">
@@ -131,11 +149,31 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
         type="button"
         data-testid="dossier-submit"
         disabled={!canSubmit || pending}
-        onClick={handleSubmit}
+        onClick={() => setConfirmOpen(true)}
         className="mt-5 inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-5 text-sm font-medium text-white hover:bg-[#5C3A7E] disabled:cursor-not-allowed disabled:bg-gray-300"
       >
         {pending ? t('completeness.submitting') : t('completeness.submit')}
       </button>
+      {!candidature.has_photo && (
+        <p className="mt-2 text-xs text-amber-900" role="status">
+          Ajoutez votre photo d&apos;identité pour activer la soumission.
+        </p>
+      )}
+
+      {confirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="submit-confirm-title" aria-describedby="submit-confirm-description" className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
+            <h3 id="submit-confirm-title" className="font-heading text-2xl font-bold text-[#4A2E67]">Confirmer la soumission définitive</h3>
+            <p id="submit-confirm-description" className="mt-3 text-sm leading-relaxed text-[#333333]">
+              Après confirmation, votre photo et vos pièces seront verrouillées. Vous ne pourrez plus les modifier ni revenir sur les informations certifiées.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button type="button" onClick={() => setConfirmOpen(false)} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67]">Annuler</button>
+              <button ref={confirmButtonRef} type="button" data-testid="dossier-submit-confirm" onClick={() => { setConfirmOpen(false); handleSubmit(); }} className="rounded-md bg-[#4A2E67] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3A2452] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2">Certifier et soumettre ma candidature</button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -15,7 +15,7 @@ export default function CguPage(): JSX.Element {
         Les présentes conditions générales d'utilisation (les « CGU ») régissent l'accès et
         l'usage du portail de candidature en ligne du Programme Supérieur de Spécialisation en
         Finances Publiques (le « PSSFP »), accessible à l'adresse{' '}
-        <span className="whitespace-nowrap">candidature.pssfp.net</span>. En créant un compte
+        <span className="whitespace-nowrap">apply.pssfp.org</span>. En créant un compte
         candidat, vous reconnaissez avoir lu et accepté sans réserve les présentes CGU.
       </p>
 

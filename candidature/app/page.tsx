@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { ArrowUpRight, CheckCircle2, Laptop, MapPin } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, FileCheck2, Laptop, MapPin } from 'lucide-react';
 import { CountdownToClose } from '@/components/CountdownToClose';
 import { getCurrentCampaign, getSpecialites } from '@/lib/api/client';
 import { FALLBACK_SPECIALITES } from '@/lib/api/fallbacks';
@@ -20,6 +20,12 @@ export default async function HomePage(): Promise<JSX.Element> {
     : [...FALLBACK_SPECIALITES];
   const conditionsList = t.raw('conditionsList') as string[];
   const filiereTaglines = t.raw('filieres') as Record<string, string>;
+  const closingDate = campagne?.closes_at
+    ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeZone: 'Africa/Douala' }).format(new Date(campagne.closes_at))
+    : '18 septembre 2026';
+  const campaignTitle = campagne
+    ? `Promotion ${campagne.promotion_numero} — ${campagne.nom}`
+    : t('title');
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-16">
@@ -29,7 +35,7 @@ export default async function HomePage(): Promise<JSX.Element> {
             id="hero-heading"
             className="font-heading text-4xl font-bold text-[#4A2E67] md:text-5xl"
           >
-            {campagne?.nom ?? t('title')}
+            {campaignTitle}
           </h1>
           {isOpen && campagne?.closes_at && (
             <CountdownToClose closesAt={campagne.closes_at} ariaLabel={t('countdownAria')} />
@@ -39,6 +45,11 @@ export default async function HomePage(): Promise<JSX.Element> {
         <p className="max-w-3xl text-lg text-[#333333]">
           {isOpen ? t('introOpen') : t('introClosed')}
         </p>
+        {isOpen && (
+          <p className="inline-flex rounded-full bg-[#FFF6E0] px-4 py-2 text-sm font-semibold text-[#765315]">
+            Clôture : {closingDate}
+          </p>
+        )}
 
         {isOpen ? (
           <div className="flex flex-wrap gap-4">
@@ -66,6 +77,22 @@ export default async function HomePage(): Promise<JSX.Element> {
         )}
       </section>
 
+      <section aria-labelledby="documents-heading" className="mt-12 rounded-lg border border-[#D4AF6A]/40 bg-[#FFFBEA] p-6">
+        <div className="flex items-start gap-3">
+          <FileCheck2 aria-hidden="true" className="mt-0.5 shrink-0 text-[#8A641D]" />
+          <div>
+            <h2 id="documents-heading" className="font-heading text-xl font-bold text-[#4A2E67]">Pièces à préparer</h2>
+            <p className="mt-1 text-sm text-[#4B4B4B]">Préparez des fichiers PDF, JPG ou PNG lisibles avant de commencer.</p>
+            <ul className="mt-3 grid gap-x-8 gap-y-1 text-sm text-[#333333] sm:grid-cols-2">
+              <li>Photo d&apos;identité récente</li>
+              <li>Diplôme ou attestation de réussite</li>
+              <li>Acte de naissance et relevés de notes</li>
+              <li>CV, lettre de motivation et attestation employeur</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       <section aria-labelledby="filieres-heading" className="mt-14">
         <h2
           id="filieres-heading"
@@ -91,6 +118,15 @@ export default async function HomePage(): Promise<JSX.Element> {
               {filiereTaglines[s.slug] && (
                 <p className="mt-1 text-sm text-[#666]">{filiereTaglines[s.slug]}</p>
               )}
+              <details className="mt-4 border-t border-[#E4DCEE] pt-3 text-sm text-[#4B4B4B]">
+                <summary className="cursor-pointer font-semibold text-[#4A2E67] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67]">Découvrir la fiche</summary>
+                <dl className="mt-3 space-y-2">
+                  <div><dt className="font-semibold">Objectif</dt><dd>{filiereTaglines[s.slug] ?? 'Approfondir une spécialité des finances publiques.'}</dd></div>
+                  <div><dt className="font-semibold">Profil recommandé</dt><dd>Cadres et professionnels titulaires d&apos;un Bac+3 avec une expérience liée aux finances publiques.</dd></div>
+                  <div><dt className="font-semibold">Débouchés</dt><dd>Administrations publiques, collectivités, organismes de contrôle et partenaires du développement.</dd></div>
+                  <div><dt className="font-semibold">Mode et places</dt><dd>Présentiel : 25 places · Distanciel : 10 places.</dd></div>
+                </dl>
+              </details>
             </li>
           ))}
         </ol>

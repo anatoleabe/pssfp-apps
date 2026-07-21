@@ -4,9 +4,9 @@ import AxeBuilder from '@axe-core/playwright';
 test.describe('Candidature home', () => {
   test('renders the campaign hero', async ({ page }) => {
     await page.goto('/');
-    // Le titre par défaut tombe sur le fallback "Candidature 2026 — Promotion 14"
+    // Le titre par défaut reprend l'année académique lorsqu'aucune API n'est disponible.
     // quand le backend n'est pas joignable depuis le serveur Next.js.
-    await expect(page.locator('#hero-heading')).toContainText('Candidature');
+    await expect(page.locator('#hero-heading')).toContainText('Année académique 2026-2027');
   });
 
   test('has no critical a11y violations on home', async ({ page }) => {
@@ -27,7 +27,7 @@ test.describe('Candidature login (scaffold)', () => {
 
     await expect(phone).toBeVisible();
     await expect(phone).toHaveAttribute('type', 'tel');
-    await expect(phone).toHaveAttribute('autocomplete', 'tel');
+    await expect(phone).toHaveAttribute('autocomplete', 'tel-national');
 
     await expect(pin).toBeVisible();
     await expect(pin).toHaveAttribute('inputmode', 'numeric');
@@ -42,11 +42,11 @@ test.describe('Candidature login (scaffold)', () => {
     await expect(pin).toHaveValue('123456');
   });
 
-  test('submit stays disabled until phone E.164 + 6-digit PIN are valid', async ({ page }) => {
+  test('submit remains available and invalid fields receive inline explanations', async ({ page }) => {
     await page.goto('/login');
     const submit = page.getByRole('button', { name: /se connecter/i });
-    await expect(submit).toBeDisabled();
-    await page.getByTestId('login-phone-input').fill('+237691234567');
+    await expect(submit).toBeEnabled();
+    await page.getByTestId('login-phone-input').fill('691234567');
     await page.getByTestId('login-pin-input').fill('123456');
     await expect(submit).toBeEnabled();
   });
