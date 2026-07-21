@@ -2,7 +2,7 @@
 
 import { useState, useTransition, type FormEvent } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { loginAction } from '@/app/login/actions';
 import { PhoneInput, type PhoneInputValue } from '@/components/PhoneInput';
 import type { Pays } from '@/lib/api/types';
@@ -28,7 +28,6 @@ const PHONE_E164_REGEX = /^\+[1-9]\d{6,14}$/;
 const PIN_REGEX = /^\d{6}$/;
 
 export function LoginForm({ labels, initialPhone = '', reasonMessage, pays }: LoginFormProps): JSX.Element {
-  const router = useRouter();
   const search = useSearchParams();
   const presetPhone = initialPhone || search.get('phone') || '';
 
@@ -60,7 +59,11 @@ export function LoginForm({ labels, initialPhone = '', reasonMessage, pays }: Lo
     startTransition(async () => {
       const result = await loginAction(phone.e164, pin);
       if (result.ok && result.redirectTo) {
-        router.push(result.redirectTo);
+        // Navigation document complète : le root layout Next.js est persistant
+        // lors d'un router.push et conserverait sinon le header « Connexion »
+        // rendu avant la création du cookie. Le middleware peut ainsi recalculer
+        // l'état de session dès la première page du dossier.
+        window.location.assign(result.redirectTo);
         return;
       }
       setServerError(result.message ?? 'Erreur inconnue.');
