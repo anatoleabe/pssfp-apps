@@ -1,7 +1,7 @@
-import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { LoginForm } from '@/components/LoginForm';
-import { getCandidatToken } from '@/lib/auth/session';
+import { getPays } from '@/lib/api/client';
+import { FALLBACK_PAYS } from '@/lib/api/fallbacks';
 
 export const metadata = {
   title: 'Connexion candidat',
@@ -14,16 +14,14 @@ interface LoginPageProps {
 const REASON_MESSAGES: Record<string, string> = {
   logged_out: 'Vous avez été déconnecté(e).',
   session_expired: 'Votre session a expiré. Reconnectez-vous.',
+  service_unavailable: 'Le service de connexion est momentanément indisponible. Réessayez dans quelques instants.',
   pin_reset: 'Votre PIN a été réinitialisé. Connectez-vous avec votre nouveau PIN.',
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps): Promise<JSX.Element> {
-  const existingToken = await getCandidatToken();
-  if (existingToken) {
-    redirect('/dossier');
-  }
-
   const t = await getTranslations('login');
+  const paysResult = await getPays();
+  const pays = paysResult.ok && paysResult.data.length > 0 ? paysResult.data : [...FALLBACK_PAYS];
   const { phone, reason } = await searchParams;
   const reasonMessage = reason ? REASON_MESSAGES[reason] ?? null : null;
 
@@ -35,6 +33,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps): Promi
       <LoginForm
         initialPhone={phone}
         reasonMessage={reasonMessage}
+        pays={pays}
         labels={{
           phoneLabel: t('phoneLabel'),
           phonePlaceholder: t('phonePlaceholder'),

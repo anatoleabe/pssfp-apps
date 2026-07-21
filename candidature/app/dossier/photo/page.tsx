@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { PhotoUploader } from '@/components/PhotoUploader';
 import { getMyCandidature } from '@/lib/api/client';
-import { clearCandidatToken, getCandidatToken } from '@/lib/auth/session';
+import { getCandidatToken } from '@/lib/auth/session';
 
 export const metadata = {
   title: 'Photo identité — Mon dossier',
@@ -17,8 +17,7 @@ export default async function PhotoPage(): Promise<JSX.Element> {
   const result = await getMyCandidature(token);
   if (!result.ok) {
     if (result.status === 401) {
-      await clearCandidatToken();
-      redirect('/login?reason=session_expired');
+      redirect('/auth/session-expired');
     }
     return (
       <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">

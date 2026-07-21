@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DossierEditionForm } from '@/components/DossierEditionForm';
 import { getDiplomes, getMyCandidature, getPays, getSpecialites, getUniversites } from '@/lib/api/client';
-import { clearCandidatToken, getCandidatToken } from '@/lib/auth/session';
+import { getCandidatToken } from '@/lib/auth/session';
 import { EDITABLE_FIELDS, type EditableField } from '@/lib/dossier/editableFields';
 import {
   FALLBACK_DIPLOMES,
@@ -37,8 +37,7 @@ export default async function DossierEditionPage({
   const result = await getMyCandidature(token);
   if (!result.ok) {
     if (result.status === 401) {
-      await clearCandidatToken();
-      redirect('/login?reason=session_expired');
+      redirect('/auth/session-expired');
     }
     return (
       <div className="mx-auto max-w-4xl px-6 py-10 md:py-16">

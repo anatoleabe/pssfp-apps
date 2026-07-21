@@ -42,7 +42,7 @@ test.describe('/dossier/photo — accès non authentifié', () => {
 });
 
 test.describe('/dossier/photo — flow with stale token', () => {
-  test('does not redirect when a token cookie is present (page stays at /dossier/photo)', async ({
+  test('redirects when an invalid token cookie is present', async ({
     context,
     page,
   }) => {
@@ -54,14 +54,8 @@ test.describe('/dossier/photo — flow with stale token', () => {
         path: '/',
       },
     ]);
-    // Avec un cookie présent, le redirect précoce ne se déclenche pas. Le SSR
-    // tente de fetcher /v1/applications/me (qui n'existe pas en CI sans backend) —
-    // l'erreur réseau se traduit par un fallback rendu côté serveur OU par
-    // l'overlay de dev de Next.js. Dans les deux cas, l'URL reste celle qu'on
-    // a demandée — ce que vérifie ce test (vs un redirect vers /login).
     await page.goto('/dossier/photo');
-    expect(page.url()).toContain('/dossier/photo');
-    expect(page.url()).not.toMatch(/\/login/);
+    expect(page.url()).toMatch(/\/login\?reason=session_expired/);
   });
 });
 

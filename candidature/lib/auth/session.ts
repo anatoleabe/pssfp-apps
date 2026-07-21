@@ -6,6 +6,18 @@ const COOKIE_NAME = 'pssfp_candidat_token';
 const COOKIE_EXPIRES_AT = 'pssfp_candidat_expires';
 const COOKIE_PIN_RESET = 'pssfp_candidat_pin_reset';
 
+function cookieBaseOptions(httpOnly = true) {
+  const isProd = process.env.NODE_ENV === 'production';
+
+  return {
+    httpOnly,
+    secure: isProd,
+    sameSite: 'lax' as const,
+    path: '/',
+    ...(isProd ? { domain: '.pssfp.org' } : {}),
+  };
+}
+
 /**
  * Persiste le token Sanctum candidat dans un cookie httpOnly Secure SameSite=Lax.
  *
@@ -16,8 +28,6 @@ const COOKIE_PIN_RESET = 'pssfp_candidat_pin_reset';
  */
 export async function setCandidatToken(token: string, expiresAt: string | null): Promise<void> {
   const store = await cookies();
-  const isProd = process.env.NODE_ENV === 'production';
-
   let maxAgeSeconds: number;
   if (expiresAt) {
     const expiresMs = new Date(expiresAt).getTime() - Date.now();
@@ -28,12 +38,8 @@ export async function setCandidatToken(token: string, expiresAt: string | null):
   }
 
   const baseOptions = {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: 'lax' as const,
-    path: '/',
+    ...cookieBaseOptions(),
     maxAge: maxAgeSeconds,
-    ...(isProd ? { domain: '.pssfp.org' } : {}),
   };
 
   store.set(COOKIE_NAME, token, baseOptions);
@@ -51,8 +57,20 @@ export async function getCandidatToken(): Promise<string | null> {
 
 export async function clearCandidatToken(): Promise<void> {
   const store = await cookies();
-  store.delete(COOKIE_NAME);
-  store.delete(COOKIE_EXPIRES_AT);
+  // Un cookie doit être expiré avec le même Path/Domain que lors de sa
+  // création. `cookies().delete(name)` seul laisse survivre le cookie Domain
+  // `.pssfp.org` sur certains navigateurs/proxies.
+  store.set(COOKIE_NAME, '', { ...cookieBaseOptions(), expires: new Date(0), maxAge: 0 });
+  store.set(COOKIE_EXPIRES_AT, '', {
+    ...cookieBaseOptions(false),
+    expires: new Date(0),
+    maxAge: 0,
+  });
+  store.set(COOKIE_PIN_RESET, '', {
+    ...cookieBaseOptions(),
+    expires: new Date(0),
+    maxAge: 0,
+  });
 }
 
 /**
@@ -64,8 +82,6 @@ export async function clearCandidatToken(): Promise<void> {
  */
 export async function setPinResetToken(token: string, expiresAt: string | null): Promise<void> {
   const store = await cookies();
-  const isProd = process.env.NODE_ENV === 'production';
-
   let maxAgeSeconds = 600;
   if (expiresAt) {
     const expiresMs = new Date(expiresAt).getTime() - Date.now();
@@ -73,12 +89,8 @@ export async function setPinResetToken(token: string, expiresAt: string | null):
   }
 
   store.set(COOKIE_PIN_RESET, token, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: 'lax',
-    path: '/',
+    ...cookieBaseOptions(),
     maxAge: maxAgeSeconds,
-    ...(isProd ? { domain: '.pssfp.org' } : {}),
   });
 }
 
@@ -89,5 +101,9 @@ export async function getPinResetToken(): Promise<string | null> {
 
 export async function clearPinResetToken(): Promise<void> {
   const store = await cookies();
-  store.delete(COOKIE_PIN_RESET);
+  store.set(COOKIE_PIN_RESET, '', {
+    ...cookieBaseOptions(),
+    expires: new Date(0),
+    maxAge: 0,
+  });
 }

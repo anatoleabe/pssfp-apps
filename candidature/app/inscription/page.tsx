@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { WizardContainer } from '@/components/wizard/WizardContainer';
 import { getDiplomes, getPays, getSpecialites, getUniversites } from '@/lib/api/client';
@@ -8,7 +7,6 @@ import {
   FALLBACK_SPECIALITES,
   FALLBACK_UNIVERSITES,
 } from '@/lib/api/fallbacks';
-import { getCandidatToken } from '@/lib/auth/session';
 import { submitInscription } from './actions';
 import type { Diplome, Pays, Specialite, UniversitePays } from '@/lib/api/types';
 
@@ -18,11 +16,6 @@ export const metadata = {
 };
 
 export default async function InscriptionPage(): Promise<JSX.Element> {
-  const existingToken = await getCandidatToken();
-  if (existingToken) {
-    redirect('/dossier');
-  }
-
   const t = await getTranslations('inscription');
 
   const [paysResult, specialitesResult, diplomesResult, universitesResult] = await Promise.all([

@@ -41,7 +41,7 @@ test.describe('/dossier/edition — accès non authentifié', () => {
 });
 
 test.describe('/dossier/edition — flow with stale token', () => {
-  test('does not redirect when a token cookie is present (page stays at /dossier/edition)', async ({
+  test('redirects when an invalid token cookie is present', async ({
     context,
     page,
   }) => {
@@ -54,11 +54,10 @@ test.describe('/dossier/edition — flow with stale token', () => {
       },
     ]);
     await page.goto('/dossier/edition');
-    expect(page.url()).toContain('/dossier/edition');
-    expect(page.url()).not.toMatch(/\/login/);
+    expect(page.url()).toMatch(/\/login\?reason=session_expired/);
   });
 
-  test('preserves the focus query param when SSR fetch fails', async ({ context, page }) => {
+  test('does not preserve protected query params after session expiry', async ({ context, page }) => {
     await context.addCookies([
       {
         name: 'pssfp_candidat_token',
@@ -68,7 +67,7 @@ test.describe('/dossier/edition — flow with stale token', () => {
       },
     ]);
     await page.goto('/dossier/edition?focus=civilite');
-    expect(page.url()).toContain('focus=civilite');
+    expect(page.url()).toMatch(/\/login\?reason=session_expired/);
   });
 });
 

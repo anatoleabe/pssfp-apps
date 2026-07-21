@@ -99,7 +99,13 @@ export async function withdrawDossierAction(): Promise<DossierActionResult> {
 export async function logoutAction(): Promise<void> {
   const token = await getCandidatToken();
   if (token) {
-    await logoutCandidat(token);
+    // L'effacement local doit toujours avoir lieu, même si l'API est en panne.
+    // L'appel serveur révoque le token Sanctum lorsqu'elle est disponible.
+    try {
+      await logoutCandidat(token);
+    } catch {
+      // api client normalise déjà les erreurs ; garde-fou défensif.
+    }
   }
   await clearCandidatToken();
   redirect('/login?reason=logged_out');

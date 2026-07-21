@@ -8,7 +8,7 @@ import { DossierPhotoCard } from '@/components/dossier/DossierPhotoCard';
 import { DossierPiecesCard } from '@/components/dossier/DossierPiecesCard';
 import { DossierStatutCard } from '@/components/dossier/DossierStatutCard';
 import { getMyCandidature } from '@/lib/api/client';
-import { clearCandidatToken, getCandidatToken } from '@/lib/auth/session';
+import { getCandidatToken } from '@/lib/auth/session';
 import { initDossierAction } from './actions';
 
 export const metadata = {
@@ -21,6 +21,7 @@ interface DossierPageProps {
     reason?: string;
     init_error?: string;
     recipisse_error?: string;
+    welcome?: string;
   }>;
 }
 
@@ -36,13 +37,12 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
     redirect('/login?reason=session_expired');
   }
 
-  const { profile_pending, reason, init_error, recipisse_error } = await searchParams;
+  const { profile_pending, reason, init_error, recipisse_error, welcome } = await searchParams;
   const result = await getMyCandidature(token);
 
   if (!result.ok) {
     if (result.status === 401) {
-      await clearCandidatToken();
-      redirect('/login?reason=session_expired');
+      redirect('/auth/session-expired');
     }
     if (result.status === 404 && result.code === 'campaign_closed') {
       return (
@@ -173,6 +173,19 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
             )}
           </div>
         </header>
+
+        {welcome === '1' && (
+          <section role="status" data-testid="welcome-account" className="mb-6 rounded-pssfp-card border border-[#D4AF6A]/50 bg-[#FFFBEA] p-6 shadow-pssfp-soft">
+            <p className="pssfp-eyebrow">Compte créé avec succès</p>
+            <h2 className="mt-1 font-heading text-2xl font-bold text-[#4A2E67]">Bienvenue {candidature.prenom || 'au PSSFP'} !</h2>
+            <p className="mt-3 text-sm text-[#333333]">Votre numéro de dossier est <strong className="font-mono text-base">{candidature.numero_dossier}</strong>. Conservez votre PIN en lieu sûr : il vous permettra de revenir sur ce portail.</p>
+            <ol className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+              <li className="rounded-md bg-white p-3"><strong>1. Photo</strong><br />Ajoutez votre photo d&apos;identité.</li>
+              <li className="rounded-md bg-white p-3"><strong>2. Pièces</strong><br />Déposez vos justificatifs.</li>
+              <li className="rounded-md bg-white p-3"><strong>3. Soumission</strong><br />Certifiez avant la date limite.</li>
+            </ol>
+          </section>
+        )}
 
         {profile_pending === '1' && (
           <div

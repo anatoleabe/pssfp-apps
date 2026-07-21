@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { StatusTimeline } from '@/components/StatusTimeline';
 import { WithdrawDialog } from '@/components/WithdrawDialog';
 import { getMyCandidature } from '@/lib/api/client';
-import { clearCandidatToken, getCandidatToken } from '@/lib/auth/session';
+import { getCandidatToken } from '@/lib/auth/session';
 
 export const metadata = {
   title: 'Suivi de ma candidature',
@@ -19,8 +19,7 @@ export default async function SuiviPage(): Promise<JSX.Element> {
 
   if (!result.ok) {
     if (result.status === 401) {
-      await clearCandidatToken();
-      redirect('/login?reason=session_expired');
+      redirect('/auth/session-expired');
     }
     return (
       <div className="mx-auto max-w-3xl px-6 py-16">

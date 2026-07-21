@@ -5,8 +5,8 @@ import { Cormorant_Garamond, Source_Sans_3, DM_Sans } from 'next/font/google';
 import { PssfpLogo } from '@pssfp/ui';
 import { LogOut, FileText, Home } from 'lucide-react';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { logoutAction } from './dossier/actions';
-import { getCandidatToken } from '@/lib/auth/session';
 import './globals.css';
 
 const cormorant = Cormorant_Garamond({ subsets: ['latin'], display: 'swap', variable: '--font-heading', weight: ['500', '600', '700'] });
@@ -15,16 +15,23 @@ const dmSans = DM_Sans({ subsets: ['latin'], display: 'swap', variable: '--font-
 
 export const metadata: Metadata = {
   title: { default: 'Candidature PSSFP', template: '%s — Candidature PSSFP' },
-  description: 'Formulaire de candidature en ligne du PSSFP — promotion 14, campagne 2026.',
+  description: 'Formulaire de candidature en ligne du PSSFP — Promotion 14, année académique 2026-2027.',
   metadataBase: new URL('https://apply.pssfp.org'),
   robots: { index: true, follow: true },
 };
 
 async function CandidatureHeader() {
   const t = await getTranslations('nav');
-  const isLoggedIn = (await getCandidatToken()) !== null;
+  // Le middleware a validé le token auprès de Sanctum. Le header ne se fie
+  // jamais à la simple présence d'un cookie potentiellement révoqué.
+  const isLoggedIn = (await headers()).get('x-candidat-session-valid') === '1';
 
   return (
+    <>
+    <div className="bg-[#0F3A4A] px-4 py-2 text-center text-[11px] font-semibold tracking-wide text-white sm:text-xs">
+      République du Cameroun — Ministère des Finances <span aria-hidden="true">/</span>{' '}
+      <span lang="en">Republic of Cameroon — Ministry of Finance</span>
+    </div>
     <header className="sticky top-0 z-40 w-full border-b border-[var(--pssfp-border)] bg-white/80 shadow-pssfp-soft backdrop-blur-2xl">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
         <Link
@@ -84,6 +91,35 @@ async function CandidatureHeader() {
         </nav>
       </div>
     </header>
+    </>
+  );
+}
+
+function InstitutionalFooter(): JSX.Element {
+  const mainSite = process.env.NEXT_PUBLIC_MAIN_SITE_URL ?? 'https://pssfp.org';
+  return (
+    <footer className="mt-auto border-t border-[#E4DCEE] bg-[#0F3A4A] text-white">
+      <div className="mx-auto grid max-w-5xl gap-8 px-6 py-10 md:grid-cols-3">
+        <div>
+          <p className="font-heading text-xl font-bold">PSSFP — 10 ans d&apos;excellence</p>
+          <p className="mt-2 text-sm leading-relaxed text-white/80">Programme Supérieur de Spécialisation en Finances Publiques</p>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[#E5C98E]">Ministère des Finances — République du Cameroun</p>
+        </div>
+        <div className="text-sm text-white/85">
+          <p className="font-semibold text-white">Scolarité</p>
+          <address className="mt-2 space-y-1 not-italic">
+            <p>Campus de Yaoundé-Messa, porte 231</p>
+            <p><a className="underline hover:text-white" href="tel:+237222234567">+237 222 234 567</a></p>
+            <p><a className="underline hover:text-white" href="mailto:admissions@pssfp.org">admissions@pssfp.org</a></p>
+          </address>
+        </div>
+        <nav aria-label="Liens institutionnels" className="flex flex-col items-start gap-2 text-sm">
+          <Link className="underline hover:text-[#E5C98E]" href="/cgu">Conditions générales d&apos;utilisation</Link>
+          <Link className="underline hover:text-[#E5C98E]" href="/confidentialite">Politique de confidentialité</Link>
+          <a className="underline hover:text-[#E5C98E]" href={`${mainSite}/formations/admission`}>Conditions d&apos;admission</a>
+        </nav>
+      </div>
+    </footer>
   );
 }
 
@@ -92,10 +128,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const messages = await getMessages();
   return (
     <html lang={locale} className={`${cormorant.variable} ${sourceSans.variable} ${dmSans.variable}`}>
-      <body className="font-body antialiased">
+      <body className="flex min-h-screen flex-col font-body antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <CandidatureHeader />
           <main id="main">{children}</main>
+          <InstitutionalFooter />
         </NextIntlClientProvider>
       </body>
     </html>
