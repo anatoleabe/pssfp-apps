@@ -3,7 +3,7 @@
     "appName": "Candidature PSSFP"
   },
   "home": {
-    "title": "Candidature 2026 — Promotion 14",
+    "title": "Promotion 14 — Année académique 2026-2027",
     "introOpen": "Déposez votre candidature au PSSFP en quelques étapes guidées. Comptez 10 à 15 minutes pour finaliser votre dossier en ligne.",
     "introClosed": "La campagne actuelle est clôturée. Une nouvelle session ouvrira prochainement.",
     "campaignClosedNotice": "Aucune campagne n'est ouverte actuellement. Surveillez le site institutionnel ou les réseaux sociaux PSSFP pour la prochaine ouverture.",
@@ -54,9 +54,9 @@
   "login": {
     "title": "Connexion candidat",
     "subtitle": "Identifiez-vous avec votre numéro de téléphone et votre PIN.",
-    "phoneLabel": "Numéro de téléphone (format international)",
-    "phonePlaceholder": "+237691234567",
-    "phoneHelp": "Format E.164 : indicatif pays puis numéro, sans espace.",
+    "phoneLabel": "Numéro de téléphone — connexion et SMS",
+    "phonePlaceholder": "691234567",
+    "phoneHelp": "Choisissez l'indicatif puis saisissez le numéro local, par exemple 6XXXXXXXX au Cameroun.",
     "pinLabel": "PIN à 6 chiffres",
     "pinHelp": "PIN choisi à votre inscription. Ne le partagez avec personne.",
     "submit": "Se connecter",
@@ -66,7 +66,7 @@
   "inscription": {
     "title": "Créer mon compte candidat",
     "subtitle": "Quatre étapes guidées : identité, coordonnées, diplôme, engagement. Vos données sont enregistrées localement entre les étapes.",
-    "eyebrow": "Promotion 14 · Campagne 2026"
+    "eyebrow": "Promotion 14 — Année académique 2026-2027"
   },
   "nav": {
     "home": "Accueil",
@@ -108,7 +108,7 @@
     "cancel": "Annuler et retourner à l'accueil",
     "prev": "Précédent",
     "next": "Suivant",
-    "submit": "Soumettre ma candidature",
+    "submit": "Créer mon compte candidat",
     "submitting": "Envoi…",
     "retentionNotice": "Vos données sont enregistrées localement (session navigateur) et seront effacées automatiquement après 30 minutes d'inactivité ou à la fermeture de l'onglet. Votre PIN n'est jamais conservé entre les étapes.",
     "backHome": "Retour à l'accueil",
@@ -120,10 +120,13 @@
     "step4": {
       "title": "Étape 4 — Engagement & PIN",
       "photoNotice": "La photo d'identité officielle pourra être ajoutée depuis votre dossier candidat après la création de votre compte.",
-      "signatureLabel": "Signature numérique (tapez \"{prenom} {nom}\")",
-      "signatureMismatch": "La signature ne correspond pas à votre prénom + nom.",
+      "signatureLabel": "Engagement sur l'honneur — {prenom} {nom}",
+      "signatureMismatch": "Vous devez certifier l'exactitude des informations.",
+      "certificationLabel": "Je certifie sur l'honneur l'exactitude des informations fournies.",
       "pinLabel": "PIN à 6 chiffres (votre futur mot de passe)",
       "pinAria": "PIN à 6 chiffres",
+      "showPin": "Afficher",
+      "hidePin": "Masquer",
       "pinConfirmLabel": "Confirmez le PIN",
       "pinConfirmAria": "Confirmation du PIN",
       "pinMismatch": "La confirmation ne correspond pas au PIN.",
@@ -195,11 +198,11 @@
     },
     "completeness": {
       "submittedTitle": "Candidature soumise",
-      "submittedBody": "Votre dossier est désormais entre les mains du comité d'admission. Vous serez notifié(e) par email à la décision finale.",
+      "submittedBody": "Votre dossier est désormais entre les mains du comité d'admission. Vous serez notifié(e) par SMS, et par e-mail si vous en avez renseigné un.",
       "title": "Avant de soumettre",
-      "completeNotice": "Votre profil est complet. Vous pouvez soumettre votre candidature.",
+      "completeNotice": "Votre profil administratif est complet.",
       "incompleteIntro": "Les éléments suivants restent à compléter — cliquez pour ouvrir le formulaire d'édition à la bonne section :",
-      "submit": "Soumettre ma candidature",
+      "submit": "Certifier et soumettre ma candidature",
       "submitting": "Soumission…"
     }
   },

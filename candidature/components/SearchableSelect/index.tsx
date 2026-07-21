@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 export interface SearchableSelectOption {
   value: string;
@@ -15,6 +15,8 @@ export interface SearchableSelectProps {
   ariaLabel: string;
   testId?: string;
   disabled?: boolean;
+  ariaInvalid?: boolean;
+  ariaDescribedBy?: string;
 }
 
 /**
@@ -36,11 +38,14 @@ export function SearchableSelect({
   ariaLabel,
   testId,
   disabled,
+  ariaInvalid,
+  ariaDescribedBy,
 }: SearchableSelectProps): JSX.Element {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const listboxId = useId();
 
   const selected = useMemo(
     () => options.find((opt) => opt.value === value) ?? null,
@@ -69,9 +74,13 @@ export function SearchableSelect({
     <div ref={wrapperRef} className="relative" data-testid={testId}>
       <button
         type="button"
+        role="combobox"
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={listboxId}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
         disabled={disabled}
         onClick={() => {
           if (disabled) return;
@@ -90,6 +99,7 @@ export function SearchableSelect({
 
       {open && !disabled && (
         <div
+          id={listboxId}
           role="listbox"
           aria-label={ariaLabel}
           className="absolute left-0 right-0 z-20 mt-1 max-h-64 overflow-auto rounded-md border border-gray-300 bg-white shadow-lg"

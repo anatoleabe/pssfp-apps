@@ -17,6 +17,9 @@ export interface PhoneInputProps {
   onChange: (next: PhoneInputValue) => void;
   testIdPrefix?: string;
   ariaInvalid?: boolean;
+  ariaDescribedBy?: string;
+  onBlur?: () => void;
+  numberTestId?: string;
 }
 
 /**
@@ -29,6 +32,9 @@ export function PhoneInput({
   onChange,
   testIdPrefix = 'phone',
   ariaInvalid,
+  ariaDescribedBy,
+  onBlur,
+  numberTestId,
 }: PhoneInputProps): JSX.Element {
   const [local, setLocal] = useState(value.local ?? '');
 
@@ -67,19 +73,26 @@ export function PhoneInput({
         ))}
       </select>
       <input
-        data-testid={`${testIdPrefix}-number`}
+        data-testid={numberTestId ?? `${testIdPrefix}-number`}
         type="tel"
         inputMode="numeric"
         autoComplete="tel-national"
         aria-label="Numéro de téléphone"
         aria-invalid={ariaInvalid && !isValidE164(value.e164)}
+        aria-describedby={ariaDescribedBy}
         placeholder="691234567"
         value={local}
         onChange={(e) => {
-          const digits = e.target.value.replace(/\D/g, '');
+          const rawDigits = e.target.value.replace(/\D/g, '');
+          const countryDigits = value.indicatif.replace(/\D/g, '');
+          // Accepte aussi un collage international complet dans le champ local.
+          const digits = rawDigits.startsWith(countryDigits)
+            ? rawDigits.slice(countryDigits.length)
+            : rawDigits;
           setLocal(digits);
           update({ local: digits });
         }}
+        onBlur={onBlur}
         className="h-11 flex-1 rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
       />
     </div>

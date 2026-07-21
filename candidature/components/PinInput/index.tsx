@@ -12,6 +12,8 @@ export interface PinInputProps {
   noAutoFocus?: boolean;
   /** id(s) d'élément(s) d'erreur associés — propagés en aria-describedby sur le groupe. */
   describedBy?: string;
+  /** Masque chaque chiffre, avec affichage contrôlé par le parent. */
+  masked?: boolean;
 }
 
 /**
@@ -22,7 +24,7 @@ export interface PinInputProps {
  * - Border emerald quand toutes remplies
  * - Backspace remonte au champ précédent
  */
-export function PinInput({ value, onChange, ariaLabel, testId, noAutoFocus, describedBy }: PinInputProps): JSX.Element {
+export function PinInput({ value, onChange, ariaLabel, testId, noAutoFocus, describedBy, masked = false }: PinInputProps): JSX.Element {
   const refs = useRef<Array<HTMLInputElement | null>>([]);
   const [chars, setChars] = useState<string[]>(() => splitToSix(value));
 
@@ -74,7 +76,7 @@ export function PinInput({ value, onChange, ariaLabel, testId, noAutoFocus, desc
             ref={(el) => {
               refs.current[idx] = el;
             }}
-            type="text"
+            type={masked ? 'password' : 'text'}
             inputMode="numeric"
             autoComplete="one-time-code"
             aria-label={`${ariaLabel} — chiffre ${idx + 1}`}

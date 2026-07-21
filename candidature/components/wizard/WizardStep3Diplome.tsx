@@ -27,12 +27,12 @@ export function WizardStep3Diplome({
       <h2 className="font-heading text-xl font-bold text-[#4A2E67]">Étape 3 — Diplôme &amp; situation professionnelle</h2>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Diplôme le plus élevé obtenu" error={undefined}>
+        <Field label="Diplôme le plus élevé obtenu" error={errors.diplome_obtenu}>
           <DiplomeSelect
             diplomes={diplomes}
             value={data.diplome_obtenu}
             onChange={(v) => onChange({ diplome_obtenu: v })}
-            error={errors.diplome_obtenu}
+            error={undefined}
           />
         </Field>
         <Field label="Année d'obtention" error={errors.annee_diplome}>
@@ -52,12 +52,12 @@ export function WizardStep3Diplome({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Établissement de délivrance" error={undefined}>
+        <Field label="Établissement de délivrance" error={errors.institut}>
           <InstitutSelect
             universites={universites}
             value={data.institut}
             onChange={(v) => onChange({ institut: v })}
-            error={errors.institut}
+            error={undefined}
           />
         </Field>
         <Field label="Spécialité du diplôme" error={errors.specialite_diplome}>
@@ -146,7 +146,7 @@ function Field({
   children: React.ReactNode;
 }): JSX.Element {
   return (
-    <label className="block">
+    <label className="block" data-field-error={Boolean(error)}>
       <span className="mb-1 block text-sm font-medium text-[#333333]">{label}</span>
       {children}
       {error && (

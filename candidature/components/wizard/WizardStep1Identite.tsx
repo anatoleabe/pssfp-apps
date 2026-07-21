@@ -34,6 +34,17 @@ export function WizardStep1Identite({
           onChange={(v) => onChange({ specialite: v })}
         />
       </Field>
+      {data.specialite && (
+        <aside className="rounded-md border border-[#E4DCEE] bg-[#FAF7FF] p-4 text-sm text-[#4B4B4B]" aria-label={`Fiche ${data.specialite}`}>
+          <h3 className="font-heading text-lg font-semibold text-[#4A2E67]">{data.specialite}</h3>
+          <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+            <div><dt className="font-semibold">Objectif</dt><dd>Développer une expertise opérationnelle dans cette spécialité des finances publiques.</dd></div>
+            <div><dt className="font-semibold">Profil recommandé</dt><dd>Bac+3 minimum et expérience professionnelle en lien avec les finances publiques.</dd></div>
+            <div><dt className="font-semibold">Débouchés</dt><dd>Administrations, collectivités, organismes de contrôle et partenaires du développement.</dd></div>
+            <div><dt className="font-semibold">Mode et places</dt><dd>Présentiel : 25 · Distanciel : 10.</dd></div>
+          </dl>
+        </aside>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Type d'études" error={errors.type_etude}>
@@ -97,7 +108,7 @@ export function WizardStep1Identite({
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Field label="Nom de jeune fille (si applicable)" error={errors.epouse}>
+        <Field label="Nom d’usage (facultatif)" error={errors.epouse}>
           <input
             type="text"
             value={data.epouse}
@@ -165,7 +176,7 @@ function Field({
   children: React.ReactNode;
 }): JSX.Element {
   return (
-    <label className="block">
+    <label className="block" data-field-error={Boolean(error)}>
       <span className="mb-1 block text-sm font-medium text-[#333333]">{label}</span>
       {children}
       {error && (

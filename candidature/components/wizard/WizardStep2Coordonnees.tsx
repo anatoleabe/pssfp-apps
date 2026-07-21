@@ -41,6 +41,11 @@ export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardS
             departement: next.departement,
           })
         }
+        errors={{
+          pays_residence: errors.pays_residence,
+          region: errors.region,
+          departement: errors.departement,
+        }}
       />
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -90,6 +95,7 @@ export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardS
               phone_e164: v.e164,
             })
           }
+          ariaInvalid={Boolean(errors.phone_e164)}
         />
       </Field>
 
@@ -115,7 +121,7 @@ function Field({
   children: React.ReactNode;
 }): JSX.Element {
   return (
-    <label className="block">
+    <label className="block" data-field-error={Boolean(error)}>
       <span className="mb-1 block text-sm font-medium text-[#333333]">{label}</span>
       {children}
       {error && (

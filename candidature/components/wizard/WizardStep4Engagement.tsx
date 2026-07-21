@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { PinInput } from '@/components/PinInput';
 import { TurnstileWidget, isTurnstileEnabled } from '@/components/TurnstileWidget';
@@ -23,6 +24,7 @@ export interface WizardStep4Props {
   cta?: { label: string; href: string } | null;
   turnstileResetKey?: number;
   onChange: (patch: Partial<WizardData>) => void;
+  onEditStep: (step: 1 | 2 | 3) => void;
 }
 
 export function WizardStep4Engagement({
@@ -31,10 +33,13 @@ export function WizardStep4Engagement({
   cta,
   turnstileResetKey,
   onChange,
+  onEditStep,
 }: WizardStep4Props): JSX.Element {
   const t = useTranslations('wizard.step4');
   const tPin = useTranslations('pinReasons');
   const tTurnstile = useTranslations('turnstile');
+  const [showPin, setShowPin] = useState(false);
+  const fullName = `${data.prenom} ${data.nom}`.trim();
 
   const pinReasonLabel = (reason: string): string =>
     KNOWN_PIN_REASONS.has(reason) ? tPin(reason.replace('pin.', '')) : reason;
@@ -65,25 +70,34 @@ export function WizardStep4Engagement({
         <p>{t('photoNotice')}</p>
       </section>
 
-      <Field
-        label={t('signatureLabel', { prenom: data.prenom, nom: data.nom })}
-        htmlFor="step4-engagement-input"
-        error={engagementError}
-        errorId="step4-engagement-error"
-      >
-        <input
-          id="step4-engagement-input"
-          data-testid="step4-engagement"
-          type="text"
-          value={data.engagement_nom}
-          onChange={(e) => onChange({ engagement_nom: e.target.value })}
-          aria-invalid={!engagementOk && data.engagement_nom.length > 0}
-          aria-describedby={engagementError ? 'step4-engagement-error' : undefined}
-          className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
-        />
-      </Field>
+      <section aria-labelledby="step4-summary-title" className="rounded-md border border-[#E4DCEE] bg-[#FAF7FF] p-4">
+        <h3 id="step4-summary-title" className="font-heading text-lg font-semibold text-[#4A2E67]">Vérifiez vos informations</h3>
+        <dl className="mt-3 space-y-3 text-sm text-[#333333]">
+          <SummaryRow label="Identité" value={`${fullName} · ${data.date_naissance}`} onEdit={() => onEditStep(1)} />
+          <SummaryRow label="Coordonnées" value={`${data.phone_e164}${data.email ? ` · ${data.email}` : ''}`} onEdit={() => onEditStep(2)} />
+          <SummaryRow label="Parcours" value={`${data.diplome_obtenu} · ${data.specialite}`} onEdit={() => onEditStep(3)} />
+        </dl>
+      </section>
 
-      <Field label={t('pinLabel')}>
+      <div data-field-error={Boolean(engagementError)}>
+        <p className="text-sm text-[#333333]">Nom du candidat : <strong>{fullName}</strong></p>
+        <label className="mt-3 flex items-start gap-3 text-sm leading-relaxed text-[#333333]">
+          <input
+            data-testid="step4-engagement"
+            type="checkbox"
+            checked={engagementOk}
+            onChange={(e) => onChange({ engagement_nom: e.target.checked ? fullName : '' })}
+            aria-invalid={Boolean(engagementError)}
+            aria-describedby={engagementError ? 'step4-engagement-error' : undefined}
+            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#4A2E67] focus:ring-[#4A2E67]"
+          />
+          {t('certificationLabel')}
+        </label>
+        {engagementError && <span id="step4-engagement-error" role="alert" className="mt-1 block text-xs text-red-700">{engagementError}</span>}
+      </div>
+
+      <Field label={t('pinLabel')} error={errors.pin} errorId="step4-pin-schema-error">
+        <div className="flex flex-wrap items-center gap-3">
         <PinInput
           ariaLabel={t('pinAria')}
           testId="step4-pin"
@@ -91,7 +105,18 @@ export function WizardStep4Engagement({
           describedBy={showPinReasons ? 'step4-pin-errors' : undefined}
           value={data.pin}
           onChange={(v) => onChange({ pin: v })}
+          masked={!showPin}
         />
+        <button
+          type="button"
+          onClick={() => setShowPin((visible) => !visible)}
+          aria-pressed={showPin}
+          className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm text-[#4A2E67] hover:bg-[#F4EFFA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67]"
+        >
+          {showPin ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+          {showPin ? t('hidePin') : t('showPin')}
+        </button>
+        </div>
         {showPinReasons && (
           <ul id="step4-pin-errors" className="mt-2 space-y-1 text-xs text-red-600" role="alert">
             {pinResult.reasons.map((r) => (
@@ -109,6 +134,7 @@ export function WizardStep4Engagement({
           describedBy={showPinConfirmMismatch ? 'step4-pin-confirm-error' : undefined}
           value={data.pin_confirmation}
           onChange={(v) => onChange({ pin_confirmation: v })}
+          masked={!showPin}
         />
         {showPinConfirmMismatch && (
           <span id="step4-pin-confirm-error" role="alert" className="mt-1 block text-xs text-red-600">
@@ -209,7 +235,7 @@ function Field({
 }): JSX.Element {
   const labelClass = 'mb-1 block text-sm font-medium text-[#333333]';
   return (
-    <div>
+    <div data-field-error={Boolean(error)}>
       {htmlFor ? (
         <label htmlFor={htmlFor} className={labelClass}>
           {label}
@@ -223,6 +249,18 @@ function Field({
           {error}
         </span>
       )}
+    </div>
+  );
+}
+
+function SummaryRow({ label, value, onEdit }: { label: string; value: string; onEdit: () => void }): JSX.Element {
+  return (
+    <div className="flex items-start justify-between gap-4 border-t border-[#E4DCEE] pt-3 first:border-0 first:pt-0">
+      <div>
+        <dt className="font-semibold text-[#1A1A1A]">{label}</dt>
+        <dd className="mt-0.5 text-[#595959]">{value || 'À compléter'}</dd>
+      </div>
+      <button type="button" onClick={onEdit} className="shrink-0 text-sm font-semibold text-[#4A2E67] underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67]">Modifier</button>
     </div>
   );
 }

@@ -5,6 +5,7 @@ const pinRegex = /^\d{6}$/;
 const isoCountryRegex = /^[A-Z]{2}$/;
 
 const minAgeYears = 18;
+const requiredMessage = 'Ce champ est requis pour continuer.';
 const eighteenYearsAgoIso = (() => {
   const now = new Date();
   const d = new Date(now.getFullYear() - minAgeYears, now.getMonth(), now.getDate());
@@ -12,16 +13,17 @@ const eighteenYearsAgoIso = (() => {
 })();
 
 export const step1Schema = z.object({
-  specialite: z.string().min(1, 'Spécialité obligatoire'),
+  specialite: z.string().min(1, requiredMessage),
   type_etude: z.enum(['presentiel', 'distanciel']),
   premiere_langue: z.enum(['fr', 'en']),
   civilite: z.enum(['M.', 'Mme', 'Mlle']),
-  nom: z.string().trim().min(1).max(100),
-  prenom: z.string().trim().min(1).max(100),
+  nom: z.string().trim().min(1, requiredMessage).max(100, 'Le nom ne doit pas dépasser 100 caractères.'),
+  prenom: z.string().trim().min(1, requiredMessage).max(100, 'Le prénom ne doit pas dépasser 100 caractères.'),
   epouse: z.string().trim().max(100).optional().nullable(),
   date_naissance: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date au format YYYY-MM-DD')
+    .min(1, requiredMessage)
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Saisissez une date de naissance valide.')
     .refine((v) => v <= eighteenYearsAgoIso, 'Vous devez avoir au moins 18 ans'),
   genre: z.enum(['M', 'F', 'autre']),
   statut_matrimonial: z.string().trim().min(1).max(20),
@@ -34,28 +36,29 @@ export const step2Schema = z
     pays_residence: z.string().regex(isoCountryRegex),
     region: z.string().trim().optional().nullable(),
     departement: z.string().trim().optional().nullable(),
-    adresse: z.string().trim().min(1).max(200),
-    ville_residence: z.string().trim().min(1).max(100),
-    lieu_naissance: z.string().trim().min(1).max(100),
-    indicatif1: z.string().trim().min(1).max(10),
-    telephone1: z.string().trim().min(1).max(20),
-    phone_e164: z.string().regex(phoneE164Regex, 'Numéro E.164 invalide'),
+    adresse: z.string().trim().min(1, requiredMessage).max(200),
+    ville_residence: z.string().trim().min(1, requiredMessage).max(100),
+    lieu_naissance: z.string().trim().min(1, requiredMessage).max(100),
+    indicatif1: z.string().trim().min(1, requiredMessage).max(10),
+    telephone1: z.string().trim().min(1, requiredMessage).max(20),
+    phone_e164: z.string().min(1, requiredMessage).regex(phoneE164Regex, 'Saisissez un numéro de téléphone valide.'),
     indicatif2: z.string().trim().max(10).optional().nullable(),
     telephone2: z.string().trim().max(20).optional().nullable(),
     email: z.string().email('Email invalide').optional().or(z.literal('')).nullable(),
   })
-  .refine(
-    (data) => data.pays_residence !== 'CM' || (!!data.region && !!data.departement),
-    {
-      message: 'Région et département obligatoires pour un candidat résidant au Cameroun',
-      path: ['region'],
-    },
-  );
+  .superRefine((data, context) => {
+    if (data.pays_residence === 'CM' && !data.region) {
+      context.addIssue({ code: 'custom', message: requiredMessage, path: ['region'] });
+    }
+    if (data.pays_residence === 'CM' && !data.departement) {
+      context.addIssue({ code: 'custom', message: requiredMessage, path: ['departement'] });
+    }
+  });
 
 export const step3Schema = z.object({
-  diplome_obtenu: z.string().trim().min(1).max(100),
-  institut: z.string().trim().min(1).max(150),
-  specialite_diplome: z.string().trim().min(1).max(100),
+  diplome_obtenu: z.string().trim().min(1, requiredMessage).max(100),
+  institut: z.string().trim().min(1, requiredMessage).max(150),
+  specialite_diplome: z.string().trim().min(1, requiredMessage).max(100),
   annee_diplome: z
     .number({ error: 'Année invalide' })
     .int()
@@ -66,13 +69,19 @@ export const step3Schema = z.object({
   adresse_employeur: z.string().trim().max(200).optional().nullable(),
   tel_employeur: z.string().trim().max(30).optional().nullable(),
   moyen_connaissance: z.string().trim().max(50).optional().nullable(),
+}).superRefine((data, context) => {
+  if (data.statut_actuel !== 'Etudiant') {
+    for (const field of ['employeur', 'adresse_employeur', 'tel_employeur'] as const) {
+      if (!data[field]?.trim()) context.addIssue({ code: 'custom', message: requiredMessage, path: [field] });
+    }
+  }
 });
 
 export const step4Schema = z
   .object({
-    engagement_nom: z.string().trim().min(1).max(200),
+  engagement_nom: z.string().trim().min(1, 'Vous devez certifier l’exactitude des informations.').max(200),
     pin: z.string().regex(pinRegex, 'PIN à 6 chiffres requis'),
-    pin_confirmation: z.string().regex(pinRegex),
+    pin_confirmation: z.string().regex(pinRegex, 'Confirmez votre PIN à 6 chiffres.'),
     cgu: z.literal(true, { error: 'Vous devez accepter les CGU' }),
   })
   .refine((data) => data.pin === data.pin_confirmation, {

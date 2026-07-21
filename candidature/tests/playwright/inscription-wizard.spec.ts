@@ -46,6 +46,26 @@ async function fillStep1(page: Page, options: { dateNaissance?: string } = {}): 
   await page.getByTestId('step1-date-naissance').fill(dob);
 }
 
+async function fillStep2(page: Page): Promise<void> {
+  await page.getByTestId('step2-adresse').fill('BP 1234 Yaoundé');
+  await page.getByLabel('Ville de résidence').fill('Yaoundé');
+  await page.getByLabel('Lieu de naissance (ville)').fill('Yaoundé');
+  await page.getByTestId('step2-phone-number').fill('691234567');
+  await page.getByTestId('region-select').click();
+  await page.getByRole('option', { name: 'Centre' }).click();
+  await page.getByTestId('departement-select').click();
+  await page.getByRole('option', { name: 'Mfoundi' }).click();
+}
+
+async function fillStep3(page: Page): Promise<void> {
+  await page.getByTestId('step3-diplome-obtenu').selectOption({ label: 'Licence' });
+  await page.getByTestId('step3-annee-diplome').fill('2020');
+  await page.getByTestId('step3-institut').click();
+  await page.getByRole('option', { name: /Université de Yaoundé II/i }).click();
+  await page.getByLabel('Spécialité du diplôme').fill('Économie');
+  await page.getByTestId('step3-statut-actuel').selectOption('Etudiant');
+}
+
 test.describe('Inscription wizard — happy path', () => {
   test.beforeEach(async ({ page }) => {
     await setupReferenceMocks(page);
@@ -160,5 +180,42 @@ test.describe('Inscription wizard — security & UX', () => {
     await fillStep1(page);
     await page.getByRole('button', { name: /annuler et retourner/i }).click();
     await expect(page).toHaveURL('/');
+  });
+});
+
+test.describe('Inscription wizard — validation explicite des quatre étapes', () => {
+  test.beforeEach(async ({ page }) => {
+    await setupReferenceMocks(page);
+  });
+
+  test('étape 1 : affiche chaque erreur et place le focus sur le premier champ', async ({ page }) => {
+    await page.goto('/inscription');
+    await page.getByTestId('wizard-next').click();
+    await expect(page.getByTestId('wizard-step-1').getByRole('alert')).toHaveCount(4);
+    await expect(page.getByTestId('step1-specialite').getByRole('combobox')).toBeFocused();
+
+    await fillStep1(page);
+    await expect(page.getByTestId('wizard-step-1').getByRole('alert')).toHaveCount(0);
+  });
+
+  test('étapes 2 à 4 : refusent une validation vide avec messages inline', async ({ page }) => {
+    await page.goto('/inscription');
+    await fillStep1(page);
+    await page.getByTestId('wizard-next').click();
+
+    await page.getByTestId('wizard-next').click();
+    await expect(page.getByTestId('wizard-step-2').getByRole('alert')).toHaveCount(6);
+    await fillStep2(page);
+    await page.getByTestId('wizard-next').click();
+
+    await page.getByTestId('wizard-next').click();
+    await expect(page.getByTestId('wizard-step-3').getByRole('alert')).toHaveCount(5);
+    await fillStep3(page);
+    await page.getByTestId('wizard-next').click();
+
+    await expect(page.getByTestId('wizard-submit')).toContainText('Créer mon compte candidat');
+    await page.getByTestId('wizard-submit').click();
+    await expect(page.getByTestId('wizard-step-4').getByRole('alert')).toHaveCount(4);
+    await expect(page.getByTestId('step4-engagement')).toBeFocused();
   });
 });

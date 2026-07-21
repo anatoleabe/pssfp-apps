@@ -169,6 +169,13 @@ export function WizardContainer({
       }
     }
     setErrors(next);
+    requestAnimationFrame(() => {
+      const firstInvalid = stepPanelRef.current?.querySelector<HTMLElement>(
+        '[data-field-error="true"] input, [data-field-error="true"] select, [data-field-error="true"] button, [aria-invalid="true"]',
+      );
+      firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstInvalid?.focus({ preventScroll: true });
+    });
     return false;
   };
 
@@ -223,7 +230,22 @@ export function WizardContainer({
   };
 
   const submit = (): void => {
-    if (!validateStep(4) || !isStep4Strict) {
+    if (!validateStep(4)) {
+      return;
+    }
+    if (!isStep4Strict) {
+      const strictErrors: Partial<Record<keyof WizardData, string>> = {};
+      const pinResult = validateCandidatePin(data.pin, data.phone_e164, data.date_naissance || null);
+      if (!pinResult.ok) strictErrors.pin = 'Choisissez un PIN plus sûr en respectant les règles indiquées.';
+      if (data.pin !== data.pin_confirmation) strictErrors.pin_confirmation = 'La confirmation du PIN ne correspond pas.';
+      if (!isValidEngagement(data.engagement_nom, data.prenom, data.nom)) strictErrors.engagement_nom = 'Vous devez certifier l’exactitude des informations.';
+      if (isTurnstileEnabled() && data.turnstile_token.length === 0) strictErrors.turnstile_token = 'Validez la vérification anti-robot.';
+      setErrors(strictErrors);
+      requestAnimationFrame(() => {
+        const firstInvalid = stepPanelRef.current?.querySelector<HTMLElement>('[data-field-error="true"] input, [aria-invalid="true"]');
+        firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstInvalid?.focus({ preventScroll: true });
+      });
       return;
     }
     startTransition(async () => {
@@ -285,6 +307,11 @@ export function WizardContainer({
             cta={serverCta ?? null}
             turnstileResetKey={turnstileResetKey}
             onChange={patch}
+            onEditStep={(target) => {
+              setStep(target);
+              setErrors({});
+              focusStepPanel();
+            }}
           />
         )}
       </div>
@@ -322,7 +349,7 @@ export function WizardContainer({
             <button
               type="button"
               data-testid="wizard-submit"
-              disabled={pending || !isStep4Strict}
+              disabled={pending}
               onClick={submit}
               className="rounded-md bg-[#4A2E67] px-5 py-2 text-sm font-medium text-white hover:bg-[#5C3A7E] disabled:cursor-not-allowed disabled:bg-gray-300"
             >

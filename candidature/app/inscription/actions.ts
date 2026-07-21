@@ -151,8 +151,8 @@ export async function submitInscription(payload: WizardData): Promise<WizardServ
       // id interne (BIGSERIAL) — jamais exposé publiquement, log serveur only.
       userId: register.data.user.id,
     });
-    return { ok: true, redirectTo: '/dossier?profile_pending=1' };
+    return { ok: true, redirectTo: '/dossier?profile_pending=1&welcome=1' };
   }
 
-  return { ok: true, redirectTo: '/dossier' };
+  return { ok: true, redirectTo: '/dossier?welcome=1' };
 }

@@ -17,7 +17,11 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_NO_SERVER
     ? undefined
     : {
-        command: 'pnpm dev --port 6003',
+      command: 'pnpm dev --port 6003',
+        env: {
+          ...process.env,
+          PSSFP_E2E_OFFLINE: '1',
+        },
         url: BASE_URL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

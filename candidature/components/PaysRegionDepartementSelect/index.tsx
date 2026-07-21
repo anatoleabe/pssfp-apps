@@ -19,6 +19,7 @@ export interface PaysRegionDepartementSelectProps {
   ariaPaysLabel?: string;
   ariaRegionLabel?: string;
   ariaDepartementLabel?: string;
+  errors?: Partial<Record<keyof PaysRegionDepartementValue, string>>;
 }
 
 /**
@@ -35,6 +36,7 @@ export function PaysRegionDepartementSelect({
   ariaPaysLabel = 'Pays de résidence',
   ariaRegionLabel = 'Région du Cameroun',
   ariaDepartementLabel = 'Département',
+  errors = {},
 }: PaysRegionDepartementSelectProps): JSX.Element {
   const [regions, setRegions] = useState<Region[]>([]);
   const [departements, setDepartements] = useState<Departement[]>([]);
@@ -77,7 +79,7 @@ export function PaysRegionDepartementSelect({
 
   return (
     <div className="space-y-3">
-      <div>
+      <div data-field-error={Boolean(errors.pays_residence)}>
         <label className="mb-1 block text-sm font-medium text-[#333333]">{ariaPaysLabel}</label>
         <SearchableSelect
           ariaLabel={ariaPaysLabel}
@@ -87,12 +89,15 @@ export function PaysRegionDepartementSelect({
           onChange={(next) =>
             onChange({ pays_residence: next, region: '', departement: '' })
           }
+          ariaInvalid={Boolean(errors.pays_residence)}
+          ariaDescribedBy={errors.pays_residence ? 'pays-residence-error' : undefined}
         />
+        {errors.pays_residence && <span id="pays-residence-error" role="alert" className="mt-1 block text-xs text-red-700">{errors.pays_residence}</span>}
       </div>
 
       {value.pays_residence === 'CM' && (
         <>
-          <div>
+          <div data-field-error={Boolean(errors.region)}>
             <label className="mb-1 block text-sm font-medium text-[#333333]">{ariaRegionLabel}</label>
             <SearchableSelect
               ariaLabel={ariaRegionLabel}
@@ -103,9 +108,12 @@ export function PaysRegionDepartementSelect({
               onChange={(next) =>
                 onChange({ ...value, region: next, departement: '' })
               }
+              ariaInvalid={Boolean(errors.region)}
+              ariaDescribedBy={errors.region ? 'region-error' : undefined}
             />
+            {errors.region && <span id="region-error" role="alert" className="mt-1 block text-xs text-red-700">{errors.region}</span>}
           </div>
-          <div>
+          <div data-field-error={Boolean(errors.departement)}>
             <label className="mb-1 block text-sm font-medium text-[#333333]">{ariaDepartementLabel}</label>
             <SearchableSelect
               ariaLabel={ariaDepartementLabel}
@@ -114,7 +122,10 @@ export function PaysRegionDepartementSelect({
               disabled={loading.departements || !value.region}
               options={departements.map((d) => ({ value: d.code, label: d.nom }))}
               onChange={(next) => onChange({ ...value, departement: next })}
+              ariaInvalid={Boolean(errors.departement)}
+              ariaDescribedBy={errors.departement ? 'departement-error' : undefined}
             />
+            {errors.departement && <span id="departement-error" role="alert" className="mt-1 block text-xs text-red-700">{errors.departement}</span>}
           </div>
         </>
       )}

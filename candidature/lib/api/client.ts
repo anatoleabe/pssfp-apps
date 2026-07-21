@@ -35,6 +35,13 @@ async function apiCall<T>(
   body?: unknown,
   options: FetchOptions = {},
 ): Promise<ApiResult<T>> {
+  // Les tests E2E du portail vérifient aussi le comportement de repli quand
+  // l'API Laravel n'est pas démarrée. Court-circuiter les appels SSR évite que
+  // Next.js ne remonte des rejets réseau parasites pendant cette recette.
+  if (process.env.PSSFP_E2E_OFFLINE === '1' && typeof window === 'undefined') {
+    return { ok: false, status: 0, message: 'API indisponible en environnement E2E' };
+  }
+
   const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
   const headers: Record<string, string> = {
     Accept: 'application/json',
@@ -60,7 +67,9 @@ async function apiCall<T>(
         : options.revalidate !== undefined
           ? { next: { revalidate: options.revalidate } }
           : {}),
-      signal: options.signal,
+      // Une API indisponible ne doit jamais suspendre le rendu SSR du portail.
+      // Les uploads ont leur propre chemin ; 3 s suffisent pour ces appels JSON.
+      signal: options.signal ?? AbortSignal.timeout(3_000),
     });
 
     let payload: unknown = null;
