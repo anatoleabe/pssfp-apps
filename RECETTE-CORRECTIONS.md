@@ -10,7 +10,7 @@ Les lots P0 et P1 sont implémentés et verts dans l'environnement local. Aucun 
 
 | Référence | Correction livrée | Commit | Preuve | Statut |
 |---|---|---|---|---|
-| P0-1 / #1, #2, #24 | Cookie expiré avec le même domaine/path, révocation API, middleware validant réellement le token, redirection propre de toutes les routes dossier et header non fondé sur la seule présence du cookie | `8ce107c` | `auth-session.spec.ts`, `dossier*.spec.ts` | ✅ |
+| P0-1 / #1, #2, #24 | Cookie expiré avec le même domaine/path, révocation API, middleware validant réellement le token, redirection propre de toutes les routes dossier et header rafraîchi après authentification | `8ce107c`, `54040ea` | `auth-session.spec.ts`, `auth-session-live.spec.ts`, `dossier*.spec.ts` | ✅ |
 | P0-2 | Pages 500/global-error et 404 institutionnelles, françaises, rassurantes, avec retour accueil et contact | `8ce107c` | build Next + inspection visuelle/code | ✅ |
 | P0-3 / #3 | Erreurs inline françaises aux 4 étapes, attributs ARIA, focus et scroll sur le premier champ, validation conditionnelle employeur | `cd8fb48` | `inscription-wizard.spec.ts` | ✅ |
 | P0-4 | Libellé éditable « Année académique 2026-2027 », migration ciblée et réversible, titre visible complet avec Promotion 14 | `19e4c4b`, `c1a989f` | `CurrentCampaignTest.php`, grep UI/PDF | ✅ |
@@ -40,7 +40,10 @@ pnpm --filter @pssfp/candidature build
 → succès, Compiled successfully, 16/16 pages générées
 
 pnpm exec playwright test --workers=1
-→ 53 passed (24.5s)
+→ 53 passed, 1 test d'intégration live ignoré sans API dédiée (34.1s)
+
+PSSFP_LIVE_E2E_API_URL=http://127.0.0.1:8001/v1 pnpm exec playwright test tests/playwright/auth-session-live.spec.ts --workers=1
+→ 1 passed : login → logout → re-login, trois cycles complets contre Laravel + PostgreSQL pssfp_test (4.7s)
 
 php artisan test --compact
 → 296 passed (861 assertions, 58.73s)
@@ -52,7 +55,7 @@ php artisan event:list
 → listeners SMS découverts pour Created, Submitted, Accepted et Refused
 ```
 
-Le build local a journalisé des échecs réseau `fetch failed` pendant la génération statique parce que l'API n'était pas exposée dans le sandbox ; ils sont récupérés par les fallbacks et le build termine avec le code 0. Aucun avertissement bloquant ni erreur TypeScript/ESLint.
+Le build local a journalisé des échecs réseau `fetch failed` pendant la génération statique parce que l'API n'était pas exposée dans le sandbox ; ils sont récupérés par les fallbacks et le build termine avec le code 0. Aucun avertissement bloquant ni erreur TypeScript/ESLint. Les deux comptes synthétiques créés par les essais du test live ont ensuite été purgés de `pssfp_test` (`comptes_test_supprimes=2`).
 
 ## Preuves visuelles
 
@@ -82,7 +85,7 @@ Les neuf fiches prêtes à publier sont dans [recette-corrections/ISSUES-P2.md](
 ## Déploiement
 
 1. Sauvegarder PostgreSQL et le bucket `pssfp-candidatures`; relever le hash/metadata de P14026-007 avant toute action.
-2. Déployer les commits `8ce107c`, `cd8fb48`, `c1a989f`, `19e4c4b` et le commit de recette qui contient ce document.
+2. Déployer les commits `8ce107c`, `cd8fb48`, `c1a989f`, `19e4c4b`, `54040ea` et le commit de recette qui contient ce document.
 3. Dans `backend`, exécuter `php artisan migrate --force`, puis `php artisan db:seed --class=RolePermissionSeeder --force` pour ajouter la permission super_admin.
 4. Exécuter `php artisan optimize:clear`, puis reconstruire/recharger les caches applicatifs selon la procédure d'exploitation.
 5. Construire `candidature` avec les variables de production (`NEXT_PUBLIC_API_URL`, Turnstile, URLs publiques), puis déployer l'artefact Next.js.
@@ -96,4 +99,3 @@ Les neuf fiches prêtes à publier sont dans [recette-corrections/ISSUES-P2.md](
 3. Si nécessaire seulement, annuler la migration ciblée avec `php artisan migrate:rollback --path=database/migrations/2026_07_21_120000_rename_p14_campaign_academic_year.php --force`. Le `down()` ne modifie que le slug P14 portant encore exactement le nouveau libellé.
 4. Reconstruire Next.js, vider les caches Laravel et redémarrer les workers.
 5. Vérifier P14026-007 et les fichiers MinIO. La migration ne change aucune clé de dossier et la fonctionnalité de purge n'agit qu'après action super_admin explicite.
-
