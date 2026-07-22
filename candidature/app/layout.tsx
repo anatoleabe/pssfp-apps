@@ -46,10 +46,6 @@ async function CandidatureHeader() {
             />
             <PssfpLogo size={40} />
           </span>
-          <span className="hidden font-heading text-lg font-bold sm:block">
-            <span className="text-pssfp-graphite">PSSFP</span>
-            <span className="ml-1.5 text-pssfp-prune">/ Candidature</span>
-          </span>
         </Link>
         <nav aria-label="Navigation candidature" className="flex items-center gap-1 text-sm">
           <Link
@@ -103,7 +99,6 @@ function InstitutionalFooter(): JSX.Element {
         <div>
           <p className="font-heading text-xl font-bold">PSSFP — 10 ans d&apos;excellence</p>
           <p className="mt-2 text-sm leading-relaxed text-white/80">Programme Supérieur de Spécialisation en Finances Publiques</p>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[#E5C98E]">Ministère des Finances — République du Cameroun</p>
         </div>
         <div className="text-sm text-white/85">
           <p className="font-semibold text-white">Scolarité</p>
