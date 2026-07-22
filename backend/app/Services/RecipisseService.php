@@ -18,8 +18,8 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
  * - Page 1 « Copie candidat » : en-tête bilingue compact, bloc de confirmation
  *   (numéro de dossier proéminent + badge de statut), carte profil avec photo
  *   du candidat, choix académique, parcours, et QR de vérification en bas.
- * - Page 2 « Copie administration » : fiche de contrôle (suivi du dossier,
- *   décision, signature/cachet) à l'usage interne de la scolarité.
+ * - Page 2 « Copie du Comité de Pilotage » : fiche d'analyse (profil,
+ *   parcours, contrôle documentaire, décision, signature/cachet).
  * - Charte violet PSSFP (#4A2E67) sur cartes claires, lisible en niveaux de gris.
  * - QR code vers /v1/c/{uuid}/qr + code de vérification court (8 hex lisibles).
  *   Les identifiants techniques et le SHA-256 restent stockés côté serveur,
@@ -80,9 +80,7 @@ class RecipisseService
 
         $html = view('pdf.candidature-recipisse', $viewData)->render();
 
-        $pdfBytes = Pdf::loadHTML($html)
-            ->setPaper('a4', 'portrait')
-            ->output();
+        $pdfBytes = $this->renderPdf($html);
 
         // Hash SHA256 du binaire généré (cf. P-min-1 PR C). On regénère le PDF
         // une seconde fois en injectant le hash réel + un code de vérification
@@ -94,9 +92,7 @@ class RecipisseService
             [$firstHash, $vcode],
             $html,
         );
-        $finalBytes = Pdf::loadHTML($finalHtml)
-            ->setPaper('a4', 'portrait')
-            ->output();
+        $finalBytes = $this->renderPdf($finalHtml);
         $finalHash = hash('sha256', $finalBytes);
 
         $path = $this->pathFor($candidature);
@@ -127,6 +123,37 @@ class RecipisseService
     private function disk(): Filesystem
     {
         return Storage::disk(config('filesystems.default_candidatures_disk', 'minio_candidatures'));
+    }
+
+    /**
+     * Rend le document et ajoute la pagination au centre du pied de page.
+     * Le canvas Dompdf garantit un numéro exact sur chaque page sans dupliquer
+     * de marqueur « Page X sur Y » dans le corps du document.
+     */
+    private function renderPdf(string $html): string
+    {
+        $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
+        $pdf->render();
+
+        $dompdf = $pdf->getDomPDF();
+        $canvas = $dompdf->getCanvas();
+        $fontMetrics = $dompdf->getFontMetrics();
+        $font = $fontMetrics->getFont('Source Sans 3', 'normal')
+            ?: $fontMetrics->getFont('DejaVu Sans', 'normal');
+        $fontSize = 7.1;
+        $sample = 'Page 1 sur 2';
+        $textWidth = $fontMetrics->getTextWidth($sample, $font, $fontSize);
+
+        $canvas->page_text(
+            ($canvas->get_width() - $textWidth) / 2,
+            $canvas->get_height() - 25,
+            'Page {PAGE_NUM} sur {PAGE_COUNT}',
+            $font,
+            $fontSize,
+            [0.47, 0.44, 0.49],
+        );
+
+        return $pdf->output();
     }
 
     private function embedImage(string $absolutePath): string

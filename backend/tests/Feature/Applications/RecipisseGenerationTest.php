@@ -25,9 +25,12 @@ beforeEach(function (): void {
     Storage::fake('minio_candidatures');
 
     $campagne = CampagneCandidature::factory()->create([
+        'slug' => 'p14-2026-test',
+        'nom' => 'Année académique 2026-2027',
+        'promotion_numero' => 14,
         'status' => 'open',
-        'opens_at' => now()->subMonth(),
-        'closes_at' => now()->addMonth(),
+        'opens_at' => '2026-07-27 08:00:00',
+        'closes_at' => '2026-09-18 15:30:00',
         'prefix_numero' => 'P14026-',
     ]);
 
@@ -101,4 +104,48 @@ it('writes the file under the candidate UUID prefix', function (): void {
 
     $path = "{$this->candidature->uuid}/recipisse.pdf";
     Storage::disk('minio_candidatures')->assertExists($path);
+});
+
+it('renders the committee copy and both campaign labels', function (): void {
+    $candidature = $this->candidature->load(['campagne', 'paysNationalite']);
+
+    $html = view('pdf.candidature-recipisse', [
+        'candidature' => $candidature,
+        'campagne' => $candidature->campagne,
+        'qrSvg' => '',
+        'logoSrc' => '',
+        'enteteSrc' => '',
+        'photoSrc' => '',
+        'generatedAt' => now(),
+        'programName' => 'Master Professionnel en Finances Publiques',
+        'contact' => [
+            'adresse' => 'Campus de Messa, Yaoundé — Cameroun',
+            'tel' => '+237 222 234 567',
+            'web' => 'www.pssfp.org',
+            'email' => 'contact@pssfp.org',
+        ],
+        'hashPlaceholder' => str_repeat('0', 64),
+        'vcodePlaceholder' => '0000-0000',
+    ])->render();
+
+    expect($html)
+        ->toContain('Campagne 2026')
+        ->toContain('Année académique 2026-2027')
+        ->toContain('COPIE DU COMITÉ DE PILOTAGE')
+        ->toContain('STEERING COMMITTEE COPY')
+        ->toContain('Décision du Comité de Pilotage')
+        ->toContain('Applicant profile')
+        ->toContain('Application number')
+        ->toContain('Academic year')
+        ->not->toContain('COPIE ADMINISTRATION')
+        ->not->toContain('Page 1 sur 2 — Copie candidat')
+        ->not->toContain('Page 2 sur 2 — Comité de Pilotage du PSSFP');
+});
+
+it('ships the two embedded PDF font families', function (): void {
+    expect(resource_path('fonts/pdf/SourceSerif4-Regular.ttf'))->toBeFile()
+        ->and(resource_path('fonts/pdf/SourceSerif4-Bold.ttf'))->toBeFile()
+        ->and(resource_path('fonts/pdf/SourceSans3-Regular.ttf'))->toBeFile()
+        ->and(resource_path('fonts/pdf/SourceSans3-Italic.ttf'))->toBeFile()
+        ->and(resource_path('fonts/pdf/SourceSans3-Bold.ttf'))->toBeFile();
 });
