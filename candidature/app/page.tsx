@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
+import { headers } from 'next/headers';
 import Link from 'next/link';
-import { ArrowUpRight, CheckCircle2, FileCheck2, Laptop, MapPin } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CalendarClock, CheckCircle2, FileCheck2, Laptop, MapPin } from 'lucide-react';
 import { CountdownToClose } from '@/components/CountdownToClose';
 import { getCurrentCampaign, getSpecialites } from '@/lib/api/client';
 import { FALLBACK_SPECIALITES } from '@/lib/api/fallbacks';
@@ -23,58 +24,98 @@ export default async function HomePage(): Promise<JSX.Element> {
   const closingDate = campagne?.closes_at
     ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeZone: 'Africa/Douala' }).format(new Date(campagne.closes_at))
     : '18 septembre 2026';
-  const campaignTitle = campagne
-    ? `Promotion ${campagne.promotion_numero} — ${campagne.nom}`
-    : t('title');
+  const promoNumero = campagne?.promotion_numero ?? 14;
+  const heroTitle = campagne?.nom ?? t('title');
+  // Le middleware a validé le token Sanctum et pose cet en-tête ; le hero
+  // s'adapte pour un candidat déjà connecté (cohérence avec la nav « Mon dossier »).
+  const isLoggedIn = (await headers()).get('x-candidat-session-valid') === '1';
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-16">
-      <section aria-labelledby="hero-heading" className="space-y-6">
-        <div className="flex flex-wrap items-center gap-3">
+      <section
+        aria-labelledby="hero-heading"
+        className="relative overflow-hidden rounded-2xl border border-[var(--pssfp-border)] bg-[var(--pssfp-ivoire)] px-6 py-10 shadow-pssfp-soft sm:px-10 sm:py-12"
+      >
+        {/* Filet prune éditorial (aplat, sans dégradé — charte ADR-0008). */}
+        <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1.5 bg-[#4A2E67]" />
+
+        <div className="space-y-6">
+          <p className="inline-flex items-center gap-2 rounded-full border border-[#4A2E67]/15 bg-[var(--pssfp-surface)] px-3.5 py-1.5 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-[#4A2E67]">
+            <span aria-hidden="true" className="inline-block h-1.5 w-1.5 rounded-full bg-[#D4AF6A]" />
+            Promotion {promoNumero} · {t('eyebrow')}
+          </p>
+
           <h1
             id="hero-heading"
-            className="font-heading text-4xl font-bold text-[#4A2E67] md:text-5xl"
+            className="font-heading text-4xl font-bold leading-[1.05] tracking-tight text-[#4A2E67] sm:text-5xl md:text-6xl"
           >
-            {campaignTitle}
+            {heroTitle}
           </h1>
-          {isOpen && campagne?.closes_at && (
-            <CountdownToClose closesAt={campagne.closes_at} ariaLabel={t('countdownAria')} />
+
+          {isOpen && (
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="inline-flex items-center gap-2 rounded-md border border-[#4A2E67]/20 bg-[#F4EFFA] px-3 py-1.5 text-sm font-semibold text-[#4A2E67]">
+                <span aria-hidden="true" className="relative inline-flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75 motion-safe:animate-ping" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600" />
+                </span>
+                {t('statusOpen')}
+              </span>
+              {campagne?.closes_at && (
+                <CountdownToClose closesAt={campagne.closes_at} ariaLabel={t('countdownAria')} />
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-[#E7D3A0] bg-[#FFF6E0] px-3 py-1.5 text-sm font-semibold text-[#765315]">
+                <CalendarClock size={15} aria-hidden="true" />
+                {t('closingLabel')} {closingDate}
+              </span>
+            </div>
+          )}
+
+          <p className="max-w-2xl text-lg leading-relaxed text-[#3C3C3C]">
+            {isOpen ? (isLoggedIn ? t('introLoggedIn') : t('introOpen')) : t('introClosed')}
+          </p>
+
+          {isOpen ? (
+            isLoggedIn ? (
+              <div className="flex flex-wrap gap-3 pt-1">
+                <Link
+                  href="/dossier"
+                  data-testid="cta-dossier"
+                  className="group inline-flex items-center gap-2 rounded-pssfp-button bg-[#4A2E67] px-6 py-3 font-medium text-white shadow-pssfp-elevated transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:bg-[#3A2452] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
+                >
+                  <FileCheck2 size={18} aria-hidden="true" />
+                  {t('ctaDossier')}
+                  <ArrowRight size={16} aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-0.5" />
+                </Link>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-3 pt-1">
+                <Link
+                  href="/inscription"
+                  data-testid="cta-inscription"
+                  className="group inline-flex items-center gap-2 rounded-pssfp-button bg-[#4A2E67] px-6 py-3 font-medium text-white shadow-pssfp-elevated transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:bg-[#3A2452] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
+                >
+                  {t('ctaCreateAccount')}
+                  <ArrowRight size={16} aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-0.5" />
+                </Link>
+                <Link
+                  href="/login"
+                  data-testid="cta-login"
+                  className="inline-flex items-center gap-2 rounded-pssfp-button border border-[#4A2E67] bg-white px-6 py-3 font-medium text-[#4A2E67] transition-all duration-200 hover:bg-[#F4EFFA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
+                >
+                  {t('ctaLogin')}
+                </Link>
+              </div>
+            )
+          ) : (
+            <div
+              role="status"
+              className="max-w-2xl rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
+            >
+              {t('campaignClosedNotice')}
+            </div>
           )}
         </div>
-
-        <p className="max-w-3xl text-lg text-[#333333]">
-          {isOpen ? t('introOpen') : t('introClosed')}
-        </p>
-        {isOpen && (
-          <p className="inline-flex rounded-full bg-[#FFF6E0] px-4 py-2 text-sm font-semibold text-[#765315]">
-            Clôture : {closingDate}
-          </p>
-        )}
-
-        {isOpen ? (
-          <div className="flex flex-wrap gap-4">
-            <Link
-              href="/inscription"
-              data-testid="cta-inscription"
-              className="rounded-md bg-[#4A2E67] px-6 py-3 font-medium text-white hover:bg-[#5C3A7E]"
-            >
-              {t('ctaCreateAccount')}
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-md border border-[#4A2E67] px-6 py-3 font-medium text-[#4A2E67] hover:bg-[#F4EFFA]"
-            >
-              {t('ctaLogin')}
-            </Link>
-          </div>
-        ) : (
-          <div
-            role="status"
-            className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
-          >
-            {t('campaignClosedNotice')}
-          </div>
-        )}
       </section>
 
       <section aria-labelledby="documents-heading" className="mt-12 rounded-lg border border-[#D4AF6A]/40 bg-[#FFFBEA] p-6">
