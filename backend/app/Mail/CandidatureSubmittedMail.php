@@ -46,6 +46,7 @@ final class CandidatureSubmittedMail extends Mailable implements ShouldQueue
             subject: __('mail.candidature.submitted.subject', [
                 'numero' => $this->candidature->numero_dossier,
             ]),
+            replyTo: [config('mail.admissions_recipient')],
         );
     }
 
@@ -57,6 +58,7 @@ final class CandidatureSubmittedMail extends Mailable implements ShouldQueue
                 'candidature' => $this->candidature,
                 'fraisFcfa' => number_format((float) config('pssfp.frais_dossier_fcfa', 50000), 0, ',', ' '),
                 'dossierUrl' => config('pssfp.candidature_app_url').'/dossier/suivi',
+                'supportEmail' => config('mail.admissions_recipient'),
             ],
         );
     }

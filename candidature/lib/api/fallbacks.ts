@@ -1,4 +1,4 @@
-import type { Diplome, Pays, Specialite, UniversitePays } from './types';
+import type { Diplome, EmployeurPublicGroup, Pays, Specialite, UniversitePays } from './types';
 
 /**
  * Données de fallback utilisées par les Server Components quand le backend
@@ -67,6 +67,49 @@ export const FALLBACK_UNIVERSITES: ReadonlyArray<UniversitePays> = [
       'Université de Buea',
       'Université de Bamenda',
       'Université de Maroua',
+      'Université de Bertoua',
+      'Université d’Ebolowa',
+      'Université de Garoua',
+    ],
+  },
+];
+
+export const FALLBACK_EMPLOYEURS_PUBLICS: ReadonlyArray<EmployeurPublicGroup> = [
+  {
+    categorie: 'Institutions et administrations centrales',
+    employeurs: [
+      'Présidence de la République',
+      'Services du Premier ministre',
+      'Ministère des Finances (MINFI)',
+      'Ministère de l’Économie, de la Planification et de l’Aménagement du territoire (MINEPAT)',
+      'Ministère de la Fonction publique et de la Réforme administrative (MINFOPRA)',
+      'Ministère de la Décentralisation et du Développement local (MINDDEVEL)',
+      'Ministère de la Santé publique (MINSANTE)',
+      'Ministère de l’Enseignement supérieur (MINESUP)',
+    ],
+  },
+  {
+    categorie: 'Entreprises et établissements publics',
+    employeurs: [
+      'Caisse Nationale de Prévoyance Sociale (CNPS)',
+      'Cameroon Telecommunications (CAMTEL)',
+      'Cameroon Water Utilities Corporation (CAMWATER)',
+      'Cameroun Airlines Corporation (CAMAIR-CO)',
+      'Fonds Spécial d’Équipement et d’Intervention Intercommunale (FEICOM)',
+      'Office de Radiodiffusion Télévision Camerounaise (CRTV)',
+      'Port Autonome de Douala (PAD)',
+      'Port Autonome de Kribi (PAK)',
+      'Société Nationale de Raffinage (SONARA)',
+    ],
+  },
+  {
+    categorie: 'Universités d’État',
+    employeurs: [
+      'Université de Bertoua',
+      'Université d’Ebolowa',
+      'Université de Garoua',
+      'Université de Yaoundé I',
+      'Université de Yaoundé II (Soa)',
     ],
   },
 ];

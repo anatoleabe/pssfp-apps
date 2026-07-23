@@ -123,13 +123,16 @@ export default async function HomePage(): Promise<JSX.Element> {
           <FileCheck2 aria-hidden="true" className="mt-0.5 shrink-0 text-[#8A641D]" />
           <div>
             <h2 id="documents-heading" className="font-heading text-xl font-bold text-[#4A2E67]">Pièces à préparer</h2>
-            <p className="mt-1 text-sm text-[#4B4B4B]">Préparez des fichiers PDF, JPG ou PNG lisibles avant de commencer.</p>
-            <ul className="mt-3 grid gap-x-8 gap-y-1 text-sm text-[#333333] sm:grid-cols-2">
-              <li>Photo d&apos;identité récente</li>
-              <li>Diplôme ou attestation de réussite</li>
-              <li>Acte de naissance et relevés de notes</li>
-              <li>CV, lettre de motivation et attestation employeur</li>
-            </ul>
+            <p className="mt-1 text-sm text-[#4B4B4B]">Préparez des fichiers PDF, JPG ou PNG parfaitement lisibles avant de commencer.</p>
+            <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-[#333333]">
+              <li>Une photo d&apos;identité récente.</li>
+              <li>Le diplôme de licence ou une attestation de réussite, dûment signé(e) par les autorités universitaires et datant de moins de trois mois.</li>
+              <li>Un acte de naissance.</li>
+              <li>Les relevés de notes du cycle de licence (L1, L2 et L3), dûment signés par les autorités universitaires.</li>
+              <li>Un curriculum vitæ (CV) à jour.</li>
+              <li>Une lettre de motivation adressée au Coordonnateur du PSSFP.</li>
+              <li>Pour les candidats en activité : une attestation de présence effective au poste ou une autorisation de l&apos;employeur, le cas échéant.</li>
+            </ol>
           </div>
         </div>
       </section>

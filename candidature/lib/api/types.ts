@@ -55,6 +55,23 @@ export interface UniversitePays {
   universites: string[];
 }
 
+export interface EmployeurPublicGroup {
+  categorie: string;
+  employeurs: string[];
+}
+
+export type StatutActuel =
+  | 'Etudiant'
+  | 'Sans-emploi'
+  | 'Fonctionnaire'
+  | 'Contractuel-Etat'
+  | 'Etablissement-public'
+  | 'Entreprise-publique'
+  | 'Prive'
+  | 'Independant'
+  | 'ONG-International'
+  | 'Autre';
+
 export interface RegisterCandidatPayload {
   phone_e164: string;
   phone_country: string;
@@ -114,10 +131,12 @@ export interface CandidatureProfile {
   institut?: string;
   specialite_diplome?: string;
   annee_diplome?: number;
-  statut_actuel?: 'Etudiant' | 'Fonctionnaire-Contractuel' | 'Prive';
+  statut_actuel?: StatutActuel | 'Fonctionnaire-Contractuel';
+  fonction_actuelle?: string | null;
   employeur?: string | null;
   adresse_employeur?: string | null;
   tel_employeur?: string | null;
   engagement_nom?: string;
   moyen_connaissance?: string | null;
+  moyen_connaissance_detail?: string | null;
 }

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import type { Diplome, Pays, Specialite, UniversitePays } from '@/lib/api/types';
+import type { Diplome, EmployeurPublicGroup, Pays, Specialite, UniversitePays } from '@/lib/api/types';
 import { isTurnstileEnabled } from '@/components/TurnstileWidget';
 import { isValidEngagement } from '@/lib/format/engagement';
 import { isValidE164 } from '@/lib/format/phone';
@@ -33,6 +33,7 @@ export interface WizardContainerProps {
   specialites: Specialite[];
   diplomes: Diplome[];
   universites: UniversitePays[];
+  employeursPublics: EmployeurPublicGroup[];
   /** Server Action injectée — appelée à la soumission finale. */
   submitAction: (data: WizardData) => Promise<WizardServerActionResult>;
 }
@@ -42,6 +43,7 @@ export function WizardContainer({
   specialites,
   diplomes,
   universites,
+  employeursPublics,
   submitAction,
 }: WizardContainerProps): JSX.Element {
   const t = useTranslations('wizard');
@@ -298,6 +300,7 @@ export function WizardContainer({
             onChange={patch}
             diplomes={diplomes}
             universites={universites}
+            employeursPublics={employeursPublics}
           />
         )}
         {step === 4 && (

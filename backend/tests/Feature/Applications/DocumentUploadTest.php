@@ -286,6 +286,7 @@ it('does not block submission when no documents were uploaded (non-blocking by d
         'ville_residence' => 'Yaoundé',
         'indicatif1' => '+237',
         'telephone1' => '691222333',
+        'email' => 'candidat@example.com',
         'specialite' => array_values((array) config('specialites'))[0],
         'type_etude' => 'presentiel',
         'premiere_langue' => 'fr',
@@ -294,6 +295,7 @@ it('does not block submission when no documents were uploaded (non-blocking by d
         'specialite_diplome' => 'Économie',
         'annee_diplome' => 2024,
         'statut_actuel' => 'Etudiant',
+        'moyen_connaissance' => 'Site officiel du PSSFP',
         'engagement_nom' => 'Jean Dupont',
     ];
 

@@ -1,14 +1,15 @@
 import { getTranslations } from 'next-intl/server';
 import { WizardContainer } from '@/components/wizard/WizardContainer';
-import { getDiplomes, getPays, getSpecialites, getUniversites } from '@/lib/api/client';
+import { getDiplomes, getEmployeursPublics, getPays, getSpecialites, getUniversites } from '@/lib/api/client';
 import {
   FALLBACK_DIPLOMES,
+  FALLBACK_EMPLOYEURS_PUBLICS,
   FALLBACK_PAYS,
   FALLBACK_SPECIALITES,
   FALLBACK_UNIVERSITES,
 } from '@/lib/api/fallbacks';
 import { submitInscription } from './actions';
-import type { Diplome, Pays, Specialite, UniversitePays } from '@/lib/api/types';
+import type { Diplome, EmployeurPublicGroup, Pays, Specialite, UniversitePays } from '@/lib/api/types';
 
 export const metadata = {
   title: 'Inscription candidat',
@@ -18,11 +19,12 @@ export const metadata = {
 export default async function InscriptionPage(): Promise<JSX.Element> {
   const t = await getTranslations('inscription');
 
-  const [paysResult, specialitesResult, diplomesResult, universitesResult] = await Promise.all([
+  const [paysResult, specialitesResult, diplomesResult, universitesResult, employeursResult] = await Promise.all([
     getPays(),
     getSpecialites(),
     getDiplomes(),
     getUniversites(),
+    getEmployeursPublics(),
   ]);
 
   // Fallback hardcoded utilisé quand le backend est temporairement
@@ -40,6 +42,9 @@ export default async function InscriptionPage(): Promise<JSX.Element> {
   const universites: UniversitePays[] = universitesResult.ok && universitesResult.data.length > 0
     ? universitesResult.data
     : [...FALLBACK_UNIVERSITES];
+  const employeursPublics: EmployeurPublicGroup[] = employeursResult.ok && employeursResult.data.length > 0
+    ? employeursResult.data
+    : [...FALLBACK_EMPLOYEURS_PUBLICS];
 
   return (
     <div className="relative isolate min-h-[60vh]">
@@ -67,6 +72,7 @@ export default async function InscriptionPage(): Promise<JSX.Element> {
           specialites={specialites}
           diplomes={diplomes}
           universites={universites}
+          employeursPublics={employeursPublics}
           submitAction={submitInscription}
         />
       </div>

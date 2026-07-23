@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\Cache;
  * - GET /v1/reference/specialites (V1 : config statique, V2 : table CMS)
  * - GET /v1/reference/diplomes (V1 : config statique)
  * - GET /v1/reference/universites (V1 : config statique, groupé par pays CEMAC)
+ * - GET /v1/reference/employeurs-publics (config officielle, groupée par catégorie)
  */
 final class ReferenceController extends Controller
 {
@@ -103,6 +104,21 @@ final class ReferenceController extends Controller
         $items = [];
         foreach ($universites as $pays => $noms) {
             $items[] = ['pays' => $pays, 'universites' => array_values((array) $noms)];
+        }
+
+        return response()->json(['data' => $items]);
+    }
+
+    public function employeursPublics(): JsonResponse
+    {
+        $groups = (array) config('employeurs_publics', []);
+
+        $items = [];
+        foreach ($groups as $categorie => $employeurs) {
+            $items[] = [
+                'categorie' => $categorie,
+                'employeurs' => array_values((array) $employeurs),
+            ];
         }
 
         return response()->json(['data' => $items]);

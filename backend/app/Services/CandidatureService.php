@@ -142,7 +142,7 @@ final class CandidatureService
             'indicatif1', 'telephone1',
             'specialite', 'type_etude', 'premiere_langue',
             'diplome_obtenu', 'institut', 'specialite_diplome', 'annee_diplome',
-            'statut_actuel', 'engagement_nom',
+            'statut_actuel', 'moyen_connaissance', 'email', 'engagement_nom',
         ];
 
         foreach ($required as $field) {
@@ -150,6 +150,30 @@ final class CandidatureService
             if ($value === null || $value === '') {
                 $errors[$field] = "Champ obligatoire manquant pour la soumission : {$field}.";
             }
+        }
+
+        $statusesWithEmployer = [
+            'Fonctionnaire', 'Contractuel-Etat', 'Etablissement-public',
+            'Entreprise-publique', 'Prive', 'Independant', 'ONG-International',
+            'Autre', 'Fonctionnaire-Contractuel',
+        ];
+        if (in_array($candidature->statut_actuel, $statusesWithEmployer, true)) {
+            if (empty($candidature->employeur)) {
+                $errors['employeur'] = 'L’employeur ou l’organisation est obligatoire pour cette situation professionnelle.';
+            }
+            if (empty($candidature->fonction_actuelle)) {
+                $errors['fonction_actuelle'] = 'La fonction ou le poste occupé est obligatoire.';
+            }
+        }
+
+        $sourcesWithDetail = [
+            'Autre', 'Autre réseau social', 'Administration ou employeur',
+            'Université ou établissement d’enseignement',
+            'Collègue, ami ou membre de la famille',
+        ];
+        if (in_array($candidature->moyen_connaissance, $sourcesWithDetail, true)
+            && empty($candidature->moyen_connaissance_detail)) {
+            $errors['moyen_connaissance_detail'] = 'Veuillez préciser comment vous avez connu le PSSFP.';
         }
 
         if ($candidature->annee_diplome !== null && $candidature->annee_diplome > now()->year) {

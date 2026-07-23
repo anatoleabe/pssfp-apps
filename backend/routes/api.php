@@ -63,6 +63,7 @@ Route::prefix('reference')->name('reference.')->group(function (): void {
     Route::get('/specialites', [ReferenceController::class, 'specialites'])->name('specialites');
     Route::get('/diplomes', [ReferenceController::class, 'diplomes'])->name('diplomes');
     Route::get('/universites', [ReferenceController::class, 'universites'])->name('universites');
+    Route::get('/employeurs-publics', [ReferenceController::class, 'employeursPublics'])->name('employeurs-publics');
 });
 
 /*

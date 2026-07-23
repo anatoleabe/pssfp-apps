@@ -54,7 +54,7 @@ class CandidatureFactory extends Factory
             'adresse_employeur' => null,
             'tel_employeur' => null,
             'engagement_nom' => $this->faker->name(),
-            'moyen_connaissance' => 'Site web',
+            'moyen_connaissance' => 'Site officiel du PSSFP',
             'photo_path' => null,
             'statut' => Candidature::STATUT_POSTULANT,
             'frais_paye' => false,

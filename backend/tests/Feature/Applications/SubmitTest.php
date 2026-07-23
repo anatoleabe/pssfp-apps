@@ -61,6 +61,7 @@ function fullProfilePayload(): array
         'ville_residence' => 'Yaoundé',
         'indicatif1' => '+237',
         'telephone1' => '691111222',
+        'email' => 'candidat@example.com',
         'specialite' => $first,
         'type_etude' => 'presentiel',
         'premiere_langue' => 'fr',
@@ -69,6 +70,7 @@ function fullProfilePayload(): array
         'specialite_diplome' => 'Économie',
         'annee_diplome' => 2024,
         'statut_actuel' => 'Etudiant',
+        'moyen_connaissance' => 'Site officiel du PSSFP',
         'engagement_nom' => 'Jean Dupont',
     ];
 }
@@ -143,6 +145,32 @@ it('returns 422 when the required identity photo is missing', function (): void 
 
     $response->assertStatus(422);
     expect($response->json('errors'))->toHaveKey('photo');
+});
+
+it('requires the discovery source before submission', function (): void {
+    [$user, $token] = authedFullCandidat($this->campagne);
+    Candidature::where('user_id', $user->id)->update(['moyen_connaissance' => null]);
+
+    $response = $this->withHeader('Authorization', "Bearer {$token}")
+        ->postJson('/v1/applications/me/submit', ['confirmation_engagement' => true]);
+
+    $response->assertStatus(422);
+    expect($response->json('errors'))->toHaveKey('moyen_connaissance');
+});
+
+it('requires an employer and current position for an employed candidate', function (): void {
+    [$user, $token] = authedFullCandidat($this->campagne);
+    Candidature::where('user_id', $user->id)->update([
+        'statut_actuel' => 'Fonctionnaire',
+        'employeur' => null,
+        'fonction_actuelle' => null,
+    ]);
+
+    $response = $this->withHeader('Authorization', "Bearer {$token}")
+        ->postJson('/v1/applications/me/submit', ['confirmation_engagement' => true]);
+
+    $response->assertStatus(422);
+    expect($response->json('errors'))->toHaveKeys(['employeur', 'fonction_actuelle']);
 });
 
 it('returns 422 when confirmation_engagement is missing', function (): void {

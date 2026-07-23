@@ -13,9 +13,10 @@ const KNOWN_FIELDS = new Set([
   'civilite', 'nom', 'prenom', 'date_naissance', 'lieu_naissance', 'genre',
   'statut_matrimonial', 'nationalite', 'pays_origine', 'pays_residence',
   'region', 'departement', 'adresse', 'ville_residence', 'indicatif1',
-  'telephone1', 'specialite', 'type_etude', 'premiere_langue',
+  'telephone1', 'email', 'specialite', 'type_etude', 'premiere_langue',
   'diplome_obtenu', 'institut', 'specialite_diplome', 'annee_diplome',
-  'statut_actuel', 'engagement_nom',
+  'statut_actuel', 'fonction_actuelle', 'employeur', 'moyen_connaissance',
+  'moyen_connaissance_detail', 'engagement_nom',
 ]);
 
 export function DossierCompleteness({ candidature }: { candidature: MyCandidature }): JSX.Element {

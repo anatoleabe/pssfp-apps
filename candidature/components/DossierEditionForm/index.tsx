@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { saveDossierFieldsAction } from '@/app/dossier/edition/actions';
 import { DiplomeSelect } from '@/components/DiplomeSelect';
+import { EmployeurPublicSelect } from '@/components/EmployeurPublicSelect';
 import { InstitutSelect } from '@/components/InstitutSelect';
 import { PaysRegionDepartementSelect } from '@/components/PaysRegionDepartementSelect';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import type { MyCandidature } from '@/lib/api/client';
 import type { EditableField, EditableFields } from '@/lib/dossier/editableFields';
-import type { Diplome, Pays, Specialite, UniversitePays } from '@/lib/api/types';
+import { MOYENS_CONNAISSANCE, STATUT_ACTUEL_OPTIONS, isPublicEmploymentStatus, needsEmployer } from '@/lib/dossier/options';
+import type { Diplome, EmployeurPublicGroup, Pays, Specialite, UniversitePays } from '@/lib/api/types';
 
 const DEBOUNCE_MS = 2000;
 const MAX_RETRIES = 3;
@@ -29,6 +31,7 @@ interface DossierEditionFormProps {
   specialites: Specialite[];
   diplomes: Diplome[];
   universites: UniversitePays[];
+  employeursPublics: EmployeurPublicGroup[];
   focusField: EditableField | null;
 }
 
@@ -65,10 +68,12 @@ function buildInitialState(c: MyCandidature): FormState {
     specialite_diplome: c.specialite_diplome ?? '',
     annee_diplome: c.annee_diplome ?? '',
     statut_actuel: c.statut_actuel ?? '',
+    fonction_actuelle: c.fonction_actuelle ?? '',
     employeur: c.employeur ?? '',
     adresse_employeur: c.adresse_employeur ?? '',
     tel_employeur: c.tel_employeur ?? '',
     moyen_connaissance: c.moyen_connaissance ?? '',
+    moyen_connaissance_detail: c.moyen_connaissance_detail ?? '',
     engagement_nom: c.engagement_nom ?? '',
   };
 }
@@ -79,6 +84,7 @@ export function DossierEditionForm({
   specialites,
   diplomes,
   universites,
+  employeursPublics,
   focusField,
 }: DossierEditionFormProps): JSX.Element {
   const router = useRouter();
@@ -222,6 +228,7 @@ export function DossierEditionForm({
         setField={setField}
         diplomes={diplomes}
         universites={universites}
+        employeursPublics={employeursPublics}
       />
 
       <SectionEngagement form={form} errors={fieldErrors} setField={setField} />
@@ -601,14 +608,19 @@ function SectionCoordonnees({
         </Field>
       </div>
 
-      <Field field="email" label="Email (optionnel)" error={errors.email}>
+      <Field field="email" label="Adresse e-mail personnelle *" error={errors.email}>
         <input
           data-testid="edit-email"
           type="email"
+          required
+          autoComplete="email"
           value={String(form.email ?? '')}
           onChange={(e) => setField('email', e.target.value)}
           className={inputCls}
         />
+        <span className="mt-1 block text-xs text-[#666]">
+          La confirmation de dépôt et les communications officielles seront envoyées à cette adresse.
+        </span>
       </Field>
     </Card>
   );
@@ -620,8 +632,10 @@ function SectionDiplome({
   setField,
   diplomes,
   universites,
-}: SectionPropsBase & { diplomes: Diplome[]; universites: UniversitePays[] }): JSX.Element {
-  const showEmployer = form.statut_actuel && form.statut_actuel !== 'Etudiant';
+  employeursPublics,
+}: SectionPropsBase & { diplomes: Diplome[]; universites: UniversitePays[]; employeursPublics: EmployeurPublicGroup[] }): JSX.Element {
+  const showEmployer = needsEmployer(String(form.statut_actuel ?? ''));
+  const usePublicSelect = isPublicEmploymentStatus(String(form.statut_actuel ?? ''));
 
   return (
     <Card id="diplome" title="Diplôme & profession" description="Parcours académique et activité actuelle.">
@@ -667,7 +681,7 @@ function SectionDiplome({
         </Field>
       </div>
 
-      <Field field="statut_actuel" label="Situation actuelle" error={errors.statut_actuel}>
+      <Field field="statut_actuel" label="Situation professionnelle actuelle *" error={errors.statut_actuel}>
         <select
           data-testid="edit-statut-actuel"
           value={String(form.statut_actuel ?? '')}
@@ -675,56 +689,91 @@ function SectionDiplome({
           className={inputCls}
         >
           <option value="">— Choisir —</option>
-          <option value="Etudiant">Étudiant</option>
-          <option value="Fonctionnaire-Contractuel">Fonctionnaire / Contractuel</option>
-          <option value="Prive">Secteur privé</option>
+          {STATUT_ACTUEL_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
         </select>
       </Field>
 
       {showEmployer && (
         <div className="space-y-4 rounded-md border border-[#F4EFFA] bg-[#FAF7FF] p-4">
-          <Field field="employeur" label="Employeur" error={errors.employeur}>
+          <Field
+            field="employeur"
+            label={usePublicSelect ? 'Administration, entreprise ou établissement public *' : 'Employeur ou organisation *'}
+            error={errors.employeur}
+          >
+            {usePublicSelect ? (
+              <EmployeurPublicSelect
+                groups={employeursPublics}
+                value={String(form.employeur ?? '')}
+                onChange={(value) => setField('employeur', value)}
+                error={errors.employeur}
+              />
+            ) : (
+              <input
+                type="text"
+                value={String(form.employeur ?? '')}
+                onChange={(e) => setField('employeur', e.target.value)}
+                placeholder="Nom officiel de la structure"
+                className={inputCls}
+              />
+            )}
+          </Field>
+          <Field field="fonction_actuelle" label="Fonction ou poste occupé *" error={errors.fonction_actuelle}>
             <input
               type="text"
-              value={String(form.employeur ?? '')}
-              onChange={(e) => setField('employeur', e.target.value)}
+              value={String(form.fonction_actuelle ?? '')}
+              onChange={(e) => setField('fonction_actuelle', e.target.value)}
+              placeholder="Ex. Contrôleur de gestion, cadre financier…"
               className={inputCls}
             />
           </Field>
-          <Field field="adresse_employeur" label="Adresse de l'employeur" error={errors.adresse_employeur}>
-            <input
-              type="text"
-              value={String(form.adresse_employeur ?? '')}
-              onChange={(e) => setField('adresse_employeur', e.target.value)}
-              className={inputCls}
-            />
-          </Field>
-          <Field field="tel_employeur" label="Téléphone employeur" error={errors.tel_employeur}>
-            <input
-              type="text"
-              value={String(form.tel_employeur ?? '')}
-              onChange={(e) => setField('tel_employeur', e.target.value)}
-              className={inputCls}
-            />
-          </Field>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field field="adresse_employeur" label="Ville / adresse professionnelle (optionnel)" error={errors.adresse_employeur}>
+              <input
+                type="text"
+                value={String(form.adresse_employeur ?? '')}
+                onChange={(e) => setField('adresse_employeur', e.target.value)}
+                className={inputCls}
+              />
+            </Field>
+            <Field field="tel_employeur" label="Téléphone professionnel (optionnel)" error={errors.tel_employeur}>
+              <input
+                type="tel"
+                value={String(form.tel_employeur ?? '')}
+                onChange={(e) => setField('tel_employeur', e.target.value)}
+                className={inputCls}
+              />
+            </Field>
+          </div>
+          <p className="text-xs text-[#666]">
+            Une attestation de présence effective au poste ou une autorisation de l’employeur sera requise, le cas échéant.
+          </p>
         </div>
       )}
 
-      <Field field="moyen_connaissance" label="Comment avez-vous connu le PSSFP ? (optionnel)" error={errors.moyen_connaissance}>
+      <Field field="moyen_connaissance" label="Comment avez-vous connu le PSSFP ? *" error={errors.moyen_connaissance}>
         <select
           value={String(form.moyen_connaissance ?? '')}
           onChange={(e) => setField('moyen_connaissance', e.target.value)}
           className={inputCls}
         >
           <option value="">— Choisir —</option>
-          <option>Site web</option>
-          <option>Réseaux sociaux</option>
-          <option>Recommandation</option>
-          <option>Presse</option>
-          <option>Ancien candidat</option>
-          <option>Autre</option>
+          {MOYENS_CONNAISSANCE.map((option) => <option key={option}>{option}</option>)}
         </select>
       </Field>
+
+      {['Autre', 'Autre réseau social', 'Administration ou employeur', 'Université ou établissement d’enseignement', 'Collègue, ami ou membre de la famille'].includes(String(form.moyen_connaissance ?? '')) && (
+        <Field field="moyen_connaissance_detail" label="Précisez la source" error={errors.moyen_connaissance_detail}>
+          <input
+            type="text"
+            value={String(form.moyen_connaissance_detail ?? '')}
+            onChange={(event) => setField('moyen_connaissance_detail', event.target.value)}
+            placeholder="Nom de la personne, de l’organisme ou du canal"
+            className={inputCls}
+          />
+        </Field>
+      )}
     </Card>
   );
 }

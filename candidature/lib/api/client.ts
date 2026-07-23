@@ -4,6 +4,7 @@ import type {
   CandidatureProfile,
   Departement,
   Diplome,
+  EmployeurPublicGroup,
   Pays,
   Region,
   RegisterCandidatPayload,
@@ -155,6 +156,10 @@ export function getDiplomes(): Promise<ApiResult<Diplome[]>> {
 
 export function getUniversites(): Promise<ApiResult<UniversitePays[]>> {
   return apiGet<UniversitePays[]>('/reference/universites', { revalidate: 86400 });
+}
+
+export function getEmployeursPublics(): Promise<ApiResult<EmployeurPublicGroup[]>> {
+  return apiGet<EmployeurPublicGroup[]>('/reference/employeurs-publics', { revalidate: 86400 });
 }
 
 export function registerCandidat(

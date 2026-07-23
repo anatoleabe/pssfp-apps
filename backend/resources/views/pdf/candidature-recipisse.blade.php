@@ -122,8 +122,16 @@
     };
     $profStatus = match ($candidature->statut_actuel) {
         'Etudiant' => 'Étudiant',
+        'Sans-emploi' => 'Sans emploi / en recherche d’emploi',
+        'Fonctionnaire' => 'Fonctionnaire titulaire',
+        'Contractuel-Etat' => 'Agent contractuel de l’État',
+        'Etablissement-public' => 'Agent d’un établissement public',
+        'Entreprise-publique' => 'Salarié(e) d’une entreprise publique',
         'Fonctionnaire-Contractuel' => 'Fonctionnaire / Contractuel',
-        'Prive' => 'Secteur privé',
+        'Prive' => 'Salarié(e) du secteur privé',
+        'Independant' => 'Indépendant(e) / profession libérale',
+        'ONG-International' => 'ONG / organisation internationale',
+        'Autre' => 'Autre situation professionnelle',
         default => $candidature->statut_actuel,
     };
     $degree = $candidature->diplome_obtenu ?: null;
@@ -476,6 +484,11 @@
       <td>{!! $field('Situation actuelle', $profStatus) !!}</td>
       <td>{!! $field('Employeur', $candidature->employeur) !!}</td>
     </tr>
+    <tr>
+      <td>{!! $field('Fonction / poste', $candidature->fonction_actuelle) !!}</td>
+      <td>{!! $field('Adresse professionnelle', $candidature->adresse_employeur) !!}</td>
+      <td>{!! $field('Téléphone professionnel', $candidature->tel_employeur) !!}</td>
+    </tr>
   </table>
 </div>
 
@@ -595,6 +608,7 @@
           <td>
             {!! $field('Situation actuelle', $profStatus) !!}
             {!! $field('Structure / employeur', $candidature->employeur) !!}
+            {!! $field('Fonction / poste', $candidature->fonction_actuelle) !!}
           </td>
         </tr>
       </table>

@@ -52,7 +52,8 @@ final class UpdateCandidatureRequest extends FormRequest
             'indicatif2' => ['sometimes', 'nullable', 'string', 'max:10'],
             'telephone2' => ['sometimes', 'nullable', 'string', 'max:20'],
 
-            // Email (optionnel)
+            // Email autorisé à rester vide dans un brouillon, mais obligatoire
+            // au moment de la soumission (CandidatureService::checkSubmittable).
             'email' => ['sometimes', 'nullable', 'email', 'max:150'],
 
             // Pédagogique
@@ -68,14 +69,19 @@ final class UpdateCandidatureRequest extends FormRequest
             'institut' => ['sometimes', 'string', 'max:150'],
             'specialite_diplome' => ['sometimes', 'string', 'max:100'],
             'annee_diplome' => ['sometimes', 'integer', 'min:1950', 'max:'.now()->year],
-            'statut_actuel' => ['sometimes', 'string', 'in:Etudiant,Fonctionnaire-Contractuel,Prive'],
+            'statut_actuel' => [
+                'sometimes', 'string',
+                'in:Etudiant,Sans-emploi,Fonctionnaire,Contractuel-Etat,Etablissement-public,Entreprise-publique,Prive,Independant,ONG-International,Autre,Fonctionnaire-Contractuel',
+            ],
+            'fonction_actuelle' => ['sometimes', 'nullable', 'string', 'max:150'],
             'employeur' => ['sometimes', 'nullable', 'string', 'max:150'],
             'adresse_employeur' => ['sometimes', 'nullable', 'string', 'max:200'],
             'tel_employeur' => ['sometimes', 'nullable', 'string', 'max:30'],
 
             // Engagement
             'engagement_nom' => ['sometimes', 'string', 'max:200'],
-            'moyen_connaissance' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'moyen_connaissance' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'moyen_connaissance_detail' => ['sometimes', 'nullable', 'string', 'max:150'],
         ];
     }
 }

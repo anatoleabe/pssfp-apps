@@ -46,10 +46,12 @@ export const EDITABLE_FIELDS = [
   'specialite_diplome',
   'annee_diplome',
   'statut_actuel',
+  'fonction_actuelle',
   'employeur',
   'adresse_employeur',
   'tel_employeur',
   'moyen_connaissance',
+  'moyen_connaissance_detail',
   // Engagement
   'engagement_nom',
 ] as const;
@@ -88,9 +90,11 @@ export const SECTION_OF_FIELD: Record<EditableField, 'identite' | 'coordonnees' 
   specialite_diplome: 'diplome',
   annee_diplome: 'diplome',
   statut_actuel: 'diplome',
+  fonction_actuelle: 'diplome',
   employeur: 'diplome',
   adresse_employeur: 'diplome',
   tel_employeur: 'diplome',
   moyen_connaissance: 'diplome',
+  moyen_connaissance_detail: 'diplome',
   engagement_nom: 'engagement',
 };

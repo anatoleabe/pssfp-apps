@@ -60,6 +60,7 @@ final class CandidatureResource extends JsonResource
             'specialite_diplome' => $this->specialite_diplome,
             'annee_diplome' => $this->annee_diplome,
             'statut_actuel' => $this->statut_actuel,
+            'fonction_actuelle' => $this->fonction_actuelle,
             'employeur' => $this->employeur,
             'adresse_employeur' => $this->adresse_employeur,
             'tel_employeur' => $this->tel_employeur,
@@ -67,6 +68,7 @@ final class CandidatureResource extends JsonResource
             // Engagement / marketing
             'engagement_nom' => $this->engagement_nom,
             'moyen_connaissance' => $this->moyen_connaissance,
+            'moyen_connaissance_detail' => $this->moyen_connaissance_detail,
 
             // Pièces / PDF — photo_path interne pas exposé (chemin MinIO privé) ;
             // seul photo_url signée 30 min + has_photo bool sont remontés au client.

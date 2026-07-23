@@ -34,6 +34,8 @@ const REQUIRED_FIELDS: ReadonlyArray<keyof MyCandidature> = [
   'specialite_diplome',
   'annee_diplome',
   'statut_actuel',
+  'moyen_connaissance',
+  'email',
   'engagement_nom',
 ];
 
@@ -80,6 +82,24 @@ export function checkSubmittable(c: MyCandidature): SubmittableResult {
     }
   }
 
+  if (c.statut_actuel && !['Etudiant', 'Sans-emploi'].includes(c.statut_actuel)) {
+    if (!c.employeur) {
+      errors.employeur = 'L’employeur ou l’organisation est obligatoire.';
+    }
+    if (!c.fonction_actuelle) {
+      errors.fonction_actuelle = 'La fonction ou le poste occupé est obligatoire.';
+    }
+  }
+
+  const sourcesWithDetail = [
+    'Autre', 'Autre réseau social', 'Administration ou employeur',
+    'Université ou établissement d’enseignement',
+    'Collègue, ami ou membre de la famille',
+  ];
+  if (c.moyen_connaissance && sourcesWithDetail.includes(c.moyen_connaissance) && !c.moyen_connaissance_detail) {
+    errors.moyen_connaissance_detail = 'Veuillez préciser comment vous avez connu le PSSFP.';
+  }
+
   const allowedSpecialiteLabels = new Set(FALLBACK_SPECIALITES.map((s) => s.label));
   if (c.specialite && !allowedSpecialiteLabels.has(c.specialite)) {
     // Tolérant : si le backend a une liste plus longue, on ne bloque pas. Le
@@ -87,5 +107,5 @@ export function checkSubmittable(c: MyCandidature): SubmittableResult {
   }
 
   const ok = missing.length === 0 && Object.keys(errors).every((k) => !errors[k] || REQUIRED_FIELDS.includes(k as keyof MyCandidature) ? !missing.includes(k) : false);
-  return { ok: missing.length === 0 && !errors.annee_diplome && !errors.region && !errors.departement, missing, errors };
+  return { ok: missing.length === 0 && Object.keys(errors).length === 0, missing, errors };
 }

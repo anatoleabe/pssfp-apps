@@ -40,7 +40,7 @@ export function DossierPiecesCard({ candidature }: DossierPiecesCardProps): JSX.
         <p>
           {count > 0
             ? `${count} pièce${count > 1 ? 's' : ''} déposée${count > 1 ? 's' : ''} en ligne.`
-            : 'Diplôme, acte de naissance, relevés de notes, CV, lettre de motivation, attestation employeur.'}{' '}
+            : 'Diplôme ou attestation de réussite de moins de trois mois, acte de naissance, relevés L1 à L3 signés, CV, lettre de motivation et justificatif employeur le cas échéant.'}{' '}
           Facultatif : vous pouvez aussi les apporter directement au bureau de la scolarité
           (Yaoundé-Messa, porte 231).
         </p>

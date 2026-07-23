@@ -1,4 +1,4 @@
-import type { Pays, Specialite } from '@/lib/api/types';
+import type { Pays, Specialite, StatutActuel } from '@/lib/api/types';
 
 export interface WizardData {
   // Step 1 — Identité & vœu
@@ -35,11 +35,13 @@ export interface WizardData {
   institut: string;
   specialite_diplome: string;
   annee_diplome: number | '';
-  statut_actuel: 'Etudiant' | 'Fonctionnaire-Contractuel' | 'Prive' | '';
+  statut_actuel: StatutActuel | '';
+  fonction_actuelle: string;
   employeur: string;
   adresse_employeur: string;
   tel_employeur: string;
   moyen_connaissance: string;
+  moyen_connaissance_detail: string;
 
   // Step 4 — Engagement & PIN
   engagement_nom: string;
@@ -84,10 +86,12 @@ export const initialWizardData: WizardData = {
   specialite_diplome: '',
   annee_diplome: '',
   statut_actuel: '',
+  fonction_actuelle: '',
   employeur: '',
   adresse_employeur: '',
   tel_employeur: '',
   moyen_connaissance: '',
+  moyen_connaissance_detail: '',
 
   engagement_nom: '',
   pin: '',

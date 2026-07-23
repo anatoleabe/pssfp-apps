@@ -44,7 +44,7 @@ export const step2Schema = z
     phone_e164: z.string().min(1, requiredMessage).regex(phoneE164Regex, 'Saisissez un numéro de téléphone valide.'),
     indicatif2: z.string().trim().max(10).optional().nullable(),
     telephone2: z.string().trim().max(20).optional().nullable(),
-    email: z.string().email('Email invalide').optional().or(z.literal('')).nullable(),
+    email: z.string().trim().min(1, requiredMessage).email('Saisissez une adresse e-mail valide.').max(150),
   })
   .superRefine((data, context) => {
     if (data.pays_residence === 'CM' && !data.region) {
@@ -64,16 +64,31 @@ export const step3Schema = z.object({
     .int()
     .min(1950)
     .max(new Date().getFullYear()),
-  statut_actuel: z.enum(['Etudiant', 'Fonctionnaire-Contractuel', 'Prive']),
+  statut_actuel: z.enum([
+    'Etudiant', 'Sans-emploi', 'Fonctionnaire', 'Contractuel-Etat',
+    'Etablissement-public', 'Entreprise-publique', 'Prive', 'Independant',
+    'ONG-International', 'Autre',
+  ]),
+  fonction_actuelle: z.string().trim().max(150).optional().nullable(),
   employeur: z.string().trim().max(150).optional().nullable(),
   adresse_employeur: z.string().trim().max(200).optional().nullable(),
   tel_employeur: z.string().trim().max(30).optional().nullable(),
-  moyen_connaissance: z.string().trim().max(50).optional().nullable(),
+  moyen_connaissance: z.string().trim().min(1, requiredMessage).max(100),
+  moyen_connaissance_detail: z.string().trim().max(150).optional().nullable(),
 }).superRefine((data, context) => {
-  if (data.statut_actuel !== 'Etudiant') {
-    for (const field of ['employeur', 'adresse_employeur', 'tel_employeur'] as const) {
+  if (!['Etudiant', 'Sans-emploi'].includes(data.statut_actuel)) {
+    for (const field of ['employeur', 'fonction_actuelle'] as const) {
       if (!data[field]?.trim()) context.addIssue({ code: 'custom', message: requiredMessage, path: [field] });
     }
+  }
+
+  const sourcesWithDetail = [
+    'Autre', 'Autre réseau social', 'Administration ou employeur',
+    'Université ou établissement d’enseignement',
+    'Collègue, ami ou membre de la famille',
+  ];
+  if (sourcesWithDetail.includes(data.moyen_connaissance) && !data.moyen_connaissance_detail?.trim()) {
+    context.addIssue({ code: 'custom', message: 'Veuillez préciser cette source.', path: ['moyen_connaissance_detail'] });
   }
 });
 

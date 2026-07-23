@@ -121,7 +121,7 @@ export async function submitInscription(payload: WizardData): Promise<WizardServ
       telephone1: payload.telephone1,
       indicatif2: payload.indicatif2 || null,
       telephone2: payload.telephone2 || null,
-      email: payload.email || null,
+      email: payload.email,
       specialite: payload.specialite,
       type_etude: payload.type_etude,
       premiere_langue: payload.premiere_langue,
@@ -132,11 +132,13 @@ export async function submitInscription(payload: WizardData): Promise<WizardServ
         typeof payload.annee_diplome === 'number' ? payload.annee_diplome : undefined,
       statut_actuel:
         payload.statut_actuel === '' ? undefined : payload.statut_actuel,
+      fonction_actuelle: payload.fonction_actuelle || null,
       employeur: payload.employeur || null,
       adresse_employeur: payload.adresse_employeur || null,
       tel_employeur: payload.tel_employeur || null,
       engagement_nom: payload.engagement_nom,
-      moyen_connaissance: payload.moyen_connaissance || null,
+      moyen_connaissance: payload.moyen_connaissance,
+      moyen_connaissance_detail: payload.moyen_connaissance_detail || null,
     },
     register.data.token,
   );

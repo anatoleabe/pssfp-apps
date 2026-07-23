@@ -109,8 +109,12 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'address' => env('MAIL_FROM_ADDRESS', 'info@pfinancespubliques.org'),
+        'name' => env('MAIL_FROM_NAME', 'PSSFP'),
     ],
+
+    // Destinataire opérationnel des nouvelles candidatures. Cette variable
+    // pourra être basculée vers info@pssfp.org sans modification de code.
+    'admissions_recipient' => env('MAIL_TO_ADMISSIONS', 'info@pfinancespubliques.org'),
 
 ];

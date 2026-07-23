@@ -55,6 +55,7 @@ async function fillStep2(page: Page): Promise<void> {
   await page.getByRole('option', { name: 'Centre' }).click();
   await page.getByTestId('departement-select').click();
   await page.getByRole('option', { name: 'Mfoundi' }).click();
+  await page.getByLabel('Adresse e-mail personnelle *').fill('jean.dupont@example.com');
 }
 
 async function fillStep3(page: Page): Promise<void> {
@@ -64,6 +65,7 @@ async function fillStep3(page: Page): Promise<void> {
   await page.getByRole('option', { name: /Université de Yaoundé II/i }).click();
   await page.getByLabel('Spécialité du diplôme').fill('Économie');
   await page.getByTestId('step3-statut-actuel').selectOption('Etudiant');
+  await page.getByLabel('Comment avez-vous connu le PSSFP ? *').selectOption('Site officiel du PSSFP');
 }
 
 test.describe('Inscription wizard — happy path', () => {
@@ -204,12 +206,12 @@ test.describe('Inscription wizard — validation explicite des quatre étapes', 
     await page.getByTestId('wizard-next').click();
 
     await page.getByTestId('wizard-next').click();
-    await expect(page.getByTestId('wizard-step-2').getByRole('alert')).toHaveCount(6);
+    await expect(page.getByTestId('wizard-step-2').getByRole('alert')).toHaveCount(7);
     await fillStep2(page);
     await page.getByTestId('wizard-next').click();
 
     await page.getByTestId('wizard-next').click();
-    await expect(page.getByTestId('wizard-step-3').getByRole('alert')).toHaveCount(5);
+    await expect(page.getByTestId('wizard-step-3').getByRole('alert')).toHaveCount(6);
     await fillStep3(page);
     await page.getByTestId('wizard-next').click();
 

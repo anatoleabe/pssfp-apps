@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Mail\CandidatureSubmittedAdminMail;
 use App\Mail\CandidatureSubmittedMail;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
@@ -77,6 +78,7 @@ function submittedEmailAuthedCandidat(array $extra = []): array
         'ville_residence' => 'Yaoundé',
         'indicatif1' => '+237',
         'telephone1' => '691111222',
+        'email' => 'candidat@example.com',
         'specialite' => array_values((array) config('specialites'))[0],
         'type_etude' => 'presentiel',
         'premiere_langue' => 'fr',
@@ -85,6 +87,7 @@ function submittedEmailAuthedCandidat(array $extra = []): array
         'specialite_diplome' => 'Économie',
         'annee_diplome' => 2024,
         'statut_actuel' => 'Etudiant',
+        'moyen_connaissance' => 'Site officiel du PSSFP',
         'engagement_nom' => 'Jean Dupont',
     ], $extra);
 
@@ -111,16 +114,28 @@ it('queues the submission confirmation email when the candidate has an email', f
         CandidatureSubmittedMail::class,
         fn (CandidatureSubmittedMail $mail): bool => $mail->hasTo('candidat@example.com'),
     );
+    Mail::assertQueued(
+        CandidatureSubmittedAdminMail::class,
+        fn (CandidatureSubmittedAdminMail $mail): bool => $mail->hasTo('info@pfinancespubliques.org'),
+    );
+
+    $candidature = Candidature::query()->firstOrFail();
+    expect((new CandidatureSubmittedMail($candidature))->render())
+        ->toContain('Prochaines étapes')
+        ->toContain('info@pfinancespubliques.org');
+    expect((new CandidatureSubmittedAdminMail($candidature))->render())
+        ->toContain('Nouvelle candidature déposée')
+        ->toContain('candidat@example.com');
 });
 
-it('does not send any email when the candidate has no email', function (): void {
+it('rejects submission when the candidate has no email', function (): void {
     Mail::fake();
-    [, $token] = submittedEmailAuthedCandidat();
+    [, $token] = submittedEmailAuthedCandidat(['email' => null]);
 
-    $this->withHeader('Authorization', "Bearer {$token}")
-        ->postJson('/v1/applications/me/submit', ['confirmation_engagement' => true])
-        ->assertOk();
+    $response = $this->withHeader('Authorization', "Bearer {$token}")
+        ->postJson('/v1/applications/me/submit', ['confirmation_engagement' => true]);
 
+    $response->assertStatus(422)->assertJsonPath('errors.email', 'Champ obligatoire manquant pour la soumission : email.');
     Mail::assertNothingQueued();
 });
 
@@ -140,4 +155,5 @@ it('does not re-queue the email on an idempotent replay', function (): void {
         ->assertOk();
 
     Mail::assertQueued(CandidatureSubmittedMail::class, 1);
+    Mail::assertQueued(CandidatureSubmittedAdminMail::class, 1);
 });

@@ -99,13 +99,19 @@ export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardS
         />
       </Field>
 
-      <Field label="Email (optionnel — recommandé)" error={errors.email}>
+      <Field label="Adresse e-mail personnelle *" error={errors.email}>
         <input
           type="email"
+          required
+          autoComplete="email"
           value={data.email}
           onChange={(e) => onChange({ email: e.target.value })}
+          placeholder="nom@exemple.com"
           className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         />
+        <span className="mt-1 block text-xs text-[#666]">
+          La confirmation de dépôt et les communications officielles seront envoyées à cette adresse.
+        </span>
       </Field>
     </div>
   );

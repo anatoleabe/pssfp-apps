@@ -84,6 +84,21 @@ it('returns universites grouped by pays CEMAC including Cameroun', function (): 
     $cameroun = collect($items)->firstWhere('pays', 'Cameroun');
     expect($cameroun)->not->toBeNull();
     expect($cameroun['universites'])->toContain('Université de Yaoundé I');
+    expect($cameroun['universites'])->toContain('Université de Bertoua');
+    expect($cameroun['universites'])->toContain('Université d’Ebolowa');
+});
+
+it('returns official public employers grouped by category', function (): void {
+    $response = $this->getJson('/v1/reference/employeurs-publics');
+    $response->assertOk();
+
+    $items = $response->json('data');
+    expect(count($items))->toBeGreaterThanOrEqual(3);
+
+    $allEmployers = collect($items)->pluck('employeurs')->flatten();
+    expect($allEmployers)->toContain('Ministère des Finances (MINFI)');
+    expect($allEmployers)->toContain('Port Autonome de Douala (PAD)');
+    expect($allEmployers)->toContain('Université de Bertoua');
 });
 
 it('caches pays for 24h on Redis', function (): void {

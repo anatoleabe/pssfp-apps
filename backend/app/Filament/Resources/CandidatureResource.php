@@ -153,10 +153,19 @@ class CandidatureResource extends Resource
                     Forms\Components\TextInput::make('specialite_diplome'),
                     Forms\Components\TextInput::make('annee_diplome')->numeric()->minValue(1950)->maxValue(now()->year),
                     Forms\Components\Select::make('statut_actuel')->options([
-                        'Etudiant' => 'Étudiant',
-                        'Fonctionnaire-Contractuel' => 'Fonctionnaire / Contractuel',
-                        'Prive' => 'Secteur privé',
+                        'Etudiant' => 'Étudiant(e)',
+                        'Sans-emploi' => 'Sans emploi / en recherche d’emploi',
+                        'Fonctionnaire' => 'Fonctionnaire titulaire',
+                        'Contractuel-Etat' => 'Agent contractuel de l’État',
+                        'Etablissement-public' => 'Agent d’un établissement public',
+                        'Entreprise-publique' => 'Salarié(e) d’une entreprise publique',
+                        'Prive' => 'Salarié(e) du secteur privé',
+                        'Independant' => 'Indépendant(e) / profession libérale',
+                        'ONG-International' => 'ONG / organisation internationale',
+                        'Autre' => 'Autre situation professionnelle',
+                        'Fonctionnaire-Contractuel' => 'Fonctionnaire / Contractuel (ancien dossier)',
                     ]),
+                    Forms\Components\TextInput::make('fonction_actuelle')->label('Fonction ou poste'),
                     Forms\Components\TextInput::make('employeur'),
                     Forms\Components\TextInput::make('adresse_employeur'),
                     Forms\Components\TextInput::make('tel_employeur'),
@@ -168,6 +177,7 @@ class CandidatureResource extends Resource
                 ->schema([
                     Forms\Components\TextInput::make('engagement_nom')->maxLength(200),
                     Forms\Components\TextInput::make('moyen_connaissance'),
+                    Forms\Components\TextInput::make('moyen_connaissance_detail')->label('Précision sur la source'),
                 ]),
 
             Forms\Components\Section::make('Frais & paiement')

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Listeners;
 
 use App\Events\CandidatureSubmitted;
+use App\Mail\CandidatureSubmittedAdminMail;
 use App\Mail\CandidatureSubmittedMail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -12,10 +13,10 @@ use Illuminate\Support\Facades\Mail;
 /**
  * Listener déclenché après la soumission d'une candidature (LOT A).
  *
- * L'email est optionnel côté candidat : si aucune adresse n'est enregistrée,
- * on logge un warning sans lever d'exception — le candidat récupère son
- * récépissé directement dans son espace, et les instructions de paiement lui
- * sont rappelées au comptoir. On ne bloque jamais la soumission.
+ * Deux messages distincts sont envoyés : une confirmation au candidat et une
+ * notification de traitement à l'administration. L'adresse candidat est
+ * obligatoire à la soumission ; le garde-fou ci-dessous protège néanmoins les
+ * anciens dossiers créés avant cette règle.
  */
 final class SendCandidatureSubmittedEmail
 {
@@ -26,11 +27,13 @@ final class SendCandidatureSubmittedEmail
             Log::channel('single')->info('CandidatureSubmitted sans email — pas d\'envoi de récépissé.', [
                 'candidature_uuid' => $event->candidature->uuid,
             ]);
-
-            return;
+        } else {
+            Mail::to($email)->queue(new CandidatureSubmittedMail(
+                candidature: $event->candidature,
+            ));
         }
 
-        Mail::to($email)->queue(new CandidatureSubmittedMail(
+        Mail::to(config('mail.admissions_recipient'))->queue(new CandidatureSubmittedAdminMail(
             candidature: $event->candidature,
         ));
     }
