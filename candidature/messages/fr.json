@@ -70,7 +70,7 @@
   },
   "inscription": {
     "title": "Créer mon compte candidat",
-    "subtitle": "Quatre étapes guidées : identité, coordonnées, diplôme, engagement. Vos données sont enregistrées localement entre les étapes.",
+    "subtitle": "Cinq étapes guidées : identité, coordonnées, diplôme, engagement, puis vérification complète avant envoi. Vos données sont enregistrées localement entre les étapes.",
     "eyebrow": "Promotion 14 — Année académique 2026-2027"
   },
   "nav": {
@@ -108,11 +108,13 @@
       "identite": "Identité",
       "coordonnees": "Coordonnées",
       "diplome": "Diplôme",
-      "engagement": "Engagement"
+      "engagement": "Engagement",
+      "verification": "Vérification"
     },
     "cancel": "Annuler et retourner à l'accueil",
     "prev": "Précédent",
     "next": "Suivant",
+    "review": "Relire mes informations",
     "submit": "Créer mon compte candidat",
     "submitting": "Envoi…",
     "retentionNotice": "Vos données sont enregistrées localement (session navigateur) et seront effacées automatiquement après 30 minutes d'inactivité ou à la fermeture de l'onglet. Votre PIN n'est jamais conservé entre les étapes.",

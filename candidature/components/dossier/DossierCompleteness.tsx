@@ -26,7 +26,10 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const confirmButtonRef = useRef<HTMLButtonElement | null>(null);
+  const reviewCheckboxRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
 
   const fieldLabel = (field: string): string =>
@@ -43,8 +46,24 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
   const hasRecommendedDocuments = candidature.documents.length > 0;
 
   useEffect(() => {
-    if (confirmOpen) confirmButtonRef.current?.focus();
+    if (confirmOpen) reviewCheckboxRef.current?.focus();
   }, [confirmOpen]);
+
+  const openConfirmation = (): void => {
+    setReviewConfirmed(false);
+    setReviewError(null);
+    setConfirmOpen(true);
+  };
+
+  const confirmSubmission = (): void => {
+    if (!reviewConfirmed) {
+      setReviewError('Confirmez que vous avez relu et vérifié votre dossier.');
+      reviewCheckboxRef.current?.focus();
+      return;
+    }
+    setConfirmOpen(false);
+    handleSubmit();
+  };
 
   const handleSubmit = (): void => {
     setServerError(null);
@@ -150,7 +169,7 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
         type="button"
         data-testid="dossier-submit"
         disabled={!canSubmit || pending}
-        onClick={() => setConfirmOpen(true)}
+        onClick={openConfirmation}
         className="mt-5 inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-5 text-sm font-medium text-white hover:bg-[#5C3A7E] disabled:cursor-not-allowed disabled:bg-gray-300"
       >
         {pending ? t('completeness.submitting') : t('completeness.submit')}
@@ -168,13 +187,65 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
             <p id="submit-confirm-description" className="mt-3 text-sm leading-relaxed text-[#333333]">
               Après confirmation, votre photo et vos pièces seront verrouillées. Vous ne pourrez plus les modifier ni revenir sur les informations certifiées.
             </p>
+            <section className="mt-5 rounded-lg border border-[#E4DCEE] bg-[#FAF7FF] p-4" aria-labelledby="submit-review-heading">
+              <div className="flex items-center justify-between gap-3">
+                <h4 id="submit-review-heading" className="font-heading font-bold text-[#4A2E67]">
+                  Informations essentielles à relire
+                </h4>
+                <Link href="/dossier/edition" className="text-sm font-semibold text-[#4A2E67] underline">
+                  Modifier
+                </Link>
+              </div>
+              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                <ReviewItem label="Candidat" value={`${candidature.prenom ?? ''} ${candidature.nom ?? ''}`.trim()} />
+                <ReviewItem label="Adresse e-mail" value={candidature.email ?? ''} />
+                <ReviewItem label="Téléphone" value={`${candidature.indicatif1 ?? ''} ${candidature.telephone1 ?? ''}`.trim()} />
+                <ReviewItem label="Spécialité" value={candidature.specialite ?? ''} />
+                <ReviewItem label="Diplôme" value={candidature.diplome_obtenu ?? ''} />
+                <ReviewItem label="Établissement" value={candidature.institut ?? ''} />
+                <ReviewItem label="Situation actuelle" value={candidature.statut_actuel ?? ''} />
+                <ReviewItem label="Employeur" value={candidature.employeur ?? 'Sans objet'} />
+              </dl>
+            </section>
+            <div className="mt-5" data-field-error={Boolean(reviewError)}>
+              <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold leading-relaxed text-[#333333]">
+                <input
+                  ref={reviewCheckboxRef}
+                  type="checkbox"
+                  data-testid="dossier-review-confirmation"
+                  checked={reviewConfirmed}
+                  onChange={(event) => {
+                    setReviewConfirmed(event.target.checked);
+                    setReviewError(null);
+                  }}
+                  aria-invalid={Boolean(reviewError)}
+                  aria-describedby={reviewError ? 'dossier-review-error' : undefined}
+                  className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-[#4A2E67] focus:ring-[#4A2E67]"
+                />
+                J’ai relu les informations de mon dossier et je confirme qu’elles sont exactes et complètes.
+              </label>
+              {reviewError && (
+                <p id="dossier-review-error" role="alert" className="mt-2 text-sm font-semibold text-red-700">
+                  {reviewError}
+                </p>
+              )}
+            </div>
             <div className="mt-6 flex flex-wrap justify-end gap-3">
               <button type="button" onClick={() => setConfirmOpen(false)} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67]">Annuler</button>
-              <button ref={confirmButtonRef} type="button" data-testid="dossier-submit-confirm" onClick={() => { setConfirmOpen(false); handleSubmit(); }} className="rounded-md bg-[#4A2E67] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3A2452] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2">Certifier et soumettre ma candidature</button>
+              <button ref={confirmButtonRef} type="button" data-testid="dossier-submit-confirm" onClick={confirmSubmission} className="rounded-md bg-[#4A2E67] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3A2452] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2">Certifier et soumettre ma candidature</button>
             </div>
           </div>
         </div>
       )}
     </section>
+  );
+}
+
+function ReviewItem({ label, value }: { label: string; value: string }): JSX.Element {
+  return (
+    <div>
+      <dt className="text-xs font-semibold uppercase tracking-wide text-[#777]">{label}</dt>
+      <dd className="mt-0.5 break-words font-medium text-[#292929]">{value || 'Non renseigné'}</dd>
+    </div>
   );
 }

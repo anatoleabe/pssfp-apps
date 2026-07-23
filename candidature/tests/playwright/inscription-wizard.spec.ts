@@ -68,12 +68,26 @@ async function fillStep3(page: Page): Promise<void> {
   await page.getByLabel('Comment avez-vous connu le PSSFP ? *').selectOption('Site officiel du PSSFP');
 }
 
+async function fillPin(page: Page, testId: string, value: string): Promise<void> {
+  const inputs = page.getByTestId(testId).locator('input');
+  for (let index = 0; index < value.length; index += 1) {
+    await inputs.nth(index).fill(value[index] ?? '');
+  }
+}
+
+async function fillStep4(page: Page): Promise<void> {
+  await page.getByTestId('step4-engagement').check();
+  await fillPin(page, 'step4-pin', '864209');
+  await fillPin(page, 'step4-pin-confirm', '864209');
+  await page.getByTestId('step4-cgu').check();
+}
+
 test.describe('Inscription wizard — happy path', () => {
   test.beforeEach(async ({ page }) => {
     await setupReferenceMocks(page);
   });
 
-  test('renders 4 steps and progresses on Suivant', async ({ page }) => {
+  test('renders 5 steps and progresses on Suivant', async ({ page }) => {
     await page.goto('/inscription');
     await expect(page.getByTestId('wizard-step-1')).toBeVisible();
 
@@ -185,7 +199,7 @@ test.describe('Inscription wizard — security & UX', () => {
   });
 });
 
-test.describe('Inscription wizard — validation explicite des quatre étapes', () => {
+test.describe('Inscription wizard — validation explicite des cinq étapes', () => {
   test.beforeEach(async ({ page }) => {
     await setupReferenceMocks(page);
   });
@@ -215,9 +229,38 @@ test.describe('Inscription wizard — validation explicite des quatre étapes', 
     await fillStep3(page);
     await page.getByTestId('wizard-next').click();
 
-    await expect(page.getByTestId('wizard-submit')).toContainText('Créer mon compte candidat');
-    await page.getByTestId('wizard-submit').click();
+    await expect(page.getByTestId('wizard-next')).toContainText('Relire mes informations');
+    await page.getByTestId('wizard-next').click();
     await expect(page.getByTestId('wizard-step-4').getByRole('alert')).toHaveCount(4);
     await expect(page.getByTestId('step4-engagement')).toBeFocused();
+  });
+
+  test('étape 5 : affiche le récapitulatif, exige la confirmation et permet de corriger', async ({ page }) => {
+    await page.goto('/inscription');
+    await fillStep1(page);
+    await page.getByTestId('wizard-next').click();
+    await fillStep2(page);
+    await page.getByTestId('wizard-next').click();
+    await fillStep3(page);
+    await page.getByTestId('wizard-next').click();
+    await fillStep4(page);
+    await page.getByTestId('wizard-next').click();
+
+    await expect(page.getByTestId('wizard-step-5')).toBeVisible();
+    await expect(page.getByTestId('wizard-step-5')).toContainText('Jean Dupont');
+    await expect(page.getByTestId('wizard-step-5')).toContainText('jean.dupont@example.com');
+    await expect(page.getByTestId('wizard-step-5')).toContainText('Université de Yaoundé II');
+    await expect(page.getByTestId('wizard-step-5')).not.toContainText('864209');
+
+    await page.getByTestId('wizard-submit').click();
+    await expect(page.getByTestId('wizard-step-5').getByRole('alert')).toContainText(
+      'confirmer la relecture',
+    );
+    await expect(page.getByTestId('review-confirmation')).toBeFocused();
+    await page.getByTestId('review-confirmation').check();
+    await expect(page.getByTestId('review-confirmation')).toBeChecked();
+
+    await page.getByRole('button', { name: 'Modifier' }).nth(2).click();
+    await expect(page.getByTestId('wizard-step-2')).toBeVisible();
   });
 });

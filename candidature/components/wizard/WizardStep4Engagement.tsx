@@ -24,7 +24,6 @@ export interface WizardStep4Props {
   cta?: { label: string; href: string } | null;
   turnstileResetKey?: number;
   onChange: (patch: Partial<WizardData>) => void;
-  onEditStep: (step: 1 | 2 | 3) => void;
 }
 
 export function WizardStep4Engagement({
@@ -33,7 +32,6 @@ export function WizardStep4Engagement({
   cta,
   turnstileResetKey,
   onChange,
-  onEditStep,
 }: WizardStep4Props): JSX.Element {
   const t = useTranslations('wizard.step4');
   const tPin = useTranslations('pinReasons');
@@ -68,15 +66,6 @@ export function WizardStep4Engagement({
 
       <section className="rounded-md border border-[#D4AF6A]/40 bg-[#FFFBEA] p-4 text-sm text-[#666]">
         <p>{t('photoNotice')}</p>
-      </section>
-
-      <section aria-labelledby="step4-summary-title" className="rounded-md border border-[#E4DCEE] bg-[#FAF7FF] p-4">
-        <h3 id="step4-summary-title" className="font-heading text-lg font-semibold text-[#4A2E67]">Vérifiez vos informations</h3>
-        <dl className="mt-3 space-y-3 text-sm text-[#333333]">
-          <SummaryRow label="Identité" value={`${fullName} · ${data.date_naissance}`} onEdit={() => onEditStep(1)} />
-          <SummaryRow label="Coordonnées" value={`${data.phone_e164}${data.email ? ` · ${data.email}` : ''}`} onEdit={() => onEditStep(2)} />
-          <SummaryRow label="Parcours" value={`${data.diplome_obtenu} · ${data.specialite}`} onEdit={() => onEditStep(3)} />
-        </dl>
       </section>
 
       <div data-field-error={Boolean(engagementError)}>
@@ -249,18 +238,6 @@ function Field({
           {error}
         </span>
       )}
-    </div>
-  );
-}
-
-function SummaryRow({ label, value, onEdit }: { label: string; value: string; onEdit: () => void }): JSX.Element {
-  return (
-    <div className="flex items-start justify-between gap-4 border-t border-[#E4DCEE] pt-3 first:border-0 first:pt-0">
-      <div>
-        <dt className="font-semibold text-[#1A1A1A]">{label}</dt>
-        <dd className="mt-0.5 text-[#595959]">{value || 'À compléter'}</dd>
-      </div>
-      <button type="button" onClick={onEdit} className="shrink-0 text-sm font-semibold text-[#4A2E67] underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67]">Modifier</button>
     </div>
   );
 }

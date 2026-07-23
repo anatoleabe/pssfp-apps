@@ -20,6 +20,7 @@ import { WizardStep1Identite } from './WizardStep1Identite';
 import { WizardStep2Coordonnees } from './WizardStep2Coordonnees';
 import { WizardStep3Diplome } from './WizardStep3Diplome';
 import { WizardStep4Engagement } from './WizardStep4Engagement';
+import { WizardStep5Review } from './WizardStep5Review';
 import { WizardStepper } from './WizardStepper';
 
 const SESSION_KEY = 'pssfp.inscription.wizard.v1';
@@ -54,6 +55,8 @@ export function WizardContainer({
   const [serverErrors, setServerErrors] = useState<Record<string, string> | undefined>();
   const [serverCta, setServerCta] = useState<WizardServerActionResult['cta'] | null>(null);
   const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const [timeoutWarning, setTimeoutWarning] = useState(false);
   const [pending, startTransition] = useTransition();
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -68,6 +71,7 @@ export function WizardContainer({
       { id: 2, label: t('steps.coordonnees') },
       { id: 3, label: t('steps.diplome') },
       { id: 4, label: t('steps.engagement') },
+      { id: 5, label: t('steps.verification') },
     ],
     [t],
   );
@@ -147,6 +151,15 @@ export function WizardContainer({
 
   const patch = (delta: Partial<WizardData>): void => {
     setData((prev) => ({ ...prev, ...delta }));
+    setReviewConfirmed(false);
+    setReviewError(null);
+    setServerErrors((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev };
+      Object.keys(delta).forEach((key) => delete next[key]);
+      return Object.keys(next).length > 0 ? next : undefined;
+    });
+    if ('phone_e164' in delta) setServerCta(null);
     // Efface les erreurs des champs touchés pour éviter le bruit.
     setErrors((prev) => {
       const next = { ...prev };
@@ -212,7 +225,11 @@ export function WizardContainer({
     if (!validateStep(step)) {
       return;
     }
-    setStep((s) => Math.min(4, s + 1));
+    if (step === 4 && !isStep4Strict) {
+      showStep4StrictErrors();
+      return;
+    }
+    setStep((s) => Math.min(5, s + 1));
     focusStepPanel();
   };
 
@@ -232,22 +249,23 @@ export function WizardContainer({
   };
 
   const submit = (): void => {
+    if (!reviewConfirmed) {
+      setReviewError('Vous devez confirmer la relecture de vos informations avant de continuer.');
+      requestAnimationFrame(() => {
+        stepPanelRef.current
+          ?.querySelector<HTMLInputElement>('[data-testid="review-confirmation"]')
+          ?.focus();
+      });
+      return;
+    }
     if (!validateStep(4)) {
+      setStep(4);
+      focusStepPanel();
       return;
     }
     if (!isStep4Strict) {
-      const strictErrors: Partial<Record<keyof WizardData, string>> = {};
-      const pinResult = validateCandidatePin(data.pin, data.phone_e164, data.date_naissance || null);
-      if (!pinResult.ok) strictErrors.pin = 'Choisissez un PIN plus sûr en respectant les règles indiquées.';
-      if (data.pin !== data.pin_confirmation) strictErrors.pin_confirmation = 'La confirmation du PIN ne correspond pas.';
-      if (!isValidEngagement(data.engagement_nom, data.prenom, data.nom)) strictErrors.engagement_nom = 'Vous devez certifier l’exactitude des informations.';
-      if (isTurnstileEnabled() && data.turnstile_token.length === 0) strictErrors.turnstile_token = 'Validez la vérification anti-robot.';
-      setErrors(strictErrors);
-      requestAnimationFrame(() => {
-        const firstInvalid = stepPanelRef.current?.querySelector<HTMLElement>('[data-field-error="true"] input, [aria-invalid="true"]');
-        firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        firstInvalid?.focus({ preventScroll: true });
-      });
+      setStep(4);
+      showStep4StrictErrors();
       return;
     }
     startTransition(async () => {
@@ -266,11 +284,27 @@ export function WizardContainer({
       // Soumission échouée : le token Turnstile est consommé, on en régénère un.
       setData((prev) => ({ ...prev, turnstile_token: '' }));
       setTurnstileResetKey((k) => k + 1);
-      // Si erreur sur phone_e164 → revenir à l'étape 2 pour correction.
-      if (result.errors?.phone_e164) {
-        setStep(2);
+      // Revenir à la rubrique concernée pour rendre l'erreur visible.
+      const targetStep = getServerErrorStep(result.errors);
+      if (targetStep !== null) {
+        setStep(targetStep);
         focusStepPanel();
       }
+    });
+  };
+
+  const showStep4StrictErrors = (): void => {
+    const strictErrors: Partial<Record<keyof WizardData, string>> = {};
+    const pinResult = validateCandidatePin(data.pin, data.phone_e164, data.date_naissance || null);
+    if (!pinResult.ok) strictErrors.pin = 'Choisissez un PIN plus sûr en respectant les règles indiquées.';
+    if (data.pin !== data.pin_confirmation) strictErrors.pin_confirmation = 'La confirmation du PIN ne correspond pas.';
+    if (!isValidEngagement(data.engagement_nom, data.prenom, data.nom)) strictErrors.engagement_nom = 'Vous devez certifier l’exactitude des informations.';
+    if (isTurnstileEnabled() && data.turnstile_token.length === 0) strictErrors.turnstile_token = 'Validez la vérification anti-robot.';
+    setErrors(strictErrors);
+    requestAnimationFrame(() => {
+      const firstInvalid = stepPanelRef.current?.querySelector<HTMLElement>('[data-field-error="true"] input, [aria-invalid="true"]');
+      firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstInvalid?.focus({ preventScroll: true });
     });
   };
 
@@ -310,9 +344,23 @@ export function WizardContainer({
             cta={serverCta ?? null}
             turnstileResetKey={turnstileResetKey}
             onChange={patch}
+          />
+        )}
+        {step === 5 && (
+          <WizardStep5Review
+            data={data}
+            pays={pays}
+            confirmed={reviewConfirmed}
+            confirmationError={reviewError ?? undefined}
+            onConfirmedChange={(confirmed) => {
+              setReviewConfirmed(confirmed);
+              setReviewError(null);
+            }}
             onEditStep={(target) => {
               setStep(target);
               setErrors({});
+              setReviewConfirmed(false);
+              setReviewError(null);
               focusStepPanel();
             }}
           />
@@ -338,17 +386,17 @@ export function WizardContainer({
               {t('prev')}
             </button>
           )}
-          {step < 4 && (
+          {step < 5 && (
             <button
               type="button"
               onClick={goNext}
               data-testid="wizard-next"
               className="rounded-md bg-[#4A2E67] px-5 py-2 text-sm font-medium text-white hover:bg-[#5C3A7E]"
             >
-              {t('next')}
+              {step === 4 ? t('review') : t('next')}
             </button>
           )}
-          {step === 4 && (
+          {step === 5 && (
             <button
               type="button"
               data-testid="wizard-submit"
@@ -412,4 +460,32 @@ function readSession(): WizardData | null {
   } catch {
     return null;
   }
+}
+
+function getServerErrorStep(
+  errors: Record<string, string> | undefined,
+): 1 | 2 | 3 | 4 | null {
+  if (!errors) return null;
+
+  const keys = Object.keys(errors);
+  const step1Fields = [
+    'specialite', 'type_etude', 'premiere_langue', 'civilite', 'nom', 'prenom',
+    'epouse', 'date_naissance', 'genre', 'statut_matrimonial', 'nationalite',
+  ];
+  const step2Fields = [
+    'pays_origine', 'pays_residence', 'region', 'departement', 'adresse',
+    'ville_residence', 'lieu_naissance', 'indicatif1', 'telephone1', 'phone_e164',
+    'indicatif2', 'telephone2', 'email',
+  ];
+  const step3Fields = [
+    'diplome_obtenu', 'institut', 'specialite_diplome', 'annee_diplome',
+    'statut_actuel', 'fonction_actuelle', 'employeur', 'adresse_employeur',
+    'tel_employeur', 'moyen_connaissance', 'moyen_connaissance_detail',
+  ];
+
+  if (keys.some((key) => step1Fields.includes(key))) return 1;
+  if (keys.some((key) => step2Fields.includes(key))) return 2;
+  if (keys.some((key) => step3Fields.includes(key))) return 3;
+  if (keys.length > 0) return 4;
+  return null;
 }

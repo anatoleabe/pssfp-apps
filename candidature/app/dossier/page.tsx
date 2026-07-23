@@ -6,6 +6,7 @@ import { DossierEtapesRestantes } from '@/components/dossier/DossierEtapesRestan
 import { DossierFraisCard } from '@/components/dossier/DossierFraisCard';
 import { DossierPhotoCard } from '@/components/dossier/DossierPhotoCard';
 import { DossierPiecesCard } from '@/components/dossier/DossierPiecesCard';
+import { DossierProfileSummary } from '@/components/dossier/DossierProfileSummary';
 import { DossierStatutCard } from '@/components/dossier/DossierStatutCard';
 import { getMyCandidature } from '@/lib/api/client';
 import { getCandidatToken } from '@/lib/auth/session';
@@ -239,6 +240,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
 
         <div className="grid gap-6">
           <DossierStatutCard candidature={candidature} />
+          <DossierProfileSummary candidature={candidature} />
           {candidature.statut !== 'postulant' && (
             <DossierEtapesRestantes candidature={candidature} />
           )}
