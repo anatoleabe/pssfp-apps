@@ -54,7 +54,61 @@
     "modalitesHeading": "Deux modalités",
     "modalitesPresentiel": "Présentiel — Campus Messa, Yaoundé (25 places par filière).",
     "modalitesDistanciel": "Distanciel — formation à distance (10 places par filière).",
-    "learnMoreAdmission": "Voir le détail complet des conditions d'admission"
+    "learnMoreAdmission": "Voir le détail complet des conditions d'admission",
+    "communique": {
+      "eyebrow": "Acte officiel",
+      "heading": "Communiqué conjoint du Ministre des Finances et du Recteur de l'Université de Yaoundé II-Soa",
+      "body": "L'appel à candidatures pour l'entrée au niveau 1 du cycle de Master est officiellement lancé. Le communiqué signé fait foi : conservez-le, il précise les filières, les places, les conditions et la composition exacte du dossier.",
+      "download": "Télécharger le communiqué signé",
+      "downloadHint": "PDF — nouvel onglet",
+      "referenceLabel": "Référence",
+      "signedAtLabel": "Signé le"
+    },
+    "dossier": {
+      "heading": "Composition du dossier de candidature",
+      "intro": "Reprise intégrale du communiqué officiel. Le dossier complet doit parvenir au bureau de la scolarité du PSSFP à Yaoundé-Messa (porte 231), au plus tard le {date} à 15h30.",
+      "warning": "Une candidature soumise en ligne ne devient recevable qu'une fois le dossier papier déposé et réceptionné au bureau de la scolarité.",
+      "paperBadge": "Version papier uniquement",
+      "photoNotice": "À cela s'ajoute une photo d'identité récente, à téléverser dans votre espace candidat : elle figure sur votre fiche d'inscription.",
+      "items": [
+        {
+          "text": "01 fiche d'inscription, générée à partir de votre dossier en ligne et à imprimer depuis votre espace candidat après soumission.",
+          "paper": true
+        },
+        {
+          "text": "01 copie certifiée conforme du diplôme ou attestation de réussite exigé (licence) dûment signée des autorités universitaires, datant de moins de trois mois.",
+          "paper": false
+        },
+        {
+          "text": "01 photocopie légalisée de l'acte de naissance, datant de moins de trois mois.",
+          "paper": false
+        },
+        {
+          "text": "Les relevés de note du cycle de licence (L1, L2, L3) dûment signés des autorités universitaires.",
+          "paper": false
+        },
+        {
+          "text": "Un CV détaillé.",
+          "paper": false
+        },
+        {
+          "text": "Une lettre de motivation adressée au Président du Comité de Pilotage du PSSFP.",
+          "paper": false
+        },
+        {
+          "text": "Une attestation de la présence effective au poste ou une autorisation de l'employeur sont requises (le cas échéant).",
+          "paper": false
+        },
+        {
+          "text": "01 enveloppe de format A4 timbrée au tarif réglementaire et portant l'adresse du candidat.",
+          "paper": true
+        },
+        {
+          "text": "Le reçu de versement au « Crédit Mutuel d'Investissement du Cameroun » (CREMINCAM), d'une somme de cinquante mille (50 000) FCFA au titre de droits de candidature, ou un mandat-lettre adressé à Monsieur le Responsable administratif et financier du PSSFP, BP : 2332 Yaoundé-Messa.",
+          "paper": false
+        }
+      ]
+    }
   },
   "login": {
     "title": "Connexion candidat",

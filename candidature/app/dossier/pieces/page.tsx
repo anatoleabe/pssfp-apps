@@ -47,8 +47,11 @@ export default async function PiecesPage(): Promise<JSX.Element> {
 
       <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">Pièces justificatives</h1>
       <p className="mt-2 text-sm text-[#666]">
-        Diplôme, acte de naissance, relevés de notes, CV, lettre de motivation, attestation
-        employeur — cf. communiqué officiel d&apos;appel à candidature.
+        Copie certifiée conforme du diplôme ou attestation de réussite, photocopie légalisée de
+        l&apos;acte de naissance, relevés de note L1 à L3 signés, CV détaillé, lettre de motivation
+        adressée au Président du Comité de Pilotage du PSSFP, attestation de présence effective au
+        poste ou autorisation de l&apos;employeur le cas échéant — cf. communiqué officiel d&apos;appel
+        à candidatures.
       </p>
 
       <div className="mt-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">

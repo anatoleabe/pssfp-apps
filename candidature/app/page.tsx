@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import Link from 'next/link';
-import { ArrowRight, ArrowUpRight, CalendarClock, CheckCircle2, FileCheck2, Laptop, MapPin } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CalendarClock, CheckCircle2, Download, FileCheck2, Laptop, MapPin } from 'lucide-react';
 import { CountdownToClose } from '@/components/CountdownToClose';
 import { getCurrentCampaign, getSpecialites } from '@/lib/api/client';
 import { FALLBACK_SPECIALITES } from '@/lib/api/fallbacks';
@@ -21,6 +21,9 @@ export default async function HomePage(): Promise<JSX.Element> {
     : [...FALLBACK_SPECIALITES];
   const conditionsList = t.raw('conditionsList') as string[];
   const filiereTaglines = t.raw('filieres') as Record<string, string>;
+  // Liste reprise mot pour mot du communiqué conjoint : `paper` marque les
+  // pièces qui n'ont de sens qu'en version papier (fiche imprimée, enveloppe).
+  const piecesDossier = t.raw('dossier.items') as ReadonlyArray<{ text: string; paper: boolean }>;
   const closingDate = campagne?.closes_at
     ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeZone: 'Africa/Douala' }).format(new Date(campagne.closes_at))
     : '18 septembre 2026';
@@ -118,21 +121,89 @@ export default async function HomePage(): Promise<JSX.Element> {
         </div>
       </section>
 
+      {campagne?.communique_url && (
+        <section
+          aria-labelledby="communique-heading"
+          className="mt-12 overflow-hidden rounded-2xl border border-[#0F3A4A]/20 bg-[#0F3A4A] text-white shadow-pssfp-soft"
+        >
+          <div className="flex flex-col gap-6 p-6 sm:p-8 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-2xl">
+              <p className="inline-flex items-center gap-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-[#D4AF6A]">
+                <span aria-hidden="true" className="inline-block h-1.5 w-1.5 rounded-full bg-[#D4AF6A]" />
+                {t('communique.eyebrow')}
+              </p>
+              <h2 id="communique-heading" className="mt-3 font-heading text-2xl font-bold leading-snug text-white">
+                {t('communique.heading')}
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-white/80">{t('communique.body')}</p>
+              {(campagne.communique_reference || campagne.communique_signed_at) && (
+                <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-xs text-white/70">
+                  {campagne.communique_reference && (
+                    <div>
+                      <dt className="font-ui uppercase tracking-[0.12em] text-white/50">
+                        {t('communique.referenceLabel')}
+                      </dt>
+                      <dd className="mt-0.5 font-medium text-white/90">{campagne.communique_reference}</dd>
+                    </div>
+                  )}
+                  {campagne.communique_signed_at && (
+                    <div>
+                      <dt className="font-ui uppercase tracking-[0.12em] text-white/50">
+                        {t('communique.signedAtLabel')}
+                      </dt>
+                      <dd className="mt-0.5 font-medium text-white/90">
+                        {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeZone: 'Africa/Douala' })
+                          .format(new Date(campagne.communique_signed_at))}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              )}
+            </div>
+
+            <a
+              href={campagne.communique_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="communique-download"
+              className="group inline-flex shrink-0 items-center gap-2.5 rounded-pssfp-button bg-[#D4AF6A] px-6 py-3.5 font-medium text-[#2A1D0A] shadow-pssfp-elevated transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:bg-[#E0BF80] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F3A4A]"
+            >
+              <Download size={18} aria-hidden="true" />
+              <span>
+                {t('communique.download')}
+                <span className="block font-ui text-xs font-normal text-[#2A1D0A]/70">
+                  {t('communique.downloadHint')}
+                </span>
+              </span>
+            </a>
+          </div>
+        </section>
+      )}
+
       <section aria-labelledby="documents-heading" className="mt-12 rounded-lg border border-[#D4AF6A]/40 bg-[#FFFBEA] p-6">
         <div className="flex items-start gap-3">
           <FileCheck2 aria-hidden="true" className="mt-0.5 shrink-0 text-[#8A641D]" />
           <div>
-            <h2 id="documents-heading" className="font-heading text-xl font-bold text-[#4A2E67]">Pièces à préparer</h2>
-            <p className="mt-1 text-sm text-[#4B4B4B]">Préparez des fichiers PDF, JPG ou PNG parfaitement lisibles avant de commencer.</p>
-            <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-[#333333]">
-              <li>Une photo d&apos;identité récente.</li>
-              <li>Le diplôme de licence ou une attestation de réussite, dûment signé(e) par les autorités universitaires et datant de moins de trois mois.</li>
-              <li>Un acte de naissance.</li>
-              <li>Les relevés de notes du cycle de licence (L1, L2 et L3), dûment signés par les autorités universitaires.</li>
-              <li>Un curriculum vitæ (CV) à jour.</li>
-              <li>Une lettre de motivation adressée au Coordonnateur du PSSFP.</li>
-              <li>Pour les candidats en activité : une attestation de présence effective au poste ou une autorisation de l&apos;employeur, le cas échéant.</li>
+            <h2 id="documents-heading" className="font-heading text-xl font-bold text-[#4A2E67]">
+              {t('dossier.heading')}
+            </h2>
+            <p className="mt-1 text-sm text-[#4B4B4B]">{t('dossier.intro', { date: closingDate })}</p>
+            <p className="mt-3 rounded-md border-l-4 border-[#8A641D] bg-white/70 py-2 pl-3 pr-2 text-sm font-medium text-[#5C4310]">
+              {t('dossier.warning')}
+            </p>
+            <ol className="mt-4 list-decimal space-y-2.5 pl-5 text-sm leading-relaxed text-[#333333]">
+              {piecesDossier.map((piece) => (
+                <li key={piece.text}>
+                  {piece.text}
+                  {piece.paper && (
+                    <span className="ml-2 inline-block whitespace-nowrap rounded-full border border-[#8A641D]/30 bg-white px-2 py-0.5 font-ui text-[11px] font-semibold uppercase tracking-wide text-[#8A641D]">
+                      {t('dossier.paperBadge')}
+                    </span>
+                  )}
+                </li>
+              ))}
             </ol>
+            <p className="mt-4 text-sm text-[#4B4B4B]">{t('dossier.photoNotice')}</p>
           </div>
         </div>
       </section>

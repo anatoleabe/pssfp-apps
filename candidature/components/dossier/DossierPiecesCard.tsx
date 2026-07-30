@@ -40,9 +40,10 @@ export function DossierPiecesCard({ candidature }: DossierPiecesCardProps): JSX.
         <p>
           {count > 0
             ? `${count} pièce${count > 1 ? 's' : ''} déposée${count > 1 ? 's' : ''} en ligne.`
-            : 'Diplôme ou attestation de réussite de moins de trois mois, acte de naissance, relevés L1 à L3 signés, CV, lettre de motivation et justificatif employeur le cas échéant.'}{' '}
-          Facultatif : vous pouvez aussi les apporter directement au bureau de la scolarité
-          (Yaoundé-Messa, porte 231).
+            : "Copie certifiée conforme du diplôme ou attestation de réussite de moins de trois mois, photocopie légalisée de l'acte de naissance, relevés de note L1 à L3 signés, CV détaillé, lettre de motivation adressée au Président du Comité de Pilotage du PSSFP et justificatif employeur le cas échéant."}{' '}
+          Le téléversement facilite l&apos;instruction mais ne remplace pas le dépôt : le dossier
+          papier complet doit être remis au bureau de la scolarité (Yaoundé-Messa, porte 231) avant
+          la clôture.
         </p>
 
         {!isLocked ? (

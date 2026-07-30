@@ -17,6 +17,10 @@ export interface Campagne {
   status: 'draft' | 'open' | 'closed' | 'archived';
   max_voeux: number;
   is_currently_open: boolean;
+  /** Communiqué conjoint signé MINFI + Recteur UY2-Soa, déposé depuis l'admin. */
+  communique_url: string | null;
+  communique_reference: string | null;
+  communique_signed_at: string | null;
 }
 
 export interface Pays {
