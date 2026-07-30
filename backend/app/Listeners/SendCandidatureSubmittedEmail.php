@@ -7,6 +7,7 @@ namespace App\Listeners;
 use App\Events\CandidatureSubmitted;
 use App\Mail\CandidatureSubmittedAdminMail;
 use App\Mail\CandidatureSubmittedMail;
+use App\Support\AppSettings;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -17,6 +18,10 @@ use Illuminate\Support\Facades\Mail;
  * notification de traitement à l'administration. L'adresse candidat est
  * obligatoire à la soumission ; le garde-fou ci-dessous protège néanmoins les
  * anciens dossiers créés avant cette règle.
+ *
+ * La notification d'administration part en copie cachée vers la liste
+ * configurée dans l'admin (Administration → Paramètres) : la direction ajoute
+ * ou retire un destinataire sans intervention technique.
  */
 final class SendCandidatureSubmittedEmail
 {
@@ -33,7 +38,14 @@ final class SendCandidatureSubmittedEmail
             ));
         }
 
-        Mail::to(config('mail.admissions_recipient'))->queue(new CandidatureSubmittedAdminMail(
+        $pending = Mail::to(config('mail.admissions_recipient'));
+
+        $bcc = AppSettings::candidatureNotificationBcc();
+        if ($bcc !== []) {
+            $pending->bcc($bcc);
+        }
+
+        $pending->queue(new CandidatureSubmittedAdminMail(
             candidature: $event->candidature,
         ));
     }

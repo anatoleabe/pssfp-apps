@@ -31,6 +31,23 @@ final class User extends Authenticatable implements FilamentUser, HasName, MustV
     use TwoFactorAuthenticatable;
 
     /**
+     * Rôles autorisés à ouvrir le panneau d'administration Filament.
+     *
+     * `candidat`, `teacher` et `auditor` en sont volontairement exclus : ce sont
+     * des rôles d'API / de futurs espaces dédiés, pas des rôles back-office.
+     *
+     * @var list<string>
+     */
+    public const PANEL_ROLES = [
+        'super_admin',
+        'admin',
+        'editor',
+        'librarian',
+        'admission_committee',
+        'receptionniste',
+    ];
+
+    /**
      * @var list<string>
      */
     protected $fillable = [
@@ -40,6 +57,9 @@ final class User extends Authenticatable implements FilamentUser, HasName, MustV
         'phone_e164',
         'phone_country',
         'date_naissance',
+        // Piloté par UserResource : un compte agent créé par l'administration
+        // est actif d'emblée, sans parcours de vérification d'email.
+        'email_verified_at',
     ];
 
     /**
@@ -76,7 +96,7 @@ final class User extends Authenticatable implements FilamentUser, HasName, MustV
             return false;
         }
 
-        if (! $this->hasAnyRole(['admin', 'editor', 'librarian', 'admission_committee', 'super_admin'])) {
+        if (! $this->hasAnyRole(self::PANEL_ROLES)) {
             return false;
         }
 

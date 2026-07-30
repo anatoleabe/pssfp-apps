@@ -12,12 +12,15 @@ use App\Models\Candidature;
 use App\Models\DepartementCameroun;
 use App\Models\Pays;
 use App\Models\RegionCameroun;
+use App\Services\DepotPhysiqueService;
 use App\Services\DocumentUploadService;
 use App\Services\RecipisseService;
 use App\Services\TestCandidaturePurgeService;
 use App\Support\CandidatureDocumentTypeLabel;
+use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\IconPosition;
 use Filament\Tables;
@@ -250,6 +253,19 @@ class CandidatureResource extends Resource
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('submitted_at')->label('Soumis le')
                     ->dateTime('d/m/Y H:i')->sortable()->toggleable(),
+                Tables\Columns\TextColumn::make('depot_physique_at')
+                    ->label('Dossier papier')
+                    ->badge()
+                    ->sortable()
+                    ->toggleable()
+                    ->placeholder('Non reçu')
+                    ->color(fn (?string $state): string => $state === null ? 'gray' : 'success')
+                    ->formatStateUsing(fn (?string $state, Candidature $r): string => $state === null
+                        ? 'Non reçu'
+                        : 'Reçu le '.$r->depot_physique_at->translatedFormat('d/m/Y'))
+                    ->description(fn (Candidature $r): ?string => $r->depot_physique_at === null
+                        ? null
+                        : $r->depotPhysiquePar?->name),
                 Tables\Columns\TextColumn::make('decided_at')->label('Décidé le')
                     ->dateTime('d/m/Y H:i')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -271,6 +287,16 @@ class CandidatureResource extends Resource
                     ->placeholder('Tous')
                     ->trueLabel('Payés uniquement')
                     ->falseLabel('Non payés uniquement'),
+                Tables\Filters\TernaryFilter::make('depot_physique')
+                    ->label('Dossier papier')
+                    ->placeholder('Tous')
+                    ->trueLabel('Reçus au guichet')
+                    ->falseLabel('En attente de dépôt')
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query->deposePhysiquement(),
+                        false: fn (Builder $query): Builder => $query->enAttenteDepotPhysique(),
+                        blank: fn (Builder $query): Builder => $query,
+                    ),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -312,7 +338,63 @@ class CandidatureResource extends Resource
                             ]),
                         ]);
                     }),
+                Tables\Actions\Action::make('markDepotPhysique')
+                    ->label('Dossier reçu')
+                    ->icon('heroicon-o-inbox-arrow-down')
+                    ->color('success')
+                    ->iconPosition(IconPosition::Before)
+                    ->visible(fn (Candidature $r): bool => auth()->user()?->can('candidature.mark_depot_physique') === true
+                        && $r->submitted_at !== null
+                        && $r->depot_physique_at === null)
+                    ->modalHeading('Réception du dossier papier')
+                    ->modalDescription('À cocher une fois le dossier physique remis au bureau de la scolarité (Yaoundé-Messa, porte 231).')
+                    ->modalSubmitActionLabel('Enregistrer la réception')
+                    ->form([
+                        Forms\Components\DatePicker::make('recu_le')
+                            ->label('Date de réception effective')
+                            ->required()
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->maxDate(now())
+                            ->default(now())
+                            ->helperText('Modifiable : saisissez la date à laquelle le dossier a réellement été déposé au guichet.'),
+                        Forms\Components\TextInput::make('observation')
+                            ->label('Observation (facultatif)')
+                            ->maxLength(255)
+                            ->placeholder('Ex : enveloppe A4 non timbrée, relevé L2 manquant.'),
+                    ])
+                    ->action(function (Candidature $r, array $data): void {
+                        app(DepotPhysiqueService::class)->marquer(
+                            candidature: $r,
+                            recuLe: Carbon::parse($data['recu_le']),
+                            agent: auth()->user(),
+                            observation: $data['observation'] ?? null,
+                        );
+
+                        Notification::make()
+                            ->title('Réception enregistrée')
+                            ->body("Dossier {$r->numero_dossier} marqué comme déposé physiquement.")
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('annulerDepotPhysique')
+                        ->label('Annuler la réception')
+                        ->icon('heroicon-o-arrow-uturn-left')
+                        ->color('gray')
+                        ->visible(fn (Candidature $r): bool => auth()->user()?->can('candidature.mark_depot_physique') === true
+                            && $r->depot_physique_at !== null)
+                        ->modalHeading('Annuler la réception du dossier papier')
+                        ->form([
+                            Forms\Components\TextInput::make('motif')
+                                ->label('Motif de la correction')
+                                ->required()
+                                ->minLength(5)
+                                ->maxLength(255),
+                        ])
+                        ->action(function (Candidature $r, array $data): void {
+                            app(DepotPhysiqueService::class)->annuler($r, auth()->user(), $data['motif']);
+                        }),
                     Tables\Actions\Action::make('deleteTestAccount')
                         ->label('Supprimer le compte de test')
                         ->icon('heroicon-o-trash')
@@ -452,6 +534,68 @@ class CandidatureResource extends Resource
                 ])->label('Actions')->icon('heroicon-m-ellipsis-vertical'),
             ])
             ->bulkActions([
+                // Cœur du travail de guichet : l'agent sélectionne tous les
+                // dossiers reçus dans la journée et les pointe en une fois,
+                // éventuellement le lendemain (d'où la date saisissable).
+                Tables\Actions\BulkAction::make('markDepotPhysiqueBulk')
+                    ->label('Marquer les dossiers comme reçus')
+                    ->icon('heroicon-o-inbox-arrow-down')
+                    ->color('success')
+                    ->visible(fn () => auth()->user()?->can('candidature.mark_depot_physique'))
+                    ->modalHeading('Réception groupée de dossiers papier')
+                    ->modalSubmitActionLabel('Enregistrer les réceptions')
+                    ->form([
+                        Forms\Components\DatePicker::make('recu_le')
+                            ->label('Date de réception effective')
+                            ->required()
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->maxDate(now())
+                            ->default(now())
+                            ->helperText('Appliquée à tous les dossiers sélectionnés.'),
+                        Forms\Components\TextInput::make('observation')
+                            ->label('Observation commune (facultatif)')
+                            ->maxLength(255),
+                    ])
+                    ->action(function ($records, array $data): void {
+                        $service = app(DepotPhysiqueService::class);
+                        $agent = auth()->user();
+                        $recuLe = Carbon::parse($data['recu_le']);
+
+                        $marques = [];
+                        $ignores = [];
+
+                        foreach ($records as $r) {
+                            // Déjà pointé ou jamais soumis en ligne : on saute
+                            // sans faire échouer tout le lot.
+                            if ($r->depot_physique_at !== null || $r->submitted_at === null) {
+                                $ignores[] = $r->numero_dossier;
+
+                                continue;
+                            }
+
+                            $service->marquer($r, $recuLe, $agent, $data['observation'] ?? null);
+                            $marques[] = $r->numero_dossier;
+                        }
+
+                        Notification::make()
+                            ->title(count($marques).' dossier(s) marqué(s) comme reçus')
+                            ->body($ignores === []
+                                ? null
+                                : count($ignores).' dossier(s) ignoré(s) : déjà pointés ou non soumis en ligne.')
+                            ->success()
+                            ->send();
+
+                        activity('candidatures')->causedBy($agent)
+                            ->event('depot_physique_marked_bulk')
+                            ->withProperties([
+                                'recu_le' => $recuLe->toDateString(),
+                                'count' => count($marques),
+                                'numeros' => $marques,
+                                'ignores' => $ignores,
+                            ])
+                            ->log('Réception groupée de dossiers physiques ('.count($marques).')');
+                    }),
                 Tables\Actions\BulkAction::make('exportCsv')
                     ->label('Exporter en CSV')
                     ->icon('heroicon-o-arrow-down-tray')

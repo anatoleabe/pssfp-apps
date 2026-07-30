@@ -70,6 +70,9 @@ class Candidature extends Model
         'photo_path',
         'statut',
         'submitted_at',
+        'depot_physique_at',
+        'depot_physique_by',
+        'depot_physique_observation',
         'reviewed_at',
         'decided_at',
         'withdrawn_at',
@@ -84,6 +87,7 @@ class Candidature extends Model
     protected $casts = [
         'date_naissance' => 'date',
         'submitted_at' => 'datetime',
+        'depot_physique_at' => 'datetime',
         'reviewed_at' => 'datetime',
         'decided_at' => 'datetime',
         'withdrawn_at' => 'datetime',
@@ -135,6 +139,12 @@ class Candidature extends Model
         return $this->hasMany(CandidatureDocument::class);
     }
 
+    /** Agent de la scolarité ayant réceptionné le dossier papier. */
+    public function depotPhysiquePar(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'depot_physique_by');
+    }
+
     public function scopeForCampagne(Builder $query, int $campagneId): Builder
     {
         return $query->where('campagne_id', $campagneId);
@@ -143,5 +153,34 @@ class Candidature extends Model
     public function scopeByStatut(Builder $query, string $statut): Builder
     {
         return $query->where('statut', $statut);
+    }
+
+    /**
+     * Dossiers effectivement soumis en ligne par le candidat.
+     *
+     * `postulant` = brouillon jamais soumis : il ne compte dans aucune
+     * statistique de dépôt.
+     */
+    public function scopeSoumises(Builder $query): Builder
+    {
+        return $query->whereNotNull('submitted_at')
+            ->where('statut', '!=', self::STATUT_POSTULANT);
+    }
+
+    /** Dossiers papier réceptionnés au bureau de la scolarité. */
+    public function scopeDeposePhysiquement(Builder $query): Builder
+    {
+        return $query->whereNotNull('depot_physique_at');
+    }
+
+    /** Soumis en ligne mais dossier papier jamais présenté au guichet. */
+    public function scopeEnAttenteDepotPhysique(Builder $query): Builder
+    {
+        return $query->soumises()->whereNull('depot_physique_at');
+    }
+
+    public function depotPhysiqueRecu(): bool
+    {
+        return $this->depot_physique_at !== null;
     }
 }
