@@ -221,7 +221,7 @@
 **Pattern Name:** Institutional Editorial 2026
 
 - **Conversion Strategy:** Parcours par persona (Candidat / Auditeur / Partenaire / Enseignant / Décideur). Mega menu sobre, breadcrumb systématique, règle des 3 clics.
-- **CTA Placement:** "Candidater" (primary prune) visible sur sticky header + fin de hero. "Voir la bibliothèque" / "Contacter" (secondary outline).
+- **CTA Placement:** "Postuler" (primary prune) visible sur sticky header + fin de hero. "Voir la bibliothèque" / "Contacter" (secondary outline).
 - **Section Order (accueil-type 2026):**
   1. Hero éditorial avec mission + photo bâtiment néoclassique
   2. **Bandeau 4 piliers bleu pétrole** (Formations qualifiantes / Expertise publique / Réseau & partenariats / Éthique & intégrité)

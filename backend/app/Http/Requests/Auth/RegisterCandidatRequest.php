@@ -68,7 +68,7 @@ final class RegisterCandidatRequest extends FormRequest
             'phone_e164.unique' => 'Ce numéro de téléphone est déjà enregistré. Connectez-vous.',
             'pin.regex' => 'Le PIN doit contenir exactement 6 chiffres.',
             'pin_confirmation.same' => 'La confirmation du PIN ne correspond pas.',
-            'date_naissance.before' => 'Vous devez avoir au moins 18 ans pour candidater.',
+            'date_naissance.before' => 'Vous devez avoir au moins 18 ans pour postuler.',
             'cgu.accepted' => 'Vous devez accepter les CGU pour vous inscrire.',
         ];
     }

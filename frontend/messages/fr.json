@@ -58,7 +58,7 @@
     "actualites": "Actualités",
     "contact": "Contact",
     "library": "Bibliothèque",
-    "candidature": "Candidater",
+    "candidature": "Postuler",
     "foad": "FOAD",
     "menuOpen": "Ouvrir le menu",
     "menuClose": "Fermer le menu",
@@ -78,7 +78,7 @@
     "eyebrow": "Admissions · Promotion 14",
     "title": "Construisez votre parcours au PSSFP",
     "body": "Explorez nos formations et préparez votre candidature pour rejoindre la prochaine promotion du Master Professionnel en Finances Publiques.",
-    "primary": "Candidater en ligne",
+    "primary": "Postuler en ligne",
     "secondary": "Voir les formations"
   },
   "footer": {
@@ -86,7 +86,7 @@
     "aboutBody": "Le PSSFP, hébergé au Campus de Messa à Yaoundé, forme depuis plus de dix ans les cadres supérieurs des finances publiques du Cameroun et d'Afrique centrale.",
     "navTitle": "Navigation",
     "servicesTitle": "Services numériques",
-    "servicesCandidature": "Candidater en ligne",
+    "servicesCandidature": "Postuler en ligne",
     "servicesLibrary": "Bibliothèque virtuelle",
     "servicesFoad": "Plateforme FOAD",
     "contactTitle": "Contact",
@@ -128,7 +128,7 @@
     "exploreLead": "Découvrez la gouvernance, les conventions, la conformité CAMES, la vocation et l'histoire institutionnelle du PSSFP.",
     "ctaTitle": "Rejoindre la promotion 14",
     "ctaBody": "Les candidatures sont ouvertes pour la rentrée académique 2026.",
-    "ctaButton": "Candidater en ligne"
+    "ctaButton": "Postuler en ligne"
   },
   "home": {
     "institutionalHero": {
@@ -136,7 +136,7 @@
       "campaign": "Candidatures ouvertes",
       "title": "Former l'élite des finances publiques",
       "subtitle": "Le PSSFP prépare les cadres supérieurs capables de moderniser l'action publique au Cameroun et dans la sous-région CEMAC.",
-      "ctaPrimary": "Candidater à la promotion 14",
+      "ctaPrimary": "Postuler à la promotion 14",
       "ctaSecondary": "Découvrir les formations",
       "deadline": "Dépôt des dossiers jusqu'au 18 septembre 2026, 15h30.",
       "trustCames": "Master BAC+5 reconnu CAMES",
@@ -148,7 +148,7 @@
       "eyebrow": "Campus de Messa · Yaoundé",
       "title": "Rejoignez la prochaine génération de cadres publics",
       "body": "Intégrez un programme d'excellence au cœur des institutions camerounaises et développez une expertise directement applicable aux enjeux des finances publiques.",
-      "ctaPrimary": "Candidater à la promotion 14",
+      "ctaPrimary": "Postuler à la promotion 14",
       "ctaSecondary": "Découvrir le campus",
       "imageAlt": "Façade du Campus de Messa à Yaoundé"
     },
@@ -156,7 +156,7 @@
       "eyebrow": "Campus de Messa, Yaoundé",
       "title": "Former l'excellence des finances publiques en Afrique centrale",
       "subtitle": "Le Programme Supérieur de Spécialisation en Finances Publiques (PSSFP) prépare depuis plus de dix ans les cadres supérieurs de l'administration financière camerounaise et africaine.",
-      "ctaPrimary": "Candidater à la promotion 14",
+      "ctaPrimary": "Postuler à la promotion 14",
       "ctaSecondary": "Explorer les formations",
       "campusEyebrow": "Campagne en cours",
       "campusName": "Promotion 14 — 2026",
@@ -281,7 +281,7 @@
       "foadBody": "Cours en ligne, supports pédagogiques, devoirs déposés et suivi des notes.",
       "biblioTitle": "Bibliothèque virtuelle",
       "biblioBody": "Catalogue numérique d'ouvrages, thèses, rapports et abonnements en finances publiques.",
-      "candidatureTitle": "Candidater en ligne",
+      "candidatureTitle": "Postuler en ligne",
       "candidatureBody": "Soumettez votre dossier en moins de 15 minutes pour la promotion 14."
     },
     "title": "Programme Supérieur de Spécialisation en Finances Publiques",
@@ -332,7 +332,7 @@
       "pinned": "À la une",
       "summaryTitle": "En bref",
       "summaryBody": "Retrouvez les informations essentielles de cette publication et poursuivez votre découverte du Programme.",
-      "apply": "Candidater à la promotion 14",
+      "apply": "Postuler à la promotion 14",
       "back": "Toutes les actualités"
     },
     "facebook": {
@@ -397,7 +397,7 @@
         "a": "Les conditions d'admission, le calendrier et la procédure de candidature sont détaillés sur la rubrique Candidature. Pour toute question spécifique, écrivez-nous via le formulaire ci-contre — réponse sous 48h ouvrées."
       },
       "visite": {
-        "q": "Puis-je visiter le campus avant de candidater ?",
+        "q": "Puis-je visiter le campus avant de postuler ?",
         "a": "Oui, des visites guidées du Campus de Messa sont organisées sur rendez-vous. Contactez le secrétariat pour planifier votre venue."
       },
       "departement": {
