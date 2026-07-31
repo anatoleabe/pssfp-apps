@@ -69,7 +69,7 @@ export function WizardStep4Engagement({
       </section>
 
       <div data-field-error={Boolean(engagementError)}>
-        <p className="text-sm text-[#333333]">Nom du candidat : <strong>{fullName}</strong></p>
+        <p className="text-sm text-[#333333]">{t('candidateNameLabel')} <strong>{fullName}</strong></p>
         <label className="mt-3 flex items-start gap-3 text-sm leading-relaxed text-[#333333]">
           <input
             data-testid="step4-engagement"

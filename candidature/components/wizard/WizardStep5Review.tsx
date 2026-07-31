@@ -1,6 +1,7 @@
 'use client';
 
 import { CheckCircle2, Pencil, ShieldCheck } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { Pays } from '@/lib/api/types';
 import { formatDateFr } from '@/lib/format/date';
 import { STATUT_ACTUEL_OPTIONS } from '@/lib/dossier/options';
@@ -23,6 +24,8 @@ export function WizardStep5Review({
   onConfirmedChange,
   onEditStep,
 }: WizardStep5ReviewProps): JSX.Element {
+  const t = useTranslations('wizard.step5');
+  const editLabel = t('edit');
   const countryName = (code: string): string =>
     pays.find((country) => country.code_iso === code)?.nom ?? code;
   const statusLabel =
@@ -33,10 +36,10 @@ export function WizardStep5Review({
     <div className="space-y-6" data-testid="wizard-step-5">
       <header>
         <p className="text-sm font-semibold uppercase tracking-wider text-[#8A641D]">
-          Dernière étape
+          {t('eyebrow')}
         </p>
         <h2 className="mt-1 font-heading text-2xl font-bold text-[#4A2E67]">
-          Vérification et confirmation
+          {t('title')}
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-[#595959]">
           Relisez attentivement toutes les informations ci-dessous. Utilisez « Modifier » pour
@@ -44,76 +47,76 @@ export function WizardStep5Review({
         </p>
       </header>
 
-      <ReviewSection title="Formation demandée" step={1} onEditStep={onEditStep}>
-        <ReviewRow label="Spécialité" value={data.specialite} />
+      <ReviewSection title={t('sectionFormation')} step={1} onEditStep={onEditStep} editLabel={editLabel}>
+        <ReviewRow label={t('fields.specialisation')} value={data.specialite} />
         <ReviewRow
-          label="Modalité"
+          label={t('fields.studyMode')}
           value={data.type_etude === 'presentiel' ? 'Présentiel' : 'Distanciel'}
         />
         <ReviewRow
-          label="Première langue"
-          value={data.premiere_langue === 'fr' ? 'Français' : 'Anglais'}
+          label={t('fields.firstLanguage')}
+          value={data.premiere_langue === 'fr' ? t('langueFr') : t('langueEn')}
         />
       </ReviewSection>
 
-      <ReviewSection title="Identité" step={1} onEditStep={onEditStep}>
+      <ReviewSection title={t('sectionIdentite')} step={1} onEditStep={onEditStep} editLabel={editLabel}>
         <ReviewRow
-          label="Nom complet"
-          value={`${data.civilite} ${data.prenom} ${data.nom}${data.epouse ? ` — nom d’usage : ${data.epouse}` : ''}`}
+          label={t('fields.fullName')}
+          value={`${data.civilite} ${data.prenom} ${data.nom}${data.epouse ? ` — ${t('usageName')} : ${data.epouse}` : ''}`}
         />
-        <ReviewRow label="Date de naissance" value={formatDateFr(data.date_naissance)} />
-        <ReviewRow label="Lieu de naissance" value={data.lieu_naissance} />
+        <ReviewRow label={t('fields.birthDate')} value={formatDateFr(data.date_naissance)} />
+        <ReviewRow label={t('fields.birthPlace')} value={data.lieu_naissance} />
         <ReviewRow
-          label="Genre"
-          value={data.genre === 'M' ? 'Masculin' : data.genre === 'F' ? 'Féminin' : 'Autre'}
+          label={t('fields.gender')}
+          value={data.genre === 'M' ? t('genreM') : data.genre === 'F' ? t('genreF') : t('genreAutre')}
         />
-        <ReviewRow label="Situation matrimoniale" value={data.statut_matrimonial} />
-        <ReviewRow label="Nationalité" value={countryName(data.nationalite)} />
+        <ReviewRow label={t('fields.maritalStatus')} value={data.statut_matrimonial} />
+        <ReviewRow label={t('fields.nationality')} value={countryName(data.nationalite)} />
       </ReviewSection>
 
-      <ReviewSection title="Coordonnées" step={2} onEditStep={onEditStep}>
-        <ReviewRow label="Adresse e-mail" value={data.email} emphasized />
-        <ReviewRow label="Téléphone principal" value={data.phone_e164} />
+      <ReviewSection title={t('sectionCoordonnees')} step={2} onEditStep={onEditStep} editLabel={editLabel}>
+        <ReviewRow label={t('fields.email')} value={data.email} emphasized />
+        <ReviewRow label={t('fields.mainPhone')} value={data.phone_e164} />
         {(data.indicatif2 || data.telephone2) && (
           <ReviewRow
-            label="Téléphone secondaire"
+            label={t('fields.secondPhone')}
             value={`${data.indicatif2} ${data.telephone2}`.trim()}
           />
         )}
-        <ReviewRow label="Pays d’origine" value={countryName(data.pays_origine)} />
-        <ReviewRow label="Pays de résidence" value={countryName(data.pays_residence)} />
-        {data.region && <ReviewRow label="Région" value={data.region} />}
-        {data.departement && <ReviewRow label="Département" value={data.departement} />}
+        <ReviewRow label={t('fields.countryOrigin')} value={countryName(data.pays_origine)} />
+        <ReviewRow label={t('fields.countryResidence')} value={countryName(data.pays_residence)} />
+        {data.region && <ReviewRow label={t('fields.region')} value={data.region} />}
+        {data.departement && <ReviewRow label={t('fields.division')} value={data.departement} />}
         <ReviewRow
-          label="Adresse de résidence"
+          label={t('fields.homeAddress')}
           value={`${data.adresse}, ${data.ville_residence}`}
         />
       </ReviewSection>
 
-      <ReviewSection title="Parcours académique et professionnel" step={3} onEditStep={onEditStep}>
-        <ReviewRow label="Diplôme" value={data.diplome_obtenu} />
-        <ReviewRow label="Établissement" value={data.institut} />
-        <ReviewRow label="Spécialité du diplôme" value={data.specialite_diplome} />
-        <ReviewRow label="Année d’obtention" value={String(data.annee_diplome)} />
-        <ReviewRow label="Situation actuelle" value={statusLabel} />
-        {data.fonction_actuelle && <ReviewRow label="Fonction" value={data.fonction_actuelle} />}
-        {data.employeur && <ReviewRow label="Employeur" value={data.employeur} />}
+      <ReviewSection title={t('sectionParcours')} step={3} onEditStep={onEditStep} editLabel={editLabel}>
+        <ReviewRow label={t('fields.degree')} value={data.diplome_obtenu} />
+        <ReviewRow label={t('fields.institution')} value={data.institut} />
+        <ReviewRow label={t('fields.degreeField')} value={data.specialite_diplome} />
+        <ReviewRow label={t('fields.gradYear')} value={String(data.annee_diplome)} />
+        <ReviewRow label={t('fields.currentSituation')} value={statusLabel} />
+        {data.fonction_actuelle && <ReviewRow label={t('fields.role')} value={data.fonction_actuelle} />}
+        {data.employeur && <ReviewRow label={t('fields.employer')} value={data.employeur} />}
         {data.adresse_employeur && (
-          <ReviewRow label="Adresse de l’employeur" value={data.adresse_employeur} />
+          <ReviewRow label={t('fields.employerAddress')} value={data.adresse_employeur} />
         )}
         {data.tel_employeur && (
-          <ReviewRow label="Téléphone de l’employeur" value={data.tel_employeur} />
+          <ReviewRow label={t('fields.employerPhone')} value={data.tel_employeur} />
         )}
-        <ReviewRow label="Comment vous avez connu le PSSFP" value={data.moyen_connaissance} />
+        <ReviewRow label={t('fields.howHeard')} value={data.moyen_connaissance} />
         {data.moyen_connaissance_detail && (
-          <ReviewRow label="Précision" value={data.moyen_connaissance_detail} />
+          <ReviewRow label={t('fields.details')} value={data.moyen_connaissance_detail} />
         )}
       </ReviewSection>
 
-      <ReviewSection title="Sécurité et engagements" step={4} onEditStep={onEditStep}>
-        <ReviewRow label="PIN" value="Défini et masqué pour votre sécurité" />
-        <ReviewRow label="Certification sur l’honneur" value="Acceptée" />
-        <ReviewRow label="Conditions d’utilisation" value="Acceptées" />
+      <ReviewSection title={t('sectionSecurite')} step={4} onEditStep={onEditStep} editLabel={editLabel}>
+        <ReviewRow label={t('fields.pin')} value="Défini et masqué pour votre sécurité" />
+        <ReviewRow label={t('fields.honourDeclaration')} value="Acceptée" />
+        <ReviewRow label={t('fields.terms')} value="Acceptées" />
       </ReviewSection>
 
       <section
@@ -151,7 +154,7 @@ export function WizardStep5Review({
 
       <div className="flex items-center gap-2 rounded-md bg-[#F4EFFA] p-3 text-xs text-[#4A2E67]">
         <ShieldCheck size={18} aria-hidden="true" />
-        Votre PIN n’est jamais affiché dans ce récapitulatif ni enregistré dans votre navigateur.
+        {t('pinNotice')}
       </div>
     </div>
   );
@@ -161,11 +164,13 @@ function ReviewSection({
   title,
   step,
   onEditStep,
+  editLabel,
   children,
 }: {
   title: string;
   step: 1 | 2 | 3 | 4;
   onEditStep: (step: 1 | 2 | 3 | 4) => void;
+  editLabel: string;
   children: React.ReactNode;
 }): JSX.Element {
   return (
@@ -178,7 +183,7 @@ function ReviewSection({
           className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-semibold text-[#4A2E67] underline hover:bg-[#F4EFFA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67]"
         >
           <Pencil size={14} aria-hidden="true" />
-          Modifier
+          {editLabel}
         </button>
       </div>
       <dl className="grid gap-x-8 px-4 py-2 sm:grid-cols-2 sm:px-5">{children}</dl>

@@ -1,6 +1,7 @@
 'use client';
 
 import { Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/cn';
 
@@ -19,12 +20,13 @@ interface WizardStepperProps {
  * - Labels masqués sur mobile (steppers compacts) + barre de progression
  */
 export function WizardStepper({ current, steps }: WizardStepperProps): JSX.Element {
+  const t = useTranslations('wizard');
   const reduceMotion = useReducedMotion();
   const totalSteps = steps.length;
   const completedRatio = Math.max(0, Math.min(1, (current - 1) / Math.max(1, totalSteps - 1)));
 
   return (
-    <nav aria-label="Progression du formulaire" className="mb-10">
+    <nav aria-label={t('progressAria')} className="mb-10">
       {/* Mobile: compact summary */}
       <div className="mb-4 flex items-center justify-between md:hidden">
         <p className="font-heading text-sm font-bold text-[#4A2E67]">

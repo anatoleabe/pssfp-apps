@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { SearchableSelect } from '@/components/SearchableSelect';
 import type { Pays, Specialite } from '@/lib/api/types';
 import type { WizardData } from './types';
@@ -12,6 +14,20 @@ export interface WizardStep1Props {
   onChange: (patch: Partial<WizardData>) => void;
 }
 
+/**
+ * Situations matrimoniales : la valeur stockée reste le libellé français, qui
+ * est celui enregistré en base pour les dossiers existants. Seul l'affichage
+ * est traduit — changer la valeur casserait la relecture des dossiers déjà
+ * soumis et la contrainte CHECK côté PostgreSQL.
+ */
+const STATUTS_MATRIMONIAUX = [
+  { value: 'Célibataire', key: 'celibataire' },
+  { value: 'Marié(e)', key: 'marie' },
+  { value: 'Divorcé(e)', key: 'divorce' },
+  { value: 'Veuf / Veuve', key: 'veuf' },
+  { value: 'Autre', key: 'autre' },
+] as const;
+
 export function WizardStep1Identite({
   data,
   errors,
@@ -19,15 +35,15 @@ export function WizardStep1Identite({
   specialites,
   onChange,
 }: WizardStep1Props): JSX.Element {
+  const t = useTranslations('wizard.step1');
+
   return (
     <div className="space-y-5" data-testid="wizard-step-1">
-      <h2 className="font-heading text-xl font-bold text-[#4A2E67]">
-        Étape 1 — Vœu de spécialité &amp; identité
-      </h2>
+      <h2 className="font-heading text-xl font-bold text-[#4A2E67]">{t('title')}</h2>
 
-      <Field label="Spécialité demandée" error={errors.specialite}>
+      <Field label={t('specialite')} error={errors.specialite} required>
         <SearchableSelect
-          ariaLabel="Spécialité demandée"
+          ariaLabel={t('specialite')}
           testId="step1-specialite"
           value={data.specialite}
           options={specialites.map((s) => ({ value: s.label, label: s.label }))}
@@ -35,37 +51,55 @@ export function WizardStep1Identite({
         />
       </Field>
       {data.specialite && (
-        <aside className="rounded-md border border-[#E4DCEE] bg-[#FAF7FF] p-4 text-sm text-[#4B4B4B]" aria-label={`Fiche ${data.specialite}`}>
+        <aside
+          className="rounded-md border border-[#E4DCEE] bg-[#FAF7FF] p-4 text-sm text-[#4B4B4B]"
+          aria-label={t('ficheAria', { specialite: data.specialite })}
+        >
           <h3 className="font-heading text-lg font-semibold text-[#4A2E67]">{data.specialite}</h3>
+          {/* Fiche générique en attendant les cinq fiches rédigées (audit A-05).
+              Le nom de la filière est au moins interpolé : la chaîne de gabarit
+              « cette spécialité » était affichée telle quelle au candidat. */}
           <dl className="mt-2 grid gap-2 sm:grid-cols-2">
-            <div><dt className="font-semibold">Objectif</dt><dd>Développer une expertise opérationnelle dans cette spécialité des finances publiques.</dd></div>
-            <div><dt className="font-semibold">Profil recommandé</dt><dd>Bac+3 minimum et expérience professionnelle en lien avec les finances publiques.</dd></div>
-            <div><dt className="font-semibold">Débouchés</dt><dd>Administrations, collectivités, organismes de contrôle et partenaires du développement.</dd></div>
-            <div><dt className="font-semibold">Mode et places</dt><dd>Présentiel : 25 · Distanciel : 10.</dd></div>
+            <div>
+              <dt className="font-semibold">{t('ficheObjectifLabel')}</dt>
+              <dd>{t('ficheObjectif', { specialite: data.specialite })}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold">{t('ficheProfilLabel')}</dt>
+              <dd>{t('ficheProfil')}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold">{t('ficheDebouchesLabel')}</dt>
+              <dd>{t('ficheDebouches')}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold">{t('fichePlacesLabel')}</dt>
+              <dd>{t('fichePlaces')}</dd>
+            </div>
           </dl>
         </aside>
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Type d'études" error={errors.type_etude}>
+        <Field label={t('typeEtude')} error={errors.type_etude} required>
           <Radio
             name="type_etude"
             value={data.type_etude}
             options={[
-              { value: 'presentiel', label: 'Présentiel' },
-              { value: 'distanciel', label: 'Distanciel' },
+              { value: 'presentiel', label: t('presentiel') },
+              { value: 'distanciel', label: t('distanciel') },
             ]}
             onChange={(v) => onChange({ type_etude: v as 'presentiel' | 'distanciel' })}
           />
         </Field>
 
-        <Field label="Première langue" error={errors.premiere_langue}>
+        <Field label={t('premiereLangue')} error={errors.premiere_langue} required>
           <Radio
             name="premiere_langue"
             value={data.premiere_langue}
             options={[
-              { value: 'fr', label: 'Français' },
-              { value: 'en', label: 'Anglais' },
+              { value: 'fr', label: t('langueFr') },
+              { value: 'en', label: t('langueEn') },
             ]}
             onChange={(v) => onChange({ premiere_langue: v as 'fr' | 'en' })}
           />
@@ -73,20 +107,18 @@ export function WizardStep1Identite({
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Field label="Civilité" error={errors.civilite}>
+        <Field label={t('civilite')} error={errors.civilite} required>
           <select
             data-testid="step1-civilite"
             value={data.civilite}
-            onChange={(e) =>
-              onChange({ civilite: e.target.value as 'M.' | 'Mme' })
-            }
+            onChange={(e) => onChange({ civilite: e.target.value as 'M.' | 'Mme' })}
             className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           >
             <option>M.</option>
             <option>Mme</option>
           </select>
         </Field>
-        <Field label="Prénom(s)" error={errors.prenom}>
+        <Field label={t('prenom')} error={errors.prenom} required>
           <input
             data-testid="step1-prenom"
             type="text"
@@ -95,7 +127,7 @@ export function WizardStep1Identite({
             className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
-        <Field label="Nom" error={errors.nom}>
+        <Field label={t('nom')} error={errors.nom} required>
           <input
             data-testid="step1-nom"
             type="text"
@@ -107,7 +139,7 @@ export function WizardStep1Identite({
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Field label="Nom d’usage (facultatif)" error={errors.epouse}>
+        <Field label={t('nomUsage')} error={errors.epouse}>
           <input
             type="text"
             value={data.epouse}
@@ -115,7 +147,7 @@ export function WizardStep1Identite({
             className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
-        <Field label="Date de naissance" error={errors.date_naissance}>
+        <Field label={t('dateNaissance')} error={errors.date_naissance} required>
           <input
             data-testid="step1-date-naissance"
             type="date"
@@ -125,36 +157,36 @@ export function WizardStep1Identite({
             className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
-        <Field label="Genre" error={errors.genre}>
+        <Field label={t('genre')} error={errors.genre} required>
           <select
             value={data.genre}
             onChange={(e) => onChange({ genre: e.target.value as 'M' | 'F' | 'autre' })}
             className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           >
-            <option value="M">Masculin</option>
-            <option value="F">Féminin</option>
-            <option value="autre">Autre</option>
+            <option value="M">{t('genreM')}</option>
+            <option value="F">{t('genreF')}</option>
+            <option value="autre">{t('genreAutre')}</option>
           </select>
         </Field>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Situation matrimoniale" error={errors.statut_matrimonial}>
+        <Field label={t('statutMatrimonial')} error={errors.statut_matrimonial} required>
           <select
             value={data.statut_matrimonial}
             onChange={(e) => onChange({ statut_matrimonial: e.target.value })}
             className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           >
-            <option>Célibataire</option>
-            <option>Marié(e)</option>
-            <option>Divorcé(e)</option>
-            <option>Veuf / Veuve</option>
-            <option>Autre</option>
+            {STATUTS_MATRIMONIAUX.map((s) => (
+              <option key={s.value} value={s.value}>
+                {t(`marital.${s.key}`)}
+              </option>
+            ))}
           </select>
         </Field>
-        <Field label="Nationalité" error={errors.nationalite}>
+        <Field label={t('nationalite')} error={errors.nationalite} required>
           <SearchableSelect
-            ariaLabel="Nationalité"
+            ariaLabel={t('nationalite')}
             value={data.nationalite}
             options={pays.map((p) => ({ value: p.code_iso, label: p.nom }))}
             onChange={(v) => onChange({ nationalite: v })}
@@ -165,18 +197,28 @@ export function WizardStep1Identite({
   );
 }
 
+/** Astérisque porté par `required` et non par le libellé traduit (audit A-30). */
 function Field({
   label,
   error,
+  required = false,
   children,
 }: {
   label: string;
   error?: string;
+  required?: boolean;
   children: React.ReactNode;
 }): JSX.Element {
   return (
     <label className="block" data-field-error={Boolean(error)}>
-      <span className="mb-1 block text-sm font-medium text-[#333333]">{label}</span>
+      <span className="mb-1 block text-sm font-medium text-[#333333]">
+        {label}
+        {required && (
+          <span aria-hidden="true" className="ml-0.5 text-red-600">
+            *
+          </span>
+        )}
+      </span>
       {children}
       {error && (
         <span role="alert" className="mt-1 block text-xs text-red-600">

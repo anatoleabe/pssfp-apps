@@ -128,6 +128,17 @@
           "paper": false
         }
       ]
+    },
+    "fiche": {
+      "open": "View the factsheet",
+      "objectifLabel": "Objective",
+      "objectifFallback": "Deepen your expertise in one area of public finance.",
+      "profilLabel": "Recommended profile",
+      "profil": "Managers and professionals holding a three-year degree, with experience related to public finance.",
+      "debouchesLabel": "Career prospects",
+      "debouches": "Government bodies, local authorities, oversight institutions and development partners.",
+      "placesLabel": "Study mode and places",
+      "places": "On campus: 25 places · Distance learning: 10 places."
     }
   },
   "login": {
@@ -220,7 +231,8 @@
       "cguLink": "terms of use",
       "privacyLink": "privacy policy",
       "newTab": "(new tab)",
-      "loginCta": "Sign in with this number"
+      "loginCta": "Sign in with this number",
+      "candidateNameLabel": "Applicant name:"
     },
     "step2": {
       "title": "Step 2 — Contact details",
@@ -252,7 +264,95 @@
       "moyenConnaissance": "How did you hear about the PSSFP?",
       "preciserSource": "Please specify the source",
       "preciserSourcePlaceholder": "Name of the person, organisation or channel"
-    }
+    },
+    "step1": {
+      "title": "Step 1 — Specialisation choice & identity",
+      "specialite": "Specialisation applied for",
+      "ficheAria": "{specialite} factsheet",
+      "ficheObjectifLabel": "Objective",
+      "ficheObjectif": "Build operational expertise in {specialite}.",
+      "ficheProfilLabel": "Recommended profile",
+      "ficheProfil": "A three-year degree at minimum, plus professional experience related to public finance.",
+      "ficheDebouchesLabel": "Career prospects",
+      "ficheDebouches": "Government bodies, local authorities, oversight institutions and development partners.",
+      "fichePlacesLabel": "Study mode and places",
+      "fichePlaces": "On campus: 25 · Distance learning: 10.",
+      "typeEtude": "Study mode",
+      "presentiel": "On campus",
+      "distanciel": "Distance learning",
+      "premiereLangue": "First language",
+      "langueFr": "French",
+      "langueEn": "English",
+      "civilite": "Title",
+      "prenom": "First name(s)",
+      "nom": "Surname",
+      "nomUsage": "Name in use (optional)",
+      "dateNaissance": "Date of birth",
+      "genre": "Gender",
+      "genreM": "Male",
+      "genreF": "Female",
+      "genreAutre": "Other",
+      "statutMatrimonial": "Marital status",
+      "marital": {
+        "celibataire": "Single",
+        "marie": "Married",
+        "divorce": "Divorced",
+        "veuf": "Widowed",
+        "autre": "Other"
+      },
+      "nationalite": "Nationality"
+    },
+    "step5": {
+      "eyebrow": "Final step",
+      "title": "Review and confirm",
+      "pinNotice": "Your PIN is never shown in this summary, nor stored in your browser.",
+      "edit": "Edit",
+      "sectionFormation": "Programme applied for",
+      "sectionIdentite": "Identity",
+      "sectionCoordonnees": "Contact details",
+      "sectionParcours": "Academic and professional background",
+      "sectionSecurite": "Security and declarations",
+      "usageName": "name in use",
+      "fields": {
+        "employerAddress": "Employer address",
+        "homeAddress": "Home address",
+        "email": "Email address",
+        "gradYear": "Year awarded",
+        "honourDeclaration": "Declaration on honour",
+        "howHeard": "How you heard about the PSSFP",
+        "terms": "Terms of use",
+        "birthDate": "Date of birth",
+        "degree": "Qualification",
+        "division": "Division",
+        "employer": "Employer",
+        "role": "Role",
+        "gender": "Gender",
+        "birthPlace": "Place of birth",
+        "studyMode": "Study mode",
+        "nationality": "Nationality",
+        "fullName": "Full name",
+        "pin": "PIN",
+        "countryResidence": "Country of residence",
+        "countryOrigin": "Country of origin",
+        "firstLanguage": "First language",
+        "details": "Details",
+        "region": "Region",
+        "currentSituation": "Current situation",
+        "maritalStatus": "Marital status",
+        "degreeField": "Field of the qualification",
+        "specialisation": "Specialisation",
+        "employerPhone": "Employer phone",
+        "mainPhone": "Main phone number",
+        "secondPhone": "Secondary phone number",
+        "institution": "Institution"
+      },
+      "langueFr": "French",
+      "langueEn": "English",
+      "genreM": "Male",
+      "genreF": "Female",
+      "genreAutre": "Other"
+    },
+    "progressAria": "Form progress"
   },
   "forgotPin": {
     "progressAria": "Progress",
@@ -315,7 +415,14 @@
       "employeur": "Employer or organisation",
       "moyen_connaissance": "How did you hear about the PSSFP?",
       "moyen_connaissance_detail": "More about the source",
-      "engagement_nom": "Digital signature"
+      "engagement_nom": "Digital signature",
+      "epouse": "Name at birth (if different from current name)",
+      "indicatif2": "Secondary country code",
+      "telephone2": "Secondary phone number (optional)",
+      "adresse_employeur": "Work city / address (optional)",
+      "tel_employeur": "Work phone number (optional)",
+      "indicatif_generique": "Country code",
+      "indicatifPlaceholder": "— Country code —"
     },
     "completeness": {
       "submittedTitle": "Application submitted",
@@ -428,6 +535,79 @@
         "heading": "12. Cookies",
         "body": [
           "The portal only uses cookies strictly necessary for it to work (maintaining a secure session, remembering your chosen language, anti-robot protection). No advertising tracking cookie is placed."
+        ]
+      }
+    ]
+  },
+  "cgu": {
+    "title": "Terms of use",
+    "metaDescription": "Terms of use of the PSSFP online application portal.",
+    "updatedAt": "2026-07-31",
+    "intro": "These terms of use (the \"Terms\") govern access to and use of the online application portal of the Advanced Programme of Specialisation in Public Finance (the \"PSSFP\"), available at apply.pssfp.org. By creating an applicant account, you acknowledge that you have read and unreservedly accepted these Terms.",
+    "privacyRefBefore": "The processing of personal data collected through the portal is described in our",
+    "privacyRefLink": "privacy policy",
+    "privacyRefAfter": ", which applicants are invited to read. Using the portal constitutes acceptance of that policy.",
+    "sections": [
+      {
+        "heading": "1. Purpose",
+        "body": [
+          "The portal allows anyone meeting the admission requirements to assemble and submit an application online for a PSSFP intake. It constitutes neither a promise of admission nor an undertaking by the PSSFP to look favourably on any application."
+        ]
+      },
+      {
+        "heading": "2. Account creation and security",
+        "list": [
+          "The applicant's user ID is their phone number in international format; the password is a confidential 6-digit code (PIN) chosen by the applicant.",
+          "The applicant is solely responsible for keeping their PIN confidential and for all actions carried out from their account.",
+          "If the PIN is forgotten, a reset procedure by SMS code is available. Failing that, the applicant may contact the PSSFP."
+        ]
+      },
+      {
+        "heading": "3. Accuracy of information",
+        "body": [
+          "The applicant undertakes to provide accurate, complete and up-to-date information. Any inaccurate declaration, falsified document or identity fraud results in immediate rejection of the application, without prejudice to possible legal proceedings."
+        ]
+      },
+      {
+        "heading": "4. Application fee",
+        "body": [
+          "Completing an application requires payment of the XAF 50,000 application fee at a CREMINCAM branch (Crédit Mutuel d'Investissement du Cameroun), quoting the file number issued on submission. This fee covers the administrative processing of the file and is non-refundable, whatever the admissions committee decides."
+        ]
+      },
+      {
+        "heading": "5. Handing in the paper file",
+        "body": [
+          "Submitting online is not enough to make an application admissible. The complete paper file must be handed in at the PSSFP Registrar's Office (Yaoundé-Messa, room 231) by the announced closing date and time at the latest. This requirement applies to all applicants, including those enrolled in distance learning."
+        ]
+      },
+      {
+        "heading": "6. Processing of the application",
+        "body": [
+          "Applications are examined by the PSSFP admissions committee according to its own criteria. The applicant is informed by email and/or telephone of progress and of the final decision on their file."
+        ]
+      },
+      {
+        "heading": "7. Availability and liability",
+        "body": [
+          "The PSSFP endeavours to keep the portal available but cannot be held liable for interruptions due to maintenance, force majeure or factors beyond its control (network, hosting, the applicant's device). Applicants are advised not to wait until the deadline to submit their file."
+        ]
+      },
+      {
+        "heading": "8. Intellectual property",
+        "body": [
+          "All elements of the portal (trade marks, logos, texts, layout) are the property of the PSSFP. Any unauthorised reproduction is prohibited."
+        ]
+      },
+      {
+        "heading": "9. Amendment of the Terms",
+        "body": [
+          "The PSSFP reserves the right to amend these Terms at any time. The applicable version is the one in force at the time the portal is used."
+        ]
+      },
+      {
+        "heading": "10. Governing law",
+        "body": [
+          "These Terms are governed by Cameroonian law. Any dispute falls within the jurisdiction of the courts of Yaoundé, failing an amicable settlement."
         ]
       }
     ]

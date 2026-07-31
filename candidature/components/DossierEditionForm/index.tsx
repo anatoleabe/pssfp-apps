@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/navigation';
 import { useRouter } from '@/navigation';
 import { saveDossierFieldsAction } from '@/app/[locale]/dossier/edition/actions';
@@ -322,18 +323,19 @@ function IndicatifSelect({
   testId?: string;
   includeEmpty?: boolean;
 }): JSX.Element {
+  const tf = useTranslations('dossier.fields');
   const knownIndicatifs = new Set(pays.map((p) => p.indicatif));
   const hasUnknownCurrent = value !== '' && !knownIndicatifs.has(value);
 
   return (
     <select
       data-testid={testId}
-      aria-label="Indicatif téléphonique"
+      aria-label={tf('indicatif_generique')}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className={inputCls}
     >
-      {(includeEmpty || value === '') && <option value="">— Indicatif —</option>}
+      {(includeEmpty || value === '') && <option value="">{tf('indicatifPlaceholder')}</option>}
       {hasUnknownCurrent && <option value={value}>{value}</option>}
       {pays.map((p) => (
         <option key={p.code_iso} value={p.indicatif}>
@@ -357,9 +359,10 @@ function SectionIdentite({
   specialites,
   setField,
 }: SectionPropsBase & { pays: Pays[]; specialites: Specialite[] }): JSX.Element {
+  const tf = useTranslations('dossier.fields');
   return (
     <Card id="identite" title="Identité & vœu" description="Vos informations personnelles et la spécialité demandée.">
-      <Field field="specialite" label="Spécialité demandée" error={errors.specialite}>
+      <Field field="specialite" label={tf('specialite')} error={errors.specialite}>
         <SearchableSelect
           ariaLabel="Spécialité demandée"
           testId="edit-specialite"
@@ -378,7 +381,7 @@ function SectionIdentite({
           saisies ; sa suppression est à programmer après la clôture. */}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field field="type_etude" label="Type d'études" error={errors.type_etude}>
+        <Field field="type_etude" label={tf('type_etude')} error={errors.type_etude}>
           <select
             data-testid="edit-type-etude"
             value={String(form.type_etude ?? 'presentiel')}
@@ -389,7 +392,7 @@ function SectionIdentite({
             <option value="distanciel">Distanciel</option>
           </select>
         </Field>
-        <Field field="premiere_langue" label="Première langue" error={errors.premiere_langue}>
+        <Field field="premiere_langue" label={tf('premiere_langue')} error={errors.premiere_langue}>
           <select
             value={String(form.premiere_langue ?? 'fr')}
             onChange={(e) => setField('premiere_langue', e.target.value)}
@@ -402,7 +405,7 @@ function SectionIdentite({
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Field field="civilite" label="Civilité" error={errors.civilite}>
+        <Field field="civilite" label={tf('civilite')} error={errors.civilite}>
           <select
             data-testid="edit-civilite"
             value={String(form.civilite ?? 'M.')}
@@ -413,7 +416,7 @@ function SectionIdentite({
             <option>Mme</option>
           </select>
         </Field>
-        <Field field="prenom" label="Prénom(s)" error={errors.prenom}>
+        <Field field="prenom" label={tf('prenom')} error={errors.prenom}>
           <input
             data-testid="edit-prenom"
             type="text"
@@ -422,7 +425,7 @@ function SectionIdentite({
             className={inputCls}
           />
         </Field>
-        <Field field="nom" label="Nom" error={errors.nom}>
+        <Field field="nom" label={tf('nom')} error={errors.nom}>
           <input
             data-testid="edit-nom"
             type="text"
@@ -434,7 +437,7 @@ function SectionIdentite({
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Field field="epouse" label="Nom de naissance (si différent du nom actuel)" error={errors.epouse}>
+        <Field field="epouse" label={tf('epouse')} error={errors.epouse}>
           <input
             type="text"
             value={String(form.epouse ?? '')}
@@ -442,7 +445,7 @@ function SectionIdentite({
             className={inputCls}
           />
         </Field>
-        <Field field="date_naissance" label="Date de naissance" error={errors.date_naissance}>
+        <Field field="date_naissance" label={tf('date_naissance')} error={errors.date_naissance}>
           <input
             data-testid="edit-date-naissance"
             type="date"
@@ -452,7 +455,7 @@ function SectionIdentite({
             className={inputCls}
           />
         </Field>
-        <Field field="genre" label="Genre" error={errors.genre}>
+        <Field field="genre" label={tf('genre')} error={errors.genre}>
           <select
             value={String(form.genre ?? 'M')}
             onChange={(e) => setField('genre', e.target.value)}
@@ -465,7 +468,7 @@ function SectionIdentite({
         </Field>
       </div>
 
-      <Field field="lieu_naissance" label="Lieu de naissance" error={errors.lieu_naissance}>
+      <Field field="lieu_naissance" label={tf('lieu_naissance')} error={errors.lieu_naissance}>
         <input
           data-testid="edit-lieu-naissance"
           type="text"
@@ -476,7 +479,7 @@ function SectionIdentite({
       </Field>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field field="statut_matrimonial" label="Situation matrimoniale" error={errors.statut_matrimonial}>
+        <Field field="statut_matrimonial" label={tf('statut_matrimonial')} error={errors.statut_matrimonial}>
           <select
             value={String(form.statut_matrimonial ?? 'Célibataire')}
             onChange={(e) => setField('statut_matrimonial', e.target.value)}
@@ -489,7 +492,7 @@ function SectionIdentite({
             <option>Autre</option>
           </select>
         </Field>
-        <Field field="nationalite" label="Nationalité" error={errors.nationalite}>
+        <Field field="nationalite" label={tf('nationalite')} error={errors.nationalite}>
           <SearchableSelect
             ariaLabel="Nationalité"
             value={String(form.nationalite ?? '')}
@@ -512,9 +515,10 @@ function SectionCoordonnees({
   pays: Pays[];
   onPaysRegionChange: (next: { pays_residence: string; region: string; departement: string }) => void;
 }): JSX.Element {
+  const tf = useTranslations('dossier.fields');
   return (
     <Card id="coordonnees" title="Coordonnées" description="Adresse, contact secondaire, email.">
-      <Field field="pays_origine" label="Pays d'origine" error={errors.pays_origine}>
+      <Field field="pays_origine" label={tf('pays_origine')} error={errors.pays_origine}>
         <SearchableSelect
           ariaLabel="Pays d'origine"
           value={String(form.pays_origine ?? '')}
@@ -534,7 +538,7 @@ function SectionCoordonnees({
       />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field field="adresse" label="Adresse complète" error={errors.adresse}>
+        <Field field="adresse" label={tf('adresse')} error={errors.adresse}>
           <input
             data-testid="edit-adresse"
             type="text"
@@ -543,7 +547,7 @@ function SectionCoordonnees({
             className={inputCls}
           />
         </Field>
-        <Field field="ville_residence" label="Ville de résidence" error={errors.ville_residence}>
+        <Field field="ville_residence" label={tf('ville_residence')} error={errors.ville_residence}>
           <input
             type="text"
             value={String(form.ville_residence ?? '')}
@@ -554,7 +558,7 @@ function SectionCoordonnees({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field field="indicatif1" label="Indicatif téléphone" error={errors.indicatif1}>
+        <Field field="indicatif1" label={tf('indicatif1')} error={errors.indicatif1}>
           <IndicatifSelect
             pays={pays}
             testId="edit-indicatif1"
@@ -562,7 +566,7 @@ function SectionCoordonnees({
             onChange={(v) => setField('indicatif1', v)}
           />
         </Field>
-        <Field field="telephone1" label="Numéro de téléphone" error={errors.telephone1}>
+        <Field field="telephone1" label={tf('telephone1')} error={errors.telephone1}>
           <input
             data-testid="edit-telephone1"
             type="tel"
@@ -584,7 +588,7 @@ function SectionCoordonnees({
       </p>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field field="indicatif2" label="Indicatif téléphone secondaire" error={errors.indicatif2}>
+        <Field field="indicatif2" label={tf('indicatif2')} error={errors.indicatif2}>
           <IndicatifSelect
             pays={pays}
             testId="edit-indicatif2"
@@ -593,7 +597,7 @@ function SectionCoordonnees({
             includeEmpty
           />
         </Field>
-        <Field field="telephone2" label="Téléphone secondaire (optionnel)" error={errors.telephone2}>
+        <Field field="telephone2" label={tf('telephone2')} error={errors.telephone2}>
           <input
             type="tel"
             inputMode="numeric"
@@ -604,7 +608,7 @@ function SectionCoordonnees({
         </Field>
       </div>
 
-      <Field field="email" label="Adresse e-mail personnelle *" error={errors.email}>
+      <Field field="email" label={tf('email')} error={errors.email}>
         <input
           data-testid="edit-email"
           type="email"
@@ -630,13 +634,14 @@ function SectionDiplome({
   universites,
   employeursPublics,
 }: SectionPropsBase & { diplomes: Diplome[]; universites: UniversitePays[]; employeursPublics: EmployeurPublicGroup[] }): JSX.Element {
+  const tf = useTranslations('dossier.fields');
   const showEmployer = needsEmployer(String(form.statut_actuel ?? ''));
   const usePublicSelect = isPublicEmploymentStatus(String(form.statut_actuel ?? ''));
 
   return (
     <Card id="diplome" title="Diplôme & profession" description="Parcours académique et activité actuelle.">
       <div className="grid gap-4 md:grid-cols-2">
-        <Field field="diplome_obtenu" label="Diplôme le plus élevé obtenu" error={undefined}>
+        <Field field="diplome_obtenu" label={tf('diplome_obtenu')} error={undefined}>
           <DiplomeSelect
             diplomes={diplomes}
             value={String(form.diplome_obtenu ?? '')}
@@ -644,7 +649,7 @@ function SectionDiplome({
             error={errors.diplome_obtenu}
           />
         </Field>
-        <Field field="annee_diplome" label="Année d'obtention" error={errors.annee_diplome}>
+        <Field field="annee_diplome" label={tf('annee_diplome')} error={errors.annee_diplome}>
           <input
             data-testid="edit-annee-diplome"
             type="number"
@@ -659,7 +664,7 @@ function SectionDiplome({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field field="institut" label="Établissement de délivrance" error={undefined}>
+        <Field field="institut" label={tf('institut')} error={undefined}>
           <InstitutSelect
             universites={universites}
             value={String(form.institut ?? '')}
@@ -667,7 +672,7 @@ function SectionDiplome({
             error={errors.institut}
           />
         </Field>
-        <Field field="specialite_diplome" label="Spécialité du diplôme" error={errors.specialite_diplome}>
+        <Field field="specialite_diplome" label={tf('specialite_diplome')} error={errors.specialite_diplome}>
           <input
             type="text"
             value={String(form.specialite_diplome ?? '')}
@@ -677,7 +682,7 @@ function SectionDiplome({
         </Field>
       </div>
 
-      <Field field="statut_actuel" label="Situation professionnelle actuelle *" error={errors.statut_actuel}>
+      <Field field="statut_actuel" label={tf('statut_actuel')} error={errors.statut_actuel}>
         <select
           data-testid="edit-statut-actuel"
           value={String(form.statut_actuel ?? '')}
@@ -715,7 +720,7 @@ function SectionDiplome({
               />
             )}
           </Field>
-          <Field field="fonction_actuelle" label="Fonction ou poste occupé *" error={errors.fonction_actuelle}>
+          <Field field="fonction_actuelle" label={tf('fonction_actuelle')} error={errors.fonction_actuelle}>
             <input
               type="text"
               value={String(form.fonction_actuelle ?? '')}
@@ -725,7 +730,7 @@ function SectionDiplome({
             />
           </Field>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field field="adresse_employeur" label="Ville / adresse professionnelle (optionnel)" error={errors.adresse_employeur}>
+            <Field field="adresse_employeur" label={tf('adresse_employeur')} error={errors.adresse_employeur}>
               <input
                 type="text"
                 value={String(form.adresse_employeur ?? '')}
@@ -733,7 +738,7 @@ function SectionDiplome({
                 className={inputCls}
               />
             </Field>
-            <Field field="tel_employeur" label="Téléphone professionnel (optionnel)" error={errors.tel_employeur}>
+            <Field field="tel_employeur" label={tf('tel_employeur')} error={errors.tel_employeur}>
               <input
                 type="tel"
                 value={String(form.tel_employeur ?? '')}
@@ -748,7 +753,7 @@ function SectionDiplome({
         </div>
       )}
 
-      <Field field="moyen_connaissance" label="Comment avez-vous connu le PSSFP ? *" error={errors.moyen_connaissance}>
+      <Field field="moyen_connaissance" label={tf('moyen_connaissance')} error={errors.moyen_connaissance}>
         <select
           value={String(form.moyen_connaissance ?? '')}
           onChange={(e) => setField('moyen_connaissance', e.target.value)}
@@ -760,7 +765,7 @@ function SectionDiplome({
       </Field>
 
       {['Autre', 'Autre réseau social', 'Administration ou employeur', 'Université ou établissement d’enseignement', 'Collègue, ami ou membre de la famille'].includes(String(form.moyen_connaissance ?? '')) && (
-        <Field field="moyen_connaissance_detail" label="Précisez la source" error={errors.moyen_connaissance_detail}>
+        <Field field="moyen_connaissance_detail" label={tf('moyen_connaissance_detail')} error={errors.moyen_connaissance_detail}>
           <input
             type="text"
             value={String(form.moyen_connaissance_detail ?? '')}
@@ -775,6 +780,7 @@ function SectionDiplome({
 }
 
 function SectionEngagement({ form, errors, setField }: SectionPropsBase): JSX.Element {
+  const tf = useTranslations('dossier.fields');
   const fullName = `${String(form.prenom ?? '').trim()} ${String(form.nom ?? '').trim()}`.trim();
 
   return (

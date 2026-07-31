@@ -259,12 +259,12 @@ export default async function HomePage(): Promise<JSX.Element> {
                 <p className="mt-1 text-sm text-[#666]">{filiereTaglines[s.slug]}</p>
               )}
               <details className="mt-4 border-t border-[#E4DCEE] pt-3 text-sm text-[#4B4B4B]">
-                <summary className="cursor-pointer font-semibold text-[#4A2E67] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67]">Découvrir la fiche</summary>
+                <summary className="cursor-pointer font-semibold text-[#4A2E67] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67]">{t('fiche.open')}</summary>
                 <dl className="mt-3 space-y-2">
-                  <div><dt className="font-semibold">Objectif</dt><dd>{filiereTaglines[s.slug] ?? 'Approfondir une spécialité des finances publiques.'}</dd></div>
-                  <div><dt className="font-semibold">Profil recommandé</dt><dd>Cadres et professionnels titulaires d&apos;un Bac+3 avec une expérience liée aux finances publiques.</dd></div>
-                  <div><dt className="font-semibold">Débouchés</dt><dd>Administrations publiques, collectivités, organismes de contrôle et partenaires du développement.</dd></div>
-                  <div><dt className="font-semibold">Mode et places</dt><dd>Présentiel : 25 places · Distanciel : 10 places.</dd></div>
+                  <div><dt className="font-semibold">{t('fiche.objectifLabel')}</dt><dd>{filiereTaglines[s.slug] ?? t('fiche.objectifFallback')}</dd></div>
+                  <div><dt className="font-semibold">{t('fiche.profilLabel')}</dt><dd>{t('fiche.profil')}</dd></div>
+                  <div><dt className="font-semibold">{t('fiche.debouchesLabel')}</dt><dd>{t('fiche.debouches')}</dd></div>
+                  <div><dt className="font-semibold">{t('fiche.placesLabel')}</dt><dd>{t('fiche.places')}</dd></div>
                 </dl>
               </details>
             </li>

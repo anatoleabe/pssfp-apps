@@ -128,6 +128,17 @@
           "paper": false
         }
       ]
+    },
+    "fiche": {
+      "open": "Découvrir la fiche",
+      "objectifLabel": "Objectif",
+      "objectifFallback": "Approfondir une spécialité des finances publiques.",
+      "profilLabel": "Profil recommandé",
+      "profil": "Cadres et professionnels titulaires d'un Bac+3 avec une expérience liée aux finances publiques.",
+      "debouchesLabel": "Débouchés",
+      "debouches": "Administrations publiques, collectivités, organismes de contrôle et partenaires du développement.",
+      "placesLabel": "Mode et places",
+      "places": "Présentiel : 25 places · Distanciel : 10 places."
     }
   },
   "login": {
@@ -220,7 +231,8 @@
       "cguLink": "conditions générales d'utilisation",
       "privacyLink": "politique de confidentialité",
       "newTab": "(nouvel onglet)",
-      "loginCta": "Se connecter avec ce numéro"
+      "loginCta": "Se connecter avec ce numéro",
+      "candidateNameLabel": "Nom du candidat :"
     },
     "step2": {
       "title": "Étape 2 — Coordonnées",
@@ -252,7 +264,95 @@
       "moyenConnaissance": "Comment avez-vous connu le PSSFP ?",
       "preciserSource": "Précisez la source",
       "preciserSourcePlaceholder": "Nom de la personne, de l'organisme ou du canal"
-    }
+    },
+    "step1": {
+      "title": "Étape 1 — Vœu de spécialité & identité",
+      "specialite": "Spécialité demandée",
+      "ficheAria": "Fiche {specialite}",
+      "ficheObjectifLabel": "Objectif",
+      "ficheObjectif": "Développer une expertise opérationnelle en {specialite}.",
+      "ficheProfilLabel": "Profil recommandé",
+      "ficheProfil": "Bac+3 minimum et expérience professionnelle en lien avec les finances publiques.",
+      "ficheDebouchesLabel": "Débouchés",
+      "ficheDebouches": "Administrations, collectivités, organismes de contrôle et partenaires du développement.",
+      "fichePlacesLabel": "Mode et places",
+      "fichePlaces": "Présentiel : 25 · Distanciel : 10.",
+      "typeEtude": "Type d'études",
+      "presentiel": "Présentiel",
+      "distanciel": "Distanciel",
+      "premiereLangue": "Première langue",
+      "langueFr": "Français",
+      "langueEn": "Anglais",
+      "civilite": "Civilité",
+      "prenom": "Prénom(s)",
+      "nom": "Nom",
+      "nomUsage": "Nom d'usage (facultatif)",
+      "dateNaissance": "Date de naissance",
+      "genre": "Genre",
+      "genreM": "Masculin",
+      "genreF": "Féminin",
+      "genreAutre": "Autre",
+      "statutMatrimonial": "Situation matrimoniale",
+      "marital": {
+        "celibataire": "Célibataire",
+        "marie": "Marié(e)",
+        "divorce": "Divorcé(e)",
+        "veuf": "Veuf / Veuve",
+        "autre": "Autre"
+      },
+      "nationalite": "Nationalité"
+    },
+    "step5": {
+      "eyebrow": "Dernière étape",
+      "title": "Vérification et confirmation",
+      "pinNotice": "Votre PIN n’est jamais affiché dans ce récapitulatif ni enregistré dans votre navigateur.",
+      "edit": "Modifier",
+      "sectionFormation": "Formation demandée",
+      "sectionIdentite": "Identité",
+      "sectionCoordonnees": "Coordonnées",
+      "sectionParcours": "Parcours académique et professionnel",
+      "sectionSecurite": "Sécurité et engagements",
+      "usageName": "nom d’usage",
+      "fields": {
+        "employerAddress": "Adresse de l’employeur",
+        "homeAddress": "Adresse de résidence",
+        "email": "Adresse e-mail",
+        "gradYear": "Année d’obtention",
+        "honourDeclaration": "Certification sur l’honneur",
+        "howHeard": "Comment vous avez connu le PSSFP",
+        "terms": "Conditions d’utilisation",
+        "birthDate": "Date de naissance",
+        "degree": "Diplôme",
+        "division": "Département",
+        "employer": "Employeur",
+        "role": "Fonction",
+        "gender": "Genre",
+        "birthPlace": "Lieu de naissance",
+        "studyMode": "Modalité",
+        "nationality": "Nationalité",
+        "fullName": "Nom complet",
+        "pin": "PIN",
+        "countryResidence": "Pays de résidence",
+        "countryOrigin": "Pays d’origine",
+        "firstLanguage": "Première langue",
+        "details": "Précision",
+        "region": "Région",
+        "currentSituation": "Situation actuelle",
+        "maritalStatus": "Situation matrimoniale",
+        "degreeField": "Spécialité du diplôme",
+        "specialisation": "Spécialité",
+        "employerPhone": "Téléphone de l’employeur",
+        "mainPhone": "Téléphone principal",
+        "secondPhone": "Téléphone secondaire",
+        "institution": "Établissement"
+      },
+      "langueFr": "Français",
+      "langueEn": "Anglais",
+      "genreM": "Masculin",
+      "genreF": "Féminin",
+      "genreAutre": "Autre"
+    },
+    "progressAria": "Progression du formulaire"
   },
   "forgotPin": {
     "progressAria": "Progression",
@@ -315,7 +415,14 @@
       "employeur": "Employeur ou organisation",
       "moyen_connaissance": "Comment avez-vous connu le PSSFP ?",
       "moyen_connaissance_detail": "Précision sur la source",
-      "engagement_nom": "Signature numérique"
+      "engagement_nom": "Signature numérique",
+      "epouse": "Nom de naissance (si différent du nom actuel)",
+      "indicatif2": "Indicatif téléphone secondaire",
+      "telephone2": "Téléphone secondaire (facultatif)",
+      "adresse_employeur": "Ville / adresse professionnelle (facultatif)",
+      "tel_employeur": "Téléphone professionnel (facultatif)",
+      "indicatif_generique": "Indicatif téléphonique",
+      "indicatifPlaceholder": "— Indicatif —"
     },
     "completeness": {
       "submittedTitle": "Candidature soumise",
@@ -428,6 +535,79 @@
         "heading": "12. Cookies",
         "body": [
           "Le portail n'utilise que des cookies strictement nécessaires à son fonctionnement (maintien de session sécurisée, mémorisation de la langue choisie, protection anti-robot). Aucun cookie de suivi publicitaire n'est déposé."
+        ]
+      }
+    ]
+  },
+  "cgu": {
+    "title": "Conditions générales d'utilisation",
+    "metaDescription": "Conditions générales d'utilisation du portail de candidature en ligne du PSSFP.",
+    "updatedAt": "2026-07-31",
+    "intro": "Les présentes conditions générales d'utilisation (les « CGU ») régissent l'accès et l'usage du portail de candidature en ligne du Programme Supérieur de Spécialisation en Finances Publiques (le « PSSFP »), accessible à l'adresse apply.pssfp.org. En créant un compte candidat, vous reconnaissez avoir lu et accepté sans réserve les présentes CGU.",
+    "privacyRefBefore": "Le traitement des données personnelles collectées via le portail est décrit dans notre",
+    "privacyRefLink": "politique de confidentialité",
+    "privacyRefAfter": ", que le candidat est invité à consulter. L'utilisation du portail vaut acceptation de cette politique.",
+    "sections": [
+      {
+        "heading": "1. Objet",
+        "body": [
+          "Le portail permet à toute personne remplissant les conditions d'admission de constituer et de soumettre en ligne un dossier de candidature à une campagne de recrutement du PSSFP. Il ne constitue ni une promesse d'admission, ni un engagement du PSSFP à donner une suite favorable à une candidature."
+        ]
+      },
+      {
+        "heading": "2. Création et sécurité du compte",
+        "list": [
+          "L'identifiant du candidat est son numéro de téléphone au format international ; le mot de passe est un code confidentiel à 6 chiffres (PIN) choisi par le candidat.",
+          "Le candidat est seul responsable de la confidentialité de son PIN et de toutes les actions effectuées depuis son compte.",
+          "En cas d'oubli du PIN, une procédure de réinitialisation par code SMS est proposée. À défaut, le candidat peut contacter le PSSFP."
+        ]
+      },
+      {
+        "heading": "3. Exactitude des informations",
+        "body": [
+          "Le candidat s'engage à fournir des informations exactes, complètes et à jour. Toute déclaration inexacte, tout document falsifié ou toute usurpation d'identité entraîne le rejet immédiat de la candidature, sans préjudice d'éventuelles poursuites."
+        ]
+      },
+      {
+        "heading": "4. Frais de dossier",
+        "body": [
+          "La finalisation d'une candidature suppose le paiement des frais de dossier de 50 000 FCFA en agence CREMINCAM (Crédit Mutuel d'Investissement du Cameroun), en mentionnant le numéro de dossier communiqué lors de la soumission. Ces frais couvrent l'instruction administrative du dossier et ne sont pas remboursables, quelle que soit la décision du comité d'admission."
+        ]
+      },
+      {
+        "heading": "5. Dépôt du dossier papier",
+        "body": [
+          "La soumission en ligne ne suffit pas à rendre une candidature recevable. Le dossier papier complet doit être déposé au bureau de la scolarité du PSSFP (Yaoundé-Messa, porte 231) au plus tard à la date et à l'heure de clôture annoncées. Cette obligation s'applique à tous les candidats, y compris ceux inscrits en formation à distance."
+        ]
+      },
+      {
+        "heading": "6. Traitement de la candidature",
+        "body": [
+          "Les candidatures sont examinées par le comité d'admission du PSSFP selon ses propres critères. Le candidat est informé par voie électronique et/ou téléphonique de l'évolution et de la décision finale relative à son dossier."
+        ]
+      },
+      {
+        "heading": "7. Disponibilité et responsabilité",
+        "body": [
+          "Le PSSFP s'efforce d'assurer la disponibilité du portail mais ne peut être tenu responsable des interruptions liées à la maintenance, à un cas de force majeure ou à des facteurs indépendants de sa volonté (réseau, hébergement, terminal du candidat). Il est recommandé de ne pas attendre la date limite pour soumettre son dossier."
+        ]
+      },
+      {
+        "heading": "8. Propriété intellectuelle",
+        "body": [
+          "L'ensemble des éléments du portail (marques, logos, textes, mise en page) est la propriété du PSSFP. Toute reproduction non autorisée est interdite."
+        ]
+      },
+      {
+        "heading": "9. Modification des CGU",
+        "body": [
+          "Le PSSFP se réserve le droit de modifier les présentes CGU à tout moment. La version applicable est celle en vigueur au moment de l'utilisation du portail."
+        ]
+      },
+      {
+        "heading": "10. Droit applicable",
+        "body": [
+          "Les présentes CGU sont soumises au droit camerounais. Tout litige relève de la compétence des juridictions de Yaoundé, à défaut de résolution amiable."
         ]
       }
     ]
