@@ -352,7 +352,8 @@
       "genreF": "Féminin",
       "genreAutre": "Autre"
     },
-    "progressAria": "Progression du formulaire"
+    "progressAria": "Progression du formulaire",
+    "stepCounter": "Étape {current} / {total}"
   },
   "forgotPin": {
     "progressAria": "Progression",

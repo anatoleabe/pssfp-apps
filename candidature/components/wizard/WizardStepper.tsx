@@ -30,7 +30,7 @@ export function WizardStepper({ current, steps }: WizardStepperProps): JSX.Eleme
       {/* Mobile: compact summary */}
       <div className="mb-4 flex items-center justify-between md:hidden">
         <p className="font-heading text-sm font-bold text-[#4A2E67]">
-          Étape {current} / {totalSteps}
+          {t('stepCounter', { current, total: totalSteps })}
         </p>
         <p className="text-xs text-[#666]">{steps[current - 1]?.label}</p>
       </div>
