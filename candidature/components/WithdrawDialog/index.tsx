@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
-import { withdrawDossierAction } from '@/app/dossier/actions';
+import { useRouter } from '@/navigation';
+import { withdrawDossierAction } from '@/app/[locale]/dossier/actions';
 
 export function WithdrawDialog(): JSX.Element {
   const [open, setOpen] = useState(false);

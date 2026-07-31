@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { Link } from '@/navigation';
+import { redirect } from '@/navigation';
 import { DossierEditionForm } from '@/components/DossierEditionForm';
 import { getDiplomes, getEmployeursPublics, getMyCandidature, getPays, getSpecialites, getUniversites } from '@/lib/api/client';
 import { getCandidatToken } from '@/lib/auth/session';
@@ -14,6 +14,8 @@ import {
 import type { Diplome, EmployeurPublicGroup, Pays, Specialite, UniversitePays } from '@/lib/api/types';
 
 export const metadata = {
+  // Page d'authentification ou espace candidat : hors index (audit A-32).
+  robots: { index: false, follow: false },
   title: 'Éditer mon dossier',
 };
 

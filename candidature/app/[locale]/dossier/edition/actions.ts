@@ -1,6 +1,6 @@
 'use server';
 
-import { redirect } from 'next/navigation';
+import { redirect } from '@/navigation';
 import { revalidatePath } from 'next/cache';
 import { putApplicationsMe } from '@/lib/api/client';
 import { getCandidatToken } from '@/lib/auth/session';

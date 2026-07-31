@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 
 interface LegalDocumentProps {

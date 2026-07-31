@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { DiplomeSelect } from '@/components/DiplomeSelect';
 import { EmployeurPublicSelect } from '@/components/EmployeurPublicSelect';
 import { InstitutSelect } from '@/components/InstitutSelect';
@@ -24,15 +26,16 @@ export function WizardStep3Diplome({
   universites,
   employeursPublics,
 }: WizardStep3Props): JSX.Element {
+  const t = useTranslations('wizard.step3');
   const showEmployer = needsEmployer(data.statut_actuel);
   const usePublicSelect = isPublicEmploymentStatus(data.statut_actuel);
 
   return (
     <div className="space-y-5" data-testid="wizard-step-3">
-      <h2 className="font-heading text-xl font-bold text-[#4A2E67]">Étape 3 — Diplôme &amp; situation professionnelle</h2>
+      <h2 className="font-heading text-xl font-bold text-[#4A2E67]">{t('title')}</h2>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Diplôme le plus élevé obtenu" error={errors.diplome_obtenu}>
+        <Field label={t('diplome')} error={errors.diplome_obtenu} required>
           <DiplomeSelect
             diplomes={diplomes}
             value={data.diplome_obtenu}
@@ -40,7 +43,7 @@ export function WizardStep3Diplome({
             error={undefined}
           />
         </Field>
-        <Field label="Année d'obtention" error={errors.annee_diplome}>
+        <Field label={t('annee')} error={errors.annee_diplome} required>
           <input
             data-testid="step3-annee-diplome"
             type="number"
@@ -57,7 +60,7 @@ export function WizardStep3Diplome({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Établissement de délivrance" error={errors.institut}>
+        <Field label={t('institut')} error={errors.institut} required>
           <InstitutSelect
             universites={universites}
             value={data.institut}
@@ -65,7 +68,7 @@ export function WizardStep3Diplome({
             error={undefined}
           />
         </Field>
-        <Field label="Spécialité du diplôme" error={errors.specialite_diplome}>
+        <Field label={t('specialiteDiplome')} error={errors.specialite_diplome} required>
           <input
             type="text"
             value={data.specialite_diplome}
@@ -75,7 +78,7 @@ export function WizardStep3Diplome({
         </Field>
       </div>
 
-      <Field label="Situation professionnelle actuelle *" error={errors.statut_actuel}>
+      <Field label={t('statutActuel')} error={errors.statut_actuel} required>
         <select
           data-testid="step3-statut-actuel"
           value={data.statut_actuel}
@@ -86,7 +89,7 @@ export function WizardStep3Diplome({
           }
           className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         >
-          <option value="">— Choisir —</option>
+          <option value="">{t('choose')}</option>
           {STATUT_ACTUEL_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
@@ -96,8 +99,9 @@ export function WizardStep3Diplome({
       {showEmployer && (
         <div className="space-y-4 rounded-md border border-[#F4EFFA] bg-[#FAF7FF] p-4">
           <Field
-            label={usePublicSelect ? 'Administration, entreprise ou établissement public *' : 'Employeur ou organisation *'}
+            label={usePublicSelect ? t('employeurPublic') : t('employeur')}
             error={errors.employeur}
+            required
           >
             {usePublicSelect ? (
               <EmployeurPublicSelect
@@ -111,22 +115,22 @@ export function WizardStep3Diplome({
                 type="text"
                 value={data.employeur}
                 onChange={(e) => onChange({ employeur: e.target.value })}
-                placeholder="Nom officiel de la structure"
+                placeholder={t('employeurPlaceholder')}
                 className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
               />
             )}
           </Field>
-          <Field label="Fonction ou poste occupé *" error={errors.fonction_actuelle}>
+          <Field label={t('fonction')} error={errors.fonction_actuelle} required>
             <input
               type="text"
               value={data.fonction_actuelle}
               onChange={(e) => onChange({ fonction_actuelle: e.target.value })}
-              placeholder="Ex. Contrôleur de gestion, cadre financier…"
+              placeholder={t('fonctionPlaceholder')}
               className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
             />
           </Field>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Ville / adresse professionnelle (optionnel)" error={errors.adresse_employeur}>
+            <Field label={t('adresseEmployeur')} error={errors.adresse_employeur}>
               <input
                 type="text"
                 value={data.adresse_employeur}
@@ -134,7 +138,7 @@ export function WizardStep3Diplome({
                 className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
               />
             </Field>
-            <Field label="Téléphone professionnel (optionnel)" error={errors.tel_employeur}>
+            <Field label={t('telEmployeur')} error={errors.tel_employeur}>
               <input
                 type="tel"
                 value={data.tel_employeur}
@@ -143,30 +147,28 @@ export function WizardStep3Diplome({
               />
             </Field>
           </div>
-          <p className="text-xs text-[#666]">
-            Une attestation de présence effective au poste ou une autorisation de l’employeur sera requise, le cas échéant.
-          </p>
+          <p className="text-xs text-[#666]">{t('attestationNotice')}</p>
         </div>
       )}
 
-      <Field label="Comment avez-vous connu le PSSFP ? *" error={errors.moyen_connaissance}>
+      <Field label={t('moyenConnaissance')} error={errors.moyen_connaissance} required>
         <select
           value={data.moyen_connaissance}
           onChange={(e) => onChange({ moyen_connaissance: e.target.value })}
           className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         >
-          <option value="">— Choisir —</option>
+          <option value="">{t('choose')}</option>
           {MOYENS_CONNAISSANCE.map((option) => <option key={option}>{option}</option>)}
         </select>
       </Field>
 
       {['Autre', 'Autre réseau social', 'Administration ou employeur', 'Université ou établissement d’enseignement', 'Collègue, ami ou membre de la famille'].includes(data.moyen_connaissance) && (
-        <Field label="Précisez la source" error={errors.moyen_connaissance_detail}>
+        <Field label={t('preciserSource')} error={errors.moyen_connaissance_detail}>
           <input
             type="text"
             value={data.moyen_connaissance_detail}
             onChange={(event) => onChange({ moyen_connaissance_detail: event.target.value })}
-            placeholder="Nom de la personne, de l’organisme ou du canal"
+            placeholder={t('preciserSourcePlaceholder')}
             className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
@@ -175,18 +177,28 @@ export function WizardStep3Diplome({
   );
 }
 
+/** Astérisque porté par `required` et non par le libellé traduit (audit A-30). */
 function Field({
   label,
   error,
+  required = false,
   children,
 }: {
   label: string;
   error?: string;
+  required?: boolean;
   children: React.ReactNode;
 }): JSX.Element {
   return (
     <label className="block" data-field-error={Boolean(error)}>
-      <span className="mb-1 block text-sm font-medium text-[#333333]">{label}</span>
+      <span className="mb-1 block text-sm font-medium text-[#333333]">
+        {label}
+        {required && (
+          <span aria-hidden="true" className="ml-0.5 text-red-600">
+            *
+          </span>
+        )}
+      </span>
       {children}
       {error && (
         <span role="alert" className="mt-1 block text-xs text-red-600">

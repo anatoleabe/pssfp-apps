@@ -1,4 +1,4 @@
-import { CheckCircle2, Banknote, Smartphone, CreditCard, Building2 } from 'lucide-react';
+import { CheckCircle2, Banknote, Building2 } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
 import { formatDateFr } from '@/lib/format/date';
 
@@ -92,7 +92,9 @@ export function DossierFraisCard({ candidature }: { candidature: MyCandidature }
                 </span>
                 <div>
                   <p className="font-heading font-bold text-[#4A2E67]">CREMINCAM</p>
-                  <p className="text-xs text-[#666]">Mode de paiement actif (V1)</p>
+                  {/* Acronyme développé dès la première occurrence (audit A-28) :
+                      il n'était explicité que plus bas, dans la reprise du communiqué. */}
+                  <p className="text-xs text-[#666]">Crédit Mutuel d&apos;Investissement du Cameroun</p>
                 </div>
               </div>
               <ol className="mt-4 list-decimal space-y-2 pl-6 text-sm text-[#333]">
@@ -110,30 +112,12 @@ export function DossierFraisCard({ candidature }: { candidature: MyCandidature }
             </div>
           </div>
 
-          {/* Boutons mode paiement à venir (grisés) */}
-          <div>
-            <p className="mb-3 text-xs uppercase tracking-wider text-[#888]">
-              Bientôt disponible — paiement en ligne
-            </p>
-            <ul className="grid gap-3 sm:grid-cols-3">
-              {[
-                { Icon: Smartphone, label: 'Orange Money' },
-                { Icon: Smartphone, label: 'MTN Mobile Money' },
-                { Icon: CreditCard, label: 'Visa / Mastercard' },
-              ].map((m) => (
-                <li
-                  key={m.label}
-                  className="relative flex items-center gap-2 rounded-pssfp-button border border-dashed border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-500"
-                >
-                  <m.Icon size={16} aria-hidden="true" className="opacity-60" />
-                  <span className="flex-1">{m.label}</span>
-                  <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
-                    Bientôt
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* Le bloc « Bientôt disponible — paiement en ligne » (Orange Money,
+              MTN Mobile Money, Visa/Mastercard) est retiré pour la campagne P14
+              (audit A-28) : annoncer des moyens de paiement à venir sans date
+              ferme conduit des candidats à différer leur passage en agence, au
+              risque de dépasser la clôture du 18 septembre. À réintroduire le
+              jour où ces canaux ouvrent réellement. */}
         </div>
       )}
     </section>

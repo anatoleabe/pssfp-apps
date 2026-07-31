@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { Link } from '@/navigation';
+import { useRouter } from '@/navigation';
 import { useTranslations } from 'next-intl';
 import type { Diplome, EmployeurPublicGroup, Pays, Specialite, UniversitePays } from '@/lib/api/types';
 import { isTurnstileEnabled } from '@/components/TurnstileWidget';

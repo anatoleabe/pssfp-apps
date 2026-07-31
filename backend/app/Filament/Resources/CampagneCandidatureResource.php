@@ -60,7 +60,7 @@ class CampagneCandidatureResource extends Resource
                 ->description('Publié en téléchargement sur la page d\'accueil de apply.pssfp.org dès qu\'un PDF est déposé ici.')
                 ->schema([
                     Forms\Components\FileUpload::make('communique_pdf_path')
-                        ->label('PDF du communiqué signé')
+                        ->label('PDF du communiqué signé — version française')
                         ->disk(CampagneCandidature::COMMUNIQUE_DISK)
                         ->directory('communiques')
                         ->visibility('public')
@@ -72,9 +72,23 @@ class CampagneCandidatureResource extends Resource
                         ->helperText('PDF uniquement, 10 Mo maximum. Le scan signé MINFI + Recteur UY2-Soa.')
                         ->getUploadedFileNameForStorageUsing(
                             fn (Forms\Get $get): string => 'appel-candidature-'
-                                .Str::slug((string) ($get('slug') ?: 'campagne')).'.pdf',
-                        )
-                        ->columnSpanFull(),
+                                .Str::slug((string) ($get('slug') ?: 'campagne')).'-fr.pdf',
+                        ),
+                    Forms\Components\FileUpload::make('communique_pdf_path_en')
+                        ->label('PDF du communiqué signé — version anglaise')
+                        ->disk(CampagneCandidature::COMMUNIQUE_DISK)
+                        ->directory('communiques')
+                        ->visibility('public')
+                        ->acceptedFileTypes(['application/pdf'])
+                        ->maxSize(10240)
+                        ->downloadable()
+                        ->openable()
+                        ->previewable(false)
+                        ->helperText('Facultatif. Sans ce fichier, la version anglaise du site propose le PDF français en le signalant clairement.')
+                        ->getUploadedFileNameForStorageUsing(
+                            fn (Forms\Get $get): string => 'appel-candidature-'
+                                .Str::slug((string) ($get('slug') ?: 'campagne')).'-en.pdf',
+                        ),
                     Forms\Components\TextInput::make('communique_reference')
                         ->label('Référence du communiqué')
                         ->maxLength(100)

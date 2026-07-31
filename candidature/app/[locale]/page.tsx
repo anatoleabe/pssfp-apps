@@ -1,6 +1,6 @@
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
-import Link from 'next/link';
+import { Link } from '@/navigation';
 import { ArrowRight, ArrowUpRight, CalendarClock, CheckCircle2, Download, FileCheck2, Laptop, MapPin } from 'lucide-react';
 import { CountdownToClose } from '@/components/CountdownToClose';
 import { getCurrentCampaign, getSpecialites } from '@/lib/api/client';
@@ -10,6 +10,7 @@ const MAIN_SITE_URL = process.env.NEXT_PUBLIC_MAIN_SITE_URL ?? 'https://pssfp.or
 
 export default async function HomePage(): Promise<JSX.Element> {
   const t = await getTranslations('home');
+  const locale = await getLocale();
   const [campaignResult, specialitesResult] = await Promise.all([
     getCurrentCampaign(),
     getSpecialites(),
@@ -24,9 +25,24 @@ export default async function HomePage(): Promise<JSX.Element> {
   // Liste reprise mot pour mot du communiqué conjoint : `paper` marque les
   // pièces qui n'ont de sens qu'en version papier (fiche imprimée, enveloppe).
   const piecesDossier = t.raw('dossier.items') as ReadonlyArray<{ text: string; paper: boolean }>;
+  // L'heure figure désormais partout où la date apparaît (audit A-06) : elle
+  // était connue du système et utilisée par le compte à rebours, mais jamais
+  // affichée sur le portail où le candidat dépose — de quoi fonder un recours.
   const closingDate = campagne?.closes_at
-    ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeZone: 'Africa/Douala' }).format(new Date(campagne.closes_at))
-    : '18 septembre 2026';
+    ? new Intl.DateTimeFormat(locale, {
+        dateStyle: 'long',
+        timeStyle: 'short',
+        timeZone: 'Africa/Douala',
+      }).format(new Date(campagne.closes_at))
+    : t('dossier.fallbackClosingDate');
+
+  // Le communiqué anglais est un document signé distinct, pas une traduction :
+  // s'il n'est pas publié, on sert le français en le disant, plutôt que de
+  // laisser croire à l'usager qu'il télécharge une version anglaise.
+  const communiqueUrl = locale === 'en'
+    ? campagne?.communique_url_en ?? campagne?.communique_url ?? null
+    : campagne?.communique_url ?? null;
+  const communiqueIsFallback = locale === 'en' && !campagne?.communique_url_en && Boolean(campagne?.communique_url);
   const promoNumero = campagne?.promotion_numero ?? 14;
   const heroTitle = campagne?.nom ?? t('title');
   // Le middleware a validé le token Sanctum et pose cet en-tête ; le hero
@@ -121,7 +137,7 @@ export default async function HomePage(): Promise<JSX.Element> {
         </div>
       </section>
 
-      {campagne?.communique_url && (
+      {communiqueUrl && (
         <section
           aria-labelledby="communique-heading"
           className="mt-12 overflow-hidden rounded-2xl border border-[#0F3A4A]/20 bg-[#0F3A4A] text-white shadow-pssfp-soft"
@@ -136,24 +152,24 @@ export default async function HomePage(): Promise<JSX.Element> {
                 {t('communique.heading')}
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-white/80">{t('communique.body')}</p>
-              {(campagne.communique_reference || campagne.communique_signed_at) && (
+              {(campagne?.communique_reference || campagne?.communique_signed_at) && (
                 <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-xs text-white/70">
-                  {campagne.communique_reference && (
+                  {campagne?.communique_reference && (
                     <div>
                       <dt className="font-ui uppercase tracking-[0.12em] text-white/50">
                         {t('communique.referenceLabel')}
                       </dt>
-                      <dd className="mt-0.5 font-medium text-white/90">{campagne.communique_reference}</dd>
+                      <dd className="mt-0.5 font-medium text-white/90">{campagne?.communique_reference}</dd>
                     </div>
                   )}
-                  {campagne.communique_signed_at && (
+                  {campagne?.communique_signed_at && (
                     <div>
                       <dt className="font-ui uppercase tracking-[0.12em] text-white/50">
                         {t('communique.signedAtLabel')}
                       </dt>
                       <dd className="mt-0.5 font-medium text-white/90">
-                        {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeZone: 'Africa/Douala' })
-                          .format(new Date(campagne.communique_signed_at))}
+                        {new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'Africa/Douala' })
+                          .format(new Date(campagne!.communique_signed_at!))}
                       </dd>
                     </div>
                   )}
@@ -162,7 +178,7 @@ export default async function HomePage(): Promise<JSX.Element> {
             </div>
 
             <a
-              href={campagne.communique_url}
+              href={communiqueUrl}
               target="_blank"
               rel="noopener noreferrer"
               data-testid="communique-download"
@@ -172,11 +188,20 @@ export default async function HomePage(): Promise<JSX.Element> {
               <span>
                 {t('communique.download')}
                 <span className="block font-ui text-xs font-normal text-[#2A1D0A]/70">
-                  {t('communique.downloadHint')}
+                  {communiqueIsFallback ? t('communique.frenchOnlyHint') : t('communique.downloadHint')}
                 </span>
               </span>
             </a>
           </div>
+
+          {communiqueIsFallback && (
+            <p
+              role="note"
+              className="border-t border-white/15 bg-white/5 px-6 py-3 text-xs leading-relaxed text-white/75 sm:px-8"
+            >
+              {t('communique.frenchOnlyNotice')}
+            </p>
+          )}
         </section>
       )}
 
@@ -304,7 +329,9 @@ export default async function HomePage(): Promise<JSX.Element> {
       </section>
 
       <section className="mt-12 rounded-lg border border-[#D4AF6A]/40 bg-[#FFFBEA] p-6">
-        <h2 className="mb-2 font-heading text-lg font-semibold text-[#D4AF6A]">{t('feeTitle')}</h2>
+        {/* Or foncé et non l'or champagne #D4AF6A : sur l'ivoire #FFFBEA ce
+            dernier ne donne que 1,99:1, sous le seuil WCAG AA de 4,5:1. */}
+        <h2 className="mb-2 font-heading text-lg font-semibold text-[#8A641D]">{t('feeTitle')}</h2>
         <p className="text-sm text-[#333333]">{t('feeNotice')}</p>
       </section>
     </div>

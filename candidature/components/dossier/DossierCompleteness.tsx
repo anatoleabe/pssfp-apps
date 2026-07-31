@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/navigation';
 import { useTranslations } from 'next-intl';
-import { submitDossierAction } from '@/app/dossier/actions';
+import { submitDossierAction } from '@/app/[locale]/dossier/actions';
 import type { MyCandidature } from '@/lib/api/client';
 import { checkSubmittable } from '@/lib/validation/submittable';
 

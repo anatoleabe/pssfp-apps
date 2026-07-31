@@ -7,7 +7,7 @@ import {
   resetPinAction,
   verifyOtpAction,
   type SimpleResult,
-} from '@/app/forgot-pin/actions';
+} from '@/app/[locale]/forgot-pin/actions';
 import { PinInput } from '@/components/PinInput';
 import { TurnstileWidget, isTurnstileEnabled } from '@/components/TurnstileWidget';
 import { isValidE164 } from '@/lib/format/phone';

@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useRef, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
-import { uploadPhotoAction, deletePhotoAction } from '@/app/dossier/photo/actions';
+import { useRouter } from '@/navigation';
+import { uploadPhotoAction, deletePhotoAction } from '@/app/[locale]/dossier/photo/actions';
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const MIN_DIMENSION = 200;

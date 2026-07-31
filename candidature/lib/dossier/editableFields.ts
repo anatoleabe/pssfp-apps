@@ -25,7 +25,6 @@ export const EDITABLE_FIELDS = [
   'statut_matrimonial',
   'nationalite',
   'specialite',
-  'second_choix',
   'type_etude',
   'premiere_langue',
   // Coordonnées
@@ -71,7 +70,6 @@ export const SECTION_OF_FIELD: Record<EditableField, 'identite' | 'coordonnees' 
   statut_matrimonial: 'identite',
   nationalite: 'identite',
   specialite: 'identite',
-  second_choix: 'identite',
   type_etude: 'identite',
   premiere_langue: 'identite',
   pays_origine: 'coordonnees',

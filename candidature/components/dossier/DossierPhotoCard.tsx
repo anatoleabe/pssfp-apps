@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/navigation';
 import { Camera, ImagePlus, Lock, ArrowRight } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
 

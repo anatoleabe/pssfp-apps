@@ -1,10 +1,12 @@
-import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { Link } from '@/navigation';
+import { redirect } from '@/navigation';
 import { DocumentsUploader } from '@/components/DocumentsUploader';
 import { getMyCandidature } from '@/lib/api/client';
 import { getCandidatToken } from '@/lib/auth/session';
 
 export const metadata = {
+  // Page d'authentification ou espace candidat : hors index (audit A-32).
+  robots: { index: false, follow: false },
   title: 'Pièces justificatives — Mon dossier',
 };
 

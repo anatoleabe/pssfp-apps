@@ -55,7 +55,7 @@ async function fillStep2(page: Page): Promise<void> {
   await page.getByRole('option', { name: 'Centre' }).click();
   await page.getByTestId('departement-select').click();
   await page.getByRole('option', { name: 'Mfoundi' }).click();
-  await page.getByLabel('Adresse e-mail personnelle *').fill('jean.dupont@example.com');
+  await page.getByLabel('Adresse e-mail personnelle').fill('jean.dupont@example.com');
 }
 
 async function fillStep3(page: Page): Promise<void> {
@@ -65,7 +65,7 @@ async function fillStep3(page: Page): Promise<void> {
   await page.getByRole('option', { name: /Université de Yaoundé II/i }).click();
   await page.getByLabel('Spécialité du diplôme').fill('Économie');
   await page.getByTestId('step3-statut-actuel').selectOption('Etudiant');
-  await page.getByLabel('Comment avez-vous connu le PSSFP ? *').selectOption('Site officiel du PSSFP');
+  await page.getByLabel('Comment avez-vous connu le PSSFP ?').selectOption('Site officiel du PSSFP');
 }
 
 async function fillPin(page: Page, testId: string, value: string): Promise<void> {

@@ -1,6 +1,6 @@
 'use server';
 
-import { redirect } from 'next/navigation';
+import { redirect } from '@/navigation';
 import { forgotPin, resetPin, verifyOtp } from '@/lib/api/client';
 import {
   clearPinResetToken,

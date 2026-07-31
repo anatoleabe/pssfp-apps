@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { PaysRegionDepartementSelect } from '@/components/PaysRegionDepartementSelect';
 import { PhoneInput } from '@/components/PhoneInput';
 import { SearchableSelect } from '@/components/SearchableSelect';
@@ -14,13 +16,15 @@ export interface WizardStep2Props {
 }
 
 export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardStep2Props): JSX.Element {
+  const t = useTranslations('wizard.step2');
+
   return (
     <div className="space-y-5" data-testid="wizard-step-2">
-      <h2 className="font-heading text-xl font-bold text-[#4A2E67]">Étape 2 — Coordonnées</h2>
+      <h2 className="font-heading text-xl font-bold text-[#4A2E67]">{t('title')}</h2>
 
-      <Field label="Pays d'origine" error={errors.pays_origine}>
+      <Field label={t('paysOrigine')} error={errors.pays_origine}>
         <SearchableSelect
-          ariaLabel="Pays d'origine"
+          ariaLabel={t('paysOrigine')}
           value={data.pays_origine}
           options={pays.map((p) => ({ value: p.code_iso, label: p.nom }))}
           onChange={(v) => onChange({ pays_origine: v })}
@@ -49,7 +53,7 @@ export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardS
       />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Adresse complète" error={errors.adresse}>
+        <Field label={t('adresse')} error={errors.adresse} required>
           <input
             data-testid="step2-adresse"
             type="text"
@@ -58,7 +62,7 @@ export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardS
             className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           />
         </Field>
-        <Field label="Ville de résidence" error={errors.ville_residence}>
+        <Field label={t('villeResidence')} error={errors.ville_residence} required>
           <input
             type="text"
             value={data.ville_residence}
@@ -68,7 +72,7 @@ export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardS
         </Field>
       </div>
 
-      <Field label="Lieu de naissance (ville)" error={errors.lieu_naissance}>
+      <Field label={t('lieuNaissance')} error={errors.lieu_naissance} required>
         <input
           type="text"
           value={data.lieu_naissance}
@@ -77,7 +81,7 @@ export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardS
         />
       </Field>
 
-      <Field label="Téléphone principal (login)" error={errors.phone_e164}>
+      <Field label={t('phonePrincipal')} error={errors.phone_e164} required>
         <PhoneInput
           pays={pays}
           testIdPrefix="step2-phone"
@@ -99,36 +103,48 @@ export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardS
         />
       </Field>
 
-      <Field label="Adresse e-mail personnelle *" error={errors.email}>
+      <Field label={t('email')} error={errors.email} required>
         <input
           type="email"
           required
           autoComplete="email"
           value={data.email}
           onChange={(e) => onChange({ email: e.target.value })}
-          placeholder="nom@exemple.com"
+          placeholder={t('emailPlaceholder')}
           className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         />
-        <span className="mt-1 block text-xs text-[#666]">
-          La confirmation de dépôt et les communications officielles seront envoyées à cette adresse.
-        </span>
+        <span className="mt-1 block text-xs text-[#666]">{t('emailHint')}</span>
       </Field>
     </div>
   );
 }
 
+/**
+ * `required` porte l'astérisque plutôt que le libellé lui-même : l'audit A-30
+ * relève que le marquage était incohérent, certains champs obligatoires n'étant
+ * pas signalés et l'astérisque étant parfois inclus dans la traduction.
+ */
 function Field({
   label,
   error,
+  required = false,
   children,
 }: {
   label: string;
   error?: string;
+  required?: boolean;
   children: React.ReactNode;
 }): JSX.Element {
   return (
     <label className="block" data-field-error={Boolean(error)}>
-      <span className="mb-1 block text-sm font-medium text-[#333333]">{label}</span>
+      <span className="mb-1 block text-sm font-medium text-[#333333]">
+        {label}
+        {required && (
+          <span aria-hidden="true" className="ml-0.5 text-red-600">
+            *
+          </span>
+        )}
+      </span>
       {children}
       {error && (
         <span role="alert" className="mt-1 block text-xs text-red-600">

@@ -4,6 +4,8 @@ import { getPays } from '@/lib/api/client';
 import { FALLBACK_PAYS } from '@/lib/api/fallbacks';
 
 export const metadata = {
+  // Page d'authentification ou espace candidat : hors index (audit A-32).
+  robots: { index: false, follow: false },
   title: 'Connexion candidat',
 };
 

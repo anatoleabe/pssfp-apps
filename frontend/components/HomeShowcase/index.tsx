@@ -73,7 +73,7 @@ const SLIDES: ReadonlyArray<ShowcaseSlide> = [
     eyebrow: '13 promotions diplômées',
     title: '13 promotions au service de l’État',
     subtitle:
-      '5 spécialités du Master Professionnel en Finances Publiques — BAC+5 reconnu CAMES, débouchés DGI, DGD, DGTCFM, MINEPAT, ARMP, FEICOM.',
+      '5 spécialités du Master Professionnel en Finances Publiques — BAC+5, accréditation CAMES en cours, débouchés DGI, DGD, DGTCFM, MINEPAT, ARMP, FEICOM.',
     imagePath: 'photos/evenements/dsc-0466.webp',
     imageAlt: 'Diplômés de la sortie solennelle promo 6',
     primaryCta: { label: 'Master Professionnel', href: '/formations/master', icon: GraduationCap },

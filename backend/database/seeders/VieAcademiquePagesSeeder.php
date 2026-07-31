@@ -99,7 +99,7 @@ class VieAcademiquePagesSeeder extends Seeder
                     'title' => ['fr' => $data['title']],
                     'excerpt' => ['fr' => $data['excerpt']],
                     'body' => ['fr' => $data['body']],
-                    'meta_title' => ['fr' => $data['title'].' — PSSFP'],
+                    'meta_title' => ['fr' => $data['title']],
                     'meta_description' => ['fr' => $data['excerpt']],
                     'status' => Page::STATUS_PUBLISHED,
                     'published_at' => $now,

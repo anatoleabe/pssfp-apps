@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { saveDossierFieldsAction } from '@/app/dossier/edition/actions';
+import { Link } from '@/navigation';
+import { useRouter } from '@/navigation';
+import { saveDossierFieldsAction } from '@/app/[locale]/dossier/edition/actions';
 import { DiplomeSelect } from '@/components/DiplomeSelect';
 import { EmployeurPublicSelect } from '@/components/EmployeurPublicSelect';
 import { InstitutSelect } from '@/components/InstitutSelect';
@@ -49,7 +49,6 @@ function buildInitialState(c: MyCandidature): FormState {
     statut_matrimonial: c.statut_matrimonial ?? '',
     nationalite: c.nationalite ?? '',
     specialite: c.specialite ?? '',
-    second_choix: c.second_choix ?? '',
     type_etude: c.type_etude ?? 'presentiel',
     premiere_langue: c.premiere_langue ?? 'fr',
     pays_origine: c.pays_origine ?? '',
@@ -370,15 +369,13 @@ function SectionIdentite({
         />
       </Field>
 
-      <Field field="second_choix" label="Second choix éventuel (optionnel)" error={errors.second_choix}>
-        <input
-          data-testid="edit-second-choix"
-          type="text"
-          value={String(form.second_choix ?? '')}
-          onChange={(e) => setField('second_choix', e.target.value)}
-          className={inputCls}
-        />
-      </Field>
+      {/* Champ « Second choix éventuel » retiré (audit A-03, décision du Comité
+          de Pilotage du 30/07/2026 : le vœu est unique pour la P14). Il
+          contredisait frontalement la règle « un seul vœu par candidature »
+          annoncée sur la page d'accueil, sans qu'aucune règle d'arbitrage entre
+          les deux vœux ne soit publiée. La colonne `second_choix` est conservée
+          en base le temps de la campagne pour ne pas perdre les valeurs déjà
+          saisies ; sa suppression est à programmer après la clôture. */}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field field="type_etude" label="Type d'études" error={errors.type_etude}>
@@ -414,7 +411,6 @@ function SectionIdentite({
           >
             <option>M.</option>
             <option>Mme</option>
-            <option>Mlle</option>
           </select>
         </Field>
         <Field field="prenom" label="Prénom(s)" error={errors.prenom}>
@@ -438,7 +434,7 @@ function SectionIdentite({
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Field field="epouse" label="Nom de jeune fille (si applicable)" error={errors.epouse}>
+        <Field field="epouse" label="Nom de naissance (si différent du nom actuel)" error={errors.epouse}>
           <input
             type="text"
             value={String(form.epouse ?? '')}

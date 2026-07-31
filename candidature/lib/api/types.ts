@@ -19,6 +19,8 @@ export interface Campagne {
   is_currently_open: boolean;
   /** Communiqué conjoint signé MINFI + Recteur UY2-Soa, déposé depuis l'admin. */
   communique_url: string | null;
+  /** Version anglaise signée, publiée indépendamment de la version française. */
+  communique_url_en: string | null;
   communique_reference: string | null;
   communique_signed_at: string | null;
 }

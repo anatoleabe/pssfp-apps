@@ -1,11 +1,13 @@
-import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { Link } from '@/navigation';
+import { redirect } from '@/navigation';
 import { StatusTimeline } from '@/components/StatusTimeline';
 import { WithdrawDialog } from '@/components/WithdrawDialog';
 import { getMyCandidature } from '@/lib/api/client';
 import { getCandidatToken } from '@/lib/auth/session';
 
 export const metadata = {
+  // Page d'authentification ou espace candidat : hors index (audit A-32).
+  robots: { index: false, follow: false },
   title: 'Suivi de ma candidature',
 };
 

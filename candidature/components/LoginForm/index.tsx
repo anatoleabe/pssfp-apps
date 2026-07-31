@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useTransition, type FormEvent } from 'react';
-import Link from 'next/link';
+import { Link } from '@/navigation';
 import { useSearchParams } from 'next/navigation';
-import { loginAction } from '@/app/login/actions';
+import { loginAction } from '@/app/[locale]/login/actions';
 import { PhoneInput, type PhoneInputValue } from '@/components/PhoneInput';
 import type { Pays } from '@/lib/api/types';
 

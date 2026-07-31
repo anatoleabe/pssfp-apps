@@ -12,8 +12,20 @@ export default defineConfig({
     baseURL: BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // Chromium annonce `en-US` par défaut : sans cette ligne, le middleware
+    // servirait l'anglais et toutes les assertions françaises échoueraient.
+    // La langue attendue par un test doit être déclarée, jamais subie.
+    locale: 'fr-FR',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', testIgnore: /.*\.en\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
+    {
+      // Parcours anglophone : mêmes pages, navigateur annonçant `en-US`.
+      name: 'chromium-en',
+      testMatch: /.*\.en\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], locale: 'en-US' },
+    },
+  ],
   webServer: process.env.PLAYWRIGHT_NO_SERVER
     ? undefined
     : {

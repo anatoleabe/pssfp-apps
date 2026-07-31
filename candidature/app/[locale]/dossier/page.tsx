@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+import { redirect } from '@/navigation';
 import { AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 import { DossierActionsCard } from '@/components/dossier/DossierActionsCard';
 import { DossierCompleteness } from '@/components/dossier/DossierCompleteness';
@@ -13,6 +13,8 @@ import { getCandidatToken } from '@/lib/auth/session';
 import { initDossierAction } from './actions';
 
 export const metadata = {
+  // Page d'authentification ou espace candidat : hors index (audit A-32).
+  robots: { index: false, follow: false },
   title: 'Mon dossier candidat',
 };
 

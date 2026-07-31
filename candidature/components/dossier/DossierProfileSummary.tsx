@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/navigation';
 import { Pencil, UserRoundSearch } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
 import { formatDateFr } from '@/lib/format/date';

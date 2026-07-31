@@ -1,0 +1,435 @@
+{
+  "common": {
+    "appName": "PSSFP Application"
+  },
+  "meta": {
+    "title": "PSSFP Application",
+    "description": "Online application form for the PSSFP — Intake 14, 2026-2027 academic year."
+  },
+  "language": {
+    "label": "Choose a language"
+  },
+  "footer": {
+    "tagline": "PSSFP — 13 years of excellence",
+    "programme": "Advanced Programme of Specialisation in Public Finance",
+    "scolarite": "Registrar's Office",
+    "address": "Yaoundé-Messa Campus, room 231",
+    "linksAria": "Institutional links",
+    "cgu": "Terms of use",
+    "privacy": "Privacy policy",
+    "admission": "Admission requirements"
+  },
+  "home": {
+    "title": "Intake 14 — 2026-2027 academic year",
+    "introOpen": "Allow 10 to 15 minutes for the online form. Your application only becomes admissible once the fee has been paid at a CREMINCAM branch and the complete paper file has been handed in at the Registrar's Office (Yaoundé-Messa, room 231), by 18 September 2026 at 3:30 p.m. at the latest.",
+    "introClosed": "The current intake is closed. A new session will open shortly.",
+    "campaignClosedNotice": "No intake is currently open. Watch the institutional website or the PSSFP social media channels for the next opening.",
+    "ctaCreateAccount": "Create my applicant account",
+    "ctaLogin": "I already have an account",
+    "ctaDossier": "Go to my application",
+    "eyebrow": "Apply online",
+    "statusOpen": "Applications open",
+    "closingLabel": "Closing on",
+    "introLoggedIn": "Pick up your application where you left off and follow its progress.",
+    "countdownAria": "Time remaining before closing",
+    "feeTitle": "Application fee",
+    "feeNotice": "XAF 50,000 payable at a CREMINCAM branch after submission. No payment is required before you create your account.",
+    "whyHeading": "Why choose the PSSFP",
+    "pillars": {
+      "excellence": {
+        "title": "Academic excellence",
+        "body": "A specialised professional Master's programme in Public Finance, taught by practitioners and academics. CAMES accreditation is under way."
+      },
+      "partenariats": {
+        "title": "International partnerships",
+        "body": "Agreements with MINFI, MINESUP, the IMF, Expertise France, the University of Yaoundé II and regional institutes."
+      },
+      "debouches": {
+        "title": "Career prospects",
+        "body": "Direct access to careers in public finance, taxation, auditing and public management control."
+      },
+      "foad": {
+        "title": "Distance learning available",
+        "body": "Distance learning for serving civil servants, with access to the PSSFP Moodle platform."
+      }
+    },
+    "filieresHeading": "Five specialisations",
+    "filieresIntro": "Choose the specialisation that matches your career plan — one choice per application.",
+    "filieres": {
+      "economie-publique-gestion-publique": "Economic stewardship and the management of public policy.",
+      "fiscalite-finance-comptabilite-publique": "Taxation, budget execution and government accounting.",
+      "gouvernance-territoriale-finances-publiques-locales": "Decentralisation and the finances of local authorities.",
+      "marches-publics-partenariats-public-prive": "Public procurement and public-private partnership structuring.",
+      "audit-controle-finances-publiques": "Internal audit, control and compliance in public finance."
+    },
+    "conditionsHeading": "Admission requirements",
+    "conditionsList": [
+      "A three-year university degree (Bachelor's level) in economics, management, law or a related field.",
+      "Five years of professional experience related to public finance (recognition of prior learning may be accepted).",
+      "A complete application file submitted before the intake closes."
+    ],
+    "modalitesHeading": "Two study modes",
+    "modalitesPresentiel": "On campus — Messa Campus, Yaoundé (25 places per specialisation).",
+    "modalitesDistanciel": "Distance learning (10 places per specialisation).",
+    "learnMoreAdmission": "See the full admission requirements",
+    "communique": {
+      "eyebrow": "Official notice",
+      "heading": "Joint communiqué of the Minister of Finance and the Vice-Chancellor of the University of Yaoundé II-Soa",
+      "body": "The call for applications to the first year of the Master's cycle is officially open. The signed communiqué is the authoritative document: keep it, as it sets out the specialisations, the number of places, the requirements and the exact composition of the application file.",
+      "download": "Download the signed communiqué",
+      "downloadHint": "PDF — opens in a new tab",
+      "frenchOnlyHint": "PDF in French — opens in a new tab",
+      "frenchOnlyNotice": "The English version of this communiqué has not been issued yet. The document provided is the signed French version, which alone is authoritative.",
+      "referenceLabel": "Reference",
+      "signedAtLabel": "Signed on"
+    },
+    "dossier": {
+      "heading": "Composition of the application file",
+      "fallbackClosingDate": "18 September 2026 at 3:30 p.m.",
+      "intro": "Reproduced in full from the official communiqué. The complete file must reach the PSSFP Registrar's Office at Yaoundé-Messa (room 231) by {date} at the latest (Yaoundé time, UTC+1).",
+      "warning": "An application submitted online only becomes admissible once the paper file has been handed in and recorded at the Registrar's Office. This requirement applies to distance-learning applicants as well.",
+      "paperBadge": "Paper copy only",
+      "photoNotice": "In addition, a recent passport photograph must be uploaded to your applicant area: it appears on your enrolment form.",
+      "items": [
+        {
+          "text": "01 enrolment form, generated from your online application and printed from your applicant area after submission.",
+          "paper": true
+        },
+        {
+          "text": "01 certified true copy of the required degree or certificate of completion (Bachelor's), duly signed by the university authorities and issued less than three months ago.",
+          "paper": false
+        },
+        {
+          "text": "01 certified photocopy of the birth certificate, issued less than three months ago.",
+          "paper": false
+        },
+        {
+          "text": "The academic transcripts for the Bachelor's cycle (years 1, 2 and 3), duly signed by the university authorities.",
+          "paper": false
+        },
+        {
+          "text": "A detailed CV.",
+          "paper": false
+        },
+        {
+          "text": "A cover letter addressed to the Chairperson of the PSSFP Steering Committee.",
+          "paper": false
+        },
+        {
+          "text": "A certificate of actual service in post or an authorisation from the employer is required (where applicable).",
+          "paper": false
+        },
+        {
+          "text": "01 A4 envelope, stamped at the statutory rate and bearing the applicant's address.",
+          "paper": true
+        },
+        {
+          "text": "The deposit receipt from the \"Crédit Mutuel d'Investissement du Cameroun\" (CREMINCAM) for the sum of fifty thousand (50,000) XAF in application fees, or a postal money order addressed to the Administrative and Financial Officer of the PSSFP, P.O. Box 2332 Yaoundé-Messa.",
+          "paper": false
+        }
+      ]
+    }
+  },
+  "login": {
+    "title": "Applicant sign-in",
+    "subtitle": "Sign in with your phone number and your PIN.",
+    "phoneLabel": "Phone number — sign-in and SMS",
+    "phonePlaceholder": "691234567",
+    "phoneHelp": "Select the country code, then enter the local number, for example 6XXXXXXXX in Cameroon.",
+    "pinLabel": "6-digit PIN",
+    "pinHelp": "The PIN you chose when registering. Never share it with anyone.",
+    "submit": "Sign in",
+    "forgotPin": "Forgotten your PIN?",
+    "todoNotice": "Live authentication implemented during Module 5 development (see ADR-0007)."
+  },
+  "inscription": {
+    "title": "Create my applicant account",
+    "subtitle": "Five guided steps: identity, contact details, qualifications, declaration, then a full review before sending. Your entries are saved locally between steps.",
+    "eyebrow": "Intake 14 — 2026-2027 academic year"
+  },
+  "nav": {
+    "home": "Home",
+    "login": "Sign in",
+    "homeAria": "PSSFP Application — Home",
+    "navAria": "Application navigation",
+    "myDossier": "My application",
+    "logout": "Sign out"
+  },
+  "turnstile": {
+    "heading": "Anti-robot check",
+    "loadError": "The anti-robot check could not load. Disable your content blocker or try again.",
+    "retry": "Try loading again",
+    "expired": "The anti-robot check has expired, please complete it again."
+  },
+  "pinReasons": {
+    "invalid_format": "The PIN must be exactly 6 digits.",
+    "blacklisted": "This PIN is too common. Please choose another one.",
+    "matches_phone_suffix": "This PIN repeats the end of your phone number.",
+    "matches_date_of_birth": "This PIN repeats your date of birth."
+  },
+  "errors": {
+    "network": "Network error. Check your connection and try again.",
+    "turnstileFailed": "Anti-robot check failed. Please try again.",
+    "otpInvalid": "Incorrect or expired code.",
+    "otpExpired": "The code has expired. Request a new one.",
+    "otpUsed": "This code has already been used.",
+    "throttled": "Too many attempts. Please try again later.",
+    "resetSessionExpired": "Your reset session has expired. Please start again from the beginning.",
+    "pinRejected": "PIN rejected: too common, identical to your phone number, or to your date of birth.",
+    "unauthenticated": "Your session has expired. Please sign in again.",
+    "incomplete": "Incomplete profile — check the missing fields below.",
+    "alreadySubmitted": "Application already submitted.",
+    "generic": "Something went wrong. Please try again."
+  },
+  "wizard": {
+    "steps": {
+      "identite": "Identity",
+      "coordonnees": "Contact details",
+      "diplome": "Qualification",
+      "engagement": "Declaration",
+      "verification": "Review"
+    },
+    "cancel": "Cancel and return to the home page",
+    "prev": "Previous",
+    "next": "Next",
+    "review": "Review my details",
+    "submit": "Create my applicant account",
+    "submitting": "Sending…",
+    "retentionNotice": "Your entries are stored locally (browser session) and are erased automatically after 30 minutes of inactivity or when you close the tab. Your PIN is never kept between steps.",
+    "backHome": "Back to the home page",
+    "timeout": {
+      "title": "Your session is about to expire",
+      "body": "If you remain inactive, your entries will be erased in 2 minutes as a security measure.",
+      "continue": "Continue filling in"
+    },
+    "step4": {
+      "title": "Step 4 — Declaration & PIN",
+      "photoNotice": "Your official passport photograph can be added from your applicant area once your account has been created.",
+      "signatureLabel": "Declaration on honour — {prenom} {nom}",
+      "signatureMismatch": "You must certify that the information is accurate.",
+      "certificationLabel": "I certify on my honour that the information provided is accurate.",
+      "pinLabel": "6-digit PIN (your future password)",
+      "pinAria": "6-digit PIN",
+      "showPin": "Show",
+      "hidePin": "Hide",
+      "pinConfirmLabel": "Confirm the PIN",
+      "pinConfirmAria": "PIN confirmation",
+      "pinMismatch": "The confirmation does not match the PIN.",
+      "cguLabel": "I accept the PSSFP terms of use and privacy policy.",
+      "consult": "Read:",
+      "cguLink": "terms of use",
+      "privacyLink": "privacy policy",
+      "newTab": "(new tab)",
+      "loginCta": "Sign in with this number"
+    },
+    "step2": {
+      "title": "Step 2 — Contact details",
+      "paysOrigine": "Country of origin",
+      "adresse": "Full address",
+      "villeResidence": "City of residence",
+      "lieuNaissance": "Place of birth (town)",
+      "phonePrincipal": "Main phone number (sign-in ID)",
+      "email": "Personal email address",
+      "emailPlaceholder": "name@example.com",
+      "emailHint": "Your submission confirmation and all official communications will be sent to this address."
+    },
+    "step3": {
+      "title": "Step 3 — Qualification & professional situation",
+      "diplome": "Highest qualification obtained",
+      "annee": "Year awarded",
+      "institut": "Awarding institution",
+      "specialiteDiplome": "Field of the qualification",
+      "statutActuel": "Current professional situation",
+      "choose": "— Select —",
+      "employeurPublic": "Government body, company or public institution",
+      "employeur": "Employer or organisation",
+      "employeurPlaceholder": "Official name of the organisation",
+      "fonction": "Role or position held",
+      "fonctionPlaceholder": "e.g. Management controller, finance officer…",
+      "adresseEmployeur": "Work city / address (optional)",
+      "telEmployeur": "Work phone number (optional)",
+      "attestationNotice": "A certificate of actual service in post or an authorisation from your employer will be required, where applicable.",
+      "moyenConnaissance": "How did you hear about the PSSFP?",
+      "preciserSource": "Please specify the source",
+      "preciserSourcePlaceholder": "Name of the person, organisation or channel"
+    }
+  },
+  "forgotPin": {
+    "progressAria": "Progress",
+    "steps": {
+      "phone": "1. Phone number",
+      "code": "2. Code received by SMS",
+      "newPin": "3. New PIN"
+    },
+    "step1Title": "Enter your phone number",
+    "step1Body": "We will send a reset code by SMS to the number you registered with.",
+    "phoneLabel": "Phone number",
+    "phoneHelp": "International format: country code then number, e.g. +237691234567.",
+    "phoneInvalid": "Invalid number — international format expected, e.g. +237691234567.",
+    "sendCode": "Send me the code",
+    "sending": "Sending…",
+    "step2Title": "Enter the code received by SMS",
+    "step2Body": "The 6-digit code has been sent to {phone}. It is valid for 10 minutes.",
+    "otpAria": "SMS code",
+    "prev": "Previous",
+    "verifyCode": "Verify the code",
+    "verifying": "Verifying…",
+    "step3Title": "Choose your new PIN",
+    "step3Body": "Six digits you can remember, but avoid obvious sequences or your date of birth.",
+    "newPinLabel": "New PIN",
+    "newPinAria": "New PIN",
+    "confirmLabel": "Confirmation",
+    "confirmAria": "New PIN confirmation",
+    "confirmMismatch": "The confirmation does not match.",
+    "setPin": "Set my new PIN",
+    "updating": "Updating…"
+  },
+  "dossier": {
+    "fields": {
+      "civilite": "Title",
+      "nom": "Surname",
+      "prenom": "First name",
+      "date_naissance": "Date of birth",
+      "lieu_naissance": "Place of birth",
+      "genre": "Gender",
+      "statut_matrimonial": "Marital status",
+      "nationalite": "Nationality",
+      "pays_origine": "Country of origin",
+      "pays_residence": "Country of residence",
+      "region": "Region (Cameroon)",
+      "departement": "Division (Cameroon)",
+      "adresse": "Address",
+      "ville_residence": "City of residence",
+      "indicatif1": "Country code",
+      "telephone1": "Phone number",
+      "email": "Personal email address",
+      "specialite": "Specialisation",
+      "type_etude": "Study mode",
+      "premiere_langue": "First language",
+      "diplome_obtenu": "Qualification obtained",
+      "institut": "Institution",
+      "specialite_diplome": "Field of the qualification",
+      "annee_diplome": "Year the qualification was awarded",
+      "statut_actuel": "Current professional situation",
+      "fonction_actuelle": "Role or position held",
+      "employeur": "Employer or organisation",
+      "moyen_connaissance": "How did you hear about the PSSFP?",
+      "moyen_connaissance_detail": "More about the source",
+      "engagement_nom": "Digital signature"
+    },
+    "completeness": {
+      "submittedTitle": "Application submitted",
+      "submittedBody": "Your file is now with the admissions committee. A confirmation has been sent to your email address, and further communications will reach you by email or SMS.",
+      "title": "Before you submit",
+      "completeNotice": "Your administrative profile is complete.",
+      "incompleteIntro": "The following items still need completing — click to open the edit form at the right section:",
+      "submit": "Certify and submit my application",
+      "submitting": "Submitting…"
+    }
+  },
+  "legal": {
+    "updatedAtLabel": "Last updated:",
+    "backHome": "Back to the home page"
+  },
+  "privacy": {
+    "title": "Privacy policy",
+    "metaDescription": "Privacy policy and personal data protection for PSSFP applicants.",
+    "updatedAt": "2026-07-31",
+    "intro": "The PSSFP attaches great importance to protecting applicants' personal data. This policy describes the data collected through the application portal, the purposes for which it is processed and the rights available to you.",
+    "contactLabel": "Contact point for any question or request concerning your data:",
+    "contactEmail": "contact@pssfp.net",
+    "sections": [
+      {
+        "heading": "1. Data controller",
+        "body": [
+          "The data controller is the Advanced Programme of Specialisation in Public Finance (PSSFP), Messa Campus, Yaoundé — Cameroon.",
+          "The designated contact point for data protection matters is the Head of the PSSFP information systems department, reachable at the address given at the end of this document."
+        ]
+      },
+      {
+        "heading": "2. Applicable law and jurisdiction",
+        "body": [
+          "The processing described in this policy is governed by Cameroonian law. The Cameroonian courts alone have jurisdiction over any related dispute.",
+          "Any complaint regarding the processing of your data may be addressed to the PSSFP at the contact address given at the end of this document and, failing a satisfactory reply, brought before the competent national authority for the protection of personal data."
+        ]
+      },
+      {
+        "heading": "3. Data collected",
+        "list": [
+          "Identity data: title, surname, first name, date and place of birth, gender, nationality, marital status.",
+          "Contact data: phone number(s) and email address — both are mandatory, the email address carrying all official communications up to the admission decision — together with postal address, city and country.",
+          "Academic and professional data: qualification, institution, year awarded, professional situation, employer.",
+          "Passport photograph uploaded by the applicant.",
+          "Minimal technical security data: IP address and timestamp on sign-in and submission."
+        ]
+      },
+      {
+        "heading": "4. Purposes",
+        "list": [
+          "Creating and managing the applicant account.",
+          "Assembling, processing and assessing the application file by the admissions committee.",
+          "Communicating with the applicant (submission confirmation, requests for further documents, decision).",
+          "Fraud prevention and portal security."
+        ]
+      },
+      {
+        "heading": "5. Legal basis",
+        "body": [
+          "Processing is based on the applicant's consent, collected through a dedicated checkbox at registration, and on the PSSFP's legitimate interest in organising its recruitment procedures and keeping them secure."
+        ]
+      },
+      {
+        "heading": "6. Recipients and processors",
+        "body": [
+          "Your data is intended for authorised PSSFP departments and members of the admissions committee. It is neither sold nor transferred to third parties for commercial purposes.",
+          "The following technical processors handle data on our behalf, strictly within the scope of their assignment:"
+        ],
+        "list": [
+          "Cloudflare, Inc. (United States) — Turnstile anti-robot protection service. The IP address and technical browsing signals are transmitted; no application data is. This service is retained for portal security: without it, the public form would be exposed to automated submissions.",
+          "Short message (SMS) delivery provider — phone number and content of the authentication message.",
+          "Email delivery provider — email address and content of notifications.",
+          "Hosting of the platform and of supporting documents."
+        ]
+      },
+      {
+        "heading": "7. Transfers outside Cameroon",
+        "body": [
+          "Use of the anti-robot protection service mentioned above entails a transfer of technical data outside Cameroonian territory. That transfer is limited to the data strictly necessary to detect automated submissions and includes no part of the application file."
+        ]
+      },
+      {
+        "heading": "8. Retention period",
+        "body": [
+          "The data of unsuccessful applicants is retained for the duration of the intake and for up to twenty-four (24) months after the results are published, then archived or deleted.",
+          "The data of admitted applicants is retained for ten (10) years from publication of the results, the period required to manage studies, issue degrees and evidence the course of study. This period is distinct from that of the student record, which is governed by the institution's own archiving rules."
+        ]
+      },
+      {
+        "heading": "9. Security",
+        "body": [
+          "The PSSFP implements appropriate technical and organisational measures: encrypted communications (HTTPS), private storage of documents (photograph, acknowledgement of receipt) through time-limited signed links, access control and logging of sensitive actions."
+        ]
+      },
+      {
+        "heading": "10. Data breach",
+        "body": [
+          "In the event of a data breach likely to create a risk to your rights, the PSSFP informs the competent national authority without undue delay and, where the risk is high, notifies the individuals concerned directly by email at the address recorded in their file."
+        ]
+      },
+      {
+        "heading": "11. Your rights",
+        "body": [
+          "You have the right to access, rectify, erase, restrict and port your data, as well as the right to withdraw your consent.",
+          "To exercise these rights, write to the contact address quoting your file number. You will receive a reply within a maximum of thirty (30) days of receipt of the request.",
+          "Withdrawing consent may prevent your application from being processed further."
+        ]
+      },
+      {
+        "heading": "12. Cookies",
+        "body": [
+          "The portal only uses cookies strictly necessary for it to work (maintaining a secure session, remembering your chosen language, anti-robot protection). No advertising tracking cookie is placed."
+        ]
+      }
+    ]
+  }
+}

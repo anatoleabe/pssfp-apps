@@ -1,9 +1,44 @@
+import createIntlMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
+
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, isSupportedLocale } from './i18n';
+import { localePrefix } from './navigation';
 
 const TOKEN_COOKIE = 'pssfp_candidat_token';
 const EXPIRES_COOKIE = 'pssfp_candidat_expires';
 const PUBLIC_AUTH_PATHS = ['/login', '/inscription', '/forgot-pin'];
 const PROTECTED_PREFIXES = ['/dossier'];
+
+/**
+ * Détection de langue : en-tête `Accept-Language` à la première visite, puis
+ * cookie `NEXT_LOCALE` dès que le visiteur a utilisé le sélecteur. Le cookie
+ * prime toujours sur l'en-tête. Les deux versions restent joignables par URL
+ * directe, sans redirection imposée aux robots d'indexation.
+ */
+const intlMiddleware = createIntlMiddleware({
+  locales: SUPPORTED_LOCALES,
+  defaultLocale: DEFAULT_LOCALE,
+  localePrefix,
+  localeDetection: true,
+});
+
+/** Sépare le préfixe de locale du chemin applicatif (`/en/dossier` -> `en`, `/dossier`). */
+function splitLocale(pathname: string): { locale: string; pathWithoutLocale: string } {
+  const [, maybeLocale, ...rest] = pathname.split('/');
+
+  if (isSupportedLocale(maybeLocale)) {
+    return { locale: maybeLocale, pathWithoutLocale: `/${rest.join('/')}` };
+  }
+
+  return { locale: DEFAULT_LOCALE, pathWithoutLocale: pathname };
+}
+
+/** Reconstruit une URL applicative en conservant la locale courante. */
+function localizedUrl(path: string, locale: string, request: NextRequest): URL {
+  const prefix = locale === DEFAULT_LOCALE ? '' : `/${locale}`;
+
+  return new URL(`${prefix}${path}`, request.url);
+}
 
 function expireSessionCookies(response: NextResponse): void {
   const secure = process.env.NODE_ENV === 'production';
@@ -40,45 +75,68 @@ async function sessionIsValid(token: string): Promise<'valid' | 'invalid' | 'unk
   }
 }
 
+/**
+ * Délègue à next-intl en lui passant une requête déjà porteuse de l'en-tête de
+ * session.
+ *
+ * next-intl recopie les en-têtes de la requête qu'on lui donne dans sa propre
+ * réécriture, et y ajoute son `x-next-intl-locale`. Enrichir la requête en
+ * amont laisse donc passer les deux. Rejouer soi-même la réécriture à partir de
+ * `x-middleware-rewrite` perdrait au contraire l'en-tête interne de next-intl,
+ * et toutes les pages tomberaient en 404 faute de locale résolue.
+ */
+function withSessionHeader(request: NextRequest, sessionValid: boolean): NextResponse {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-candidat-session-valid', sessionValid ? '1' : '0');
+
+  // Le corps n'est pas recopié : seule la décision de réécriture de next-intl
+  // nous intéresse, Next l'applique ensuite à la requête réelle.
+  const patchedRequest = new NextRequest(request.nextUrl, {
+    method: request.method,
+    headers: requestHeaders,
+  });
+
+  return intlMiddleware(patchedRequest);
+}
+
 export async function middleware(request: NextRequest): Promise<NextResponse> {
-  const pathname = request.nextUrl.pathname;
-  const protectedRoute = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  const { locale, pathWithoutLocale } = splitLocale(request.nextUrl.pathname);
+
+  const protectedRoute = PROTECTED_PREFIXES.some((prefix) => pathWithoutLocale.startsWith(prefix));
   const publicAuthRoute = PUBLIC_AUTH_PATHS.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`),
+    (path) => pathWithoutLocale === path || pathWithoutLocale.startsWith(`${path}/`),
   );
   const token = request.cookies.get(TOKEN_COOKIE)?.value;
 
   if (!token) {
     if (protectedRoute) {
-      return NextResponse.redirect(new URL('/login?reason=session_expired', request.url));
+      return NextResponse.redirect(localizedUrl('/login?reason=session_expired', locale, request));
     }
-    return NextResponse.next();
+    return withSessionHeader(request, false);
   }
 
   const validity = await sessionIsValid(token);
   if (validity === 'invalid') {
     const response = protectedRoute
-      ? NextResponse.redirect(new URL('/login?reason=session_expired', request.url))
-      : NextResponse.next();
+      ? NextResponse.redirect(localizedUrl('/login?reason=session_expired', locale, request))
+      : withSessionHeader(request, false);
     expireSessionCookies(response);
     return response;
   }
 
   if (validity === 'valid' && publicAuthRoute) {
-    return NextResponse.redirect(new URL('/dossier', request.url));
+    return NextResponse.redirect(localizedUrl('/dossier', locale, request));
   }
 
   if (validity === 'unknown' && protectedRoute) {
     // Ne pas supprimer un token potentiellement valide lors d'une panne API,
     // mais ne jamais laisser la route protégée lever une exception brute.
-    return NextResponse.redirect(new URL('/login?reason=service_unavailable', request.url));
+    return NextResponse.redirect(localizedUrl('/login?reason=service_unavailable', locale, request));
   }
 
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-candidat-session-valid', validity === 'valid' ? '1' : '0');
-  return NextResponse.next({ request: { headers: requestHeaders } });
+  return withSessionHeader(request, validity === 'valid');
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|logos/).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|logos/).*)'],
 };

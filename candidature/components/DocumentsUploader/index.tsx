@@ -1,8 +1,8 @@
 'use client';
 
 import { useRef, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
-import { deleteDocumentAction, uploadDocumentAction } from '@/app/dossier/pieces/actions';
+import { useRouter } from '@/navigation';
+import { deleteDocumentAction, uploadDocumentAction } from '@/app/[locale]/dossier/pieces/actions';
 import type { CandidatureDocumentItem, CandidatureDocumentType } from '@/lib/api/client';
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -11,7 +11,7 @@ const ACCEPTED = ['application/pdf', 'image/jpeg', 'image/png'];
 const TYPE_OPTIONS: Array<{ value: CandidatureDocumentType; label: string }> = [
   { value: 'diplome', label: 'Diplôme / attestation de réussite' },
   { value: 'acte_naissance', label: 'Acte de naissance' },
-  { value: 'releves_notes', label: 'Relevé de notes' },
+  { value: 'releves_notes', label: 'Relevés de notes (L1, L2, L3)' },
   { value: 'cv', label: 'CV' },
   { value: 'lettre_motivation', label: 'Lettre de motivation' },
   { value: 'attestation_employeur', label: 'Attestation employeur' },

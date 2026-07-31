@@ -30,6 +30,7 @@ class CampagneCandidature extends Model
         'status',
         'max_voeux',
         'communique_pdf_path',
+        'communique_pdf_path_en',
         'communique_reference',
         'communique_signed_at',
     ];
@@ -64,15 +65,21 @@ class CampagneCandidature extends Model
     }
 
     /**
-     * URL publique du communiqué conjoint signé, ou null s'il n'a pas encore
-     * été déposé par la direction depuis Filament.
+     * URL publique du communiqué conjoint signé dans la locale demandée.
+     *
+     * Pas de repli automatique ici : l'appelant décide quoi faire d'un `null`.
+     * L'API expose les deux URLs et le front choisit, ce qui lui permet de
+     * signaler explicitement qu'il sert la version française à un visiteur
+     * anglophone plutôt que de le laisser croire à une traduction.
      */
-    public function communiqueUrl(): ?string
+    public function communiqueUrl(string $locale = 'fr'): ?string
     {
-        if (blank($this->communique_pdf_path)) {
+        $path = $locale === 'en' ? $this->communique_pdf_path_en : $this->communique_pdf_path;
+
+        if (blank($path)) {
             return null;
         }
 
-        return Storage::disk(self::COMMUNIQUE_DISK)->url($this->communique_pdf_path);
+        return Storage::disk(self::COMMUNIQUE_DISK)->url($path);
     }
 }

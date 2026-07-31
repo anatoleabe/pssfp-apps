@@ -2,9 +2,26 @@
   "common": {
     "appName": "Candidature PSSFP"
   },
+  "meta": {
+    "title": "Candidature PSSFP",
+    "description": "Formulaire de candidature en ligne du PSSFP — Promotion 14, année académique 2026-2027."
+  },
+  "language": {
+    "label": "Choisir la langue"
+  },
+  "footer": {
+    "tagline": "PSSFP — 13 ans d'excellence",
+    "programme": "Programme Supérieur de Spécialisation en Finances Publiques",
+    "scolarite": "Scolarité",
+    "address": "Campus de Yaoundé-Messa, porte 231",
+    "linksAria": "Liens institutionnels",
+    "cgu": "Conditions générales d'utilisation",
+    "privacy": "Politique de confidentialité",
+    "admission": "Conditions d'admission"
+  },
   "home": {
     "title": "Promotion 14 — Année académique 2026-2027",
-    "introOpen": "Déposez votre candidature au PSSFP en quelques étapes guidées. Comptez 10 à 15 minutes pour finaliser votre dossier en ligne.",
+    "introOpen": "Comptez 10 à 15 minutes pour la saisie en ligne. Votre candidature ne deviendra recevable qu'après paiement des frais en agence CREMINCAM et dépôt du dossier papier complet au bureau de la scolarité (Yaoundé-Messa, porte 231), au plus tard le 18 septembre 2026 à 15h30.",
     "introClosed": "La campagne actuelle est clôturée. Une nouvelle session ouvrira prochainement.",
     "campaignClosedNotice": "Aucune campagne n'est ouverte actuellement. Surveillez le site institutionnel ou les réseaux sociaux PSSFP pour la prochaine ouverture.",
     "ctaCreateAccount": "Créer mon compte candidat",
@@ -12,7 +29,7 @@
     "ctaDossier": "Accéder à mon dossier",
     "eyebrow": "Candidature en ligne",
     "statusOpen": "Candidatures ouvertes",
-    "closingLabel": "Clôture",
+    "closingLabel": "Clôture le",
     "introLoggedIn": "Reprenez votre candidature là où vous l'avez laissée et suivez l'avancement de votre dossier.",
     "countdownAria": "Temps restant avant clôture",
     "feeTitle": "Frais de dossier",
@@ -21,7 +38,7 @@
     "pillars": {
       "excellence": {
         "title": "Excellence académique",
-        "body": "Programme de Master spécialisé en Finances Publiques reconnu CAMES, encadré par des praticiens et universitaires."
+        "body": "Master professionnel spécialisé en Finances Publiques, encadré par des praticiens et des universitaires. Accréditation CAMES en cours."
       },
       "partenariats": {
         "title": "Partenariats internationaux",
@@ -61,13 +78,16 @@
       "body": "L'appel à candidatures pour l'entrée au niveau 1 du cycle de Master est officiellement lancé. Le communiqué signé fait foi : conservez-le, il précise les filières, les places, les conditions et la composition exacte du dossier.",
       "download": "Télécharger le communiqué signé",
       "downloadHint": "PDF — nouvel onglet",
+      "frenchOnlyHint": "PDF en français — nouvel onglet",
+      "frenchOnlyNotice": "La version anglaise de ce communiqué n'est pas encore publiée. Le document proposé est la version française signée, qui seule fait foi.",
       "referenceLabel": "Référence",
       "signedAtLabel": "Signé le"
     },
     "dossier": {
       "heading": "Composition du dossier de candidature",
-      "intro": "Reprise intégrale du communiqué officiel. Le dossier complet doit parvenir au bureau de la scolarité du PSSFP à Yaoundé-Messa (porte 231), au plus tard le {date} à 15h30.",
-      "warning": "Une candidature soumise en ligne ne devient recevable qu'une fois le dossier papier déposé et réceptionné au bureau de la scolarité.",
+      "fallbackClosingDate": "18 septembre 2026 à 15h30",
+      "intro": "Reprise intégrale du communiqué officiel. Le dossier complet doit parvenir au bureau de la scolarité du PSSFP à Yaoundé-Messa (porte 231), au plus tard le {date} (heure de Yaoundé, UTC+1).",
+      "warning": "Une candidature soumise en ligne ne devient recevable qu'une fois le dossier papier déposé et réceptionné au bureau de la scolarité. Cette obligation s'applique également aux candidats en formation à distance.",
       "paperBadge": "Version papier uniquement",
       "photoNotice": "À cela s'ajoute une photo d'identité récente, à téléverser dans votre espace candidat : elle figure sur votre fiche d'inscription.",
       "items": [
@@ -76,7 +96,7 @@
           "paper": true
         },
         {
-          "text": "01 copie certifiée conforme du diplôme ou attestation de réussite exigé (licence) dûment signée des autorités universitaires, datant de moins de trois mois.",
+          "text": "01 copie certifiée conforme du diplôme ou attestation de réussite exigée (licence) dûment signée des autorités universitaires, datant de moins de trois mois.",
           "paper": false
         },
         {
@@ -84,7 +104,7 @@
           "paper": false
         },
         {
-          "text": "Les relevés de note du cycle de licence (L1, L2, L3) dûment signés des autorités universitaires.",
+          "text": "Les relevés de notes du cycle de licence (L1, L2, L3) dûment signés des autorités universitaires.",
           "paper": false
         },
         {
@@ -129,7 +149,11 @@
   },
   "nav": {
     "home": "Accueil",
-    "login": "Connexion"
+    "login": "Connexion",
+    "homeAria": "Candidature PSSFP — Accueil",
+    "navAria": "Navigation candidature",
+    "myDossier": "Mon dossier",
+    "logout": "Se déconnecter"
   },
   "turnstile": {
     "heading": "Vérification anti-robot",
@@ -197,6 +221,37 @@
       "privacyLink": "politique de confidentialité",
       "newTab": "(nouvel onglet)",
       "loginCta": "Se connecter avec ce numéro"
+    },
+    "step2": {
+      "title": "Étape 2 — Coordonnées",
+      "paysOrigine": "Pays d'origine",
+      "adresse": "Adresse complète",
+      "villeResidence": "Ville de résidence",
+      "lieuNaissance": "Lieu de naissance (ville)",
+      "phonePrincipal": "Téléphone principal (identifiant de connexion)",
+      "email": "Adresse e-mail personnelle",
+      "emailPlaceholder": "nom@exemple.com",
+      "emailHint": "La confirmation de dépôt et les communications officielles seront envoyées à cette adresse."
+    },
+    "step3": {
+      "title": "Étape 3 — Diplôme & situation professionnelle",
+      "diplome": "Diplôme le plus élevé obtenu",
+      "annee": "Année d'obtention",
+      "institut": "Établissement de délivrance",
+      "specialiteDiplome": "Spécialité du diplôme",
+      "statutActuel": "Situation professionnelle actuelle",
+      "choose": "— Choisir —",
+      "employeurPublic": "Administration, entreprise ou établissement public",
+      "employeur": "Employeur ou organisation",
+      "employeurPlaceholder": "Nom officiel de la structure",
+      "fonction": "Fonction ou poste occupé",
+      "fonctionPlaceholder": "Ex. Contrôleur de gestion, cadre financier…",
+      "adresseEmployeur": "Ville / adresse professionnelle (facultatif)",
+      "telEmployeur": "Téléphone professionnel (facultatif)",
+      "attestationNotice": "Une attestation de présence effective au poste ou une autorisation de l'employeur sera requise, le cas échéant.",
+      "moyenConnaissance": "Comment avez-vous connu le PSSFP ?",
+      "preciserSource": "Précisez la source",
+      "preciserSourcePlaceholder": "Nom de la personne, de l'organisme ou du canal"
     }
   },
   "forgotPin": {
@@ -275,5 +330,106 @@
   "legal": {
     "updatedAtLabel": "Dernière mise à jour :",
     "backHome": "Retour à l'accueil"
+  },
+  "privacy": {
+    "title": "Politique de confidentialité",
+    "metaDescription": "Politique de confidentialité et de protection des données personnelles des candidats du PSSFP.",
+    "updatedAt": "2026-07-31",
+    "intro": "Le PSSFP attache une grande importance à la protection des données personnelles des candidats. La présente politique décrit les données collectées via le portail de candidature, les finalités de leur traitement et les droits dont vous disposez.",
+    "contactLabel": "Point de contact pour toute question ou demande relative à vos données :",
+    "contactEmail": "contact@pssfp.net",
+    "sections": [
+      {
+        "heading": "1. Responsable du traitement",
+        "body": [
+          "Le responsable du traitement est le Programme Supérieur de Spécialisation en Finances Publiques (PSSFP), Campus de Messa, Yaoundé — Cameroun.",
+          "Le point de contact désigné pour les questions de protection des données est le Chef du service des systèmes d'information du PSSFP, joignable à l'adresse indiquée en fin de document."
+        ]
+      },
+      {
+        "heading": "2. Droit applicable et juridiction",
+        "body": [
+          "Les traitements décrits par la présente politique sont régis par le droit camerounais. Les juridictions camerounaises sont seules compétentes pour connaître de tout litige s'y rapportant.",
+          "Toute réclamation relative au traitement de vos données peut être adressée au PSSFP à l'adresse de contact figurant en fin de document, puis, à défaut de réponse satisfaisante, portée devant l'autorité nationale compétente en matière de protection des données à caractère personnel."
+        ]
+      },
+      {
+        "heading": "3. Données collectées",
+        "list": [
+          "Données d'identité : civilité, nom, prénom, date et lieu de naissance, genre, nationalité, situation matrimoniale.",
+          "Données de contact : numéro(s) de téléphone et adresse électronique — l'un et l'autre sont obligatoires, l'adresse électronique supportant l'ensemble des communications officielles jusqu'à la décision d'admission — ainsi qu'adresse postale, ville et pays.",
+          "Données académiques et professionnelles : diplôme, établissement, année d'obtention, situation professionnelle, employeur.",
+          "Photo d'identité téléversée par le candidat.",
+          "Données techniques minimales de sécurité : adresse IP et horodatage lors de la connexion et de la soumission."
+        ]
+      },
+      {
+        "heading": "4. Finalités",
+        "list": [
+          "Création et gestion du compte candidat.",
+          "Constitution, instruction et évaluation du dossier de candidature par le comité d'admission.",
+          "Communication avec le candidat (confirmation de soumission, demandes de complément, décision).",
+          "Prévention de la fraude et sécurisation du portail."
+        ]
+      },
+      {
+        "heading": "5. Base légale",
+        "body": [
+          "Les traitements reposent sur le consentement du candidat, recueilli par une case dédiée lors de l'inscription, et sur l'intérêt légitime du PSSFP à organiser ses procédures de recrutement et à en assurer la sécurité."
+        ]
+      },
+      {
+        "heading": "6. Destinataires et sous-traitants",
+        "body": [
+          "Vos données sont destinées aux services habilités du PSSFP et aux membres du comité d'admission. Elles ne sont ni vendues, ni cédées à des tiers à des fins commerciales.",
+          "Les sous-traitants techniques suivants traitent des données pour notre compte, dans le strict cadre de leur mission :"
+        ],
+        "list": [
+          "Cloudflare, Inc. (États-Unis) — service Turnstile de protection contre les robots. Sont transmis l'adresse IP et des signaux techniques de navigation, à l'exclusion de toute donnée de candidature. Ce service est conservé pour la sécurité du portail : sans lui, le formulaire public serait exposé aux dépôts automatisés.",
+          "Prestataire d'envoi de messages courts (SMS) — numéro de téléphone et contenu du message d'authentification.",
+          "Prestataire d'acheminement du courrier électronique — adresse électronique et contenu des notifications.",
+          "Hébergement de la plateforme et des pièces justificatives."
+        ]
+      },
+      {
+        "heading": "7. Transferts hors du Cameroun",
+        "body": [
+          "Le recours au service de protection anti-robot mentionné ci-dessus emporte un transfert de données techniques hors du territoire camerounais. Ce transfert est limité aux seules données nécessaires à la détection des dépôts automatisés et n'inclut aucune pièce du dossier de candidature."
+        ]
+      },
+      {
+        "heading": "8. Durée de conservation",
+        "body": [
+          "Les données des candidats non admis sont conservées pendant la durée de la campagne et jusqu'à vingt-quatre (24) mois après la publication des résultats, puis archivées ou supprimées.",
+          "Les données des candidats admis sont conservées pendant dix (10) ans à compter de la publication des résultats, durée nécessaire à la gestion de la scolarité, à la délivrance des diplômes et à la justification du cursus. Cette durée est distincte de celle du dossier scolaire, régie par les règles d'archivage propres à l'établissement."
+        ]
+      },
+      {
+        "heading": "9. Sécurité",
+        "body": [
+          "Le PSSFP met en œuvre des mesures techniques et organisationnelles appropriées : chiffrement des échanges (HTTPS), stockage privé des pièces (photo, récépissé) via des liens signés à durée limitée, contrôle des accès et journalisation des actions sensibles."
+        ]
+      },
+      {
+        "heading": "10. Violation de données",
+        "body": [
+          "En cas de violation de données susceptible d'engendrer un risque pour vos droits, le PSSFP en informe l'autorité nationale compétente dans les meilleurs délais et, lorsque le risque est élevé, en avertit directement les personnes concernées par courrier électronique à l'adresse enregistrée dans leur dossier."
+        ]
+      },
+      {
+        "heading": "11. Vos droits",
+        "body": [
+          "Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation et de portabilité de vos données, ainsi que du droit de retirer votre consentement.",
+          "Pour exercer ces droits, écrivez à l'adresse de contact en précisant votre numéro de dossier. Une réponse vous est apportée dans un délai maximal de trente (30) jours à compter de la réception de la demande.",
+          "Le retrait du consentement peut empêcher la poursuite de l'instruction de votre candidature."
+        ]
+      },
+      {
+        "heading": "12. Cookies",
+        "body": [
+          "Le portail n'utilise que des cookies strictement nécessaires à son fonctionnement (maintien de session sécurisée, mémorisation de la langue choisie, protection anti-robot). Aucun cookie de suivi publicitaire n'est déposé."
+        ]
+      }
+    ]
   }
 }

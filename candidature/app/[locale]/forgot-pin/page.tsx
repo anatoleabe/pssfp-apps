@@ -1,8 +1,10 @@
-import { redirect } from 'next/navigation';
+import { redirect } from '@/navigation';
 import { ForgotPinWizard } from '@/components/ForgotPinWizard';
 import { getCandidatToken } from '@/lib/auth/session';
 
 export const metadata = {
+  // Page d'authentification ou espace candidat : hors index (audit A-32).
+  robots: { index: false, follow: false },
   title: 'PIN oublié',
 };
 

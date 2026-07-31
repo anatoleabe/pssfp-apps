@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/navigation';
 import { useEffect } from 'react';
 
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }): JSX.Element {

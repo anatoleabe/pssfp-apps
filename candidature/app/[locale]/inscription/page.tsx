@@ -12,6 +12,8 @@ import { submitInscription } from './actions';
 import type { Diplome, EmployeurPublicGroup, Pays, Specialite, UniversitePays } from '@/lib/api/types';
 
 export const metadata = {
+  // Page d'authentification ou espace candidat : hors index (audit A-32).
+  robots: { index: false, follow: false },
   title: 'Inscription candidat',
   description: 'Créez votre compte candidat PSSFP en 4 étapes guidées.',
 };

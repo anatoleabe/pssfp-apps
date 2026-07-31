@@ -26,7 +26,10 @@ final class CampagneCandidatureResource extends JsonResource
             'max_voeux' => $this->max_voeux,
             'is_currently_open' => $this->isCurrentlyOpen(),
             // Communiqué conjoint signé, proposé au téléchargement sur la home.
-            'communique_url' => $this->communiqueUrl(),
+            // Les deux versions sont exposées : le front sert celle de la locale
+            // courante et se rabat sur le français en le signalant à l'usager.
+            'communique_url' => $this->communiqueUrl('fr'),
+            'communique_url_en' => $this->communiqueUrl('en'),
             'communique_reference' => $this->communique_reference,
             'communique_signed_at' => optional($this->communique_signed_at)->toDateString(),
             // prefix_numero exclus volontairement (interne, pas exposé en API).

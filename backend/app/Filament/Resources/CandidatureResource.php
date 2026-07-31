@@ -79,11 +79,11 @@ class CandidatureResource extends Resource
                 ->columns(3)
                 ->schema([
                     Forms\Components\Select::make('civilite')->options([
-                        'M.' => 'M.', 'Mme' => 'Mme', 'Mlle' => 'Mlle',
+                        'M.' => 'M.', 'Mme' => 'Mme',
                     ]),
                     Forms\Components\TextInput::make('nom')->maxLength(100),
                     Forms\Components\TextInput::make('prenom')->maxLength(100),
-                    Forms\Components\TextInput::make('epouse')->label('Nom de jeune fille')->maxLength(100),
+                    Forms\Components\TextInput::make('epouse')->label('Nom de naissance')->maxLength(100),
                     Forms\Components\DatePicker::make('date_naissance')->native(false),
                     Forms\Components\TextInput::make('lieu_naissance')->maxLength(100),
                     Forms\Components\Select::make('genre')->options([

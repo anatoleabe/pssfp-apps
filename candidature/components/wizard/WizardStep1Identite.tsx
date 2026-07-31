@@ -78,13 +78,12 @@ export function WizardStep1Identite({
             data-testid="step1-civilite"
             value={data.civilite}
             onChange={(e) =>
-              onChange({ civilite: e.target.value as 'M.' | 'Mme' | 'Mlle' })
+              onChange({ civilite: e.target.value as 'M.' | 'Mme' })
             }
             className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           >
             <option>M.</option>
             <option>Mme</option>
-            <option>Mlle</option>
           </select>
         </Field>
         <Field label="Prénom(s)" error={errors.prenom}>

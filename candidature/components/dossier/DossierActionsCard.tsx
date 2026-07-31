@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/navigation';
 import { Pencil, ListChecks, FileDown, ArrowRight } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
 
