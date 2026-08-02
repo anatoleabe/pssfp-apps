@@ -40,7 +40,14 @@ class CampagneCandidatureResource extends Resource
         return $form->schema([
             Forms\Components\Section::make('Campagne')->schema([
                 Forms\Components\TextInput::make('slug')->required()->unique(ignoreRecord: true)->maxLength(50),
-                Forms\Components\TextInput::make('nom')->required()->maxLength(100),
+                Forms\Components\TextInput::make('nom.fr')
+                    ->label('Nom de la campagne (FR)')
+                    ->required()
+                    ->maxLength(100),
+                Forms\Components\TextInput::make('nom.en')
+                    ->label('Nom de la campagne (EN)')
+                    ->maxLength(100)
+                    ->helperText('Affiché en titre sur la version anglaise du portail. Sans valeur, le français est servi.'),
                 Forms\Components\TextInput::make('promotion_numero')->required()->numeric()->minValue(1),
                 Forms\Components\TextInput::make('prefix_numero')->required()->maxLength(20)
                     ->helperText('Ex : P14026- pour Promotion 14, année 2026.'),
@@ -107,7 +114,7 @@ class CampagneCandidatureResource extends Resource
             ->defaultSort('opens_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('slug')->searchable(),
-                Tables\Columns\TextColumn::make('nom')->searchable()->limit(45),
+                Tables\Columns\TextColumn::make('nom.fr')->label('Nom (FR)')->searchable()->limit(45),
                 Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $state) => match ($state) {
                     'draft' => 'gray', 'open' => 'success', 'closed' => 'warning', 'archived' => 'danger',
                     default => 'gray',

@@ -1,3 +1,5 @@
+import { getLocale } from 'next-intl/server';
+
 import type {
   ApiResult,
   Campagne,
@@ -12,6 +14,18 @@ import type {
   Specialite,
   UniversitePays,
 } from './types';
+
+/**
+ * Locale courante, ou `fr` hors contexte de requête (scripts, tests unitaires)
+ * où `getLocale()` n'a pas de requête à interroger.
+ */
+async function currentLocale(): Promise<string> {
+  try {
+    return await getLocale();
+  } catch {
+    return 'fr';
+  }
+}
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/v1';
 
@@ -46,7 +60,10 @@ async function apiCall<T>(
   const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    'Accept-Language': 'fr',
+    // La locale du visiteur, et non `fr` en dur : sans cela l'API renvoie les
+    // champs traduisibles en français et le portail anglais affichait par
+    // exemple le nom de campagne « Année académique 2026-2027 » en titre.
+    'Accept-Language': await currentLocale(),
     ...options.headers,
   };
   if (body !== undefined) {

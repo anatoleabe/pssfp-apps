@@ -61,7 +61,7 @@ export default async function HomePage(): Promise<JSX.Element> {
         <div className="space-y-6">
           <p className="inline-flex items-center gap-2 rounded-full border border-[#4A2E67]/15 bg-[var(--pssfp-surface)] px-3.5 py-1.5 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-[#4A2E67]">
             <span aria-hidden="true" className="inline-block h-1.5 w-1.5 rounded-full bg-[#D4AF6A]" />
-            Promotion {promoNumero} · {t('eyebrow')}
+            {t('promotionLabel', { numero: promoNumero })} · {t('eyebrow')}
           </p>
 
           <h1
@@ -254,7 +254,7 @@ export default async function HomePage(): Promise<JSX.Element> {
               >
                 {String(i + 1).padStart(2, '0')}
               </span>
-              <h3 className="font-heading text-base font-semibold text-[#1A1A1A]">{s.label}</h3>
+              <h3 lang="fr" className="font-heading text-base font-semibold text-[#1A1A1A]">{s.label}</h3>
               {filiereTaglines[s.slug] && (
                 <p className="mt-1 text-sm text-[#666]">{filiereTaglines[s.slug]}</p>
               )}

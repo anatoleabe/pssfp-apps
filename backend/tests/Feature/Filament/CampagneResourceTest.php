@@ -35,7 +35,10 @@ it('lets super_admin create a campagne', function (): void {
     $this->livewire(CreateCampagneCandidature::class)
         ->fillForm([
             'slug' => 'p15-2027',
-            'nom' => 'Promotion 15 — 2027',
+            // `nom` est traduisible depuis 2026_08_02 : le formulaire expose
+            // `nom.fr` et `nom.en` (ADR-0006).
+            'nom.fr' => 'Promotion 15 — 2027',
+            'nom.en' => 'Intake 15 — 2027',
             'promotion_numero' => 15,
             'prefix_numero' => 'P15027-',
             'status' => 'draft',

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Console\Commands\PurgeExpiredOtps;
+use App\Http\Middleware\SetLocaleFromRequest;
 use App\Http\Middleware\ThrottleCandidatLogin;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -28,6 +29,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(prepend: [
             EnsureFrontendRequestsAreStateful::class,
+            // Doit précéder les contrôleurs : les JsonResources lisent les
+            // champs traduisibles via la locale applicative (ADR-0006).
+            SetLocaleFromRequest::class,
         ]);
 
         $middleware->alias([

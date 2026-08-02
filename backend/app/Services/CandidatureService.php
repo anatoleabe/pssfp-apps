@@ -38,7 +38,9 @@ final class CandidatureService
 
     public function currentCampagne(): ?CampagneCandidature
     {
-        return CampagneCandidature::query()->currentlyOpen()->first();
+        // Tri explicite : sans lui, PostgreSQL renvoie une ligne arbitraire
+        // si plusieurs campagnes se chevauchent. La plus récemment ouverte fait foi.
+        return CampagneCandidature::query()->currentlyOpen()->orderByDesc('opens_at')->orderByDesc('id')->first();
     }
 
     public function findForUser(User $user, CampagneCandidature $campagne): ?Candidature

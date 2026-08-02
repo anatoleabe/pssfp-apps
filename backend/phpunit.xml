@@ -19,6 +19,10 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!-- Le français est la langue source (ADR-0006) : les tests doivent
+             refléter la configuration réelle, pas les défauts du framework. -->
+        <env name="APP_LOCALE" value="fr"/>
+        <env name="APP_FALLBACK_LOCALE" value="fr"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>

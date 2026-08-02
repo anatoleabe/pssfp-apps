@@ -128,7 +128,10 @@ it('returns 409 when trying to update an already submitted candidature', functio
 
 it('cannot edit numero_dossier or campagne_id from the request body (P-min-4 ownership)', function (): void {
     [$user, $token] = authedCandidat();
-    $other = CampagneCandidature::factory()->create();
+    // Campagne close : deux campagnes ouvertes simultanément ne correspondent
+    // à aucune situation réelle et rendaient l'assertion dépendante de l'ordre
+    // physique des lignes.
+    $other = CampagneCandidature::factory()->closed()->create();
 
     $response = $this->withHeader('Authorization', "Bearer {$token}")
         ->putJson('/v1/applications/me', [

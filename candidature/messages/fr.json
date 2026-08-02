@@ -140,7 +140,8 @@
       "placesLabel": "Mode et places",
       "places": "Présentiel : 25 places · Distanciel : 10 places."
     },
-    "campaignClosed": "Campagne clôturée"
+    "campaignClosed": "Campagne clôturée",
+    "promotionLabel": "Promotion {numero}"
   },
   "login": {
     "title": "Connexion candidat",

@@ -9,10 +9,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Translatable\HasTranslations;
 
 class CampagneCandidature extends Model
 {
     use HasFactory;
+    use HasTranslations;
+
+    /**
+     * Le nom est affiché en titre de page sur le portail candidat : il doit
+     * exister dans la langue du visiteur (ADR-0006). Repli sur le français.
+     *
+     * @var array<int, string>
+     */
+    public array $translatable = ['nom'];
 
     /** Disk public MinIO hébergeant le communiqué conjoint signé. */
     public const COMMUNIQUE_DISK = 'minio_media';

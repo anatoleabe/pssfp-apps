@@ -140,7 +140,8 @@
       "placesLabel": "Study mode and places",
       "places": "On campus: 25 places · Distance learning: 10 places."
     },
-    "campaignClosed": "Intake closed"
+    "campaignClosed": "Intake closed",
+    "promotionLabel": "Intake {numero}"
   },
   "login": {
     "title": "Applicant sign-in",
