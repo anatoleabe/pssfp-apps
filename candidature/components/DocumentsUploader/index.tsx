@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from '@/navigation';
 import { deleteDocumentAction, uploadDocumentAction } from '@/app/[locale]/dossier/pieces/actions';
@@ -32,6 +34,7 @@ interface DocumentsUploaderProps {
 }
 
 export function DocumentsUploader({ initialDocuments, isLocked }: DocumentsUploaderProps): JSX.Element {
+  const td = useTranslations('uploads.documents');
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<CandidatureDocumentItem[]>(initialDocuments);
@@ -96,9 +99,7 @@ export function DocumentsUploader({ initialDocuments, isLocked }: DocumentsUploa
   return (
     <div className="space-y-6">
       <p className="rounded-md border border-[#D4AF6A]/40 bg-[#FFFBEA] p-4 text-sm text-[#666]">
-        Ces pièces sont <strong>optionnelles</strong> à ce stade : vous pouvez les ajouter ici, ou
-        les apporter directement au bureau de la scolarité (Yaoundé-Messa, porte 231) au moment du
-        dépôt de votre dossier. Elles ne bloquent pas la soumission de votre candidature.
+        {td('admissibilityNotice')}
       </p>
 
       {documents.length > 0 && (
@@ -121,7 +122,7 @@ export function DocumentsUploader({ initialDocuments, isLocked }: DocumentsUploa
                   rel="noopener noreferrer"
                   className="text-sm text-[#4A2E67] underline hover:text-[#5C3A7E]"
                 >
-                  Voir
+                  {td('view')}
                 </a>
                 {!isLocked && (
                   <button
@@ -144,7 +145,7 @@ export function DocumentsUploader({ initialDocuments, isLocked }: DocumentsUploa
         <div className="flex flex-wrap items-end gap-3 rounded-md border border-dashed border-gray-300 p-4">
           <div>
             <label htmlFor="document-type-select" className="mb-1 block text-sm font-medium text-[#333]">
-              Type de pièce
+              {td('typeLabel')}
             </label>
             <select
               id="document-type-select"
@@ -178,15 +179,15 @@ export function DocumentsUploader({ initialDocuments, isLocked }: DocumentsUploa
             onChange={onSelectFile}
             className="sr-only"
             data-testid="document-file-input"
-            aria-label="Sélectionner le fichier de la pièce"
+            aria-label={td('selectAria')}
           />
-          <p className="w-full text-xs text-[#666]">PDF, JPG ou PNG, max 5 Mo par fichier.</p>
+          <p className="w-full text-xs text-[#666]">{td('hint')}</p>
         </div>
       )}
 
       {isLocked && documents.length === 0 && (
         <p role="status" className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-          Votre dossier est verrouillé : les pièces ne peuvent plus être ajoutées.
+          {td('locked')}
         </p>
       )}
 

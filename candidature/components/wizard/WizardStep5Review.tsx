@@ -25,6 +25,7 @@ export function WizardStep5Review({
   onEditStep,
 }: WizardStep5ReviewProps): JSX.Element {
   const t = useTranslations('wizard.step5');
+  const to = useTranslations('options');
   const editLabel = t('edit');
   const countryName = (code: string): string =>
     pays.find((country) => country.code_iso === code)?.nom ?? code;
@@ -55,7 +56,7 @@ export function WizardStep5Review({
         />
         <ReviewRow
           label={t('fields.firstLanguage')}
-          value={data.premiere_langue === 'fr' ? t('langueFr') : t('langueEn')}
+          value={data.premiere_langue === 'fr' ? to('langueFr') : to('langueEn')}
         />
       </ReviewSection>
 
@@ -68,7 +69,7 @@ export function WizardStep5Review({
         <ReviewRow label={t('fields.birthPlace')} value={data.lieu_naissance} />
         <ReviewRow
           label={t('fields.gender')}
-          value={data.genre === 'M' ? t('genreM') : data.genre === 'F' ? t('genreF') : t('genreAutre')}
+          value={data.genre === 'M' ? to('genreM') : data.genre === 'F' ? to('genreF') : to('genreAutre')}
         />
         <ReviewRow label={t('fields.maritalStatus')} value={data.statut_matrimonial} />
         <ReviewRow label={t('fields.nationality')} value={countryName(data.nationalite)} />

@@ -87,6 +87,7 @@ export function DossierEditionForm({
   employeursPublics,
   focusField,
 }: DossierEditionFormProps): JSX.Element {
+  const te = useTranslations('dossier.edition');
   const router = useRouter();
   const [form, setForm] = useState<FormState>(() => buildInitialState(candidature));
   const lastSavedRef = useRef<FormState>(buildInitialState(candidature));
@@ -239,7 +240,7 @@ export function DossierEditionForm({
           data-testid="edition-back-bottom"
           className="inline-flex h-11 items-center rounded-md border border-gray-300 bg-white px-4 text-sm text-[#333] hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
         >
-          ← Retour au dossier
+          {te('backToDossier')}
         </Link>
       </div>
     </div>
@@ -324,6 +325,8 @@ function IndicatifSelect({
   includeEmpty?: boolean;
 }): JSX.Element {
   const tf = useTranslations('dossier.fields');
+  const to = useTranslations('options');
+  const te = useTranslations('dossier.edition');
   const knownIndicatifs = new Set(pays.map((p) => p.indicatif));
   const hasUnknownCurrent = value !== '' && !knownIndicatifs.has(value);
 
@@ -360,8 +363,10 @@ function SectionIdentite({
   setField,
 }: SectionPropsBase & { pays: Pays[]; specialites: Specialite[] }): JSX.Element {
   const tf = useTranslations('dossier.fields');
+  const to = useTranslations('options');
+  const te = useTranslations('dossier.edition');
   return (
-    <Card id="identite" title="Identité & vœu" description="Vos informations personnelles et la spécialité demandée.">
+    <Card id="identite" title={te('sectionIdentite')} description="Vos informations personnelles et la spécialité demandée.">
       <Field field="specialite" label={tf('specialite')} error={errors.specialite}>
         <SearchableSelect
           ariaLabel="Spécialité demandée"
@@ -388,8 +393,8 @@ function SectionIdentite({
             onChange={(e) => setField('type_etude', e.target.value)}
             className={inputCls}
           >
-            <option value="presentiel">Présentiel</option>
-            <option value="distanciel">Distanciel</option>
+            <option value="presentiel">{to('presentiel')}</option>
+            <option value="distanciel">{to('distanciel')}</option>
           </select>
         </Field>
         <Field field="premiere_langue" label={tf('premiere_langue')} error={errors.premiere_langue}>
@@ -398,8 +403,8 @@ function SectionIdentite({
             onChange={(e) => setField('premiere_langue', e.target.value)}
             className={inputCls}
           >
-            <option value="fr">Français</option>
-            <option value="en">Anglais</option>
+            <option value="fr">{to('langueFr')}</option>
+            <option value="en">{to('langueEn')}</option>
           </select>
         </Field>
       </div>
@@ -461,9 +466,9 @@ function SectionIdentite({
             onChange={(e) => setField('genre', e.target.value)}
             className={inputCls}
           >
-            <option value="M">Masculin</option>
-            <option value="F">Féminin</option>
-            <option value="autre">Autre</option>
+            <option value="M">{to('genreM')}</option>
+            <option value="F">{to('genreF')}</option>
+            <option value="autre">{to('genreAutre')}</option>
           </select>
         </Field>
       </div>
@@ -485,11 +490,11 @@ function SectionIdentite({
             onChange={(e) => setField('statut_matrimonial', e.target.value)}
             className={inputCls}
           >
-            <option>Célibataire</option>
-            <option>Marié(e)</option>
-            <option>Divorcé(e)</option>
-            <option>Veuf / Veuve</option>
-            <option>Autre</option>
+            <option value="Célibataire">{to('marital.celibataire')}</option>
+            <option value="Marié(e)">{to('marital.marie')}</option>
+            <option value="Divorcé(e)">{to('marital.divorce')}</option>
+            <option value="Veuf / Veuve">{to('marital.veuf')}</option>
+            <option value="Autre">{to('marital.autre')}</option>
           </select>
         </Field>
         <Field field="nationalite" label={tf('nationalite')} error={errors.nationalite}>
@@ -516,8 +521,10 @@ function SectionCoordonnees({
   onPaysRegionChange: (next: { pays_residence: string; region: string; departement: string }) => void;
 }): JSX.Element {
   const tf = useTranslations('dossier.fields');
+  const to = useTranslations('options');
+  const te = useTranslations('dossier.edition');
   return (
-    <Card id="coordonnees" title="Coordonnées" description="Adresse, contact secondaire, email.">
+    <Card id="coordonnees" title={te('sectionCoordonnees')} description="Adresse, contact secondaire, email.">
       <Field field="pays_origine" label={tf('pays_origine')} error={errors.pays_origine}>
         <SearchableSelect
           ariaLabel="Pays d'origine"
@@ -619,7 +626,7 @@ function SectionCoordonnees({
           className={inputCls}
         />
         <span className="mt-1 block text-xs text-[#666]">
-          La confirmation de dépôt et les communications officielles seront envoyées à cette adresse.
+          {te('emailHint')}
         </span>
       </Field>
     </Card>
@@ -635,11 +642,13 @@ function SectionDiplome({
   employeursPublics,
 }: SectionPropsBase & { diplomes: Diplome[]; universites: UniversitePays[]; employeursPublics: EmployeurPublicGroup[] }): JSX.Element {
   const tf = useTranslations('dossier.fields');
+  const to = useTranslations('options');
+  const te = useTranslations('dossier.edition');
   const showEmployer = needsEmployer(String(form.statut_actuel ?? ''));
   const usePublicSelect = isPublicEmploymentStatus(String(form.statut_actuel ?? ''));
 
   return (
-    <Card id="diplome" title="Diplôme & profession" description="Parcours académique et activité actuelle.">
+    <Card id="diplome" title={te('sectionDiplome')} description="Parcours académique et activité actuelle.">
       <div className="grid gap-4 md:grid-cols-2">
         <Field field="diplome_obtenu" label={tf('diplome_obtenu')} error={undefined}>
           <DiplomeSelect
@@ -689,7 +698,7 @@ function SectionDiplome({
           onChange={(e) => setField('statut_actuel', e.target.value)}
           className={inputCls}
         >
-          <option value="">— Choisir —</option>
+          <option value="">{to('choose')}</option>
           {STATUT_ACTUEL_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
@@ -715,7 +724,7 @@ function SectionDiplome({
                 type="text"
                 value={String(form.employeur ?? '')}
                 onChange={(e) => setField('employeur', e.target.value)}
-                placeholder="Nom officiel de la structure"
+                placeholder={te('employeurPlaceholder')}
                 className={inputCls}
               />
             )}
@@ -725,7 +734,7 @@ function SectionDiplome({
               type="text"
               value={String(form.fonction_actuelle ?? '')}
               onChange={(e) => setField('fonction_actuelle', e.target.value)}
-              placeholder="Ex. Contrôleur de gestion, cadre financier…"
+              placeholder={te('fonctionPlaceholder')}
               className={inputCls}
             />
           </Field>
@@ -748,7 +757,7 @@ function SectionDiplome({
             </Field>
           </div>
           <p className="text-xs text-[#666]">
-            Une attestation de présence effective au poste ou une autorisation de l’employeur sera requise, le cas échéant.
+            {te('attestationNotice')}
           </p>
         </div>
       )}
@@ -759,7 +768,7 @@ function SectionDiplome({
           onChange={(e) => setField('moyen_connaissance', e.target.value)}
           className={inputCls}
         >
-          <option value="">— Choisir —</option>
+          <option value="">{to('choose')}</option>
           {MOYENS_CONNAISSANCE.map((option) => <option key={option}>{option}</option>)}
         </select>
       </Field>
@@ -770,7 +779,7 @@ function SectionDiplome({
             type="text"
             value={String(form.moyen_connaissance_detail ?? '')}
             onChange={(event) => setField('moyen_connaissance_detail', event.target.value)}
-            placeholder="Nom de la personne, de l’organisme ou du canal"
+            placeholder={te('sourcePlaceholder')}
             className={inputCls}
           />
         </Field>
@@ -781,12 +790,14 @@ function SectionDiplome({
 
 function SectionEngagement({ form, errors, setField }: SectionPropsBase): JSX.Element {
   const tf = useTranslations('dossier.fields');
+  const to = useTranslations('options');
+  const te = useTranslations('dossier.edition');
   const fullName = `${String(form.prenom ?? '').trim()} ${String(form.nom ?? '').trim()}`.trim();
 
   return (
     <Card
       id="engagement"
-      title="Engagement"
+      title={te('sectionEngagement')}
       description="Re-signez en tapant exactement votre prénom suivi de votre nom."
     >
       <p className="rounded-md border border-[#D4AF6A]/40 bg-[#FFFBEA] p-3 text-xs text-[#666]" role="note">

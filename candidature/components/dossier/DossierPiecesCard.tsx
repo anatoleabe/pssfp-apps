@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { Link } from '@/navigation';
 import { Paperclip, ArrowRight } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
@@ -7,6 +8,7 @@ interface DossierPiecesCardProps {
 }
 
 export function DossierPiecesCard({ candidature }: DossierPiecesCardProps): JSX.Element {
+  const tpc = useTranslations('dossier.piecesCard');
   const count = candidature.documents.length;
   const isLocked = candidature.statut !== 'postulant';
 
@@ -18,12 +20,12 @@ export function DossierPiecesCard({ candidature }: DossierPiecesCardProps): JSX.
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="pssfp-eyebrow">Dossier de candidature</p>
+          <p className="pssfp-eyebrow">{tpc('eyebrow')}</p>
           <h2
             id="pieces-heading"
             className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A1A1A]"
           >
-            Pièces justificatives
+            {tpc('title')}
           </h2>
         </div>
         <span
@@ -65,7 +67,7 @@ export function DossierPiecesCard({ candidature }: DossierPiecesCardProps): JSX.
             data-testid="dossier-pieces-locked"
             className="inline-flex w-fit items-center gap-2 rounded-pssfp-button border border-[#F4EFFA] bg-[#FAF7FF] px-3 py-2 text-xs text-[#666]"
           >
-            Pièces verrouillées — dossier déposé.
+            {tpc('locked')}
           </p>
         )}
       </div>

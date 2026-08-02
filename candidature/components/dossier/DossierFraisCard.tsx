@@ -1,4 +1,5 @@
 import { CheckCircle2, Banknote, Building2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { MyCandidature } from '@/lib/api/client';
 import { formatDateFr } from '@/lib/format/date';
 
@@ -13,6 +14,7 @@ const MODE_LABELS: Record<string, string> = {
 };
 
 export function DossierFraisCard({ candidature }: { candidature: MyCandidature }): JSX.Element {
+  const tfr = useTranslations('dossier.frais');
   const isPaid = candidature.frais_paye === true;
   const numero = candidature.numero_dossier;
 
@@ -23,12 +25,12 @@ export function DossierFraisCard({ candidature }: { candidature: MyCandidature }
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="pssfp-eyebrow">Paiement</p>
+          <p className="pssfp-eyebrow">{tfr('eyebrow')}</p>
           <h2
             id="frais-heading"
             className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A1A1A]"
           >
-            Frais de candidature
+            {tfr('title')}
           </h2>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7FF] px-3 py-1.5 text-sm font-semibold text-[#4A2E67]">
@@ -44,21 +46,21 @@ export function DossierFraisCard({ candidature }: { candidature: MyCandidature }
         >
           <p className="flex items-center gap-2 font-semibold text-emerald-900">
             <CheckCircle2 size={18} aria-hidden="true" className="text-emerald-600" />
-            Frais réglés
+            {tfr('paid')}
           </p>
           <dl className="mt-4 grid gap-3 text-sm text-emerald-900 md:grid-cols-3">
             <div>
-              <dt className="text-xs uppercase tracking-wider text-emerald-700">Mode</dt>
+              <dt className="text-xs uppercase tracking-wider text-emerald-700">{tfr('mode')}</dt>
               <dd className="mt-1 font-medium">
                 {MODE_LABELS[candidature.mode_paiement ?? ''] ?? candidature.mode_paiement ?? '—'}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-emerald-700">Référence</dt>
+              <dt className="text-xs uppercase tracking-wider text-emerald-700">{tfr('reference')}</dt>
               <dd className="mt-1 font-mono">{candidature.reference_paiement ?? '—'}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-emerald-700">Date</dt>
+              <dt className="text-xs uppercase tracking-wider text-emerald-700">{tfr('date')}</dt>
               <dd className="mt-1 font-medium">
                 {candidature.date_paiement ? formatDateFr(candidature.date_paiement) : '—'}
               </dd>
@@ -94,11 +96,11 @@ export function DossierFraisCard({ candidature }: { candidature: MyCandidature }
                   <p className="font-heading font-bold text-[#4A2E67]">CREMINCAM</p>
                   {/* Acronyme développé dès la première occurrence (audit A-28) :
                       il n'était explicité que plus bas, dans la reprise du communiqué. */}
-                  <p className="text-xs text-[#666]">Crédit Mutuel d&apos;Investissement du Cameroun</p>
+                  <p className="text-xs text-[#666]">{tfr('cremincamFull')}</p>
                 </div>
               </div>
               <ol className="mt-4 list-decimal space-y-2 pl-6 text-sm text-[#333]">
-                <li>Se rendre dans une agence CREMINCAM.</li>
+                <li>{tfr('step1')}</li>
                 <li>
                   Présenter le numéro de dossier{' '}
                   <span className="rounded-pssfp-button bg-white px-2 py-0.5 font-mono text-[#4A2E67] shadow-pssfp-soft">
@@ -106,8 +108,8 @@ export function DossierFraisCard({ candidature }: { candidature: MyCandidature }
                   </span>
                   .
                 </li>
-                <li>Payer 50 000 FCFA et conserver le récépissé bancaire.</li>
-                <li>Apporter le récépissé lors du dépôt physique au PSSFP.</li>
+                <li>{tfr('step3')}</li>
+                <li>{tfr('step4')}</li>
               </ol>
             </div>
           </div>

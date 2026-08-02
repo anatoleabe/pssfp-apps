@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useMemo, useState } from 'react';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import type { EmployeurPublicGroup } from '@/lib/api/types';
@@ -20,6 +22,7 @@ export function EmployeurPublicSelect({
   onChange,
   error,
 }: EmployeurPublicSelectProps): JSX.Element {
+  const tse = useTranslations('selects.employeur');
   const knownValues = useMemo(
     () => new Set(groups.flatMap((group) => group.employeurs)),
     [groups],
@@ -43,7 +46,7 @@ export function EmployeurPublicSelect({
       <SearchableSelect
         testId="employeur-public-select"
         ariaLabel="Administration, entreprise ou établissement public employeur"
-        placeholder="Rechercher une administration ou un organisme…"
+        placeholder={tse('searchPlaceholder')}
         options={options}
         value={autreActive ? AUTRE : value}
         ariaInvalid={Boolean(error)}
@@ -62,8 +65,8 @@ export function EmployeurPublicSelect({
           type="text"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="Nom officiel de l’organisme public"
-          aria-label="Précisez le nom de l’organisme public"
+          placeholder={tse('officialNamePlaceholder')}
+          aria-label={tse('precisePlaceholder')}
           aria-invalid={Boolean(error)}
           className="mt-2 h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         />

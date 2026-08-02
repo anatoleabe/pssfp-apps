@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { Link } from '@/navigation';
 import { Pencil, UserRoundSearch } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
@@ -9,6 +10,7 @@ export function DossierProfileSummary({
 }: {
   candidature: MyCandidature;
 }): JSX.Element {
+  const ts = useTranslations('dossier.summary');
   const canEdit = candidature.statut === 'postulant' && candidature.withdrawn_at === null;
   const statusLabel =
     STATUT_ACTUEL_OPTIONS.find((option) => option.value === candidature.statut_actuel)?.label ??
@@ -24,13 +26,13 @@ export function DossierProfileSummary({
         <div>
           <p className="pssfp-eyebrow inline-flex items-center gap-2">
             <UserRoundSearch size={14} aria-hidden="true" />
-            Informations enregistrées
+            {ts('eyebrow')}
           </p>
           <h2
             id="profile-summary-heading"
             className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A1A1A]"
           >
-            Consulter mon dossier
+            {ts('view')}
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#595959]">
             Relisez régulièrement vos informations. Les corrections restent possibles jusqu’à la
@@ -44,14 +46,14 @@ export function DossierProfileSummary({
             className="inline-flex h-11 items-center gap-2 rounded-pssfp-button bg-[#4A2E67] px-4 text-sm font-semibold text-white shadow-pssfp-elevated hover:bg-[#3A2452] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2"
           >
             <Pencil size={16} aria-hidden="true" />
-            Modifier mes informations
+            {ts('edit')}
           </Link>
         )}
       </div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
         <ProfileGroup
-          title="Identité et coordonnées"
+          title={ts('sectionIdentite')}
           editHref={canEdit ? '/dossier/edition?focus=civilite' : null}
           rows={[
             ['Nom complet', joinValues(candidature.civilite, candidature.prenom, candidature.nom)],
@@ -63,7 +65,7 @@ export function DossierProfileSummary({
           ]}
         />
         <ProfileGroup
-          title="Formation demandée"
+          title={ts('sectionFormation')}
           editHref={canEdit ? '/dossier/edition?focus=specialite' : null}
           rows={[
             ['Spécialité', candidature.specialite],
@@ -86,7 +88,7 @@ export function DossierProfileSummary({
           ]}
         />
         <ProfileGroup
-          title="Parcours académique"
+          title={ts('sectionParcours')}
           editHref={canEdit ? '/dossier/edition?focus=diplome_obtenu' : null}
           rows={[
             ['Diplôme', candidature.diplome_obtenu],
@@ -96,7 +98,7 @@ export function DossierProfileSummary({
           ]}
         />
         <ProfileGroup
-          title="Situation professionnelle"
+          title={ts('sectionProfession')}
           editHref={canEdit ? '/dossier/edition?focus=statut_actuel' : null}
           rows={[
             ['Situation actuelle', statusLabel],
@@ -109,7 +111,7 @@ export function DossierProfileSummary({
 
       {!canEdit && (
         <p className="mt-5 rounded-md bg-gray-50 p-3 text-sm text-[#595959]">
-          Ce récapitulatif reste consultable, mais le dossier est verrouillé depuis sa soumission.
+          {ts('lockedNotice')}
         </p>
       )}
     </section>
@@ -125,13 +127,15 @@ function ProfileGroup({
   editHref: string | null;
   rows: Array<[string, string | null | undefined]>;
 }): JSX.Element {
+  const ts = useTranslations('dossier.summary');
+
   return (
     <section className="rounded-lg border border-[#F0EAF6] bg-[#FCFAFE] p-4">
       <div className="flex items-center justify-between gap-3">
         <h3 className="font-heading font-bold text-[#4A2E67]">{title}</h3>
         {editHref && (
           <Link href={editHref} className="text-xs font-semibold text-[#4A2E67] underline">
-            Modifier
+            {ts('editLink')}
           </Link>
         )}
       </div>

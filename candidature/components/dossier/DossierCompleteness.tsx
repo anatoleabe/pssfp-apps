@@ -21,6 +21,7 @@ const KNOWN_FIELDS = new Set([
 
 export function DossierCompleteness({ candidature }: { candidature: MyCandidature }): JSX.Element {
   const t = useTranslations('dossier');
+  const tc = useTranslations('dossier.checklist');
   const tErr = useTranslations('errors');
   const result = checkSubmittable(candidature);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -111,14 +112,14 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
         {t('completeness.title')}
       </h2>
 
-      <ul className="mt-4 space-y-2 text-sm" aria-label="Checklist avant soumission">
+      <ul className="mt-4 space-y-2 text-sm" aria-label={tc('checklistAria')}>
         <li className={candidature.has_photo ? 'text-emerald-800' : 'text-amber-900'}>
           <span aria-hidden="true">{candidature.has_photo ? '☑' : '☐'} </span>
-          Photo d&apos;identité — obligatoire
+          {tc('photoRequired')}
         </li>
         <li className={hasRecommendedDocuments ? 'text-emerald-800' : 'text-[#595959]'}>
           <span aria-hidden="true">{hasRecommendedDocuments ? '☑' : '☐'} </span>
-          Pièces justificatives — recommandées
+          {tc('docsRecommended')}
         </li>
       </ul>
 
@@ -176,35 +177,35 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
       </button>
       {!candidature.has_photo && (
         <p className="mt-2 text-xs text-amber-900" role="status">
-          Ajoutez votre photo d&apos;identité pour activer la soumission.
+          {tc('addPhotoToSubmit')}
         </p>
       )}
 
       {confirmOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div role="alertdialog" aria-modal="true" aria-labelledby="submit-confirm-title" aria-describedby="submit-confirm-description" className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
-            <h3 id="submit-confirm-title" className="font-heading text-2xl font-bold text-[#4A2E67]">Confirmer la soumission définitive</h3>
+            <h3 id="submit-confirm-title" className="font-heading text-2xl font-bold text-[#4A2E67]">{tc('confirmTitle')}</h3>
             <p id="submit-confirm-description" className="mt-3 text-sm leading-relaxed text-[#333333]">
-              Après confirmation, votre photo et vos pièces seront verrouillées. Vous ne pourrez plus les modifier ni revenir sur les informations certifiées.
+              {tc('confirmBody')}
             </p>
             <section className="mt-5 rounded-lg border border-[#E4DCEE] bg-[#FAF7FF] p-4" aria-labelledby="submit-review-heading">
               <div className="flex items-center justify-between gap-3">
                 <h4 id="submit-review-heading" className="font-heading font-bold text-[#4A2E67]">
-                  Informations essentielles à relire
+                  {tc('reviewHeading')}
                 </h4>
                 <Link href="/dossier/edition" className="text-sm font-semibold text-[#4A2E67] underline">
-                  Modifier
+                  {tc('edit')}
                 </Link>
               </div>
               <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                <ReviewItem label="Candidat" value={`${candidature.prenom ?? ''} ${candidature.nom ?? ''}`.trim()} />
-                <ReviewItem label="Adresse e-mail" value={candidature.email ?? ''} />
-                <ReviewItem label="Téléphone" value={`${candidature.indicatif1 ?? ''} ${candidature.telephone1 ?? ''}`.trim()} />
-                <ReviewItem label="Spécialité" value={candidature.specialite ?? ''} />
-                <ReviewItem label="Diplôme" value={candidature.diplome_obtenu ?? ''} />
-                <ReviewItem label="Établissement" value={candidature.institut ?? ''} />
-                <ReviewItem label="Situation actuelle" value={candidature.statut_actuel ?? ''} />
-                <ReviewItem label="Employeur" value={candidature.employeur ?? 'Sans objet'} />
+                <ReviewItem label={tc('rowCandidat')} value={`${candidature.prenom ?? ''} ${candidature.nom ?? ''}`.trim()} />
+                <ReviewItem label={tc('rowEmail')} value={candidature.email ?? ''} />
+                <ReviewItem label={tc('rowPhone')} value={`${candidature.indicatif1 ?? ''} ${candidature.telephone1 ?? ''}`.trim()} />
+                <ReviewItem label={tc('rowSpecialite')} value={candidature.specialite ?? ''} />
+                <ReviewItem label={tc('rowDiplome')} value={candidature.diplome_obtenu ?? ''} />
+                <ReviewItem label={tc('rowInstitut')} value={candidature.institut ?? ''} />
+                <ReviewItem label={tc('rowSituation')} value={candidature.statut_actuel ?? ''} />
+                <ReviewItem label={tc('rowEmployeur')} value={candidature.employeur ?? tc('notApplicable')} />
               </dl>
             </section>
             <div className="mt-5" data-field-error={Boolean(reviewError)}>
@@ -222,7 +223,7 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
                   aria-describedby={reviewError ? 'dossier-review-error' : undefined}
                   className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-[#4A2E67] focus:ring-[#4A2E67]"
                 />
-                J’ai relu les informations de mon dossier et je confirme qu’elles sont exactes et complètes.
+                {tc('reviewConfirmLabel')}
               </label>
               {reviewError && (
                 <p id="dossier-review-error" role="alert" className="mt-2 text-sm font-semibold text-red-700">
@@ -231,8 +232,8 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
               )}
             </div>
             <div className="mt-6 flex flex-wrap justify-end gap-3">
-              <button type="button" onClick={() => setConfirmOpen(false)} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67]">Annuler</button>
-              <button ref={confirmButtonRef} type="button" data-testid="dossier-submit-confirm" onClick={confirmSubmission} className="rounded-md bg-[#4A2E67] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3A2452] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2">Certifier et soumettre ma candidature</button>
+              <button type="button" onClick={() => setConfirmOpen(false)} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67]">{tc('cancel')}</button>
+              <button ref={confirmButtonRef} type="button" data-testid="dossier-submit-confirm" onClick={confirmSubmission} className="rounded-md bg-[#4A2E67] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3A2452] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2">{tc('submit')}</button>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { Link } from '@/navigation';
 import { redirect } from '@/navigation';
 import { DocumentsUploader } from '@/components/DocumentsUploader';
@@ -11,6 +12,7 @@ export const metadata = {
 };
 
 export default async function PiecesPage(): Promise<JSX.Element> {
+  const tpp = await getTranslations('dossier.piecesPage');
   const token = await getCandidatToken();
   if (!token) {
     redirect('/login?reason=session_expired');
@@ -23,7 +25,7 @@ export default async function PiecesPage(): Promise<JSX.Element> {
     }
     return (
       <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">
-        <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">Pièces justificatives</h1>
+        <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">{tpp('title')}</h1>
         <p
           role="alert"
           className="mt-6 rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-700"
@@ -39,15 +41,15 @@ export default async function PiecesPage(): Promise<JSX.Element> {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">
-      <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666]">
+      <nav aria-label={tpp('breadcrumbAria')} className="mb-6 text-sm text-[#666]">
         <Link href="/dossier" className="hover:text-[#4A2E67]">
-          Mon dossier
+          {tpp('breadcrumbRoot')}
         </Link>
         <span aria-hidden="true"> / </span>
-        <span className="text-[#333]">Pièces justificatives</span>
+        <span className="text-[#333]">{tpp('title')}</span>
       </nav>
 
-      <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">Pièces justificatives</h1>
+      <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">{tpp('title')}</h1>
       <p className="mt-2 text-sm text-[#666]">
         Copie certifiée conforme du diplôme ou attestation de réussite, photocopie légalisée de
         l&apos;acte de naissance, relevés de note L1 à L3 signés, CV détaillé, lettre de motivation
@@ -62,7 +64,7 @@ export default async function PiecesPage(): Promise<JSX.Element> {
 
       <div className="mt-6 flex justify-between text-sm">
         <Link href="/dossier" className="text-[#4A2E67] underline hover:text-[#5C3A7E]">
-          ← Retour au dossier
+          {tpp('back')}
         </Link>
       </div>
     </div>

@@ -27,6 +27,7 @@ export function WizardStep3Diplome({
   employeursPublics,
 }: WizardStep3Props): JSX.Element {
   const t = useTranslations('wizard.step3');
+  const to = useTranslations('options');
   const showEmployer = needsEmployer(data.statut_actuel);
   const usePublicSelect = isPublicEmploymentStatus(data.statut_actuel);
 
@@ -89,7 +90,7 @@ export function WizardStep3Diplome({
           }
           className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         >
-          <option value="">{t('choose')}</option>
+          <option value="">{to('choose')}</option>
           {STATUT_ACTUEL_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
@@ -157,7 +158,7 @@ export function WizardStep3Diplome({
           onChange={(e) => onChange({ moyen_connaissance: e.target.value })}
           className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         >
-          <option value="">{t('choose')}</option>
+          <option value="">{to('choose')}</option>
           {MOYENS_CONNAISSANCE.map((option) => <option key={option}>{option}</option>)}
         </select>
       </Field>

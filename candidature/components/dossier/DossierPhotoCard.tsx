@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { Link } from '@/navigation';
 import { Camera, ImagePlus, Lock, ArrowRight } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
@@ -7,6 +8,7 @@ interface DossierPhotoCardProps {
 }
 
 export function DossierPhotoCard({ candidature }: DossierPhotoCardProps): JSX.Element {
+  const tp = useTranslations('dossier.photoCard');
   const hasPhoto = candidature.has_photo === true;
   const isLocked = candidature.statut !== 'postulant';
 
@@ -18,12 +20,12 @@ export function DossierPhotoCard({ candidature }: DossierPhotoCardProps): JSX.El
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="pssfp-eyebrow">Identité visuelle</p>
+          <p className="pssfp-eyebrow">{tp('eyebrow')}</p>
           <h2
             id="photo-heading"
             className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A1A1A]"
           >
-            Photo d&apos;identité
+            {tp('title')}
           </h2>
         </div>
         <span
@@ -52,7 +54,7 @@ export function DossierPhotoCard({ candidature }: DossierPhotoCardProps): JSX.El
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-[10px] uppercase tracking-wide text-[#5C3A7E]">
               <ImagePlus size={28} aria-hidden="true" />
-              Aucune photo
+              {tp('none')}
             </div>
           )}
         </div>
@@ -90,7 +92,7 @@ export function DossierPhotoCard({ candidature }: DossierPhotoCardProps): JSX.El
               className="inline-flex w-fit items-center gap-2 rounded-pssfp-button border border-[#F4EFFA] bg-[#FAF7FF] px-3 py-2 text-xs text-[#666]"
             >
               <Lock size={12} aria-hidden="true" />
-              Photo verrouillée — dossier déposé.
+              {tp('locked')}
             </p>
           )}
         </div>

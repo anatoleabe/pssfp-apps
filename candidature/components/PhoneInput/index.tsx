@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useEffect, useState } from 'react';
 import type { Pays } from '@/lib/api/types';
 import { buildE164, isValidE164 } from '@/lib/format/phone';
@@ -36,6 +38,7 @@ export function PhoneInput({
   onBlur,
   numberTestId,
 }: PhoneInputProps): JSX.Element {
+  const tsp = useTranslations('selects.phone');
   const [local, setLocal] = useState(value.local ?? '');
 
   useEffect(() => {
@@ -57,7 +60,7 @@ export function PhoneInput({
     <div className="flex gap-2">
       <select
         data-testid={`${testIdPrefix}-country`}
-        aria-label="Indicatif pays"
+        aria-label={tsp('countryCode')}
         value={value.countryCode}
         onChange={(e) => {
           const code = e.target.value;
@@ -77,7 +80,7 @@ export function PhoneInput({
         type="tel"
         inputMode="numeric"
         autoComplete="tel-national"
-        aria-label="Numéro de téléphone"
+        aria-label={tsp('phoneNumber')}
         aria-invalid={ariaInvalid && !isValidE164(value.e164)}
         aria-describedby={ariaDescribedBy}
         placeholder="691234567"

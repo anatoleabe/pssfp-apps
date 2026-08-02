@@ -1,10 +1,13 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useState, useTransition } from 'react';
 import { useRouter } from '@/navigation';
 import { withdrawDossierAction } from '@/app/[locale]/dossier/actions';
 
 export function WithdrawDialog(): JSX.Element {
+  const tw = useTranslations('dossier.withdraw');
   const [open, setOpen] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -33,7 +36,7 @@ export function WithdrawDialog(): JSX.Element {
         onClick={() => setOpen(true)}
         className="inline-flex h-11 items-center rounded-md border border-red-300 px-4 text-sm font-medium text-red-700 hover:bg-red-50"
       >
-        Retirer ma candidature
+        {tw('trigger')}
       </button>
 
       {open && (
@@ -46,10 +49,10 @@ export function WithdrawDialog(): JSX.Element {
         >
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
             <h2 id="withdraw-title" className="font-heading text-lg font-bold text-red-700">
-              Retirer définitivement ma candidature ?
+              {tw('confirmTitle')}
             </h2>
             <p className="mt-3 text-sm text-[#666]">
-              Cette action est <strong>irréversible</strong>. Vous ne pourrez plus modifier ni
+              {tw('actionIs')} <strong>{tw('irreversible')}</strong>. Vous ne pourrez plus modifier ni
               soumettre votre dossier pour la campagne en cours. Vous pourrez en revanche
               postuler à une campagne future.
             </p>
@@ -62,7 +65,7 @@ export function WithdrawDialog(): JSX.Element {
                 onChange={(e) => setConfirmed(e.target.checked)}
                 className="mt-0.5 h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
               />
-              <span>Je confirme vouloir retirer ma candidature.</span>
+              <span>{tw('confirmLabel')}</span>
             </label>
 
             {serverError && (
@@ -81,7 +84,7 @@ export function WithdrawDialog(): JSX.Element {
                 }}
                 className="rounded-md border border-gray-300 px-4 py-2 text-sm text-[#333]"
               >
-                Annuler
+                {tw('cancel')}
               </button>
               <button
                 type="button"

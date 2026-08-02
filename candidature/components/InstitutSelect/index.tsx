@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useMemo, useState } from 'react';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import type { UniversitePays } from '@/lib/api/types';
@@ -19,6 +21,7 @@ export interface InstitutSelectProps {
  * échappatoire "Autre" en texte libre pour tout établissement non listé.
  */
 export function InstitutSelect({ universites, value, onChange, error }: InstitutSelectProps): JSX.Element {
+  const tsi = useTranslations('selects.institut');
   const options = useMemo(() => {
     const flat = universites.flatMap((group) =>
       group.universites.map((nom) => ({ value: nom, label: `${nom} (${group.pays})` })),
@@ -54,8 +57,8 @@ export function InstitutSelect({ universites, value, onChange, error }: Institut
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Précisez l'établissement"
-          aria-label="Précisez l'établissement"
+          placeholder={tsi('precisePlaceholder')}
+          aria-label={tsi('precisePlaceholder')}
           className="mt-2 h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         />
       )}

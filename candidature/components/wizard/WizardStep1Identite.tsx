@@ -36,6 +36,7 @@ export function WizardStep1Identite({
   onChange,
 }: WizardStep1Props): JSX.Element {
   const t = useTranslations('wizard.step1');
+  const to = useTranslations('options');
 
   return (
     <div className="space-y-5" data-testid="wizard-step-1">
@@ -86,8 +87,8 @@ export function WizardStep1Identite({
             name="type_etude"
             value={data.type_etude}
             options={[
-              { value: 'presentiel', label: t('presentiel') },
-              { value: 'distanciel', label: t('distanciel') },
+              { value: 'presentiel', label: to('presentiel') },
+              { value: 'distanciel', label: to('distanciel') },
             ]}
             onChange={(v) => onChange({ type_etude: v as 'presentiel' | 'distanciel' })}
           />
@@ -98,8 +99,8 @@ export function WizardStep1Identite({
             name="premiere_langue"
             value={data.premiere_langue}
             options={[
-              { value: 'fr', label: t('langueFr') },
-              { value: 'en', label: t('langueEn') },
+              { value: 'fr', label: to('langueFr') },
+              { value: 'en', label: to('langueEn') },
             ]}
             onChange={(v) => onChange({ premiere_langue: v as 'fr' | 'en' })}
           />
@@ -163,9 +164,9 @@ export function WizardStep1Identite({
             onChange={(e) => onChange({ genre: e.target.value as 'M' | 'F' | 'autre' })}
             className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           >
-            <option value="M">{t('genreM')}</option>
-            <option value="F">{t('genreF')}</option>
-            <option value="autre">{t('genreAutre')}</option>
+            <option value="M">{to('genreM')}</option>
+            <option value="F">{to('genreF')}</option>
+            <option value="autre">{to('genreAutre')}</option>
           </select>
         </Field>
       </div>
@@ -179,7 +180,7 @@ export function WizardStep1Identite({
           >
             {STATUTS_MATRIMONIAUX.map((s) => (
               <option key={s.value} value={s.value}>
-                {t(`marital.${s.key}`)}
+                {to(`marital.${s.key}`)}
               </option>
             ))}
           </select>

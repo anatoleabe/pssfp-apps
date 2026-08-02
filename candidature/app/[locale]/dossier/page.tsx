@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { redirect } from '@/navigation';
 import { AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 import { DossierActionsCard } from '@/components/dossier/DossierActionsCard';
@@ -35,6 +36,7 @@ function getInitials(prenom?: string | null, nom?: string | null): string {
 }
 
 export default async function DossierPage({ searchParams }: DossierPageProps): Promise<JSX.Element> {
+  const t = await getTranslations('dossier.page');
   const token = await getCandidatToken();
   if (!token) {
     redirect('/login?reason=session_expired');
@@ -50,7 +52,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
     if (result.status === 404 && result.code === 'campaign_closed') {
       return (
         <div className="mx-auto max-w-4xl px-6 py-12 md:py-16">
-          <h1 className="pssfp-h1">Mon dossier</h1>
+          <h1 className="pssfp-h1">{t('title')}</h1>
           <div className="mt-8 rounded-pssfp-card border border-amber-200 bg-amber-50/80 p-7 shadow-pssfp-soft backdrop-blur-2xs">
             <div className="flex items-start gap-4">
               <span
@@ -61,7 +63,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
               </span>
               <div>
                 <p className="font-heading text-lg font-bold text-amber-900">
-                  Aucune campagne de candidature n&apos;est ouverte actuellement.
+                  {t('noCampaign')}
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-amber-900/90">
                   Votre compte est bien créé. Revenez dès l&apos;ouverture de la prochaine
@@ -77,7 +79,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
     if (result.status === 404 && result.code === 'candidature_missing') {
       return (
         <div className="mx-auto max-w-4xl px-6 py-12 md:py-16">
-          <h1 className="pssfp-h1">Mon dossier</h1>
+          <h1 className="pssfp-h1">{t('title')}</h1>
           <div className="mt-8 rounded-pssfp-card border border-amber-200 bg-amber-50/80 p-7 shadow-pssfp-soft backdrop-blur-2xs">
             <div className="flex items-start gap-4">
               <span
@@ -88,7 +90,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
               </span>
               <div>
                 <p className="font-heading text-lg font-bold text-amber-900">
-                  Votre dossier n&apos;a pas encore été initialisé.
+                  {t('notInitialised')}
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-amber-900/90">
                   Cela peut arriver si la connexion a été interrompue à l&apos;inscription. Votre
@@ -96,7 +98,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
                 </p>
                 {init_error === '1' && (
                   <p role="alert" className="mt-3 text-sm font-medium text-red-700">
-                    Une erreur est survenue. Réessayez dans quelques instants.
+                    {t('initError')}
                   </p>
                 )}
                 <form action={initDossierAction}>
@@ -104,7 +106,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
                     type="submit"
                     className="mt-5 inline-flex items-center gap-2 rounded-pssfp-button bg-[#4A2E67] px-5 py-2.5 text-sm font-semibold text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#3A2452] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
                   >
-                    Initialiser mon dossier
+                    {t('initCta')}
                     <ArrowRight size={14} aria-hidden="true" />
                   </button>
                 </form>
@@ -116,7 +118,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
     }
     return (
       <div className="mx-auto max-w-4xl px-6 py-16">
-        <h1 className="pssfp-h1">Mon dossier</h1>
+        <h1 className="pssfp-h1">{t('title')}</h1>
         <div
           role="alert"
           className="mt-8 rounded-pssfp-card border border-red-200 bg-red-50/80 p-5 text-sm text-red-800 shadow-pssfp-soft"
@@ -161,10 +163,10 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
           <div className="flex-1">
             <p className="pssfp-eyebrow inline-flex items-center gap-2">
               <Sparkles size={12} aria-hidden="true" />
-              Espace candidat
+              {t('eyebrow')}
             </p>
             <h1 className="mt-1 font-heading text-2xl font-bold text-[#1A1A1A] md:text-3xl">
-              Bonjour <span className="text-[#4A2E67]">{candidature.prenom || 'candidat'}</span>
+              {t('greeting')} <span className="text-[#4A2E67]">{candidature.prenom || t('applicantFallback')}</span>
               <span aria-hidden="true">,</span>
             </h1>
             {fullName && (
@@ -179,13 +181,13 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
 
         {welcome === '1' && (
           <section role="status" data-testid="welcome-account" className="mb-6 rounded-pssfp-card border border-[#D4AF6A]/50 bg-[#FFFBEA] p-6 shadow-pssfp-soft">
-            <p className="pssfp-eyebrow">Compte créé avec succès</p>
+            <p className="pssfp-eyebrow">{t('accountCreated')}</p>
             <h2 className="mt-1 font-heading text-2xl font-bold text-[#4A2E67]">Bienvenue {candidature.prenom || 'au PSSFP'} !</h2>
-            <p className="mt-3 text-sm text-[#333333]">Votre numéro de dossier est <strong className="font-mono text-base">{candidature.numero_dossier}</strong>. Conservez votre PIN en lieu sûr : il vous permettra de revenir sur ce portail.</p>
+            <p className="mt-3 text-sm text-[#333333]">{t('fileNumberBefore')} <strong className="font-mono text-base">{candidature.numero_dossier}</strong>{t('fileNumberAfter')}</p>
             <ol className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-              <li className="rounded-md bg-white p-3"><strong>1. Photo</strong><br />Ajoutez votre photo d&apos;identité.</li>
-              <li className="rounded-md bg-white p-3"><strong>2. Pièces</strong><br />Déposez vos justificatifs.</li>
-              <li className="rounded-md bg-white p-3"><strong>3. Soumission</strong><br />Certifiez avant la date limite.</li>
+              <li className="rounded-md bg-white p-3"><strong>{t('step1Title')}</strong><br />{t('step1Body')}</li>
+              <li className="rounded-md bg-white p-3"><strong>{t('step2Title')}</strong><br />{t('step2Body')}</li>
+              <li className="rounded-md bg-white p-3"><strong>{t('step3Title')}</strong><br />{t('step3Body')}</li>
             </ol>
           </section>
         )}
@@ -197,10 +199,9 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
           >
             <AlertCircle size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-amber-700" />
             <div>
-              <p className="font-semibold">Profil partiellement enregistré</p>
+              <p className="font-semibold">{t('partialTitle')}</p>
               <p className="mt-1 leading-relaxed">
-                Votre compte a bien été créé, mais certaines informations de profil n&apos;ont pas
-                pu être enregistrées. Vous pouvez compléter votre dossier ci-dessous.
+                {t('partialBody')}
               </p>
             </div>
           </div>
@@ -213,11 +214,9 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
           >
             <AlertCircle size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-red-600" />
             <div>
-              <p className="font-semibold">Récépissé indisponible</p>
+              <p className="font-semibold">{t('recipisseTitle')}</p>
               <p className="mt-1 leading-relaxed">
-                {recipisse_error === 'not_ready'
-                  ? "Votre récépissé n'est pas encore disponible — il est généré à la soumission de votre candidature."
-                  : 'Le téléchargement du récépissé a échoué. Réessayez dans quelques instants.'}
+                {recipisse_error === 'not_ready' ? t('recipisseNotReady') : t('recipisseFailed')}
               </p>
             </div>
           </div>
@@ -231,10 +230,9 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
           >
             <AlertCircle size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-amber-700" />
             <div>
-              <p className="font-semibold">Dossier verrouillé</p>
+              <p className="font-semibold">{t('lockedTitle')}</p>
               <p className="mt-1 leading-relaxed">
-                Votre dossier a déjà été soumis (ou retiré) et ne peut plus être modifié.
-                Consultez votre suivi pour plus d&apos;informations.
+                {t('lockedBody')}
               </p>
             </div>
           </div>

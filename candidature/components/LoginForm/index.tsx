@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useState, useTransition, type FormEvent } from 'react';
 import { Link } from '@/navigation';
 import { useSearchParams } from 'next/navigation';
@@ -28,6 +30,7 @@ const PHONE_E164_REGEX = /^\+[1-9]\d{6,14}$/;
 const PIN_REGEX = /^\d{6}$/;
 
 export function LoginForm({ labels, initialPhone = '', reasonMessage, pays }: LoginFormProps): JSX.Element {
+  const tl = useTranslations('login');
   const search = useSearchParams();
   const presetPhone = initialPhone || search.get('phone') || '';
 
@@ -99,7 +102,7 @@ export function LoginForm({ labels, initialPhone = '', reasonMessage, pays }: Lo
         </p>
         {phoneTouched && !phoneValid && (
           <p id="phone-error" role="alert" className="mt-1 text-sm text-red-700">
-            Saisissez un numéro valide, par exemple 6XXXXXXXX pour le Cameroun.
+            {tl('phoneInvalid')}
           </p>
         )}
       </div>
@@ -128,7 +131,7 @@ export function LoginForm({ labels, initialPhone = '', reasonMessage, pays }: Lo
         </p>
         {pinTouched && !pinValid && (
           <p id="pin-error" role="alert" className="mt-1 text-sm text-red-700">
-            Saisissez les 6 chiffres de votre PIN.
+            {tl('pinInvalid')}
           </p>
         )}
       </div>

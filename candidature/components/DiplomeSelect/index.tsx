@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useMemo, useState } from 'react';
 import type { Diplome } from '@/lib/api/types';
 
@@ -18,6 +20,7 @@ export interface DiplomeSelectProps {
  * ne prétend pas couvrir tous les intitulés possibles.
  */
 export function DiplomeSelect({ diplomes, value, onChange, error }: DiplomeSelectProps): JSX.Element {
+  const tsd = useTranslations('selects.diplome');
   const knownLabels = useMemo(() => new Set(diplomes.map((d) => d.label)), [diplomes]);
   const [autreActive, setAutreActive] = useState(value !== '' && !knownLabels.has(value));
 
@@ -37,21 +40,21 @@ export function DiplomeSelect({ diplomes, value, onChange, error }: DiplomeSelec
         }}
         className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
       >
-        <option value="">— Choisir —</option>
+        <option value="">{tsd('choose')}</option>
         {diplomes.map((d) => (
           <option key={d.slug} value={d.label}>
             {d.label}
           </option>
         ))}
-        <option value={AUTRE}>Autre</option>
+        <option value={AUTRE}>{tsd('other')}</option>
       </select>
       {autreActive && (
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Précisez le diplôme"
-          aria-label="Précisez le diplôme"
+          placeholder={tsd('precisePlaceholder')}
+          aria-label={tsd('precisePlaceholder')}
           className="mt-2 h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
         />
       )}

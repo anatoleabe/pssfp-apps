@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useEffect, useState } from 'react';
 import { computeCountdown } from '@/lib/format/date';
 
@@ -16,6 +18,7 @@ const STATUS_BG: Record<string, string> = {
 };
 
 export function CountdownToClose({ closesAt, ariaLabel }: CountdownToCloseProps): JSX.Element {
+  const tcd = useTranslations('home');
   const [parts, setParts] = useState(() => computeCountdown(closesAt));
 
   useEffect(() => {
@@ -30,7 +33,7 @@ export function CountdownToClose({ closesAt, ariaLabel }: CountdownToCloseProps)
         aria-label={ariaLabel ?? 'La campagne est clôturée'}
         className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm ${STATUS_BG.expired}`}
       >
-        Campagne clôturée
+        {tcd('campaignClosed')}
       </div>
     );
   }

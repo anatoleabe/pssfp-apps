@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { Link } from '@/navigation';
 import { redirect } from '@/navigation';
 import { DossierEditionForm } from '@/components/DossierEditionForm';
@@ -26,6 +27,7 @@ interface EditionPageProps {
 export default async function DossierEditionPage({
   searchParams,
 }: EditionPageProps): Promise<JSX.Element> {
+  const tep2 = await getTranslations('dossier.editionPage');
   const token = await getCandidatToken();
   if (!token) {
     redirect('/login?reason=session_expired');
@@ -44,7 +46,7 @@ export default async function DossierEditionPage({
     }
     return (
       <div className="mx-auto max-w-4xl px-6 py-10 md:py-16">
-        <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">Éditer mon dossier</h1>
+        <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">{tep2('title')}</h1>
         <p
           role="alert"
           className="mt-6 rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-700"
@@ -94,19 +96,19 @@ export default async function DossierEditionPage({
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10 md:py-16">
-      <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666]">
+      <nav aria-label={tep2('breadcrumbAria')} className="mb-6 text-sm text-[#666]">
         <Link href="/dossier" className="hover:text-[#4A2E67]">
-          Mon dossier
+          {tep2('breadcrumbRoot')}
         </Link>
         <span aria-hidden="true"> / </span>
-        <span className="text-[#333]">Édition</span>
+        <span className="text-[#333]">{tep2('breadcrumbCurrent')}</span>
       </nav>
 
       <header className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
         <div>
-          <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">Éditer mon dossier</h1>
+          <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">{tep2('title')}</h1>
           <p className="mt-1 text-sm text-[#666]">
-            Vos modifications sont enregistrées automatiquement après 2 secondes d'inactivité.
+            {tep2('autosave')}
           </p>
         </div>
         <Link
@@ -114,7 +116,7 @@ export default async function DossierEditionPage({
           data-testid="edition-back"
           className="inline-flex h-11 items-center rounded-md border border-gray-300 bg-white px-4 text-sm text-[#333] hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
         >
-          ← Retour au dossier
+          {tep2('back')}
         </Link>
       </header>
 

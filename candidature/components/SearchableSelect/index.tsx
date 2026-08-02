@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 export interface SearchableSelectOption {
@@ -41,6 +43,7 @@ export function SearchableSelect({
   ariaInvalid,
   ariaDescribedBy,
 }: SearchableSelectProps): JSX.Element {
+  const tss = useTranslations('selects.searchable');
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -116,13 +119,13 @@ export function SearchableSelect({
                   setOpen(false);
                 }
               }}
-              placeholder="Rechercher…"
+              placeholder={tss('search')}
               className="h-9 w-full rounded-md border border-gray-200 px-2 text-sm focus:border-[#4A2E67] focus:outline-none"
             />
           </div>
           <ul className="py-1">
             {filtered.length === 0 ? (
-              <li className="px-3 py-2 text-sm text-gray-400">Aucun résultat</li>
+              <li className="px-3 py-2 text-sm text-gray-400">{tss('noResult')}</li>
             ) : (
               filtered.map((opt) => (
                 <li

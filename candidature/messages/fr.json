@@ -139,7 +139,8 @@
       "debouches": "Administrations publiques, collectivités, organismes de contrôle et partenaires du développement.",
       "placesLabel": "Mode et places",
       "places": "Présentiel : 25 places · Distanciel : 10 places."
-    }
+    },
+    "campaignClosed": "Campagne clôturée"
   },
   "login": {
     "title": "Connexion candidat",
@@ -151,7 +152,9 @@
     "pinHelp": "PIN choisi à votre inscription. Ne le partagez avec personne.",
     "submit": "Se connecter",
     "forgotPin": "PIN oublié ?",
-    "todoNotice": "Authentification réelle implémentée lors du dev Module 5 (cf. ADR-0007)."
+    "todoNotice": "Authentification réelle implémentée lors du dev Module 5 (cf. ADR-0007).",
+    "phoneInvalid": "Saisissez un numéro valide, par exemple 6XXXXXXXX pour le Cameroun.",
+    "pinInvalid": "Saisissez les 6 chiffres de votre PIN."
   },
   "inscription": {
     "title": "Créer mon compte candidat",
@@ -252,7 +255,6 @@
       "institut": "Établissement de délivrance",
       "specialiteDiplome": "Spécialité du diplôme",
       "statutActuel": "Situation professionnelle actuelle",
-      "choose": "— Choisir —",
       "employeurPublic": "Administration, entreprise ou établissement public",
       "employeur": "Employeur ou organisation",
       "employeurPlaceholder": "Nom officiel de la structure",
@@ -278,28 +280,14 @@
       "fichePlacesLabel": "Mode et places",
       "fichePlaces": "Présentiel : 25 · Distanciel : 10.",
       "typeEtude": "Type d'études",
-      "presentiel": "Présentiel",
-      "distanciel": "Distanciel",
       "premiereLangue": "Première langue",
-      "langueFr": "Français",
-      "langueEn": "Anglais",
       "civilite": "Civilité",
       "prenom": "Prénom(s)",
       "nom": "Nom",
       "nomUsage": "Nom d'usage (facultatif)",
       "dateNaissance": "Date de naissance",
       "genre": "Genre",
-      "genreM": "Masculin",
-      "genreF": "Féminin",
-      "genreAutre": "Autre",
       "statutMatrimonial": "Situation matrimoniale",
-      "marital": {
-        "celibataire": "Célibataire",
-        "marie": "Marié(e)",
-        "divorce": "Divorcé(e)",
-        "veuf": "Veuf / Veuve",
-        "autre": "Autre"
-      },
       "nationalite": "Nationalité"
     },
     "step5": {
@@ -345,12 +333,7 @@
         "mainPhone": "Téléphone principal",
         "secondPhone": "Téléphone secondaire",
         "institution": "Établissement"
-      },
-      "langueFr": "Français",
-      "langueEn": "Anglais",
-      "genreM": "Masculin",
-      "genreF": "Féminin",
-      "genreAutre": "Autre"
+      }
     },
     "progressAria": "Progression du formulaire",
     "stepCounter": "Étape {current} / {total}"
@@ -383,7 +366,9 @@
     "confirmAria": "Confirmation du nouveau PIN",
     "confirmMismatch": "La confirmation ne correspond pas.",
     "setPin": "Définir mon nouveau PIN",
-    "updating": "Mise à jour…"
+    "updating": "Mise à jour…",
+    "title": "PIN oublié",
+    "subtitle": "Récupérez l'accès à votre dossier en trois étapes guidées."
   },
   "dossier": {
     "fields": {
@@ -433,6 +418,156 @@
       "incompleteIntro": "Les éléments suivants restent à compléter — cliquez pour ouvrir le formulaire d'édition à la bonne section :",
       "submit": "Certifier et soumettre ma candidature",
       "submitting": "Soumission…"
+    },
+    "edition": {
+      "backToDossier": "← Retour au dossier",
+      "emailHint": "La confirmation de dépôt et les communications officielles seront envoyées à cette adresse.",
+      "attestationNotice": "Une attestation de présence effective au poste ou une autorisation de l'employeur sera requise, le cas échéant.",
+      "sectionIdentite": "Identité & vœu",
+      "sectionCoordonnees": "Coordonnées",
+      "sectionDiplome": "Diplôme & profession",
+      "sectionEngagement": "Engagement",
+      "employeurPlaceholder": "Nom officiel de la structure",
+      "fonctionPlaceholder": "Ex. Contrôleur de gestion, cadre financier…",
+      "sourcePlaceholder": "Nom de la personne, de l'organisme ou du canal"
+    },
+    "page": {
+      "title": "Mon dossier",
+      "noCampaign": "Aucune campagne de candidature n'est ouverte actuellement.",
+      "notInitialised": "Votre dossier n'a pas encore été initialisé.",
+      "initError": "Une erreur est survenue. Réessayez dans quelques instants.",
+      "initCta": "Initialiser mon dossier",
+      "eyebrow": "Espace candidat",
+      "greeting": "Bonjour",
+      "applicantFallback": "candidat",
+      "accountCreated": "Compte créé avec succès",
+      "fileNumberBefore": "Votre numéro de dossier est",
+      "fileNumberAfter": ". Conservez votre PIN en lieu sûr : il vous permettra de revenir sur ce portail.",
+      "step1Title": "1. Photo",
+      "step1Body": "Ajoutez votre photo d'identité.",
+      "step2Title": "2. Pièces",
+      "step2Body": "Déposez vos justificatifs.",
+      "step3Title": "3. Soumission",
+      "step3Body": "Certifiez avant la date limite.",
+      "partialTitle": "Profil partiellement enregistré",
+      "partialBody": "Votre compte a bien été créé, mais certaines informations de profil n'ont pas pu être enregistrées. Vous pouvez compléter votre dossier ci-dessous.",
+      "recipisseTitle": "Récépissé indisponible",
+      "recipisseNotReady": "Votre récépissé n'est pas encore disponible — il est généré à la soumission de votre candidature.",
+      "recipisseFailed": "Le téléchargement du récépissé a échoué. Réessayez dans quelques instants.",
+      "lockedTitle": "Dossier verrouillé",
+      "lockedBody": "Votre dossier a déjà été soumis (ou retiré) et ne peut plus être modifié. Consultez votre suivi pour plus d'informations."
+    },
+    "summary": {
+      "eyebrow": "Informations enregistrées",
+      "view": "Consulter mon dossier",
+      "edit": "Modifier mes informations",
+      "lockedNotice": "Ce récapitulatif reste consultable, mais le dossier est verrouillé depuis sa soumission.",
+      "sectionIdentite": "Identité et coordonnées",
+      "sectionFormation": "Formation demandée",
+      "sectionParcours": "Parcours académique",
+      "sectionProfession": "Situation professionnelle",
+      "editLink": "Modifier"
+    },
+    "statut": {
+      "eyebrow": "État de mon dossier",
+      "title": "Suivi en temps réel",
+      "campagne": "Campagne",
+      "submittedOn": "Soumis le",
+      "decidedOn": "Décidé le",
+      "withdrawnOn": "Retiré le"
+    },
+    "actions": {
+      "eyebrow": "Actions disponibles",
+      "title": "Que souhaitez-vous faire ?",
+      "edit": "Modifier mon dossier",
+      "progress": "Voir le suivi",
+      "recipisse": "Récépissé PDF"
+    },
+    "photoCard": {
+      "eyebrow": "Identité visuelle",
+      "title": "Photo d'identité",
+      "none": "Aucune photo",
+      "locked": "Photo verrouillée — dossier déposé."
+    },
+    "piecesCard": {
+      "eyebrow": "Dossier de candidature",
+      "title": "Pièces justificatives",
+      "locked": "Pièces verrouillées — dossier déposé."
+    },
+    "etapes": {
+      "eyebrow": "Parcours",
+      "title": "Étapes restantes",
+      "deadlineLabel": "Date limite de candidature :"
+    },
+    "withdraw": {
+      "confirmTitle": "Retirer définitivement ma candidature ?",
+      "confirmLabel": "Je confirme vouloir retirer ma candidature.",
+      "cancel": "Annuler",
+      "irreversible": "irréversible",
+      "trigger": "Retirer ma candidature",
+      "actionIs": "Cette action est"
+    },
+    "checklist": {
+      "checklistAria": "Checklist avant soumission",
+      "photoRequired": "Photo d'identité — obligatoire",
+      "docsRecommended": "Pièces justificatives — recommandées",
+      "addPhotoToSubmit": "Ajoutez votre photo d'identité pour activer la soumission.",
+      "confirmTitle": "Confirmer la soumission définitive",
+      "confirmBody": "Après confirmation, votre photo et vos pièces seront verrouillées. Vous ne pourrez plus les modifier ni revenir sur les informations certifiées.",
+      "reviewHeading": "Informations essentielles à relire",
+      "edit": "Modifier",
+      "rowCandidat": "Candidat",
+      "rowEmail": "Adresse e-mail",
+      "rowPhone": "Téléphone",
+      "rowSpecialite": "Spécialité",
+      "rowDiplome": "Diplôme",
+      "rowInstitut": "Établissement",
+      "rowSituation": "Situation actuelle",
+      "rowEmployeur": "Employeur",
+      "notApplicable": "Sans objet",
+      "reviewConfirmLabel": "J'ai relu les informations de mon dossier et je confirme qu'elles sont exactes et complètes.",
+      "cancel": "Annuler",
+      "submit": "Certifier et soumettre ma candidature"
+    },
+    "frais": {
+      "eyebrow": "Paiement",
+      "title": "Frais de candidature",
+      "paid": "Frais réglés",
+      "mode": "Mode",
+      "reference": "Référence",
+      "date": "Date",
+      "cremincamFull": "Crédit Mutuel d'Investissement du Cameroun",
+      "step1": "Se rendre dans une agence CREMINCAM.",
+      "step3": "Payer 50 000 FCFA et conserver le récépissé bancaire.",
+      "step4": "Apporter le récépissé lors du dépôt physique au PSSFP."
+    },
+    "editionPage": {
+      "title": "Éditer mon dossier",
+      "breadcrumbRoot": "Mon dossier",
+      "breadcrumbCurrent": "Édition",
+      "autosave": "Vos modifications sont enregistrées automatiquement après 2 secondes d'inactivité.",
+      "back": "← Retour au dossier",
+      "breadcrumbAria": "Fil d'Ariane"
+    },
+    "suiviPage": {
+      "title": "Suivi de ma candidature",
+      "fileNumber": "Numéro de dossier",
+      "back": "Retour au dossier",
+      "steps": "Étapes",
+      "dangerZone": "Zone sensible",
+      "breadcrumbCurrent": "Suivi"
+    },
+    "piecesPage": {
+      "breadcrumbRoot": "Mon dossier",
+      "back": "← Retour au dossier",
+      "breadcrumbAria": "Fil d'Ariane",
+      "title": "Pièces justificatives"
+    },
+    "photoPage": {
+      "breadcrumbRoot": "Mon dossier",
+      "back": "← Retour au dossier",
+      "breadcrumbAria": "Fil d'Ariane",
+      "title": "Photo identité"
     }
   },
   "legal": {
@@ -612,5 +747,84 @@
         ]
       }
     ]
+  },
+  "options": {
+    "presentiel": "Présentiel",
+    "distanciel": "Distanciel",
+    "langueFr": "Français",
+    "langueEn": "Anglais",
+    "genreM": "Masculin",
+    "genreF": "Féminin",
+    "genreAutre": "Autre",
+    "choose": "— Choisir —",
+    "marital": {
+      "celibataire": "Célibataire",
+      "marie": "Marié(e)",
+      "divorce": "Divorcé(e)",
+      "veuf": "Veuf / Veuve",
+      "autre": "Autre"
+    }
+  },
+  "uploads": {
+    "photo": {
+      "none": "Aucune photo",
+      "uploading": "Envoi en cours…",
+      "dropHere": "Glissez-déposez votre photo ici",
+      "choose": "Choisir un fichier",
+      "hint": "JPG ou PNG, max 2 Mo, minimum 200×200 px. Privilégiez une photo carrée et bien éclairée.",
+      "chooseAnother": "Choisir une autre image",
+      "replace": "Remplacer la photo",
+      "locked": "Votre dossier est verrouillé : la photo ne peut plus être modifiée.",
+      "dropzoneAria": "Zone de dépôt photo identité",
+      "selectAria": "Sélectionner une photo",
+      "selectNewAria": "Sélectionner une nouvelle photo"
+    },
+    "documents": {
+      "view": "Voir",
+      "typeLabel": "Type de pièce",
+      "hint": "PDF, JPG ou PNG, max 5 Mo par fichier.",
+      "locked": "Votre dossier est verrouillé : les pièces ne peuvent plus être ajoutées.",
+      "selectAria": "Sélectionner le fichier de la pièce",
+      "admissibilityNotice": "Vous pouvez déposer ces pièces ici ou les remettre au bureau de la scolarité (Yaoundé-Messa, porte 231). Dans tous les cas, votre candidature ne sera examinée qu'une fois le dossier papier complet réceptionné, au plus tard à la clôture de la campagne."
+    }
+  },
+  "errorPage": {
+    "eyebrow": "Portail de candidature",
+    "title": "Une erreur est survenue",
+    "body": "Une erreur est survenue de notre côté. Vos données sont en sécurité. Réessayez dans quelques instants ou contactez la scolarité.",
+    "retry": "Réessayer",
+    "backHome": "Retour à l'accueil",
+    "registrarLabel": "Scolarité :"
+  },
+  "notFound": {
+    "code": "Erreur 404",
+    "title": "Page introuvable",
+    "body": "La page que vous cherchez n'existe pas ou a été déplacée.",
+    "backHome": "Retour à l'accueil",
+    "needHelp": "Besoin d'aide ?",
+    "contact": "Contactez la scolarité"
+  },
+  "selects": {
+    "diplome": {
+      "choose": "— Choisir —",
+      "precisePlaceholder": "Précisez le diplôme",
+      "other": "Autre"
+    },
+    "employeur": {
+      "searchPlaceholder": "Rechercher une administration ou un organisme…",
+      "officialNamePlaceholder": "Nom officiel de l'organisme public",
+      "precisePlaceholder": "Précisez le nom de l'organisme public"
+    },
+    "searchable": {
+      "noResult": "Aucun résultat",
+      "search": "Rechercher…"
+    },
+    "phone": {
+      "countryCode": "Indicatif pays",
+      "phoneNumber": "Numéro de téléphone"
+    },
+    "institut": {
+      "precisePlaceholder": "Précisez l'établissement"
+    }
   }
 }

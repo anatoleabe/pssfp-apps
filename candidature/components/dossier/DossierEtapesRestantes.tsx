@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { Check, Circle, Clock, AlertCircle } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
 import { formatDateFr } from '@/lib/format/date';
@@ -9,6 +10,7 @@ interface Etape {
 }
 
 export function DossierEtapesRestantes({ candidature }: { candidature: MyCandidature }): JSX.Element {
+  const tet = useTranslations('dossier.etapes');
   const etapes: Etape[] = [
     { done: true, label: 'Inscription en ligne complétée' },
     {
@@ -65,12 +67,12 @@ export function DossierEtapesRestantes({ candidature }: { candidature: MyCandida
 
       <div className="relative flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="pssfp-eyebrow">Parcours</p>
+          <p className="pssfp-eyebrow">{tet('eyebrow')}</p>
           <h2
             id="etapes-heading"
             className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A1A1A]"
           >
-            Étapes restantes
+            {tet('title')}
           </h2>
         </div>
         <div className="rounded-full border border-[#F4EFFA] bg-white px-3 py-1 text-xs font-semibold text-[#4A2E67]">
@@ -133,7 +135,7 @@ export function DossierEtapesRestantes({ candidature }: { candidature: MyCandida
       {closesAt && (
         <p className="relative mt-5 inline-flex items-center gap-2 rounded-pssfp-button bg-amber-50 px-3 py-2 text-xs text-amber-900">
           <AlertCircle size={12} aria-hidden="true" />
-          Date limite de candidature : <strong>{formatDateFr(closesAt)}</strong>
+          {tet('deadlineLabel')} <strong>{formatDateFr(closesAt)}</strong>
         </p>
       )}
     </section>

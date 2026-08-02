@@ -1,5 +1,14 @@
 'use client';
 
+/**
+ * Écran de secours affiché quand le layout racine lui-même a échoué.
+ *
+ * Il vit hors de `app/[locale]/` : next-intl n'a alors plus de contexte de
+ * locale à fournir, et un `useTranslations` y lèverait une seconde erreur.
+ * Le texte est donc figé — et rendu dans les deux langues plutôt qu'en
+ * français seul, pour rester lisible par un candidat anglophone au moment
+ * précis où tout le reste est cassé.
+ */
 export default function GlobalError({ reset }: { reset: () => void }): JSX.Element {
   return (
     <html lang="fr">
@@ -8,13 +17,43 @@ export default function GlobalError({ reset }: { reset: () => void }): JSX.Eleme
           <div style={{ maxWidth: 560, textAlign: 'center' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logos/pssfp.png" alt="PSSFP" width="88" height="88" />
-            <h1 style={{ color: '#4A2E67', fontSize: 32 }}>Une erreur est survenue</h1>
-            <p style={{ lineHeight: 1.6 }}>Une erreur est survenue de notre côté. Vos données sont en sécurité. Réessayez dans quelques instants ou contactez la scolarité.</p>
+
+            <h1 style={{ color: '#4A2E67', fontSize: 32, marginBottom: 4 }}>
+              Une erreur est survenue
+            </h1>
+            <p lang="en" style={{ color: '#4A2E67', fontSize: 20, margin: '0 0 16px' }}>
+              Something went wrong
+            </p>
+
+            <p style={{ lineHeight: 1.6 }}>
+              Une erreur est survenue de notre côté. Vos données sont en sécurité. Réessayez dans
+              quelques instants ou contactez la scolarité.
+            </p>
+            <p lang="en" style={{ lineHeight: 1.6, color: '#595959' }}>
+              Something went wrong on our side. Your data is safe. Please try again in a moment or
+              contact the Registrar&apos;s Office.
+            </p>
+
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginTop: 24 }}>
-              <button type="button" onClick={reset} style={{ border: 0, borderRadius: 6, background: '#4A2E67', color: '#fff', padding: '12px 20px', cursor: 'pointer' }}>Réessayer</button>
-              <a href="/" style={{ border: '1px solid #4A2E67', borderRadius: 6, color: '#4A2E67', padding: '12px 20px' }}>Retour à l&apos;accueil</a>
+              <button
+                type="button"
+                onClick={reset}
+                style={{ border: 0, borderRadius: 6, background: '#4A2E67', color: '#fff', padding: '12px 20px', cursor: 'pointer' }}
+              >
+                Réessayer <span lang="en">/ Try again</span>
+              </button>
+              <a
+                href="/"
+                style={{ border: '1px solid #4A2E67', borderRadius: 6, color: '#4A2E67', padding: '12px 20px' }}
+              >
+                Retour à l&apos;accueil <span lang="en">/ Home</span>
+              </a>
             </div>
-            <p style={{ marginTop: 24, color: '#595959' }}>Scolarité : +237 222 234 567 · admissions@pssfp.org</p>
+
+            <p style={{ marginTop: 24, color: '#595959' }}>
+              Scolarité <span lang="en">/ Registrar&apos;s Office</span> : +237 222 23 45 67 ·
+              admissions@pssfp.org
+            </p>
           </div>
         </main>
       </body>

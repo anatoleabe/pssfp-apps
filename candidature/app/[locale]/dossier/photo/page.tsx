@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { Link } from '@/navigation';
 import { redirect } from '@/navigation';
 import { PhotoUploader } from '@/components/PhotoUploader';
@@ -11,6 +12,7 @@ export const metadata = {
 };
 
 export default async function PhotoPage(): Promise<JSX.Element> {
+  const tphp = await getTranslations('dossier.photoPage');
   const token = await getCandidatToken();
   if (!token) {
     redirect('/login?reason=session_expired');
@@ -23,7 +25,7 @@ export default async function PhotoPage(): Promise<JSX.Element> {
     }
     return (
       <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">
-        <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">Photo identité</h1>
+        <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">{tphp('title')}</h1>
         <p
           role="alert"
           className="mt-6 rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-700"
@@ -41,15 +43,15 @@ export default async function PhotoPage(): Promise<JSX.Element> {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">
-      <nav aria-label="Fil d'Ariane" className="mb-6 text-sm text-[#666]">
+      <nav aria-label={tphp('breadcrumbAria')} className="mb-6 text-sm text-[#666]">
         <Link href="/dossier" className="hover:text-[#4A2E67]">
-          Mon dossier
+          {tphp('breadcrumbRoot')}
         </Link>
         <span aria-hidden="true"> / </span>
-        <span className="text-[#333]">Photo identité</span>
+        <span className="text-[#333]">{tphp('title')}</span>
       </nav>
 
-      <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">Photo identité</h1>
+      <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">{tphp('title')}</h1>
       <p className="mt-2 text-sm text-[#666]">
         Cette photo apparaîtra sur votre récépissé et sera vérifiée au dépôt physique de votre
         dossier. Choisissez une photo récente, bien éclairée, fond neutre.
@@ -65,7 +67,7 @@ export default async function PhotoPage(): Promise<JSX.Element> {
 
       <div className="mt-6 flex justify-between text-sm">
         <Link href="/dossier" className="text-[#4A2E67] underline hover:text-[#5C3A7E]">
-          ← Retour au dossier
+          {tphp('back')}
         </Link>
       </div>
     </div>

@@ -1,8 +1,10 @@
+import { useTranslations } from 'next-intl';
 import { Link } from '@/navigation';
 import { Pencil, ListChecks, FileDown, ArrowRight } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
 
 export function DossierActionsCard({ candidature }: { candidature: MyCandidature }): JSX.Element {
+  const ta = useTranslations('dossier.actions');
   // Passe par une route Next.js (et non l'API directement) : le token est un
   // cookie httpOnly côté apply.pssfp.org, jamais envoyé en Bearer vers l'API
   // depuis le navigateur. La route lit le cookie, appelle l'API authentifiée,
@@ -14,12 +16,12 @@ export function DossierActionsCard({ candidature }: { candidature: MyCandidature
       aria-labelledby="actions-heading"
       className="rounded-pssfp-card border border-[#F4EFFA] bg-white p-6 shadow-pssfp-soft md:p-7"
     >
-      <p className="pssfp-eyebrow">Actions disponibles</p>
+      <p className="pssfp-eyebrow">{ta('eyebrow')}</p>
       <h2
         id="actions-heading"
         className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A1A1A]"
       >
-        Que souhaitez-vous faire&nbsp;?
+        {ta('title')}
       </h2>
       <ul className="mt-6 grid gap-3 sm:grid-cols-2">
         {candidature.statut === 'postulant' && candidature.withdrawn_at === null && (
@@ -32,7 +34,7 @@ export function DossierActionsCard({ candidature }: { candidature: MyCandidature
               <span aria-hidden="true" className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur-2xl">
                 <Pencil size={18} />
               </span>
-              <span className="relative">Modifier mon dossier</span>
+              <span className="relative">{ta('edit')}</span>
               <ArrowRight
                 size={18}
                 aria-hidden="true"
@@ -50,7 +52,7 @@ export function DossierActionsCard({ candidature }: { candidature: MyCandidature
             <span aria-hidden="true" className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#F4EFFA] text-[#4A2E67] transition-colors group-hover:bg-[#4A2E67] group-hover:text-white">
               <ListChecks size={18} />
             </span>
-            Voir le suivi
+            {ta('progress')}
             <ArrowRight
               size={18}
               aria-hidden="true"
@@ -69,7 +71,7 @@ export function DossierActionsCard({ candidature }: { candidature: MyCandidature
               <span aria-hidden="true" className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFF6E0] text-[#D4AF6A] transition-colors group-hover:bg-[#D4AF6A] group-hover:text-white">
                 <FileDown size={18} />
               </span>
-              Récépissé PDF
+              {ta('recipisse')}
               <ArrowRight
                 size={18}
                 aria-hidden="true"

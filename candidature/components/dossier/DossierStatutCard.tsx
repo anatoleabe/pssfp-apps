@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { CheckCircle2, Clock, XCircle, FileCheck, Ban } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
@@ -52,6 +53,7 @@ const WITHDRAWN_INFO: StatutInfo = {
 };
 
 export function DossierStatutCard({ candidature }: { candidature: MyCandidature }): JSX.Element {
+  const ts = useTranslations('dossier.statut');
   const isWithdrawn = candidature.withdrawn_at !== null;
   const info = isWithdrawn
     ? WITHDRAWN_INFO
@@ -71,12 +73,12 @@ export function DossierStatutCard({ candidature }: { candidature: MyCandidature 
 
       <div className="relative flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="pssfp-eyebrow">État de mon dossier</p>
+          <p className="pssfp-eyebrow">{ts('eyebrow')}</p>
           <h2
             id="statut-heading"
             className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A1A1A]"
           >
-            Suivi en temps réel
+            {ts('title')}
           </h2>
         </div>
         <span
@@ -99,25 +101,25 @@ export function DossierStatutCard({ candidature }: { candidature: MyCandidature 
         <dl className="relative mt-6 grid gap-4 border-t border-[#F4EFFA] pt-6 text-sm sm:grid-cols-2">
           {candidature.campagne && (
             <div>
-              <dt className="text-xs uppercase tracking-wider text-[#888]">Campagne</dt>
+              <dt className="text-xs uppercase tracking-wider text-[#888]">{ts('campagne')}</dt>
               <dd className="mt-1 font-heading font-bold text-[#4A2E67]">{candidature.campagne.nom}</dd>
             </div>
           )}
           {candidature.submitted_at && (
             <div>
-              <dt className="text-xs uppercase tracking-wider text-[#888]">Soumis le</dt>
+              <dt className="text-xs uppercase tracking-wider text-[#888]">{ts('submittedOn')}</dt>
               <dd className="mt-1 font-medium text-[#333]">{formatDateFr(candidature.submitted_at)}</dd>
             </div>
           )}
           {candidature.decided_at && (
             <div>
-              <dt className="text-xs uppercase tracking-wider text-[#888]">Décidé le</dt>
+              <dt className="text-xs uppercase tracking-wider text-[#888]">{ts('decidedOn')}</dt>
               <dd className="mt-1 font-medium text-[#333]">{formatDateFr(candidature.decided_at)}</dd>
             </div>
           )}
           {candidature.withdrawn_at && (
             <div>
-              <dt className="text-xs uppercase tracking-wider text-[#888]">Retiré le</dt>
+              <dt className="text-xs uppercase tracking-wider text-[#888]">{ts('withdrawnOn')}</dt>
               <dd className="mt-1 font-medium text-[#333]">{formatDateFr(candidature.withdrawn_at)}</dd>
             </div>
           )}

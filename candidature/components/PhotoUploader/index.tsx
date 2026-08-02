@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useCallback, useRef, useState, useTransition } from 'react';
 import { useRouter } from '@/navigation';
 import { uploadPhotoAction, deletePhotoAction } from '@/app/[locale]/dossier/photo/actions';
@@ -26,6 +28,7 @@ export function PhotoUploader({
   initialSignedUrl,
   isLocked,
 }: PhotoUploaderProps): JSX.Element {
+  const tu = useTranslations('uploads.photo');
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<UploaderState>(
@@ -147,7 +150,7 @@ export function PhotoUploader({
         )}
         {(state.kind === 'idle' || state.kind === 'error') && (
           <div className="flex h-full w-full items-center justify-center text-sm text-gray-600">
-            Aucune photo
+            {tu('none')}
           </div>
         )}
         {state.kind === 'uploading' && (
@@ -156,7 +159,7 @@ export function PhotoUploader({
             aria-live="polite"
             className="flex h-full w-full items-center justify-center bg-gray-50 text-sm text-[#4A2E67]"
           >
-            Envoi en cours…
+            {tu('uploading')}
           </div>
         )}
       </div>
@@ -171,7 +174,7 @@ export function PhotoUploader({
         {!isLocked && (state.kind === 'idle' || state.kind === 'error') && (
           <div
             role="region"
-            aria-label="Zone de dépôt photo identité"
+            aria-label={tu('dropzoneAria')}
             onDragOver={(e) => {
               e.preventDefault();
               setIsDragging(true);
@@ -182,7 +185,7 @@ export function PhotoUploader({
               isDragging ? 'border-[#4A2E67] bg-[#F4EFFA]' : 'border-gray-300 bg-white'
             }`}
           >
-            <p className="font-medium text-[#333]">Glissez-déposez votre photo ici</p>
+            <p className="font-medium text-[#333]">{tu('dropHere')}</p>
             <p className="mt-1 text-[#666]">ou</p>
             <button
               type="button"
@@ -190,7 +193,7 @@ export function PhotoUploader({
               className="mt-3 inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-4 text-sm font-medium text-white hover:bg-[#5C3A7E] focus:outline-none focus:ring-2 focus:ring-[#4A2E67] focus:ring-offset-2"
               data-testid="photo-pick"
             >
-              Choisir un fichier
+              {tu('choose')}
             </button>
             <input
               ref={inputRef}
@@ -199,10 +202,10 @@ export function PhotoUploader({
               onChange={onSelectInput}
               className="sr-only"
               data-testid="photo-input"
-              aria-label="Sélectionner une photo"
+              aria-label={tu('selectAria')}
             />
             <p className="mt-3 text-xs text-[#666]">
-              JPG ou PNG, max 2 Mo, minimum 200×200 px. Privilégiez une photo carrée et bien éclairée.
+              {tu('hint')}
             </p>
           </div>
         )}
@@ -223,7 +226,7 @@ export function PhotoUploader({
               onClick={reset}
               className="inline-flex h-11 items-center rounded-md border border-gray-300 bg-white px-5 text-sm text-[#333] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4A2E67] focus:ring-offset-2"
             >
-              Choisir une autre image
+              {tu('chooseAnother')}
             </button>
           </div>
         )}
@@ -236,7 +239,7 @@ export function PhotoUploader({
               className="inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-5 text-sm font-medium text-white hover:bg-[#5C3A7E] focus:outline-none focus:ring-2 focus:ring-[#4A2E67] focus:ring-offset-2"
               data-testid="photo-replace"
             >
-              Remplacer la photo
+              {tu('replace')}
             </button>
             <button
               type="button"
@@ -254,7 +257,7 @@ export function PhotoUploader({
               onChange={onSelectInput}
               className="sr-only"
               data-testid="photo-input"
-              aria-label="Sélectionner une nouvelle photo"
+              aria-label={tu('selectNewAria')}
             />
           </div>
         )}
@@ -265,7 +268,7 @@ export function PhotoUploader({
             data-testid="photo-locked"
             className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
           >
-            Votre dossier est verrouillé : la photo ne peut plus être modifiée.
+            {tu('locked')}
           </p>
         )}
 

@@ -139,7 +139,8 @@
       "debouches": "Government bodies, local authorities, oversight institutions and development partners.",
       "placesLabel": "Study mode and places",
       "places": "On campus: 25 places · Distance learning: 10 places."
-    }
+    },
+    "campaignClosed": "Intake closed"
   },
   "login": {
     "title": "Applicant sign-in",
@@ -151,7 +152,9 @@
     "pinHelp": "The PIN you chose when registering. Never share it with anyone.",
     "submit": "Sign in",
     "forgotPin": "Forgotten your PIN?",
-    "todoNotice": "Live authentication implemented during Module 5 development (see ADR-0007)."
+    "todoNotice": "Live authentication implemented during Module 5 development (see ADR-0007).",
+    "phoneInvalid": "Enter a valid number, for example 6XXXXXXXX for Cameroon.",
+    "pinInvalid": "Enter the 6 digits of your PIN."
   },
   "inscription": {
     "title": "Create my applicant account",
@@ -252,7 +255,6 @@
       "institut": "Awarding institution",
       "specialiteDiplome": "Field of the qualification",
       "statutActuel": "Current professional situation",
-      "choose": "— Select —",
       "employeurPublic": "Government body, company or public institution",
       "employeur": "Employer or organisation",
       "employeurPlaceholder": "Official name of the organisation",
@@ -278,28 +280,14 @@
       "fichePlacesLabel": "Study mode and places",
       "fichePlaces": "On campus: 25 · Distance learning: 10.",
       "typeEtude": "Study mode",
-      "presentiel": "On campus",
-      "distanciel": "Distance learning",
       "premiereLangue": "First language",
-      "langueFr": "French",
-      "langueEn": "English",
       "civilite": "Title",
       "prenom": "First name(s)",
       "nom": "Surname",
       "nomUsage": "Name in use (optional)",
       "dateNaissance": "Date of birth",
       "genre": "Gender",
-      "genreM": "Male",
-      "genreF": "Female",
-      "genreAutre": "Other",
       "statutMatrimonial": "Marital status",
-      "marital": {
-        "celibataire": "Single",
-        "marie": "Married",
-        "divorce": "Divorced",
-        "veuf": "Widowed",
-        "autre": "Other"
-      },
       "nationalite": "Nationality"
     },
     "step5": {
@@ -345,12 +333,7 @@
         "mainPhone": "Main phone number",
         "secondPhone": "Secondary phone number",
         "institution": "Institution"
-      },
-      "langueFr": "French",
-      "langueEn": "English",
-      "genreM": "Male",
-      "genreF": "Female",
-      "genreAutre": "Other"
+      }
     },
     "progressAria": "Form progress",
     "stepCounter": "Step {current} of {total}"
@@ -383,7 +366,9 @@
     "confirmAria": "New PIN confirmation",
     "confirmMismatch": "The confirmation does not match.",
     "setPin": "Set my new PIN",
-    "updating": "Updating…"
+    "updating": "Updating…",
+    "title": "Forgotten PIN",
+    "subtitle": "Regain access to your application in three guided steps."
   },
   "dossier": {
     "fields": {
@@ -433,6 +418,156 @@
       "incompleteIntro": "The following items still need completing — click to open the edit form at the right section:",
       "submit": "Certify and submit my application",
       "submitting": "Submitting…"
+    },
+    "edition": {
+      "backToDossier": "← Back to my application",
+      "emailHint": "Your submission confirmation and all official communications will be sent to this address.",
+      "attestationNotice": "A certificate of actual service in post or an authorisation from your employer will be required, where applicable.",
+      "sectionIdentite": "Identity & choice",
+      "sectionCoordonnees": "Contact details",
+      "sectionDiplome": "Qualification & profession",
+      "sectionEngagement": "Declaration",
+      "employeurPlaceholder": "Official name of the organisation",
+      "fonctionPlaceholder": "e.g. Management controller, finance officer…",
+      "sourcePlaceholder": "Name of the person, organisation or channel"
+    },
+    "page": {
+      "title": "My application",
+      "noCampaign": "No application intake is currently open.",
+      "notInitialised": "Your application has not been started yet.",
+      "initError": "Something went wrong. Please try again in a moment.",
+      "initCta": "Start my application",
+      "eyebrow": "Applicant area",
+      "greeting": "Hello",
+      "applicantFallback": "applicant",
+      "accountCreated": "Account created successfully",
+      "fileNumberBefore": "Your file number is",
+      "fileNumberAfter": ". Keep your PIN somewhere safe: it is what lets you come back to this portal.",
+      "step1Title": "1. Photograph",
+      "step1Body": "Upload your passport photograph.",
+      "step2Title": "2. Documents",
+      "step2Body": "Upload your supporting documents.",
+      "step3Title": "3. Submission",
+      "step3Body": "Certify before the deadline.",
+      "partialTitle": "Profile partially saved",
+      "partialBody": "Your account was created, but some profile details could not be saved. You can complete your application below.",
+      "recipisseTitle": "Acknowledgement of receipt unavailable",
+      "recipisseNotReady": "Your acknowledgement of receipt is not available yet — it is generated when you submit your application.",
+      "recipisseFailed": "The download failed. Please try again in a moment.",
+      "lockedTitle": "Application locked",
+      "lockedBody": "Your application has already been submitted (or withdrawn) and can no longer be edited. Check your progress page for details."
+    },
+    "summary": {
+      "eyebrow": "Saved information",
+      "view": "View my application",
+      "edit": "Edit my information",
+      "lockedNotice": "This summary remains available to read, but the application has been locked since it was submitted.",
+      "sectionIdentite": "Identity and contact details",
+      "sectionFormation": "Programme applied for",
+      "sectionParcours": "Academic background",
+      "sectionProfession": "Professional situation",
+      "editLink": "Edit"
+    },
+    "statut": {
+      "eyebrow": "My application status",
+      "title": "Live tracking",
+      "campagne": "Intake",
+      "submittedOn": "Submitted on",
+      "decidedOn": "Decided on",
+      "withdrawnOn": "Withdrawn on"
+    },
+    "actions": {
+      "eyebrow": "Available actions",
+      "title": "What would you like to do?",
+      "edit": "Edit my application",
+      "progress": "View progress",
+      "recipisse": "Acknowledgement PDF"
+    },
+    "photoCard": {
+      "eyebrow": "Visual identity",
+      "title": "Passport photograph",
+      "none": "No photograph",
+      "locked": "Photograph locked — application handed in."
+    },
+    "piecesCard": {
+      "eyebrow": "Application file",
+      "title": "Supporting documents",
+      "locked": "Documents locked — application handed in."
+    },
+    "etapes": {
+      "eyebrow": "Your journey",
+      "title": "Remaining steps",
+      "deadlineLabel": "Application deadline:"
+    },
+    "withdraw": {
+      "confirmTitle": "Permanently withdraw my application?",
+      "confirmLabel": "I confirm that I want to withdraw my application.",
+      "cancel": "Cancel",
+      "irreversible": "irreversible",
+      "trigger": "Withdraw my application",
+      "actionIs": "This action is"
+    },
+    "checklist": {
+      "checklistAria": "Pre-submission checklist",
+      "photoRequired": "Passport photograph — required",
+      "docsRecommended": "Supporting documents — recommended",
+      "addPhotoToSubmit": "Upload your passport photograph to enable submission.",
+      "confirmTitle": "Confirm final submission",
+      "confirmBody": "Once confirmed, your photograph and documents will be locked. You will no longer be able to change them or revisit the information you have certified.",
+      "reviewHeading": "Key information to check",
+      "edit": "Edit",
+      "rowCandidat": "Applicant",
+      "rowEmail": "Email address",
+      "rowPhone": "Phone number",
+      "rowSpecialite": "Specialisation",
+      "rowDiplome": "Qualification",
+      "rowInstitut": "Institution",
+      "rowSituation": "Current situation",
+      "rowEmployeur": "Employer",
+      "notApplicable": "Not applicable",
+      "reviewConfirmLabel": "I have checked the information in my application and confirm that it is accurate and complete.",
+      "cancel": "Cancel",
+      "submit": "Certify and submit my application"
+    },
+    "frais": {
+      "eyebrow": "Payment",
+      "title": "Application fee",
+      "paid": "Fee paid",
+      "mode": "Method",
+      "reference": "Reference",
+      "date": "Date",
+      "cremincamFull": "Crédit Mutuel d'Investissement du Cameroun",
+      "step1": "Go to a CREMINCAM branch.",
+      "step3": "Pay XAF 50,000 and keep the bank receipt.",
+      "step4": "Bring the receipt when handing in your paper file at the PSSFP."
+    },
+    "editionPage": {
+      "title": "Edit my application",
+      "breadcrumbRoot": "My application",
+      "breadcrumbCurrent": "Editing",
+      "autosave": "Your changes are saved automatically after 2 seconds of inactivity.",
+      "back": "← Back to my application",
+      "breadcrumbAria": "Breadcrumb"
+    },
+    "suiviPage": {
+      "title": "My application progress",
+      "fileNumber": "File number",
+      "back": "Back to my application",
+      "steps": "Steps",
+      "dangerZone": "Sensitive area",
+      "breadcrumbCurrent": "Progress"
+    },
+    "piecesPage": {
+      "breadcrumbRoot": "My application",
+      "back": "← Back to my application",
+      "breadcrumbAria": "Breadcrumb",
+      "title": "Supporting documents"
+    },
+    "photoPage": {
+      "breadcrumbRoot": "My application",
+      "back": "← Back to my application",
+      "breadcrumbAria": "Breadcrumb",
+      "title": "Passport photograph"
     }
   },
   "legal": {
@@ -612,5 +747,84 @@
         ]
       }
     ]
+  },
+  "options": {
+    "presentiel": "On campus",
+    "distanciel": "Distance learning",
+    "langueFr": "French",
+    "langueEn": "English",
+    "genreM": "Male",
+    "genreF": "Female",
+    "genreAutre": "Other",
+    "choose": "— Select —",
+    "marital": {
+      "celibataire": "Single",
+      "marie": "Married",
+      "divorce": "Divorced",
+      "veuf": "Widowed",
+      "autre": "Other"
+    }
+  },
+  "uploads": {
+    "photo": {
+      "none": "No photograph",
+      "uploading": "Uploading…",
+      "dropHere": "Drag and drop your photograph here",
+      "choose": "Choose a file",
+      "hint": "JPG or PNG, max 2 MB, minimum 200×200 px. A square, well-lit photograph works best.",
+      "chooseAnother": "Choose another image",
+      "replace": "Replace the photograph",
+      "locked": "Your application is locked: the photograph can no longer be changed.",
+      "dropzoneAria": "Passport photograph drop zone",
+      "selectAria": "Select a photograph",
+      "selectNewAria": "Select a new photograph"
+    },
+    "documents": {
+      "view": "View",
+      "typeLabel": "Document type",
+      "hint": "PDF, JPG or PNG, max 5 MB per file.",
+      "locked": "Your application is locked: no further documents can be added.",
+      "selectAria": "Select the document file",
+      "admissibilityNotice": "You may upload these documents here or hand them in at the Registrar's Office (Yaoundé-Messa, room 231). Either way, your application will only be examined once the complete paper file has been received, by the intake closing time at the latest."
+    }
+  },
+  "errorPage": {
+    "eyebrow": "Application portal",
+    "title": "Something went wrong",
+    "body": "Something went wrong on our side. Your data is safe. Please try again in a moment or contact the Registrar's Office.",
+    "retry": "Try again",
+    "backHome": "Back to the home page",
+    "registrarLabel": "Registrar's Office:"
+  },
+  "notFound": {
+    "code": "Error 404",
+    "title": "Page not found",
+    "body": "The page you are looking for does not exist or has been moved.",
+    "backHome": "Back to the home page",
+    "needHelp": "Need help?",
+    "contact": "Contact the Registrar's Office"
+  },
+  "selects": {
+    "diplome": {
+      "choose": "— Select —",
+      "precisePlaceholder": "Specify the qualification",
+      "other": "Other"
+    },
+    "employeur": {
+      "searchPlaceholder": "Search for a government body or organisation…",
+      "officialNamePlaceholder": "Official name of the public body",
+      "precisePlaceholder": "Specify the name of the public body"
+    },
+    "searchable": {
+      "noResult": "No results",
+      "search": "Search…"
+    },
+    "phone": {
+      "countryCode": "Country code",
+      "phoneNumber": "Phone number"
+    },
+    "institut": {
+      "precisePlaceholder": "Specify the institution"
+    }
   }
 }
