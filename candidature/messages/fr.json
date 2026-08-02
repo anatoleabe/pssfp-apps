@@ -826,5 +826,13 @@
     "institut": {
       "precisePlaceholder": "Précisez l'établissement"
     }
+  },
+  "sessionAlreadyOpen": {
+    "title": "Vous êtes déjà connecté",
+    "body": "Une session candidat est ouverte sur ce navigateur.",
+    "bodyWithNumber": "Vous êtes actuellement connecté au dossier n° {numero}.",
+    "howTo": "Pour créer un nouveau compte candidat ou vous connecter avec un autre numéro, déconnectez-vous d'abord. Sur un poste partagé, pensez à vous déconnecter en partant.",
+    "continue": "Continuer sur mon dossier",
+    "logout": "Se déconnecter"
   }
 }

@@ -1,3 +1,5 @@
+import { SessionAlreadyOpen } from '@/components/SessionAlreadyOpen';
+import { getMyCandidature } from '@/lib/api/client';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from '@/navigation';
 import { ForgotPinWizard } from '@/components/ForgotPinWizard';
@@ -11,9 +13,13 @@ export const metadata = {
 
 export default async function ForgotPinPage(): Promise<JSX.Element> {
   const tfp = await getTranslations('forgotPin');
+  // Même traitement que /login et /inscription : on explique au lieu de
+  // rediriger sans un mot (audit A-36).
   const existingToken = await getCandidatToken();
   if (existingToken) {
-    redirect('/dossier');
+    const existing = await getMyCandidature(existingToken);
+
+    return <SessionAlreadyOpen numero={existing.ok ? existing.data.numero_dossier : null} />;
   }
 
   return (

@@ -6,7 +6,6 @@ import { localePrefix } from './navigation';
 
 const TOKEN_COOKIE = 'pssfp_candidat_token';
 const EXPIRES_COOKIE = 'pssfp_candidat_expires';
-const PUBLIC_AUTH_PATHS = ['/login', '/inscription', '/forgot-pin'];
 const PROTECTED_PREFIXES = ['/dossier'];
 
 /**
@@ -103,9 +102,6 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { locale, pathWithoutLocale } = splitLocale(request.nextUrl.pathname);
 
   const protectedRoute = PROTECTED_PREFIXES.some((prefix) => pathWithoutLocale.startsWith(prefix));
-  const publicAuthRoute = PUBLIC_AUTH_PATHS.some(
-    (path) => pathWithoutLocale === path || pathWithoutLocale.startsWith(`${path}/`),
-  );
   const token = request.cookies.get(TOKEN_COOKIE)?.value;
 
   if (!token) {
@@ -124,9 +120,10 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return response;
   }
 
-  if (validity === 'valid' && publicAuthRoute) {
-    return NextResponse.redirect(localizedUrl('/dossier', locale, request));
-  }
+  // Session valide sur /login, /inscription ou /forgot-pin : on laisse la page
+  // s'afficher plutôt que de rediriger en silence vers /dossier (audit A-36).
+  // Elle lit `x-candidat-session-valid` et propose explicitement de continuer
+  // sur le dossier ouvert ou de se déconnecter pour en créer un autre.
 
   if (validity === 'unknown' && protectedRoute) {
     // Ne pas supprimer un token potentiellement valide lors d'une panne API,

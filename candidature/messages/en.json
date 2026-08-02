@@ -826,5 +826,13 @@
     "institut": {
       "precisePlaceholder": "Specify the institution"
     }
+  },
+  "sessionAlreadyOpen": {
+    "title": "You are already signed in",
+    "body": "An applicant session is already open in this browser.",
+    "bodyWithNumber": "You are currently signed in to file no. {numero}.",
+    "howTo": "To create another applicant account or sign in with a different number, sign out first. On a shared computer, remember to sign out before you leave.",
+    "continue": "Continue to my application",
+    "logout": "Sign out"
   }
 }

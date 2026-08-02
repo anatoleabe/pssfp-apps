@@ -1,6 +1,9 @@
+import { headers } from 'next/headers';
+import { SessionAlreadyOpen } from '@/components/SessionAlreadyOpen';
+import { getCandidatToken } from '@/lib/auth/session';
 import { getTranslations } from 'next-intl/server';
 import { LoginForm } from '@/components/LoginForm';
-import { getPays } from '@/lib/api/client';
+import { getPays, getMyCandidature } from '@/lib/api/client';
 import { FALLBACK_PAYS } from '@/lib/api/fallbacks';
 
 export const metadata = {
@@ -21,6 +24,18 @@ const REASON_MESSAGES: Record<string, string> = {
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps): Promise<JSX.Element> {
+  // Session déjà ouverte : on l'annonce au lieu de rediriger en silence
+  // (audit A-36). Le numéro de dossier est affiché quand l'API le fournit.
+  const sessionValid = (await headers()).get('x-candidat-session-valid') === '1';
+  if (sessionValid) {
+    const token = await getCandidatToken();
+    const existing = token ? await getMyCandidature(token) : null;
+
+    return (
+      <SessionAlreadyOpen numero={existing?.ok ? existing.data.numero_dossier : null} />
+    );
+  }
+
   const t = await getTranslations('login');
   const paysResult = await getPays();
   const pays = paysResult.ok && paysResult.data.length > 0 ? paysResult.data : [...FALLBACK_PAYS];
