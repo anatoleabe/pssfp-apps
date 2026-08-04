@@ -22,11 +22,13 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\IconPosition;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -212,30 +214,50 @@ class CandidatureResource extends Resource
         return $table
             ->persistFiltersInSession()
             ->persistSearchInSession()
+            // Derniers déposants en tête. Le tri se fait sur la colonne
+            // `submitted_at` dont le `sortable(query:)` impose NULLS LAST :
+            // sans lui PostgreSQL remonte les NULL en premier en DESC, et la
+            // liste s'ouvrait sur les dossiers jamais soumis.
             ->defaultSort('submitted_at', 'desc')
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('campagne')->withCount('documents'))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query
+                ->with('campagne')
+                ->withCount('documents'))
             ->columns([
+                Tables\Columns\TextColumn::make('submitted_at')
+                    ->label('Déposé le')
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query
+                        ->orderByRaw('submitted_at '.(strtolower($direction) === 'asc' ? 'asc' : 'desc').' nulls last'))
+                    ->placeholder('Non soumis')
+                    ->formatStateUsing(fn (?Candidature $record): string => $record?->submitted_at === null
+                        ? 'Non soumis'
+                        : $record->submitted_at->translatedFormat('d/m/Y').' à '.$record->submitted_at->format('H\hi'))
+                    ->description(fn (Candidature $record): ?string => $record->submitted_at?->diffForHumans())
+                    ->weight(FontWeight::Medium)
+                    ->color(fn (Candidature $record): ?string => $record->submitted_at === null ? 'gray' : null),
                 Tables\Columns\TextColumn::make('numero_dossier')
                     ->label('N° dossier')
                     ->searchable()
                     ->copyable()
+                    ->copyMessage('Numéro de dossier copié')
                     ->badge()
                     ->color('primary'),
                 Tables\Columns\TextColumn::make('nom_complet')
                     ->label('Candidat')
                     ->wrap()
                     ->state(fn (Candidature $r): string => trim("{$r->prenom} {$r->nom}"))
+                    // Téléphone et email en sous-ligne : deux colonnes de moins
+                    // à balayer, et la recherche continue de porter dessus.
+                    ->description(fn (Candidature $r): string => trim($r->phone_e164.($r->email ? ' · '.$r->email : '')))
                     ->searchable(query: function (Builder $query, string $search): Builder {
-                        return $query->where('nom', 'ilike', "%{$search}%")
+                        return $query->where(fn (Builder $q): Builder => $q
+                            ->where('nom', 'ilike', "%{$search}%")
                             ->orWhere('prenom', 'ilike', "%{$search}%")
-                            ->orWhere('email', 'ilike', "%{$search}%");
+                            ->orWhere('email', 'ilike', "%{$search}%")
+                            ->orWhere('phone_e164', 'ilike', "%{$search}%"));
                     }),
-                Tables\Columns\TextColumn::make('phone_e164')->label('Téléphone')->searchable(),
-                Tables\Columns\TextColumn::make('campagne.nom')->label('Année académique')->wrap()->toggleable(),
-                Tables\Columns\TextColumn::make('specialite')->limit(28)->toggleable(),
-                Tables\Columns\TextColumn::make('region')->label('Région')->toggleable(),
                 Tables\Columns\TextColumn::make('statut')
                     ->badge()
+                    ->sortable()
                     ->color(fn (string $state) => match ($state) {
                         'postulant' => 'warning',
                         'candidat' => 'info',
@@ -244,20 +266,23 @@ class CandidatureResource extends Resource
                         default => 'gray',
                     }),
                 Tables\Columns\IconColumn::make('frais_paye')->label('Frais')
-                    ->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle'),
+                    ->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle')
+                    ->tooltip(fn (Candidature $r): string => $r->frais_paye ? 'Frais payés' : 'Frais non payés'),
                 Tables\Columns\TextColumn::make('documents_count')
                     ->label('Pièces')
                     ->badge()
                     ->color(fn (int $state): string => $state > 0 ? 'success' : 'gray')
-                    ->formatStateUsing(fn (int $state): string => (string) $state)
-                    ->toggleable(),
-                Tables\Columns\TextColumn::make('submitted_at')->label('Soumis le')
-                    ->dateTime('d/m/Y H:i')->sortable()->toggleable(),
+                    ->formatStateUsing(fn (int $state): string => (string) $state),
+                Tables\Columns\IconColumn::make('recipisse_pdf_path')
+                    ->label('Récépissé')
+                    ->boolean()
+                    ->tooltip(fn (Candidature $r): string => $r->recipisse_pdf_path === null
+                        ? 'Aucun récépissé généré'
+                        : 'Récépissé disponible au téléchargement'),
                 Tables\Columns\TextColumn::make('depot_physique_at')
                     ->label('Dossier papier')
                     ->badge()
                     ->sortable()
-                    ->toggleable()
                     ->placeholder('Non reçu')
                     ->color(fn (?string $state): string => $state === null ? 'gray' : 'success')
                     ->formatStateUsing(fn (?string $state, Candidature $r): string => $state === null
@@ -266,6 +291,12 @@ class CandidatureResource extends Resource
                     ->description(fn (Candidature $r): ?string => $r->depot_physique_at === null
                         ? null
                         : $r->depotPhysiquePar?->name),
+                Tables\Columns\TextColumn::make('campagne.nom')->label('Année académique')->wrap()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('specialite')->limit(28)
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('region')->label('Région')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('decided_at')->label('Décidé le')
                     ->dateTime('d/m/Y H:i')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -299,12 +330,15 @@ class CandidatureResource extends Resource
                     ),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->iconButton()
+                    ->tooltip('Consulter le dossier'),
                 Tables\Actions\Action::make('viewRecipisse')
                     ->label('Récépissé PDF')
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->iconPosition(IconPosition::Before)
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('primary')
+                    ->iconButton()
+                    ->tooltip('Télécharger le récépissé PDF')
                     ->visible(fn (Candidature $r) => $r->recipisse_pdf_path !== null)
                     ->action(function (Candidature $r): void {
                         // Ajout 1 PR D : trace l'accès admin au récépissé.
@@ -319,9 +353,10 @@ class CandidatureResource extends Resource
                         redirect($url);
                     }),
                 Tables\Actions\Action::make('viewDocuments')
-                    ->label(fn (Candidature $r): string => 'Pièces ('.($r->documents_count ?? $r->documents()->count()).')')
+                    ->label('Pièces justificatives')
                     ->icon('heroicon-o-paper-clip')
-                    ->iconPosition(IconPosition::Before)
+                    ->iconButton()
+                    ->tooltip(fn (Candidature $r): string => 'Pièces justificatives ('.($r->documents_count ?? $r->documents()->count()).')')
                     ->visible(fn (Candidature $r): bool => ($r->documents_count ?? $r->documents()->count()) > 0)
                     ->modalHeading('Pièces justificatives')
                     ->modalSubmitAction(false)
@@ -378,6 +413,28 @@ class CandidatureResource extends Resource
                             ->send();
                     }),
                 Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make()
+                        ->label('Modifier le dossier')
+                        ->icon('heroicon-o-pencil-square'),
+                    Tables\Actions\Action::make('regenerateRecipisse')
+                        ->label('Régénérer le récépissé')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('info')
+                        ->visible(fn (Candidature $r): bool => auth()->user()?->can('candidature.regenerate_recipisse') === true
+                            && $r->submitted_at !== null)
+                        ->requiresConfirmation()
+                        ->modalHeading('Régénérer le récépissé PDF')
+                        ->modalDescription('Le récépissé est refabriqué à partir des données actuelles du dossier (photo comprise) et remplace le fichier existant. Le statut, les dates et le numéro de dossier ne changent pas.')
+                        ->modalSubmitActionLabel('Régénérer')
+                        ->action(function (Candidature $r): void {
+                            static::regenerateRecipisse($r);
+
+                            Notification::make()
+                                ->title('Récépissé régénéré')
+                                ->body("Le récépissé du dossier {$r->numero_dossier} a été refabriqué.")
+                                ->success()
+                                ->send();
+                        }),
                     Tables\Actions\Action::make('annulerDepotPhysique')
                         ->label('Annuler la réception')
                         ->icon('heroicon-o-arrow-uturn-left')
@@ -596,6 +653,54 @@ class CandidatureResource extends Resource
                             ])
                             ->log('Réception groupée de dossiers physiques ('.count($marques).')');
                     }),
+                Tables\Actions\BulkAction::make('regenerateRecipisseBulk')
+                    ->label('Régénérer les récépissés')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('info')
+                    ->visible(fn () => auth()->user()?->can('candidature.regenerate_recipisse'))
+                    ->requiresConfirmation()
+                    ->modalHeading('Régénération groupée des récépissés')
+                    ->modalDescription('Chaque récépissé sélectionné est refabriqué à partir des données actuelles du dossier. Les dossiers jamais soumis sont ignorés.')
+                    ->modalSubmitActionLabel('Régénérer')
+                    ->action(function ($records): void {
+                        $refaits = [];
+                        $ignores = [];
+                        $echecs = [];
+
+                        foreach ($records as $r) {
+                            if ($r->submitted_at === null) {
+                                $ignores[] = $r->numero_dossier;
+
+                                continue;
+                            }
+
+                            try {
+                                static::regenerateRecipisse($r);
+                                $refaits[] = $r->numero_dossier;
+                            } catch (\Throwable $e) {
+                                // Un dossier en échec ne doit pas faire tomber
+                                // tout le lot : on isole et on rend compte.
+                                Log::error('recipisse_regeneration_failed', [
+                                    'numero_dossier' => $r->numero_dossier,
+                                    'exception' => $e::class,
+                                    'message' => $e->getMessage(),
+                                ]);
+                                $echecs[] = $r->numero_dossier;
+                            }
+                        }
+
+                        $details = array_filter([
+                            $ignores === [] ? null : count($ignores).' ignoré(s) : dossier jamais soumis.',
+                            $echecs === [] ? null : count($echecs).' en échec : '.implode(', ', $echecs).'.',
+                        ]);
+
+                        $notification = Notification::make()
+                            ->title(count($refaits).' récépissé(s) régénéré(s)')
+                            ->body($details === [] ? null : implode(' ', $details));
+
+                        $echecs === [] ? $notification->success() : $notification->warning();
+                        $notification->send();
+                    }),
                 Tables\Actions\BulkAction::make('exportCsv')
                     ->label('Exporter en CSV')
                     ->icon('heroicon-o-arrow-down-tray')
@@ -673,6 +778,31 @@ class CandidatureResource extends Resource
                             ->log('Refus en bulk');
                     }),
             ]);
+    }
+
+    /**
+     * Refabrique le récépissé d'un dossier et trace l'opération.
+     *
+     * Utilisé par l'action unitaire et l'action groupée — les récépissés émis
+     * avant la correction de l'embarquement photo sont sortis sans
+     * photographie et doivent pouvoir être rattrapés depuis l'admin.
+     */
+    public static function regenerateRecipisse(Candidature $candidature): void
+    {
+        $previousPath = $candidature->recipisse_pdf_path;
+
+        $path = app(RecipisseService::class)->regenerate($candidature);
+
+        activity('candidatures')
+            ->causedBy(auth()->user())
+            ->performedOn($candidature)
+            ->withProperties([
+                'previous_path' => $previousPath,
+                'path' => $path,
+                'had_photo' => $candidature->photo_path !== null,
+            ])
+            ->event('recipisse_regenerated')
+            ->log('Récépissé régénéré depuis l\'admin');
     }
 
     /** Export CSV streamé d'une collection de Candidatures. */

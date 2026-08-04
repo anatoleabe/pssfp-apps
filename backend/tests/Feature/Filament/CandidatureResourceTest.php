@@ -16,6 +16,7 @@ use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\Models\Activity;
 
 uses()->group('filament', 'candidature');
@@ -235,4 +236,80 @@ it('logs the full numero list when bulk accepting (super_admin)', function (): v
     expect($log)->not->toBeNull();
     expect($log->properties->get('count'))->toBe(3);
     expect($log->properties->get('numeros'))->toHaveCount(3);
+});
+
+/*
+ * Régénération du récépissé — rattrapage des PDF émis sans photo avant la
+ * correction du 403 HeadObject (cf. RecipisseGenerationTest).
+ */
+it('regenerates the recipisse of a submitted dossier and logs it', function (): void {
+    Storage::fake('minio_candidatures');
+
+    $cand = Candidature::factory()->forCampagne($this->campagne)->submitted()->create([
+        'user_id' => $this->candidat->id,
+        'recipisse_pdf_path' => 'ancien-chemin/recipisse.pdf',
+    ]);
+
+    $this->actingAs($this->superAdmin);
+    $this->livewire(ListCandidatures::class)
+        ->callTableAction('regenerateRecipisse', $cand);
+
+    $cand->refresh();
+
+    expect($cand->recipisse_pdf_path)->toBe("{$cand->uuid}/recipisse.pdf")
+        ->and($cand->recipisse_hash_sha256)->toMatch('/^[0-9a-f]{64}$/');
+    Storage::disk('minio_candidatures')->assertExists($cand->recipisse_pdf_path);
+
+    $log = Activity::query()->where('event', 'recipisse_regenerated')->latest()->first();
+    expect($log)->not->toBeNull()
+        ->and($log->properties->get('previous_path'))->toBe('ancien-chemin/recipisse.pdf');
+});
+
+it('hides the regeneration action on a dossier never submitted', function (): void {
+    $cand = Candidature::factory()->forCampagne($this->campagne)->create([
+        'user_id' => $this->candidat->id,
+        'statut' => Candidature::STATUT_POSTULANT,
+        'submitted_at' => null,
+    ]);
+
+    $this->actingAs($this->superAdmin);
+    $this->livewire(ListCandidatures::class)
+        ->assertTableActionHidden('regenerateRecipisse', $cand);
+});
+
+it('hides the regeneration action from a receptionniste', function (): void {
+    $cand = Candidature::factory()->forCampagne($this->campagne)->submitted()->create([
+        'user_id' => $this->candidat->id,
+    ]);
+
+    $receptionniste = User::factory()->create();
+    $receptionniste->assignRole('receptionniste');
+
+    $this->actingAs($receptionniste);
+    $this->livewire(ListCandidatures::class)
+        ->assertTableActionHidden('regenerateRecipisse', $cand);
+});
+
+/*
+ * PostgreSQL trie les NULL en premier en DESC : sans `nulls last`, la liste
+ * s'ouvrait sur les dossiers jamais soumis au lieu des derniers déposants.
+ */
+it('lists the most recent depositors first and pushes unsubmitted dossiers last', function (): void {
+    $ancien = Candidature::factory()->forCampagne($this->campagne)->submitted()->create([
+        'user_id' => User::factory()->candidat()->create()->id,
+        'submitted_at' => now()->subDays(5),
+    ]);
+    $recent = Candidature::factory()->forCampagne($this->campagne)->submitted()->create([
+        'user_id' => User::factory()->candidat()->create()->id,
+        'submitted_at' => now()->subMinutes(10),
+    ]);
+    $jamaisSoumis = Candidature::factory()->forCampagne($this->campagne)->create([
+        'user_id' => User::factory()->candidat()->create()->id,
+        'statut' => Candidature::STATUT_POSTULANT,
+        'submitted_at' => null,
+    ]);
+
+    $this->actingAs($this->superAdmin);
+    $this->livewire(ListCandidatures::class)
+        ->assertCanSeeTableRecords([$recent, $ancien, $jamaisSoumis], inOrder: true);
 });
