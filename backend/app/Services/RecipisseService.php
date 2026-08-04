@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Candidature;
+use App\Support\CandidatureObjectStorage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 /**
@@ -96,9 +99,44 @@ class RecipisseService
         $finalHash = hash('sha256', $finalBytes);
 
         $path = $this->pathFor($candidature);
-        $this->disk()->put($path, $finalBytes);
+
+        // Les disques MinIO sont configurés `throw => false` : sans ce contrôle
+        // un échec d'écriture serait invisible et la candidature référencerait
+        // un récépissé inexistant.
+        if ($this->disk()->put($path, $finalBytes) === false) {
+            throw new RuntimeException("Écriture du récépissé impossible sur le stockage : {$path}");
+        }
 
         return ['path' => $path, 'hash' => $finalHash];
+    }
+
+    /**
+     * Régénère le récépissé d'un dossier déjà soumis et réaligne
+     * `recipisse_pdf_path` / `recipisse_hash_sha256`.
+     *
+     * Sert au rattrapage : les récépissés produits avant la correction de
+     * l'embarquement photo (403 HeadObject) sont sortis sans photographie et
+     * doivent pouvoir être refaits depuis l'admin, sans toucher au statut ni
+     * aux dates de transition du dossier.
+     *
+     * @throws RuntimeException si le dossier n'a jamais été soumis
+     */
+    public function regenerate(Candidature $candidature): string
+    {
+        if ($candidature->submitted_at === null) {
+            throw new RuntimeException(
+                "Le dossier {$candidature->numero_dossier} n'a pas été soumis : aucun récépissé à régénérer."
+            );
+        }
+
+        $pdf = $this->generate($candidature);
+
+        $candidature->update([
+            'recipisse_pdf_path' => $pdf['path'],
+            'recipisse_hash_sha256' => $pdf['hash'],
+        ]);
+
+        return $pdf['path'];
     }
 
     /**
@@ -177,6 +215,12 @@ class RecipisseService
      * base64 pour l'afficher sur le récépissé. Retourne '' si aucune photo
      * (dépôt physique de la photo au bureau) ou si la lecture échoue —
      * le template dégrade alors sur un cadre « Photo » vide.
+     *
+     * Pas de pré-check `exists()` : la clé de service MinIO de production n'a
+     * pas le droit `HeadObject` sur le bucket `pssfp-candidatures` et renvoie
+     * 403, ce qui faisait échouer l'embarquement de TOUTES les photos alors
+     * que `get()` (GetObject) passe sans problème. Un seul aller-retour suffit,
+     * l'absence d'objet remonte de toute façon dans le catch.
      */
     private function embedCandidatePhoto(Candidature $candidature): string
     {
@@ -186,16 +230,27 @@ class RecipisseService
         }
 
         try {
-            $disk = Storage::disk('minio_candidatures');
-            if (! $disk->exists($path)) {
-                return '';
-            }
-            $bytes = (string) $disk->get($path);
-        } catch (\Throwable) {
+            $bytes = (string) Storage::disk(CandidatureObjectStorage::DISK)->get($path);
+        } catch (\Throwable $e) {
+            // Dégradation silencieuse côté document, mais jamais côté logs :
+            // une photo absente du récépissé est un défaut visible pour le
+            // candidat, il faut pouvoir la relier à une cause.
+            Log::warning('recipisse_photo_embed_failed', [
+                'candidature_uuid' => $candidature->uuid,
+                'path' => $path,
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+
             return '';
         }
 
         if ($bytes === '') {
+            Log::warning('recipisse_photo_empty', [
+                'candidature_uuid' => $candidature->uuid,
+                'path' => $path,
+            ]);
+
             return '';
         }
 

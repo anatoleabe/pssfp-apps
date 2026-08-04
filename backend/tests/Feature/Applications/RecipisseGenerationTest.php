@@ -11,6 +11,7 @@ use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\UnableToCheckFileExistence;
 
 uses()->group('applications', 'recipisse', 'pdf');
 
@@ -140,6 +141,44 @@ it('renders the committee copy and both campaign labels', function (): void {
         ->not->toContain('COPIE ADMINISTRATION')
         ->not->toContain('Page 1 sur 2 — Copie candidat')
         ->not->toContain('Page 2 sur 2 — Comité de Pilotage du PSSFP');
+});
+
+it('embeds the candidate photo in the generated PDF', function (): void {
+    $jpeg = (string) file_get_contents(base_path('tests/Fixtures/photo-identite.jpg'));
+    $path = "candidat-photos/{$this->candidature->uuid}/photo.jpg";
+    Storage::disk('minio_candidatures')->put($path, $jpeg);
+    $this->candidature->update(['photo_path' => $path]);
+
+    $result = app(RecipisseService::class)->generate($this->candidature->fresh());
+
+    // Dompdf embarque les JPEG tels quels en flux DCTDecode : retrouver les
+    // octets source dans le PDF prouve que la photo est bien dans le document.
+    // `str_contains` plutôt que `toContain` : sur échec, Pest tenterait
+    // d'afficher le diff de 1,5 Mo de binaire et saturerait la mémoire.
+    $pdf = (string) Storage::disk('minio_candidatures')->get($result['path']);
+    expect(str_contains($pdf, $jpeg))->toBeTrue('La photo du candidat est absente du récépissé.');
+});
+
+/*
+ * Régression prod (2026-08-04) : la clé de service MinIO de production autorise
+ * GetObject mais refuse HeadObject. Le pré-check `exists()` remontait un 403,
+ * avalé par le catch, et TOUTES les photos disparaissaient des récépissés.
+ */
+it('still embeds the photo when the storage forbids HeadObject', function (): void {
+    $jpeg = (string) file_get_contents(base_path('tests/Fixtures/photo-identite.jpg'));
+    $path = "candidat-photos/{$this->candidature->uuid}/photo.jpg";
+    Storage::disk('minio_candidatures')->put($path, $jpeg);
+    $this->candidature->update(['photo_path' => $path]);
+
+    $forbidden = Mockery::mock(Storage::disk('minio_candidatures'));
+    $forbidden->shouldReceive('exists')
+        ->andThrow(UnableToCheckFileExistence::forLocation($path));
+    Storage::set('minio_candidatures', $forbidden);
+
+    $result = app(RecipisseService::class)->generate($this->candidature->fresh());
+
+    $pdf = (string) $forbidden->get($result['path']);
+    expect(str_contains($pdf, $jpeg))->toBeTrue('La photo disparaît du récépissé quand HeadObject est refusé.');
 });
 
 it('ships the two embedded PDF font families', function (): void {

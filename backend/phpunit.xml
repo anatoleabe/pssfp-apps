@@ -18,6 +18,10 @@
         </include>
     </source>
     <php>
+        <!-- La génération des récépissés (Dompdf, deux rendus par PDF) sature
+             les 128 Mo par défaut de PHP quand toute la suite tourne dans un
+             seul process. Fixé ici pour valoir aussi bien en local qu'en CI. -->
+        <ini name="memory_limit" value="1G"/>
         <env name="APP_ENV" value="testing"/>
         <!-- Le français est la langue source (ADR-0006) : les tests doivent
              refléter la configuration réelle, pas les défauts du framework. -->

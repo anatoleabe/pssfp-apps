@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Models\CandidatureDocument;
 use App\Services\Scanner\PhotoScannerInterface;
+use App\Support\CandidatureObjectStorage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -36,19 +37,14 @@ final class ScanUploadedDocumentJob implements ShouldQueue
 
     public function handle(PhotoScannerInterface $scanner): void
     {
-        $disk = Storage::disk('minio_candidatures');
+        $bytes = CandidatureObjectStorage::read($this->path);
 
-        if (! $disk->exists($this->path)) {
+        // null = objet déjà supprimé ou remplacé entre l'upload et le scan.
+        if ($bytes === null || ! $scanner->isInfected($bytes)) {
             return;
         }
 
-        $bytes = (string) $disk->get($this->path);
-
-        if (! $scanner->isInfected($bytes)) {
-            return;
-        }
-
-        $disk->delete($this->path);
+        Storage::disk(CandidatureObjectStorage::DISK)->delete($this->path);
 
         $document = CandidatureDocument::query()->where('uuid', $this->documentUuid)->first();
         if ($document !== null) {
