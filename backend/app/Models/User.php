@@ -31,20 +31,18 @@ final class User extends Authenticatable implements FilamentUser, HasName, MustV
     use TwoFactorAuthenticatable;
 
     /**
-     * Rôles autorisés à ouvrir le panneau d'administration Filament.
+     * Rôles qui n'ouvrent jamais le panneau d'administration, quel que soit
+     * leur périmètre.
      *
-     * `candidat`, `teacher` et `auditor` en sont volontairement exclus : ce sont
-     * des rôles d'API / de futurs espaces dédiés, pas des rôles back-office.
+     * `candidat` est le rôle des comptes créés par apply.pssfp.org ; `teacher`
+     * et `auditor` sont des rôles d'API / de futurs espaces dédiés.
      *
      * @var list<string>
      */
-    public const PANEL_ROLES = [
-        'super_admin',
-        'admin',
-        'editor',
-        'librarian',
-        'admission_committee',
-        'receptionniste',
+    public const NON_PANEL_ROLES = [
+        'candidat',
+        'teacher',
+        'auditor',
     ];
 
     /**
@@ -96,7 +94,7 @@ final class User extends Authenticatable implements FilamentUser, HasName, MustV
             return false;
         }
 
-        if (! $this->hasAnyRole(self::PANEL_ROLES)) {
+        if (! $this->hasBackOfficePerimeter()) {
             return false;
         }
 
@@ -105,6 +103,21 @@ final class User extends Authenticatable implements FilamentUser, HasName, MustV
         }
 
         return true;
+    }
+
+    /**
+     * L'accès au panneau ne s'appuie plus sur une liste de rôles figée mais sur
+     * le périmètre réel : tout rôle back-office porteur d'au moins une
+     * permission ouvre l'admin. Un rôle créé depuis l'écran des rôles est donc
+     * opérationnel sans toucher au code ; un rôle vidé de son périmètre ferme
+     * la porte à ses titulaires.
+     */
+    public function hasBackOfficePerimeter(): bool
+    {
+        return $this->roles()
+            ->whereNotIn('name', self::NON_PANEL_ROLES)
+            ->whereHas('permissions')
+            ->exists();
     }
 
     public function getActivitylogOptions(): LogOptions

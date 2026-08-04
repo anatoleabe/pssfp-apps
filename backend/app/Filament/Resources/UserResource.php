@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
+use App\Models\Role;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -14,14 +15,13 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
 
 /**
  * Gestion des comptes back-office (créer un agent, changer ses rôles, réinitialiser
  * son accès) — remplace la création de comptes par seeder / tinker.
  *
  * Périmètre volontairement limité aux comptes disposant d'un rôle back-office
- * (cf. User::PANEL_ROLES) : les milliers de comptes `candidat` créés par
+ * (cf. User::NON_PANEL_ROLES) : les milliers de comptes `candidat` créés par
  * apply.pssfp.org n'ont rien à faire dans cet écran, ils se gèrent via les
  * candidatures. Un filtre permet malgré tout de les retrouver ponctuellement.
  */
@@ -40,16 +40,6 @@ class UserResource extends Resource
     protected static ?int $navigationSort = 10;
 
     protected static ?string $recordTitleAttribute = 'name';
-
-    /** Rôles attribuables depuis cet écran (jamais `candidat`). */
-    private const ROLE_LABELS = [
-        'super_admin' => 'Super administrateur — accès total, y compris réglages et suppressions',
-        'admin' => 'Administrateur — comptes, campagnes, réglages, export',
-        'editor' => 'Éditeur — contenus du site institutionnel',
-        'librarian' => 'Bibliothécaire — bibliothèque virtuelle',
-        'admission_committee' => 'Comité d\'admission — étude des dossiers et décisions',
-        'receptionniste' => 'Réception scolarité — pointage des dossiers déposés au guichet',
-    ];
 
     public static function getEloquentQuery(): Builder
     {
@@ -106,17 +96,21 @@ class UserResource extends Resource
                         ),
                     Forms\Components\Select::make('roles')
                         ->label('Rôles')
+                        // Tous les rôles back-office, y compris ceux créés
+                        // depuis l'écran des rôles — la liste ne se maintient
+                        // plus dans le code.
                         ->relationship(
                             name: 'roles',
                             titleAttribute: 'name',
                             modifyQueryUsing: fn (Builder $query): Builder => $query
-                                ->whereIn('name', array_keys(self::ROLE_LABELS)),
+                                ->whereNotIn('name', User::NON_PANEL_ROLES)
+                                ->orderBy('label'),
                         )
-                        ->getOptionLabelFromRecordUsing(fn (Role $record): string => $record->name)
+                        ->getOptionLabelFromRecordUsing(fn (Role $record): string => $record->display_name)
                         ->multiple()
                         ->preload()
                         ->required()
-                        ->helperText(self::rolesHelperText())
+                        ->helperText('Un compte cumule les droits de tous ses rôles. Le détail du périmètre se règle dans Administration → Rôles.')
                         // Seul un super_admin fabrique un autre super_admin.
                         ->disableOptionWhen(fn (string $value): bool => $value === 'super_admin'
                             && auth()->user()?->hasRole('super_admin') !== true)
@@ -137,6 +131,10 @@ class UserResource extends Resource
 
     public static function table(Table $table): Table
     {
+        // Résolu une fois par rendu de table plutôt qu'une fois par badge :
+        // une requête, et jamais de libellé périmé après un renommage.
+        $roleLabels = Role::query()->pluck('label', 'name')->filter()->all();
+
         return $table
             ->defaultSort('name')
             ->columns([
@@ -145,6 +143,9 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('roles.name')
                     ->label('Rôles')
                     ->badge()
+                    // L'état reste l'identifiant technique (couleur fiable même
+                    // si le rôle est renommé) ; seul l'affichage est traduit.
+                    ->formatStateUsing(fn (string $state): string => $roleLabels[$state] ?? $state)
                     ->color(fn (string $state): string => match ($state) {
                         'super_admin' => 'danger',
                         'admin' => 'warning',
@@ -183,7 +184,7 @@ class UserResource extends Resource
                     ->default(true)
                     ->query(fn (Builder $query): Builder => $query->whereHas(
                         'roles',
-                        fn (Builder $roles): Builder => $roles->whereIn('name', User::PANEL_ROLES),
+                        fn (Builder $roles): Builder => $roles->whereNotIn('name', User::NON_PANEL_ROLES),
                     )),
             ])
             ->actions([
@@ -221,12 +222,5 @@ class UserResource extends Resource
             'create' => Pages\CreateUser::route('/create'),
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
-    }
-
-    private static function rolesHelperText(): string
-    {
-        return collect(self::ROLE_LABELS)
-            ->map(fn (string $label, string $role): string => "{$role} : {$label}")
-            ->implode(' · ');
     }
 }

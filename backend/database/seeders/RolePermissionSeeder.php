@@ -4,45 +4,35 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Models\Role;
+use App\Support\ModulePermissionMap;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 final class RolePermissionSeeder extends Seeder
 {
     /**
-     * Crée les rôles principaux du projet et attache les permissions de base.
+     * Crée les rôles du projet et leur périmètre initial.
      *
-     * Les permissions fines des Resources Filament sont générées par
-     * filament-shield au fur et à mesure (cf. modules 3, 5, 6).
+     * Le périmètre s'exprime dans le même vocabulaire que l'écran de gestion
+     * des rôles — module + niveau (aucun / lecture / gestion) + actions
+     * sensibles — et passe par ModulePermissionMap, source unique de vérité.
+     * Un rôle réglé ici peut donc être relu et ajusté depuis l'admin sans
+     * divergence entre les deux chemins.
      *
-     * Pour le rôle `candidat` (PR B M5) : permissions explicites sur les
-     * scopes Sanctum candidat (profile + application).
+     * Idempotent : `findOrCreate` + `syncPermissions`, re-runs sûrs en prod.
      */
     public function run(): void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $roles = [
-            'super_admin',
-            'admin',
-            'editor',
-            'librarian',
-            'admission_committee',
-            // Agent du bureau de la scolarité (Yaoundé-Messa, porte 231) : ne
-            // fait que constater la réception des dossiers papier. Aucun droit
-            // de décision d'admission ni d'édition du dossier.
-            'receptionniste',
-            'teacher',
-            'auditor',
-            'candidat',
-        ];
-
-        foreach ($roles as $role) {
-            Role::findOrCreate($role, 'web');
+        foreach (ModulePermissionMap::allPermissions() as $permission) {
+            Permission::findOrCreate($permission, 'web');
         }
 
+        // Scopes Sanctum du portail candidat — hors périmètre back-office,
+        // donc hors ModulePermissionMap.
         $candidatPermissions = [
             'profile.read',
             'profile.write',
@@ -58,91 +48,105 @@ final class RolePermissionSeeder extends Seeder
             Permission::findOrCreate($permission, 'web');
         }
 
-        Role::findOrCreate('candidat', 'web')->syncPermissions($candidatPermissions);
+        $none = ModulePermissionMap::LEVEL_NONE;
+        $read = ModulePermissionMap::LEVEL_READ;
+        $manage = ModulePermissionMap::LEVEL_MANAGE;
 
         /*
-         * PR D — Permissions Filament admin pour Module 5.
+         * Périmètre initial de chaque rôle.
          *
-         * Hybride filament-shield + permissions métier :
-         * - CRUD de base : convention shield `{action}_{resource}` sans
-         *   passer par la commande `shield:generate` (qu'on appellera quand
-         *   les autres modules arriveront — pour V1 on définit explicitement).
-         * - Permissions métier dédiées pour les actions Filament sensibles.
-         *
-         * Le seeder utilise Permission::findOrCreate qui est idempotent — re-runs
-         * sûrs en prod (cf. précision PR D arbitrage C).
+         * Règle transverse : les campagnes sont lisibles par tous les rôles
+         * back-office mais ne se modifient que par `admin` / `super_admin`
+         * (verrou porté par CampagneCandidaturePolicy).
          */
-        $filamentPermissions = [
-            // CRUD Filament-Shield style sur Candidature.
-            'view_any_candidature',
-            'view_candidature',
-            'update_candidature',
-            'candidature.delete_test', // uniquement postulant jamais soumis, super_admin
-
-            // CRUD Filament-Shield style sur CampagneCandidature.
-            'view_any_campagne::candidature',
-            'view_campagne::candidature',
-            'create_campagne::candidature',
-            'update_campagne::candidature',
-
-            // CRUD Filament-Shield style sur User (gestion des comptes admin).
-            'view_any_user',
-            'view_user',
-            'create_user',
-            'update_user',
-            'delete_user',
-
-            // Permissions métier (actions Filament dédiées).
-            'candidature.update_status',  // postulant <-> candidat (rétrogradation incluse)
-            'candidature.accept',
-            'candidature.refuse',
-            'candidature.mark_paid',
-            'candidature.export_csv',
-            'candidature.withdraw',       // retrait administratif super_admin
-            'candidature.bulk_decision',  // accept/refuse en bulk — super_admin only
-            'candidature.mark_depot_physique', // réception du dossier papier au guichet
-
-            // Réglages applicatifs (destinataires en copie des notifications…).
-            'settings.manage',
-        ];
-
-        foreach ($filamentPermissions as $permission) {
-            Permission::findOrCreate($permission, 'web');
-        }
-
-        // Matrice rôle -> permissions Filament (V1).
-        $matrix = [
-            'super_admin' => $filamentPermissions, // toutes
+        $roles = [
+            'super_admin' => [
+                'label' => 'Super administrateur',
+                'description' => 'Accès total, y compris réglages, rôles et suppressions définitives.',
+                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage],
+                'sensitive' => array_keys(ModulePermissionMap::sensitiveActions()),
+            ],
             'admin' => [
-                'view_any_candidature', 'view_candidature', 'update_candidature',
-                'view_any_campagne::candidature', 'view_campagne::candidature',
-                'create_campagne::candidature', 'update_campagne::candidature',
-                'view_any_user', 'view_user', 'create_user', 'update_user',
-                'candidature.export_csv',
-                'candidature.mark_depot_physique',
-                'settings.manage',
+                'label' => 'Administrateur',
+                'description' => 'Comptes, rôles, campagnes, réglages et exports.',
+                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage],
+                'sensitive' => [
+                    'candidature.export_csv',
+                    'candidature.mark_depot_physique',
+                    'candidature.regenerate_recipisse',
+                ],
+            ],
+            'editor' => [
+                'label' => 'Éditeur',
+                'description' => 'Contenus du site institutionnel : pages, actualités, médiathèque.',
+                'modules' => ['site' => $manage, 'admissions' => $none, 'administration' => $none],
+                'sensitive' => [],
             ],
             'admission_committee' => [
-                'view_any_candidature', 'view_candidature', 'update_candidature',
-                'view_any_campagne::candidature', 'view_campagne::candidature',
-                'candidature.accept', 'candidature.refuse',
-                'candidature.mark_paid', 'candidature.export_csv',
-                'candidature.mark_depot_physique',
+                'label' => 'Comité d\'admission',
+                'description' => 'Étude des dossiers de candidature et décisions d\'admission.',
+                'modules' => ['site' => $none, 'admissions' => $manage, 'administration' => $none],
+                'sensitive' => [
+                    'candidature.accept',
+                    'candidature.refuse',
+                    'candidature.mark_paid',
+                    'candidature.export_csv',
+                    'candidature.mark_depot_physique',
+                    'candidature.regenerate_recipisse',
+                ],
             ],
-            // Guichet : consulter pour identifier le dossier, cocher la
-            // réception. Rien d'autre — ni décision, ni paiement, ni export.
+            // Guichet de la scolarité (Yaoundé-Messa, porte 231) : consulter
+            // pour identifier le dossier, pointer sa réception. Rien d'autre —
+            // ni décision, ni paiement, ni export.
             'receptionniste' => [
-                'view_any_candidature', 'view_candidature',
-                'candidature.mark_depot_physique',
+                'label' => 'Réception scolarité',
+                'description' => 'Pointage des dossiers papier déposés au guichet.',
+                'modules' => ['site' => $none, 'admissions' => $read, 'administration' => $none],
+                'sensitive' => ['candidature.mark_depot_physique'],
             ],
             'librarian' => [
-                'view_any_candidature', 'view_candidature',
-                'candidature.mark_paid',
+                'label' => 'Bibliothécaire',
+                'description' => 'Bibliothèque virtuelle et encaissement des frais de dossier.',
+                'modules' => ['site' => $none, 'admissions' => $read, 'administration' => $none],
+                'sensitive' => ['candidature.mark_paid'],
+            ],
+            // `teacher` et `auditor` n'ouvrent pas le back-office (cf.
+            // User::NON_PANEL_ROLES) : ce sont des rôles d'API et de futurs
+            // espaces dédiés. Ils existent, sans périmètre admin.
+            'teacher' => [
+                'label' => 'Enseignant',
+                'description' => 'Rôle d\'API — espace enseignant prévu en Phase II. Aucun accès back-office.',
+                'modules' => ['site' => $none, 'admissions' => $none, 'administration' => $none],
+                'sensitive' => [],
+            ],
+            'auditor' => [
+                'label' => 'Auditeur',
+                'description' => 'Rôle d\'API — espace auditeur prévu en Phase II. Aucun accès back-office.',
+                'modules' => ['site' => $none, 'admissions' => $none, 'administration' => $none],
+                'sensitive' => [],
             ],
         ];
 
-        foreach ($matrix as $roleName => $perms) {
-            Role::findOrCreate($roleName, 'web')->syncPermissions($perms);
+        foreach ($roles as $name => $definition) {
+            $role = Role::findOrCreate($name, 'web');
+            $role->forceFill([
+                'label' => $definition['label'],
+                'description' => $definition['description'],
+            ])->save();
+
+            $role->syncPermissions(ModulePermissionMap::toPermissions(
+                $definition['modules'],
+                $definition['sensitive'],
+            ));
         }
+
+        $candidat = Role::findOrCreate('candidat', 'web');
+        $candidat->forceFill([
+            'label' => 'Candidat',
+            'description' => 'Compte du portail de candidature — jamais un accès back-office.',
+        ])->save();
+        $candidat->syncPermissions($candidatPermissions);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
