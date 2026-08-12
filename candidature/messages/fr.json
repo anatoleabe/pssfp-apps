@@ -243,7 +243,6 @@
       "paysOrigine": "Pays d'origine",
       "adresse": "Adresse complète",
       "villeResidence": "Ville de résidence",
-      "lieuNaissance": "Lieu de naissance (ville)",
       "phonePrincipal": "Téléphone principal (identifiant de connexion)",
       "email": "Adresse e-mail personnelle",
       "emailPlaceholder": "nom@exemple.com",
@@ -252,9 +251,9 @@
     "step3": {
       "title": "Étape 3 — Diplôme & situation professionnelle",
       "diplome": "Diplôme le plus élevé obtenu",
-      "annee": "Année d'obtention",
-      "institut": "Établissement de délivrance",
-      "specialiteDiplome": "Spécialité du diplôme",
+      "annee": "Année d'obtention du diplôme le plus élevé",
+      "institut": "Établissement de délivrance du diplôme le plus élevé",
+      "specialiteDiplome": "Spécialité du diplôme le plus élevé",
       "statutActuel": "Situation professionnelle actuelle",
       "employeurPublic": "Administration, entreprise ou établissement public",
       "employeur": "Employeur ou organisation",
@@ -266,7 +265,14 @@
       "attestationNotice": "Une attestation de présence effective au poste ou une autorisation de l'employeur sera requise, le cas échéant.",
       "moyenConnaissance": "Comment avez-vous connu le PSSFP ?",
       "preciserSource": "Précisez la source",
-      "preciserSourcePlaceholder": "Nom de la personne, de l'organisme ou du canal"
+      "preciserSourcePlaceholder": "Nom de la personne, de l'organisme ou du canal",
+      "diplomeRequis": "Diplôme requis",
+      "anneeDiplomeRequis": "Année d'obtention du diplôme requis",
+      "domaineDiplomeRequis": "Domaine du diplôme requis",
+      "specialiteDiplomeRequis": "Spécialité du diplôme requis",
+      "institutDiplomeRequis": "Établissement de délivrance du diplôme requis",
+      "blocPlusEleve": "Diplôme le plus élevé obtenu",
+      "blocRequis": "Diplôme requis pour l'admission"
     },
     "step1": {
       "title": "Étape 1 — Vœu de spécialité & identité",
@@ -289,7 +295,8 @@
       "dateNaissance": "Date de naissance",
       "genre": "Genre",
       "statutMatrimonial": "Situation matrimoniale",
-      "nationalite": "Nationalité"
+      "nationalite": "Nationalité",
+      "lieuNaissance": "Lieu de naissance (ville)"
     },
     "step5": {
       "eyebrow": "Dernière étape",
@@ -333,11 +340,45 @@
         "employerPhone": "Téléphone de l’employeur",
         "mainPhone": "Téléphone principal",
         "secondPhone": "Téléphone secondaire",
-        "institution": "Établissement"
+        "institution": "Établissement",
+        "requiredDegree": "Diplôme requis",
+        "requiredDegreeYear": "Année d'obtention du diplôme requis",
+        "requiredDegreeDomain": "Domaine du diplôme requis",
+        "requiredDegreeField": "Spécialité du diplôme requis",
+        "requiredDegreeInstitution": "Établissement du diplôme requis",
+        "otherDegrees": "Autres diplômes",
+        "proTraining": "Formations professionnelles",
+        "none": "Aucun"
       }
     },
     "progressAria": "Progression du formulaire",
-    "stepCounter": "Étape {current} / {total}"
+    "stepCounter": "Étape {current} / {total}",
+    "diplomes": {
+      "sectionTitle": "Autres diplômes et formations",
+      "sectionHint": "Facultatif. Vous pouvez laisser cette section vide.",
+      "autresDiplomes": {
+        "legend": "Diplôme académique complémentaire",
+        "add": "Ajouter un diplôme",
+        "remove": "Supprimer le diplôme {index}",
+        "removed": "Diplôme supprimé.",
+        "added": "Diplôme ajouté.",
+        "max": "Vous ne pouvez pas ajouter plus de {max} diplômes.",
+        "intitule": "Intitulé du diplôme",
+        "etablissement": "Établissement d'obtention",
+        "annee": "Année d'obtention"
+      },
+      "formationsPro": {
+        "legend": "Formation professionnelle",
+        "add": "Ajouter une formation",
+        "remove": "Supprimer la formation {index}",
+        "removed": "Formation supprimée.",
+        "added": "Formation ajoutée.",
+        "max": "Vous ne pouvez pas ajouter plus de {max} formations.",
+        "centre": "Centre de formation",
+        "qualification": "Qualification obtenue",
+        "annee": "Année de formation"
+      }
+    }
   },
   "forgotPin": {
     "progressAria": "Progression",
@@ -393,10 +434,10 @@
       "specialite": "Spécialité",
       "type_etude": "Type d'études",
       "premiere_langue": "Première langue",
-      "diplome_obtenu": "Diplôme obtenu",
-      "institut": "Établissement",
-      "specialite_diplome": "Spécialité du diplôme",
-      "annee_diplome": "Année d'obtention du diplôme",
+      "diplome_obtenu": "Diplôme le plus élevé obtenu",
+      "institut": "Établissement de délivrance du diplôme le plus élevé",
+      "specialite_diplome": "Spécialité du diplôme le plus élevé",
+      "annee_diplome": "Année d'obtention du diplôme le plus élevé",
       "statut_actuel": "Situation professionnelle actuelle",
       "fonction_actuelle": "Fonction ou poste occupé",
       "employeur": "Employeur ou organisation",
@@ -409,7 +450,14 @@
       "adresse_employeur": "Ville / adresse professionnelle (facultatif)",
       "tel_employeur": "Téléphone professionnel (facultatif)",
       "indicatif_generique": "Indicatif téléphonique",
-      "indicatifPlaceholder": "— Indicatif —"
+      "indicatifPlaceholder": "— Indicatif —",
+      "diplome_requis": "Diplôme requis",
+      "annee_diplome_requis": "Année d'obtention du diplôme requis",
+      "domaine_diplome_requis": "Domaine du diplôme requis",
+      "specialite_diplome_requis": "Spécialité du diplôme requis",
+      "institut_diplome_requis": "Établissement de délivrance du diplôme requis",
+      "autres_diplomes": "Autres diplômes académiques",
+      "formations_professionnelles": "Formations professionnelles"
     },
     "completeness": {
       "submittedTitle": "Candidature soumise",

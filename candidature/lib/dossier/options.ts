@@ -43,3 +43,25 @@ export function isPublicEmploymentStatus(status: string): boolean {
 export function needsEmployer(status: string): boolean {
   return status !== '' && status !== 'Etudiant' && status !== 'Sans-emploi';
 }
+
+/**
+ * Diplôme requis pour l'admission. La valeur est le slug stocké en base — il
+ * doit rester aligné sur backend/config/diplome_requis.php.
+ */
+export const DIPLOME_REQUIS_OPTIONS = [
+  { value: 'licence-bachelor', label: 'Licence / Bachelor' },
+  { value: 'master', label: 'Master' },
+] as const;
+
+/** Aligné sur backend/config/domaines_diplome.php. */
+export const DOMAINE_DIPLOME_OPTIONS = [
+  { value: 'droit', label: 'Droit' },
+  { value: 'economie', label: 'Économie' },
+  { value: 'gestion', label: 'Gestion' },
+  { value: 'autres', label: 'Autres' },
+] as const;
+
+/** Seul le domaine « Autres » ouvre le champ de spécialité du diplôme requis. */
+export function needsSpecialiteDiplomeRequis(domaine: string): boolean {
+  return domaine === 'autres';
+}

@@ -243,7 +243,6 @@
       "paysOrigine": "Country of origin",
       "adresse": "Full address",
       "villeResidence": "City of residence",
-      "lieuNaissance": "Place of birth (town)",
       "phonePrincipal": "Main phone number (sign-in ID)",
       "email": "Personal email address",
       "emailPlaceholder": "name@example.com",
@@ -252,9 +251,9 @@
     "step3": {
       "title": "Step 3 — Qualification & professional situation",
       "diplome": "Highest qualification obtained",
-      "annee": "Year awarded",
-      "institut": "Awarding institution",
-      "specialiteDiplome": "Field of the qualification",
+      "annee": "Year the highest qualification was awarded",
+      "institut": "Institution that awarded the highest qualification",
+      "specialiteDiplome": "Field of the highest qualification",
       "statutActuel": "Current professional situation",
       "employeurPublic": "Government body, company or public institution",
       "employeur": "Employer or organisation",
@@ -266,7 +265,14 @@
       "attestationNotice": "A certificate of actual service in post or an authorisation from your employer will be required, where applicable.",
       "moyenConnaissance": "How did you hear about the PSSFP?",
       "preciserSource": "Please specify the source",
-      "preciserSourcePlaceholder": "Name of the person, organisation or channel"
+      "preciserSourcePlaceholder": "Name of the person, organisation or channel",
+      "diplomeRequis": "Required qualification",
+      "anneeDiplomeRequis": "Year the required qualification was awarded",
+      "domaineDiplomeRequis": "Field of study of the required qualification",
+      "specialiteDiplomeRequis": "Specialisation of the required qualification",
+      "institutDiplomeRequis": "Institution that awarded the required qualification",
+      "blocPlusEleve": "Highest qualification obtained",
+      "blocRequis": "Qualification required for admission"
     },
     "step1": {
       "title": "Step 1 — Specialisation choice & identity",
@@ -289,7 +295,8 @@
       "dateNaissance": "Date of birth",
       "genre": "Gender",
       "statutMatrimonial": "Marital status",
-      "nationalite": "Nationality"
+      "nationalite": "Nationality",
+      "lieuNaissance": "Place of birth (town)"
     },
     "step5": {
       "eyebrow": "Final step",
@@ -333,11 +340,45 @@
         "employerPhone": "Employer phone",
         "mainPhone": "Main phone number",
         "secondPhone": "Secondary phone number",
-        "institution": "Institution"
+        "institution": "Institution",
+        "requiredDegree": "Required qualification",
+        "requiredDegreeYear": "Year the required qualification was awarded",
+        "requiredDegreeDomain": "Field of study of the required qualification",
+        "requiredDegreeField": "Specialisation of the required qualification",
+        "requiredDegreeInstitution": "Institution that awarded the required qualification",
+        "otherDegrees": "Other qualifications",
+        "proTraining": "Professional training",
+        "none": "None"
       }
     },
     "progressAria": "Form progress",
-    "stepCounter": "Step {current} of {total}"
+    "stepCounter": "Step {current} of {total}",
+    "diplomes": {
+      "sectionTitle": "Other qualifications and training",
+      "sectionHint": "Optional. You may leave this section empty.",
+      "autresDiplomes": {
+        "legend": "Additional academic qualification",
+        "add": "Add a qualification",
+        "remove": "Remove qualification {index}",
+        "removed": "Qualification removed.",
+        "added": "Qualification added.",
+        "max": "You cannot add more than {max} qualifications.",
+        "intitule": "Qualification title",
+        "etablissement": "Awarding institution",
+        "annee": "Year awarded"
+      },
+      "formationsPro": {
+        "legend": "Professional training",
+        "add": "Add a training course",
+        "remove": "Remove training course {index}",
+        "removed": "Training course removed.",
+        "added": "Training course added.",
+        "max": "You cannot add more than {max} training courses.",
+        "centre": "Training centre",
+        "qualification": "Qualification obtained",
+        "annee": "Year of training"
+      }
+    }
   },
   "forgotPin": {
     "progressAria": "Progress",
@@ -393,10 +434,10 @@
       "specialite": "Specialisation",
       "type_etude": "Study mode",
       "premiere_langue": "First language",
-      "diplome_obtenu": "Qualification obtained",
-      "institut": "Institution",
-      "specialite_diplome": "Field of the qualification",
-      "annee_diplome": "Year the qualification was awarded",
+      "diplome_obtenu": "Highest qualification obtained",
+      "institut": "Institution that awarded the highest qualification",
+      "specialite_diplome": "Field of the highest qualification",
+      "annee_diplome": "Year the highest qualification was awarded",
       "statut_actuel": "Current professional situation",
       "fonction_actuelle": "Role or position held",
       "employeur": "Employer or organisation",
@@ -409,7 +450,14 @@
       "adresse_employeur": "Work city / address (optional)",
       "tel_employeur": "Work phone number (optional)",
       "indicatif_generique": "Country code",
-      "indicatifPlaceholder": "— Country code —"
+      "indicatifPlaceholder": "— Country code —",
+      "diplome_requis": "Required qualification",
+      "annee_diplome_requis": "Year the required qualification was awarded",
+      "domaine_diplome_requis": "Field of study of the required qualification",
+      "specialite_diplome_requis": "Specialisation of the required qualification",
+      "institut_diplome_requis": "Institution that awarded the required qualification",
+      "autres_diplomes": "Other academic qualifications",
+      "formations_professionnelles": "Professional training"
     },
     "completeness": {
       "submittedTitle": "Application submitted",
