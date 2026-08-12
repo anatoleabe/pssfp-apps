@@ -15,7 +15,7 @@ import {
   step3Schema,
   step4Schema,
 } from '@/lib/validation/schemas';
-import { initialWizardData, type WizardData, type WizardServerActionResult } from './types';
+import { initialWizardData, type WizardData, type WizardErrors, type WizardServerActionResult } from './types';
 import { WizardStep1Identite } from './WizardStep1Identite';
 import { WizardStep2Coordonnees } from './WizardStep2Coordonnees';
 import { WizardStep3Diplome } from './WizardStep3Diplome';
@@ -51,7 +51,7 @@ export function WizardContainer({
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [data, setData] = useState<WizardData>(() => readSession() ?? initialWizardData);
-  const [errors, setErrors] = useState<Partial<Record<keyof WizardData, string>>>({});
+  const [errors, setErrors] = useState<WizardErrors>({});
   const [serverErrors, setServerErrors] = useState<Record<string, string> | undefined>();
   const [serverCta, setServerCta] = useState<WizardServerActionResult['cta'] | null>(null);
   const [turnstileResetKey, setTurnstileResetKey] = useState(0);
@@ -176,9 +176,11 @@ export function WizardContainer({
       setErrors({});
       return true;
     }
-    const next: Partial<Record<keyof WizardData, string>> = {};
+    const next: WizardErrors = {};
     for (const issue of result.error.issues) {
-      const key = issue.path[0] as keyof WizardData;
+      // Chemin complet pour les lignes répétables (`autres_diplomes.0.intitule`),
+      // clé simple sinon.
+      const key = issue.path.length > 1 ? issue.path.join('.') : String(issue.path[0]);
       if (!next[key]) {
         next[key] = issue.message;
       }
@@ -294,7 +296,7 @@ export function WizardContainer({
   };
 
   const showStep4StrictErrors = (): void => {
-    const strictErrors: Partial<Record<keyof WizardData, string>> = {};
+    const strictErrors: WizardErrors = {};
     const pinResult = validateCandidatePin(data.pin, data.phone_e164, data.date_naissance || null);
     if (!pinResult.ok) strictErrors.pin = 'Choisissez un PIN plus sûr en respectant les règles indiquées.';
     if (data.pin !== data.pin_confirmation) strictErrors.pin_confirmation = 'La confirmation du PIN ne correspond pas.';
@@ -308,7 +310,7 @@ export function WizardContainer({
     });
   };
 
-  const mergedErrors = { ...errors, ...(serverErrors ?? {}) } as Partial<Record<keyof WizardData, string>>;
+  const mergedErrors: WizardErrors = { ...errors, ...(serverErrors ?? {}) };
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm md:p-8">
@@ -467,18 +469,25 @@ function getServerErrorStep(
 ): 1 | 2 | 3 | 4 | null {
   if (!errors) return null;
 
-  const keys = Object.keys(errors);
+  // Une erreur de ligne répétable arrive sous la forme
+  // `autres_diplomes.0.intitule` : on la ramène à sa racine pour retrouver
+  // l'étape concernée.
+  const keys = Object.keys(errors).map((key) => key.split('.')[0] ?? key);
   const step1Fields = [
     'specialite', 'type_etude', 'premiere_langue', 'civilite', 'nom', 'prenom',
-    'epouse', 'date_naissance', 'genre', 'statut_matrimonial', 'nationalite',
+    'epouse', 'date_naissance', 'lieu_naissance', 'genre', 'statut_matrimonial',
+    'nationalite',
   ];
   const step2Fields = [
     'pays_origine', 'pays_residence', 'region', 'departement', 'adresse',
-    'ville_residence', 'lieu_naissance', 'indicatif1', 'telephone1', 'phone_e164',
+    'ville_residence', 'indicatif1', 'telephone1', 'phone_e164',
     'indicatif2', 'telephone2', 'email',
   ];
   const step3Fields = [
     'diplome_obtenu', 'institut', 'specialite_diplome', 'annee_diplome',
+    'diplome_requis', 'annee_diplome_requis', 'domaine_diplome_requis',
+    'specialite_diplome_requis', 'institut_diplome_requis',
+    'autres_diplomes', 'formations_professionnelles',
     'statut_actuel', 'fonction_actuelle', 'employeur', 'adresse_employeur',
     'tel_employeur', 'moyen_connaissance', 'moyen_connaissance_detail',
   ];

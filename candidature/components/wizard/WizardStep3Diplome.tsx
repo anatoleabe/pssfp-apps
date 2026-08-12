@@ -7,11 +7,11 @@ import { EmployeurPublicSelect } from '@/components/EmployeurPublicSelect';
 import { InstitutSelect } from '@/components/InstitutSelect';
 import { MOYENS_CONNAISSANCE, STATUT_ACTUEL_OPTIONS, isPublicEmploymentStatus, needsEmployer } from '@/lib/dossier/options';
 import type { Diplome, EmployeurPublicGroup, UniversitePays } from '@/lib/api/types';
-import type { WizardData } from './types';
+import type { WizardData, WizardErrors } from './types';
 
 export interface WizardStep3Props {
   data: WizardData;
-  errors: Partial<Record<keyof WizardData, string>>;
+  errors: WizardErrors;
   onChange: (patch: Partial<WizardData>) => void;
   diplomes: Diplome[];
   universites: UniversitePays[];

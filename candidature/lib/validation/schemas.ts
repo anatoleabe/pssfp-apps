@@ -25,6 +25,7 @@ export const step1Schema = z.object({
     .min(1, requiredMessage)
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Saisissez une date de naissance valide.')
     .refine((v) => v <= eighteenYearsAgoIso, 'Vous devez avoir au moins 18 ans'),
+  lieu_naissance: z.string().trim().min(1, requiredMessage).max(100),
   genre: z.enum(['M', 'F', 'autre']),
   statut_matrimonial: z.string().trim().min(1).max(20),
   nationalite: z.string().regex(isoCountryRegex, 'Code pays ISO-2 attendu'),
@@ -38,7 +39,6 @@ export const step2Schema = z
     departement: z.string().trim().optional().nullable(),
     adresse: z.string().trim().min(1, requiredMessage).max(200),
     ville_residence: z.string().trim().min(1, requiredMessage).max(100),
-    lieu_naissance: z.string().trim().min(1, requiredMessage).max(100),
     indicatif1: z.string().trim().min(1, requiredMessage).max(10),
     telephone1: z.string().trim().min(1, requiredMessage).max(20),
     phone_e164: z.string().min(1, requiredMessage).regex(phoneE164Regex, 'Saisissez un numéro de téléphone valide.'),

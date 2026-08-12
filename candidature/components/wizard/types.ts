@@ -1,4 +1,5 @@
 import type { Pays, Specialite, StatutActuel } from '@/lib/api/types';
+import type { AutreDiplomeRow, FormationProRow } from '@/lib/diplomes/rows';
 
 export interface WizardData {
   // Step 1 — Identité & vœu
@@ -10,6 +11,7 @@ export interface WizardData {
   prenom: string;
   epouse: string;
   date_naissance: string; // YYYY-MM-DD
+  lieu_naissance: string;
   genre: 'M' | 'F' | 'autre';
   statut_matrimonial: string;
   nationalite: string; // ISO-2
@@ -21,7 +23,6 @@ export interface WizardData {
   departement: string;
   adresse: string;
   ville_residence: string;
-  lieu_naissance: string;
   indicatif1: string;
   telephone1: string;
   phone_country: string;
@@ -35,6 +36,13 @@ export interface WizardData {
   institut: string;
   specialite_diplome: string;
   annee_diplome: number | '';
+  diplome_requis: string;
+  annee_diplome_requis: number | '';
+  domaine_diplome_requis: string;
+  specialite_diplome_requis: string;
+  institut_diplome_requis: string;
+  autres_diplomes: AutreDiplomeRow[];
+  formations_professionnelles: FormationProRow[];
   statut_actuel: StatutActuel | '';
   fonction_actuelle: string;
   employeur: string;
@@ -62,6 +70,7 @@ export const initialWizardData: WizardData = {
   prenom: '',
   epouse: '',
   date_naissance: '',
+  lieu_naissance: '',
   genre: 'M',
   statut_matrimonial: 'Célibataire',
   nationalite: 'CM',
@@ -72,7 +81,6 @@ export const initialWizardData: WizardData = {
   departement: '',
   adresse: '',
   ville_residence: '',
-  lieu_naissance: '',
   indicatif1: '+237',
   telephone1: '',
   phone_country: 'CM',
@@ -85,6 +93,13 @@ export const initialWizardData: WizardData = {
   institut: '',
   specialite_diplome: '',
   annee_diplome: '',
+  diplome_requis: '',
+  annee_diplome_requis: '',
+  domaine_diplome_requis: '',
+  specialite_diplome_requis: '',
+  institut_diplome_requis: '',
+  autres_diplomes: [],
+  formations_professionnelles: [],
   statut_actuel: '',
   fonction_actuelle: '',
   employeur: '',
@@ -98,6 +113,15 @@ export const initialWizardData: WizardData = {
   pin_confirmation: '',
   cgu: false,
   turnstile_token: '',
+};
+
+/**
+ * Carte des erreurs du wizard. L'intersection conserve l'autocomplétion sur les
+ * champs connus tout en autorisant les clés à chemin complet produites par les
+ * blocs répétables (`autres_diplomes.0.intitule`).
+ */
+export type WizardErrors = Partial<Record<keyof WizardData, string>> & {
+  [key: string]: string | undefined;
 };
 
 export interface WizardServerActionPayload {

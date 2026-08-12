@@ -8,7 +8,7 @@ import { PinInput } from '@/components/PinInput';
 import { TurnstileWidget, isTurnstileEnabled } from '@/components/TurnstileWidget';
 import { isValidEngagement } from '@/lib/format/engagement';
 import { validateCandidatePin } from '@/lib/validation/pinValidation';
-import type { WizardData } from './types';
+import type { WizardData, WizardErrors } from './types';
 
 /** Codes de refus émis par validateCandidatePin — mappés sur pinReasons.* */
 const KNOWN_PIN_REASONS = new Set([
@@ -20,7 +20,7 @@ const KNOWN_PIN_REASONS = new Set([
 
 export interface WizardStep4Props {
   data: WizardData;
-  errors: Partial<Record<keyof WizardData, string>>;
+  errors: WizardErrors;
   cta?: { label: string; href: string } | null;
   turnstileResetKey?: number;
   onChange: (patch: Partial<WizardData>) => void;

@@ -6,11 +6,11 @@ import { PaysRegionDepartementSelect } from '@/components/PaysRegionDepartementS
 import { PhoneInput } from '@/components/PhoneInput';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import type { Pays } from '@/lib/api/types';
-import type { WizardData } from './types';
+import type { WizardData, WizardErrors } from './types';
 
 export interface WizardStep2Props {
   data: WizardData;
-  errors: Partial<Record<keyof WizardData, string>>;
+  errors: WizardErrors;
   pays: Pays[];
   onChange: (patch: Partial<WizardData>) => void;
 }
@@ -71,15 +71,6 @@ export function WizardStep2Coordonnees({ data, errors, pays, onChange }: WizardS
           />
         </Field>
       </div>
-
-      <Field label={t('lieuNaissance')} error={errors.lieu_naissance} required>
-        <input
-          type="text"
-          value={data.lieu_naissance}
-          onChange={(e) => onChange({ lieu_naissance: e.target.value })}
-          className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
-        />
-      </Field>
 
       <Field label={t('phonePrincipal')} error={errors.phone_e164} required>
         <PhoneInput
