@@ -86,6 +86,12 @@ function submittedEmailAuthedCandidat(array $extra = []): array
         'institut' => 'Université de Yaoundé II',
         'specialite_diplome' => 'Économie',
         'annee_diplome' => 2024,
+        // Bloc « diplôme requis » : obligatoire depuis form_version 2, et tout
+        // dossier créé par ces tests est un dossier neuf, donc en v2.
+        'diplome_requis' => 'master',
+        'annee_diplome_requis' => 2024,
+        'domaine_diplome_requis' => 'economie',
+        'institut_diplome_requis' => 'Université de Yaoundé II',
         'statut_actuel' => 'Etudiant',
         'moyen_connaissance' => 'Site officiel du PSSFP',
         'engagement_nom' => 'Jean Dupont',

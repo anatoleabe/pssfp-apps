@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\User;
+use App\Services\CandidatureService;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
@@ -203,4 +204,141 @@ it('interdit de forcer form_version via le body', function (): void {
         'form_version' => 1,
     ])->assertOk()
         ->assertJsonPath('data.form_version', 2);
+});
+
+/** Dossier complet au sens de l'ancien formulaire, prêt à être soumis. */
+function candidatureComplete(int $campagneId, array $overrides = []): Candidature
+{
+    // `refresh()` obligatoire : `create()` ne remonte pas les valeurs posées
+    // par un DEFAULT Postgres, et `form_version` en est une. Sans lui, le
+    // modèle en mémoire aurait `form_version` à null et checkSubmittable
+    // basculerait à tort sur le comportement v1.
+    $candidature = Candidature::factory()->create(array_merge([
+        'campagne_id' => $campagneId,
+        'statut' => Candidature::STATUT_POSTULANT,
+        'photo_path' => 'candidatures/test/photo.jpg',
+        'civilite' => 'M.',
+        'nom' => 'Ndongo',
+        'prenom' => 'Paul',
+        'date_naissance' => '1990-06-15',
+        'lieu_naissance' => 'Yaoundé',
+        'genre' => 'M',
+        'statut_matrimonial' => 'Célibataire',
+        'nationalite' => 'CM',
+        'pays_origine' => 'CM',
+        'pays_residence' => 'CM',
+        'region' => 'CENTRE',
+        'departement' => 'Mfoundi',
+        'adresse' => 'BP 1234 Yaoundé',
+        'ville_residence' => 'Yaoundé',
+        'indicatif1' => '+237',
+        'telephone1' => '691234567',
+        'email' => 'paul.ndongo@example.com',
+        'specialite' => array_values((array) config('specialites'))[0],
+        'type_etude' => 'presentiel',
+        'premiere_langue' => 'fr',
+        'diplome_obtenu' => 'Master',
+        'institut' => 'Université de Yaoundé II',
+        'specialite_diplome' => 'Finances publiques',
+        'annee_diplome' => 2015,
+        'statut_actuel' => 'Etudiant',
+        'moyen_connaissance' => 'Site officiel du PSSFP',
+        'engagement_nom' => 'Paul Ndongo',
+    ], $overrides));
+
+    return $candidature->refresh();
+}
+
+function forceFormVersion(Candidature $candidature, int $version): Candidature
+{
+    DB::table('candidatures')->where('id', $candidature->id)->update(['form_version' => $version]);
+
+    return $candidature->refresh();
+}
+
+it('laisse un dossier v1 soumissible sans les nouveaux champs', function (): void {
+    $candidature = forceFormVersion(candidatureComplete($this->campagne->id), 1);
+
+    expect(app(CandidatureService::class)->checkSubmittable($candidature))->toBe([]);
+});
+
+it('bloque un dossier v2 tant que les nouveaux champs manquent', function (): void {
+    $candidature = candidatureComplete($this->campagne->id);
+
+    $errors = app(CandidatureService::class)->checkSubmittable($candidature);
+
+    expect($errors)->toHaveKeys([
+        'diplome_requis', 'annee_diplome_requis', 'domaine_diplome_requis', 'institut_diplome_requis',
+    ]);
+});
+
+it('laisse un dossier v2 complet soumissible', function (): void {
+    $candidature = candidatureComplete($this->campagne->id, [
+        'diplome_requis' => 'licence-bachelor',
+        'annee_diplome_requis' => 2012,
+        'domaine_diplome_requis' => 'droit',
+        'institut_diplome_requis' => 'Université de Yaoundé II',
+    ]);
+
+    expect(app(CandidatureService::class)->checkSubmittable($candidature))->toBe([]);
+});
+
+it('exige la spécialité du diplôme requis quand le domaine vaut autres', function (): void {
+    $candidature = candidatureComplete($this->campagne->id, [
+        'diplome_requis' => 'master',
+        'annee_diplome_requis' => 2012,
+        'domaine_diplome_requis' => 'autres',
+        'institut_diplome_requis' => 'Université de Yaoundé II',
+    ]);
+
+    expect(app(CandidatureService::class)->checkSubmittable($candidature))
+        ->toHaveKey('specialite_diplome_requis');
+});
+
+it('n’exige pas la spécialité du diplôme requis hors domaine autres', function (): void {
+    $candidature = candidatureComplete($this->campagne->id, [
+        'diplome_requis' => 'master',
+        'annee_diplome_requis' => 2012,
+        'domaine_diplome_requis' => 'economie',
+        'institut_diplome_requis' => 'Université de Yaoundé II',
+    ]);
+
+    expect(app(CandidatureService::class)->checkSubmittable($candidature))
+        ->not->toHaveKey('specialite_diplome_requis');
+});
+
+it('refuse une ligne de bloc répétable incomplète', function (): void {
+    $candidature = candidatureComplete($this->campagne->id, [
+        'diplome_requis' => 'master',
+        'annee_diplome_requis' => 2012,
+        'domaine_diplome_requis' => 'gestion',
+        'institut_diplome_requis' => 'Université de Yaoundé II',
+        'autres_diplomes' => [['intitule' => 'DESS', 'etablissement' => null, 'annee' => 2019]],
+    ]);
+
+    expect(app(CandidatureService::class)->checkSubmittable($candidature))
+        ->toHaveKey('autres_diplomes.0');
+});
+
+it('accepte des blocs répétables complets ou vides', function (): void {
+    $service = app(CandidatureService::class);
+
+    $avecLignes = candidatureComplete($this->campagne->id, [
+        'diplome_requis' => 'master',
+        'annee_diplome_requis' => 2012,
+        'domaine_diplome_requis' => 'gestion',
+        'institut_diplome_requis' => 'Université de Yaoundé II',
+        'autres_diplomes' => [['intitule' => 'DESS', 'etablissement' => 'ENAM', 'annee' => 2019]],
+        'formations_professionnelles' => [],
+    ]);
+
+    expect($service->checkSubmittable($avecLignes))->toBe([]);
+});
+
+it('ignore les nouvelles exigences pour un dossier v1 même incomplet', function (): void {
+    $candidature = forceFormVersion(candidatureComplete($this->campagne->id, [
+        'autres_diplomes' => [['intitule' => 'DESS', 'etablissement' => null, 'annee' => null]],
+    ]), 1);
+
+    expect(app(CandidatureService::class)->checkSubmittable($candidature))->toBe([]);
 });

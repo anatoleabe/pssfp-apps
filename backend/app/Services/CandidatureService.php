@@ -219,6 +219,68 @@ final class CandidatureService
             $errors['specialite'] = 'La spécialité demandée n\'est pas reconnue.';
         }
 
+        // Nouvelles exigences du formulaire 2026-08. Elles ne s'appliquent
+        // qu'aux dossiers créés après la mise en production : un brouillon
+        // antérieur (form_version = 1) reste soumissible avec l'ancien jeu de
+        // champs, cf. docs/specs/module-5-evolution-diplomes-2026-08.md.
+        if ((int) ($candidature->form_version ?? 1) >= 2) {
+            $errors = array_merge($errors, $this->checkDiplomeRequis($candidature));
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Exigences propres au bloc « diplôme requis » et aux blocs répétables.
+     *
+     * @return array<string, string>
+     */
+    private function checkDiplomeRequis(Candidature $candidature): array
+    {
+        $errors = [];
+
+        $required = [
+            'diplome_requis' => 'Le diplôme requis est obligatoire.',
+            'annee_diplome_requis' => "L'année d'obtention du diplôme requis est obligatoire.",
+            'domaine_diplome_requis' => 'Le domaine du diplôme requis est obligatoire.',
+            'institut_diplome_requis' => "L'établissement de délivrance du diplôme requis est obligatoire.",
+        ];
+
+        foreach ($required as $field => $message) {
+            $value = $candidature->{$field};
+            if ($value === null || $value === '') {
+                $errors[$field] = $message;
+            }
+        }
+
+        if ($candidature->domaine_diplome_requis === 'autres' && empty($candidature->specialite_diplome_requis)) {
+            $errors['specialite_diplome_requis'] = 'La spécialité du diplôme requis est obligatoire lorsque le domaine est « Autres ».';
+        }
+
+        if ($candidature->annee_diplome_requis !== null && $candidature->annee_diplome_requis > now()->year) {
+            $errors['annee_diplome_requis'] = "L'année d'obtention du diplôme requis ne peut pas être dans le futur.";
+        }
+
+        $blocks = [
+            'autres_diplomes' => [
+                'keys' => CandidatureDiplomeBlocks::AUTRE_DIPLOME_KEYS,
+                'message' => 'Chaque diplôme complémentaire ajouté doit indiquer son intitulé, son établissement et son année.',
+            ],
+            'formations_professionnelles' => [
+                'keys' => CandidatureDiplomeBlocks::FORMATION_PRO_KEYS,
+                'message' => 'Chaque formation professionnelle ajoutée doit indiquer son centre, sa qualification et son année.',
+            ],
+        ];
+
+        foreach ($blocks as $field => $spec) {
+            $rows = CandidatureDiplomeBlocks::normalize($candidature->{$field}, $spec['keys']);
+            foreach ($rows as $index => $row) {
+                if (! CandidatureDiplomeBlocks::isRowComplete($row, $spec['keys'])) {
+                    $errors["{$field}.{$index}"] = $spec['message'];
+                }
+            }
+        }
+
         return $errors;
     }
 
