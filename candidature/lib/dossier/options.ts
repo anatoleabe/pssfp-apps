@@ -43,3 +43,31 @@ export function isPublicEmploymentStatus(status: string): boolean {
 export function needsEmployer(status: string): boolean {
   return status !== '' && status !== 'Etudiant' && status !== 'Sans-emploi';
 }
+
+/**
+ * Diplôme requis pour l'admission. Seule la valeur (slug stable) vit ici — le
+ * libellé est résolu à l'affichage via `options.diplomeRequis.<slug>`, sans
+ * quoi la version anglaise servirait un libellé français.
+ * Aligné sur backend/config/diplome_requis.php.
+ */
+export const DIPLOME_REQUIS_VALUES = ['licence-bachelor', 'master'] as const;
+
+/** Aligné sur backend/config/domaines_diplome.php. */
+export const DOMAINE_DIPLOME_VALUES = ['droit', 'economie', 'gestion', 'autres'] as const;
+
+export type DiplomeRequisValue = (typeof DIPLOME_REQUIS_VALUES)[number];
+export type DomaineDiplomeValue = (typeof DOMAINE_DIPLOME_VALUES)[number];
+
+/** Garde-fou avant traduction : une valeur héritée inconnue reste affichée brute. */
+export function isDiplomeRequisValue(value: unknown): value is DiplomeRequisValue {
+  return typeof value === 'string' && (DIPLOME_REQUIS_VALUES as readonly string[]).includes(value);
+}
+
+export function isDomaineDiplomeValue(value: unknown): value is DomaineDiplomeValue {
+  return typeof value === 'string' && (DOMAINE_DIPLOME_VALUES as readonly string[]).includes(value);
+}
+
+/** Seul le domaine « Autres » ouvre le champ de spécialité du diplôme requis. */
+export function needsSpecialiteDiplomeRequis(domaine: string): boolean {
+  return domaine === 'autres';
+}

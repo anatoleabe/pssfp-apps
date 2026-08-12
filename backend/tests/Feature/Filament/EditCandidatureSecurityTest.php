@@ -97,3 +97,90 @@ it('allows super_admin to edit a decided candidature (exceptional correction)', 
     $this->livewire(EditCandidature::class, ['record' => $cand->getRouteKey()])
         ->assertSuccessful();
 });
+
+it('expose les champs du diplôme requis et les blocs répétables dans l’admin', function (): void {
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $cand = Candidature::factory()->forCampagne($this->campagne)->create([
+        'user_id' => User::factory()->candidat()->create()->id,
+        'phone_e164' => '+237691333444',
+        'specialite' => array_values((array) config('specialites'))[0],
+    ]);
+
+    $this->actingAs($admin);
+
+    $this->livewire(EditCandidature::class, ['record' => $cand->getRouteKey()])
+        ->assertFormFieldExists('diplome_requis')
+        ->assertFormFieldExists('annee_diplome_requis')
+        ->assertFormFieldExists('domaine_diplome_requis')
+        ->assertFormFieldExists('institut_diplome_requis')
+        ->assertFormFieldExists('autres_diplomes')
+        ->assertFormFieldExists('formations_professionnelles')
+        ->fillForm([
+            'diplome_requis' => 'master',
+            'annee_diplome_requis' => 2015,
+            'domaine_diplome_requis' => 'gestion',
+            'institut_diplome_requis' => 'Université de Douala',
+            'autres_diplomes' => [
+                ['intitule' => 'DESS', 'etablissement' => 'ENAM', 'annee' => 2019],
+            ],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $cand->refresh();
+
+    expect($cand->diplome_requis)->toBe('master')
+        ->and($cand->annee_diplome_requis)->toBe(2015)
+        ->and($cand->domaine_diplome_requis)->toBe('gestion')
+        ->and($cand->autres_diplomes[0]['intitule'])->toBe('DESS');
+});
+
+it('normalise les blocs répétables saisis depuis l’admin', function (): void {
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $cand = Candidature::factory()->forCampagne($this->campagne)->create([
+        'user_id' => User::factory()->candidat()->create()->id,
+        'phone_e164' => '+237691555666',
+        'specialite' => array_values((array) config('specialites'))[0],
+    ]);
+
+    $this->actingAs($admin);
+
+    $this->livewire(EditCandidature::class, ['record' => $cand->getRouteKey()])
+        ->fillForm([
+            // Filament remonte les TextInput en chaînes : sans normalisation,
+            // `annee` serait stockée en "2019" alors que l'API stocke 2019.
+            'autres_diplomes' => [
+                ['intitule' => '  DESS  ', 'etablissement' => 'ENAM', 'annee' => '2019'],
+                ['intitule' => '', 'etablissement' => '', 'annee' => ''],
+            ],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $cand->refresh();
+
+    expect($cand->autres_diplomes)->toHaveCount(1)
+        ->and($cand->autres_diplomes[0]['annee'])->toBe(2019)
+        ->and($cand->autres_diplomes[0]['intitule'])->toBe('DESS');
+});
+
+it('interdit de forcer form_version depuis l’admin', function (): void {
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $cand = Candidature::factory()->forCampagne($this->campagne)->create([
+        'user_id' => User::factory()->candidat()->create()->id,
+        'phone_e164' => '+237691777888',
+        'specialite' => array_values((array) config('specialites'))[0],
+    ]);
+
+    $page = new EditCandidature;
+    $filtered = (fn (array $d): array => $this->mutateFormDataBeforeSave($d))
+        ->call($page, ['nom' => 'Ndongo', 'form_version' => 1]);
+
+    expect($filtered)->toBe(['nom' => 'Ndongo']);
+});

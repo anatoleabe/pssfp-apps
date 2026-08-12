@@ -4,11 +4,11 @@ import { useTranslations } from 'next-intl';
 
 import { SearchableSelect } from '@/components/SearchableSelect';
 import type { Pays, Specialite } from '@/lib/api/types';
-import type { WizardData } from './types';
+import type { WizardData, WizardErrors } from './types';
 
 export interface WizardStep1Props {
   data: WizardData;
-  errors: Partial<Record<keyof WizardData, string>>;
+  errors: WizardErrors;
   pays: Pays[];
   specialites: Specialite[];
   onChange: (patch: Partial<WizardData>) => void;
@@ -170,6 +170,19 @@ export function WizardStep1Identite({
           </select>
         </Field>
       </div>
+
+      {/* Lieu de naissance : rattaché à la date de naissance depuis la
+          correction d'août 2026 — il figurait auparavant à l'étape 2, loin de
+          la donnée à laquelle il se rapporte. */}
+      <Field label={t('lieuNaissance')} error={errors.lieu_naissance} required>
+        <input
+          data-testid="step1-lieu-naissance"
+          type="text"
+          value={data.lieu_naissance}
+          onChange={(e) => onChange({ lieu_naissance: e.target.value })}
+          className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
+        />
+      </Field>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field label={t('statutMatrimonial')} error={errors.statut_matrimonial} required>

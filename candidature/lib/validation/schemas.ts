@@ -25,6 +25,7 @@ export const step1Schema = z.object({
     .min(1, requiredMessage)
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Saisissez une date de naissance valide.')
     .refine((v) => v <= eighteenYearsAgoIso, 'Vous devez avoir au moins 18 ans'),
+  lieu_naissance: z.string().trim().min(1, requiredMessage).max(100),
   genre: z.enum(['M', 'F', 'autre']),
   statut_matrimonial: z.string().trim().min(1).max(20),
   nationalite: z.string().regex(isoCountryRegex, 'Code pays ISO-2 attendu'),
@@ -38,7 +39,6 @@ export const step2Schema = z
     departement: z.string().trim().optional().nullable(),
     adresse: z.string().trim().min(1, requiredMessage).max(200),
     ville_residence: z.string().trim().min(1, requiredMessage).max(100),
-    lieu_naissance: z.string().trim().min(1, requiredMessage).max(100),
     indicatif1: z.string().trim().min(1, requiredMessage).max(10),
     telephone1: z.string().trim().min(1, requiredMessage).max(20),
     phone_e164: z.string().min(1, requiredMessage).regex(phoneE164Regex, 'Saisissez un numéro de téléphone valide.'),
@@ -55,15 +55,42 @@ export const step2Schema = z
     }
   });
 
+const currentYear = new Date().getFullYear();
+
+const anneeObtentionSchema = z
+  .number({ error: 'Année invalide' })
+  .int('Année invalide')
+  .min(1950, 'Année invalide')
+  .max(currentYear, "L'année ne peut pas être dans le futur.");
+
+/**
+ * Une ligne créée dans un bloc répétable doit être complète. Une ligne
+ * entièrement vide n'atteint jamais ce schéma : elle est filtrée en amont.
+ */
+export const autreDiplomeRowSchema = z.object({
+  intitule: z.string().trim().min(1, requiredMessage).max(150),
+  etablissement: z.string().trim().min(1, requiredMessage).max(150),
+  annee: anneeObtentionSchema,
+});
+
+export const formationProRowSchema = z.object({
+  centre: z.string().trim().min(1, requiredMessage).max(150),
+  qualification: z.string().trim().min(1, requiredMessage).max(150),
+  annee: anneeObtentionSchema,
+});
+
 export const step3Schema = z.object({
   diplome_obtenu: z.string().trim().min(1, requiredMessage).max(100),
   institut: z.string().trim().min(1, requiredMessage).max(150),
   specialite_diplome: z.string().trim().min(1, requiredMessage).max(100),
-  annee_diplome: z
-    .number({ error: 'Année invalide' })
-    .int()
-    .min(1950)
-    .max(new Date().getFullYear()),
+  annee_diplome: anneeObtentionSchema,
+  diplome_requis: z.enum(['licence-bachelor', 'master'], { error: requiredMessage }),
+  annee_diplome_requis: anneeObtentionSchema,
+  domaine_diplome_requis: z.enum(['droit', 'economie', 'gestion', 'autres'], { error: requiredMessage }),
+  specialite_diplome_requis: z.string().trim().max(100).optional().nullable(),
+  institut_diplome_requis: z.string().trim().min(1, requiredMessage).max(150),
+  autres_diplomes: z.array(autreDiplomeRowSchema).max(10),
+  formations_professionnelles: z.array(formationProRowSchema).max(10),
   statut_actuel: z.enum([
     'Etudiant', 'Sans-emploi', 'Fonctionnaire', 'Contractuel-Etat',
     'Etablissement-public', 'Entreprise-publique', 'Prive', 'Independant',
@@ -76,6 +103,16 @@ export const step3Schema = z.object({
   moyen_connaissance: z.string().trim().min(1, requiredMessage).max(100),
   moyen_connaissance_detail: z.string().trim().max(150).optional().nullable(),
 }).superRefine((data, context) => {
+  // La spécialité du diplôme requis n'est exigée que pour le domaine « Autres » ;
+  // ailleurs le champ n'est même pas affiché.
+  if (data.domaine_diplome_requis === 'autres' && !data.specialite_diplome_requis?.trim()) {
+    context.addIssue({
+      code: 'custom',
+      message: requiredMessage,
+      path: ['specialite_diplome_requis'],
+    });
+  }
+
   if (!['Etudiant', 'Sans-emploi'].includes(data.statut_actuel)) {
     for (const field of ['employeur', 'fonction_actuelle'] as const) {
       if (!data[field]?.trim()) context.addIssue({ code: 'custom', message: requiredMessage, path: [field] });

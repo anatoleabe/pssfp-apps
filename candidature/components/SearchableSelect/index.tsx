@@ -92,7 +92,10 @@ export function SearchableSelect({
         }}
         className="flex h-11 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-left text-sm text-[#333333] focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
       >
-        <span className={selected ? '' : 'text-gray-400'}>
+        {/* `text-gray-500` et non `text-gray-400` : le texte de substitution est
+            du contenu lu, il doit tenir le 4.5:1 exigé par WCAG 2.1 AA
+            (gray-400 sur blanc plafonne à 2.85:1). */}
+        <span className={selected ? '' : 'text-gray-500'}>
           {selected ? selected.label : placeholder}
         </span>
         <span aria-hidden className="ml-2 text-gray-400">
@@ -125,7 +128,7 @@ export function SearchableSelect({
           </div>
           <ul className="py-1">
             {filtered.length === 0 ? (
-              <li className="px-3 py-2 text-sm text-gray-400">{tss('noResult')}</li>
+              <li className="px-3 py-2 text-sm text-gray-500">{tss('noResult')}</li>
             ) : (
               filtered.map((opt) => (
                 <li

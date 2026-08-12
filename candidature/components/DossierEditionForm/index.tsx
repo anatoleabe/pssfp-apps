@@ -11,9 +11,11 @@ import { InstitutSelect } from '@/components/InstitutSelect';
 import { PaysRegionDepartementSelect } from '@/components/PaysRegionDepartementSelect';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import type { MyCandidature } from '@/lib/api/client';
-import type { EditableField, EditableFields } from '@/lib/dossier/editableFields';
+import type { EditableField, EditableFields, EditableValue } from '@/lib/dossier/editableFields';
 import { MOYENS_CONNAISSANCE, STATUT_ACTUEL_OPTIONS, isPublicEmploymentStatus, needsEmployer } from '@/lib/dossier/options';
 import type { Diplome, EmployeurPublicGroup, Pays, Specialite, UniversitePays } from '@/lib/api/types';
+import { Card, Field, inputCls, type FormState, type SectionPropsBase } from './primitives';
+import { SectionDiplome } from './SectionDiplome';
 
 const DEBOUNCE_MS = 2000;
 const MAX_RETRIES = 3;
@@ -35,8 +37,6 @@ interface DossierEditionFormProps {
   employeursPublics: EmployeurPublicGroup[];
   focusField: EditableField | null;
 }
-
-type FormState = Record<EditableField, string | number | null>;
 
 function buildInitialState(c: MyCandidature): FormState {
   return {
@@ -67,6 +67,13 @@ function buildInitialState(c: MyCandidature): FormState {
     institut: c.institut ?? '',
     specialite_diplome: c.specialite_diplome ?? '',
     annee_diplome: c.annee_diplome ?? '',
+    diplome_requis: c.diplome_requis ?? '',
+    annee_diplome_requis: c.annee_diplome_requis ?? '',
+    domaine_diplome_requis: c.domaine_diplome_requis ?? '',
+    specialite_diplome_requis: c.specialite_diplome_requis ?? '',
+    institut_diplome_requis: c.institut_diplome_requis ?? '',
+    autres_diplomes: c.autres_diplomes ?? [],
+    formations_professionnelles: c.formations_professionnelles ?? [],
     statut_actuel: c.statut_actuel ?? '',
     fonction_actuelle: c.fonction_actuelle ?? '',
     employeur: c.employeur ?? '',
@@ -101,12 +108,13 @@ export function DossierEditionForm({
     (Object.keys(next) as EditableField[]).forEach((k) => {
       const before = lastSavedRef.current[k];
       const after = next[k];
-      const normalizedBefore = before === '' ? '' : before;
-      const normalizedAfter = after === '' ? '' : after;
-      if (normalizedBefore !== normalizedAfter) {
-        // PUT 'null' explicite quand l'utilisateur efface un champ optionnel.
-        diff[k] = after === '' ? null : after;
+      // Comparaison structurelle : les blocs répétables sont des tableaux, une
+      // égalité de référence les considérerait modifiés à chaque frappe.
+      if (JSON.stringify(before) === JSON.stringify(after)) {
+        return;
       }
+      // PUT 'null' explicite quand l'utilisateur efface un champ texte optionnel.
+      diff[k] = after === '' ? null : after;
     });
     return diff;
   }, []);
@@ -192,7 +200,7 @@ export function DossierEditionForm({
     }
   }, [focusField]);
 
-  const setField = useCallback((field: EditableField, value: string | number): void => {
+  const setField = useCallback((field: EditableField, value: EditableValue): void => {
     setForm((prev) => ({ ...prev, [field]: value }));
   }, []);
 
@@ -224,6 +232,7 @@ export function DossierEditionForm({
       />
 
       <SectionDiplome
+        formVersion={candidature.form_version}
         form={form}
         errors={fieldErrors}
         setField={setField}
@@ -248,62 +257,6 @@ export function DossierEditionForm({
 }
 
 // ---------- Sections ----------
-
-function Card({
-  id,
-  title,
-  description,
-  children,
-}: {
-  id: string;
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}): JSX.Element {
-  return (
-    <section
-      aria-labelledby={`${id}-heading`}
-      className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
-      data-testid={`edition-section-${id}`}
-    >
-      <h2
-        id={`${id}-heading`}
-        className="font-heading text-lg font-bold text-[#4A2E67]"
-      >
-        {title}
-      </h2>
-      {description && <p className="mt-1 text-sm text-[#666]">{description}</p>}
-      <div className="mt-5 space-y-5">{children}</div>
-    </section>
-  );
-}
-
-function Field({
-  field,
-  label,
-  error,
-  children,
-}: {
-  field: EditableField;
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}): JSX.Element {
-  return (
-    <label className="block" data-field={field}>
-      <span className="mb-1 block text-sm font-medium text-[#333333]">{label}</span>
-      {children}
-      {error && (
-        <span role="alert" className="mt-1 block text-xs text-red-700">
-          {error}
-        </span>
-      )}
-    </label>
-  );
-}
-
-const inputCls =
-  'h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30';
 
 /**
  * Liste déroulante d'indicatif téléphonique par pays (format « +237 · Cameroun »).
@@ -347,12 +300,6 @@ function IndicatifSelect({
       ))}
     </select>
   );
-}
-
-interface SectionPropsBase {
-  form: FormState;
-  errors: Partial<Record<EditableField, string>>;
-  setField: (field: EditableField, value: string | number) => void;
 }
 
 function SectionIdentite({
@@ -629,161 +576,6 @@ function SectionCoordonnees({
           {te('emailHint')}
         </span>
       </Field>
-    </Card>
-  );
-}
-
-function SectionDiplome({
-  form,
-  errors,
-  setField,
-  diplomes,
-  universites,
-  employeursPublics,
-}: SectionPropsBase & { diplomes: Diplome[]; universites: UniversitePays[]; employeursPublics: EmployeurPublicGroup[] }): JSX.Element {
-  const tf = useTranslations('dossier.fields');
-  const to = useTranslations('options');
-  const te = useTranslations('dossier.edition');
-  const showEmployer = needsEmployer(String(form.statut_actuel ?? ''));
-  const usePublicSelect = isPublicEmploymentStatus(String(form.statut_actuel ?? ''));
-
-  return (
-    <Card id="diplome" title={te('sectionDiplome')} description="Parcours académique et activité actuelle.">
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field field="diplome_obtenu" label={tf('diplome_obtenu')} error={undefined}>
-          <DiplomeSelect
-            diplomes={diplomes}
-            value={String(form.diplome_obtenu ?? '')}
-            onChange={(v) => setField('diplome_obtenu', v)}
-            error={errors.diplome_obtenu}
-          />
-        </Field>
-        <Field field="annee_diplome" label={tf('annee_diplome')} error={errors.annee_diplome}>
-          <input
-            data-testid="edit-annee-diplome"
-            type="number"
-            inputMode="numeric"
-            min={1950}
-            max={new Date().getFullYear()}
-            value={form.annee_diplome === '' ? '' : String(form.annee_diplome ?? '')}
-            onChange={(e) => setField('annee_diplome', e.target.value === '' ? '' : Number(e.target.value))}
-            className={inputCls}
-          />
-        </Field>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field field="institut" label={tf('institut')} error={undefined}>
-          <InstitutSelect
-            universites={universites}
-            value={String(form.institut ?? '')}
-            onChange={(v) => setField('institut', v)}
-            error={errors.institut}
-          />
-        </Field>
-        <Field field="specialite_diplome" label={tf('specialite_diplome')} error={errors.specialite_diplome}>
-          <input
-            type="text"
-            value={String(form.specialite_diplome ?? '')}
-            onChange={(e) => setField('specialite_diplome', e.target.value)}
-            className={inputCls}
-          />
-        </Field>
-      </div>
-
-      <Field field="statut_actuel" label={tf('statut_actuel')} error={errors.statut_actuel}>
-        <select
-          data-testid="edit-statut-actuel"
-          value={String(form.statut_actuel ?? '')}
-          onChange={(e) => setField('statut_actuel', e.target.value)}
-          className={inputCls}
-        >
-          <option value="">{to('choose')}</option>
-          {STATUT_ACTUEL_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
-      </Field>
-
-      {showEmployer && (
-        <div className="space-y-4 rounded-md border border-[#F4EFFA] bg-[#FAF7FF] p-4">
-          <Field
-            field="employeur"
-            label={usePublicSelect ? 'Administration, entreprise ou établissement public *' : 'Employeur ou organisation *'}
-            error={errors.employeur}
-          >
-            {usePublicSelect ? (
-              <EmployeurPublicSelect
-                groups={employeursPublics}
-                value={String(form.employeur ?? '')}
-                onChange={(value) => setField('employeur', value)}
-                error={errors.employeur}
-              />
-            ) : (
-              <input
-                type="text"
-                value={String(form.employeur ?? '')}
-                onChange={(e) => setField('employeur', e.target.value)}
-                placeholder={te('employeurPlaceholder')}
-                className={inputCls}
-              />
-            )}
-          </Field>
-          <Field field="fonction_actuelle" label={tf('fonction_actuelle')} error={errors.fonction_actuelle}>
-            <input
-              type="text"
-              value={String(form.fonction_actuelle ?? '')}
-              onChange={(e) => setField('fonction_actuelle', e.target.value)}
-              placeholder={te('fonctionPlaceholder')}
-              className={inputCls}
-            />
-          </Field>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field field="adresse_employeur" label={tf('adresse_employeur')} error={errors.adresse_employeur}>
-              <input
-                type="text"
-                value={String(form.adresse_employeur ?? '')}
-                onChange={(e) => setField('adresse_employeur', e.target.value)}
-                className={inputCls}
-              />
-            </Field>
-            <Field field="tel_employeur" label={tf('tel_employeur')} error={errors.tel_employeur}>
-              <input
-                type="tel"
-                value={String(form.tel_employeur ?? '')}
-                onChange={(e) => setField('tel_employeur', e.target.value)}
-                className={inputCls}
-              />
-            </Field>
-          </div>
-          <p className="text-xs text-[#666]">
-            {te('attestationNotice')}
-          </p>
-        </div>
-      )}
-
-      <Field field="moyen_connaissance" label={tf('moyen_connaissance')} error={errors.moyen_connaissance}>
-        <select
-          value={String(form.moyen_connaissance ?? '')}
-          onChange={(e) => setField('moyen_connaissance', e.target.value)}
-          className={inputCls}
-        >
-          <option value="">{to('choose')}</option>
-          {MOYENS_CONNAISSANCE.map((option) => <option key={option}>{option}</option>)}
-        </select>
-      </Field>
-
-      {['Autre', 'Autre réseau social', 'Administration ou employeur', 'Université ou établissement d’enseignement', 'Collègue, ami ou membre de la famille'].includes(String(form.moyen_connaissance ?? '')) && (
-        <Field field="moyen_connaissance_detail" label={tf('moyen_connaissance_detail')} error={errors.moyen_connaissance_detail}>
-          <input
-            type="text"
-            value={String(form.moyen_connaissance_detail ?? '')}
-            onChange={(event) => setField('moyen_connaissance_detail', event.target.value)}
-            placeholder={te('sourcePlaceholder')}
-            className={inputCls}
-          />
-        </Field>
-      )}
     </Card>
   );
 }

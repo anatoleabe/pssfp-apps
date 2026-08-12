@@ -3,6 +3,8 @@
  * Tenus alignés avec les JsonResources Laravel (PR C) et les retours Sanctum (PR B).
  */
 
+import type { AutreDiplomeRow, FormationProRow } from '@/lib/diplomes/rows';
+
 export type ApiResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: number; message: string; code?: string; errors?: Record<string, string[]> };
@@ -137,6 +139,13 @@ export interface CandidatureProfile {
   institut?: string;
   specialite_diplome?: string;
   annee_diplome?: number;
+  diplome_requis?: string | null;
+  annee_diplome_requis?: number | null;
+  domaine_diplome_requis?: string | null;
+  specialite_diplome_requis?: string | null;
+  institut_diplome_requis?: string | null;
+  autres_diplomes?: AutreDiplomeRow[];
+  formations_professionnelles?: FormationProRow[];
   statut_actuel?: StatutActuel | 'Fonctionnaire-Contractuel';
   fonction_actuelle?: string | null;
   employeur?: string | null;

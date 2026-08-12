@@ -44,12 +44,12 @@ async function fillStep1(page: Page, options: { dateNaissance?: string } = {}): 
   await page.getByTestId('step1-prenom').fill('Jean');
   await page.getByTestId('step1-nom').fill('Dupont');
   await page.getByTestId('step1-date-naissance').fill(dob);
+  await page.getByTestId('step1-lieu-naissance').fill('Yaoundé');
 }
 
 async function fillStep2(page: Page): Promise<void> {
   await page.getByTestId('step2-adresse').fill('BP 1234 Yaoundé');
   await page.getByLabel('Ville de résidence').fill('Yaoundé');
-  await page.getByLabel('Lieu de naissance (ville)').fill('Yaoundé');
   await page.getByTestId('step2-phone-number').fill('691234567');
   await page.getByTestId('region-select').click();
   await page.getByRole('option', { name: 'Centre' }).click();
@@ -59,11 +59,22 @@ async function fillStep2(page: Page): Promise<void> {
 }
 
 async function fillStep3(page: Page): Promise<void> {
+  // Bloc « diplôme le plus élevé obtenu ». Sélection par testId et non par
+  // libellé : « Spécialité du diplôme » est désormais un préfixe commun à deux
+  // champs distincts, et getByLabel serait ambigu.
   await page.getByTestId('step3-diplome-obtenu').selectOption({ label: 'Licence' });
   await page.getByTestId('step3-annee-diplome').fill('2020');
+  await page.getByTestId('step3-specialite-diplome').fill('Économie');
   await page.getByTestId('step3-institut').click();
   await page.getByRole('option', { name: /Université de Yaoundé II/i }).click();
-  await page.getByLabel('Spécialité du diplôme').fill('Économie');
+
+  // Bloc « diplôme requis pour l'admission ».
+  await page.getByTestId('step3-diplome-requis').selectOption('licence-bachelor');
+  await page.getByTestId('step3-annee-diplome-requis').fill('2018');
+  await page.getByTestId('step3-domaine-diplome-requis').selectOption('economie');
+  await page.getByTestId('step3-institut-diplome-requis').click();
+  await page.getByRole('option', { name: /Université de Yaoundé II/i }).click();
+
   await page.getByTestId('step3-statut-actuel').selectOption('Etudiant');
   await page.getByLabel('Comment avez-vous connu le PSSFP ?').selectOption('Site officiel du PSSFP');
 }
@@ -109,6 +120,18 @@ test.describe('Inscription wizard — happy path', () => {
     await fillStep1(page, { dateNaissance: new Date(Date.now() - 17 * 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) });
     await page.getByTestId('wizard-next').click();
     await expect(page.getByTestId('wizard-step-1')).toBeVisible();
+  });
+
+  test('le lieu de naissance est saisi à l’étape 1 et absent de l’étape 2', async ({ page }) => {
+    await page.goto('/inscription');
+
+    await expect(page.getByTestId('step1-lieu-naissance')).toBeVisible();
+
+    await fillStep1(page);
+    await page.getByTestId('wizard-next').click();
+
+    await expect(page.getByTestId('wizard-step-2')).toBeVisible();
+    await expect(page.getByTestId('step1-lieu-naissance')).toHaveCount(0);
   });
 });
 
@@ -207,7 +230,7 @@ test.describe('Inscription wizard — validation explicite des cinq étapes', ()
   test('étape 1 : affiche chaque erreur et place le focus sur le premier champ', async ({ page }) => {
     await page.goto('/inscription');
     await page.getByTestId('wizard-next').click();
-    await expect(page.getByTestId('wizard-step-1').getByRole('alert')).toHaveCount(4);
+    await expect(page.getByTestId('wizard-step-1').getByRole('alert')).toHaveCount(5);
     await expect(page.getByTestId('step1-specialite').getByRole('combobox')).toBeFocused();
 
     await fillStep1(page);
@@ -220,12 +243,12 @@ test.describe('Inscription wizard — validation explicite des cinq étapes', ()
     await page.getByTestId('wizard-next').click();
 
     await page.getByTestId('wizard-next').click();
-    await expect(page.getByTestId('wizard-step-2').getByRole('alert')).toHaveCount(7);
+    await expect(page.getByTestId('wizard-step-2').getByRole('alert')).toHaveCount(6);
     await fillStep2(page);
     await page.getByTestId('wizard-next').click();
 
     await page.getByTestId('wizard-next').click();
-    await expect(page.getByTestId('wizard-step-3').getByRole('alert')).toHaveCount(6);
+    await expect(page.getByTestId('wizard-step-3').getByRole('alert')).toHaveCount(10);
     await fillStep3(page);
     await page.getByTestId('wizard-next').click();
 

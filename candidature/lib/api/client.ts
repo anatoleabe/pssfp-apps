@@ -246,6 +246,8 @@ export interface MyCandidature extends CandidatureProfile {
   uuid: string;
   numero_dossier: string;
   statut: 'postulant' | 'candidat' | 'accepte' | 'refuse';
+  /** 1 = formulaire antérieur à août 2026, 2 = formulaire courant. */
+  form_version: number;
   submitted_at: string | null;
   reviewed_at: string | null;
   decided_at: string | null;

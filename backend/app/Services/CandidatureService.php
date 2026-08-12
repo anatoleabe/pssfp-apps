@@ -9,6 +9,7 @@ use App\Events\CandidatureSubmitted;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\User;
+use App\Support\CandidatureDiplomeBlocks;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -106,12 +107,27 @@ final class CandidatureService
 
         // Empêche la modification de champs systèmes via le body PUT.
         $forbidden = ['id', 'uuid', 'numero_dossier', 'campagne_id', 'user_id',
-            'statut', 'submitted_at', 'reviewed_at', 'decided_at', 'withdrawn_at',
+            'statut', 'form_version', 'submitted_at', 'reviewed_at', 'decided_at', 'withdrawn_at',
             'frais_paye', 'mode_paiement', 'reference_paiement', 'date_paiement',
             'recipisse_pdf_path', 'recipisse_hash_sha256',
             'created_at', 'updated_at', 'deleted_at',
         ];
         $clean = array_diff_key($fields, array_flip($forbidden));
+
+        // Les blocs répétables ne sont jamais stockés tels quels : seules les
+        // clés attendues survivent (cf. CandidatureDiplomeBlocks).
+        if (array_key_exists('autres_diplomes', $clean)) {
+            $clean['autres_diplomes'] = CandidatureDiplomeBlocks::normalize(
+                $clean['autres_diplomes'],
+                CandidatureDiplomeBlocks::AUTRE_DIPLOME_KEYS,
+            );
+        }
+        if (array_key_exists('formations_professionnelles', $clean)) {
+            $clean['formations_professionnelles'] = CandidatureDiplomeBlocks::normalize(
+                $clean['formations_professionnelles'],
+                CandidatureDiplomeBlocks::FORMATION_PRO_KEYS,
+            );
+        }
 
         $candidature->fill($clean)->save();
 
@@ -201,6 +217,77 @@ final class CandidatureService
         $allowed = array_values((array) config('specialites', []));
         if (! empty($candidature->specialite) && ! in_array($candidature->specialite, $allowed, true)) {
             $errors['specialite'] = 'La spécialité demandée n\'est pas reconnue.';
+        }
+
+        // Nouvelles exigences du formulaire 2026-08. Elles ne s'appliquent
+        // qu'aux dossiers créés après la mise en production : un brouillon
+        // antérieur (form_version = 1) reste soumissible avec l'ancien jeu de
+        // champs, cf. docs/specs/module-5-evolution-diplomes-2026-08.md.
+        if ((int) ($candidature->form_version ?? 1) >= 2) {
+            $errors = array_merge($errors, $this->checkDiplomeRequis($candidature));
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Exigences propres au bloc « diplôme requis » et aux blocs répétables.
+     *
+     * @return array<string, string>
+     */
+    private function checkDiplomeRequis(Candidature $candidature): array
+    {
+        $errors = [];
+
+        $required = [
+            'diplome_requis' => 'Le diplôme requis est obligatoire.',
+            'annee_diplome_requis' => "L'année d'obtention du diplôme requis est obligatoire.",
+            'domaine_diplome_requis' => 'Le domaine du diplôme requis est obligatoire.',
+            'institut_diplome_requis' => "L'établissement de délivrance du diplôme requis est obligatoire.",
+        ];
+
+        foreach ($required as $field => $message) {
+            $value = $candidature->{$field};
+            if ($value === null || $value === '') {
+                $errors[$field] = $message;
+            }
+        }
+
+        if ($candidature->domaine_diplome_requis === 'autres' && empty($candidature->specialite_diplome_requis)) {
+            $errors['specialite_diplome_requis'] = 'La spécialité du diplôme requis est obligatoire lorsque le domaine est « Autres ».';
+        }
+
+        if ($candidature->annee_diplome_requis !== null && $candidature->annee_diplome_requis > now()->year) {
+            $errors['annee_diplome_requis'] = "L'année d'obtention du diplôme requis ne peut pas être dans le futur.";
+        }
+
+        $blocks = [
+            'autres_diplomes' => [
+                'keys' => CandidatureDiplomeBlocks::AUTRE_DIPLOME_KEYS,
+                'message' => 'Chaque diplôme complémentaire ajouté doit indiquer son intitulé, son établissement et son année.',
+            ],
+            'formations_professionnelles' => [
+                'keys' => CandidatureDiplomeBlocks::FORMATION_PRO_KEYS,
+                'message' => 'Chaque formation professionnelle ajoutée doit indiquer son centre, sa qualification et son année.',
+            ],
+        ];
+
+        foreach ($blocks as $field => $spec) {
+            $rows = CandidatureDiplomeBlocks::normalize($candidature->{$field}, $spec['keys']);
+            foreach ($rows as $index => $row) {
+                if (! CandidatureDiplomeBlocks::isRowComplete($row, $spec['keys'])) {
+                    $errors["{$field}.{$index}"] = $spec['message'];
+
+                    continue;
+                }
+
+                // L'année n'est bornée que par le FormRequest : le chemin
+                // Filament la contournerait sans ce contrôle.
+                $annee = (int) $row['annee'];
+                if ($annee < 1950 || $annee > (int) now()->year) {
+                    $errors["{$field}.{$index}"] = "L'année indiquée doit être comprise entre 1950 et ".now()->year.'.';
+                }
+            }
         }
 
         return $errors;
