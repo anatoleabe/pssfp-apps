@@ -9,6 +9,7 @@ use App\Events\CandidatureSubmitted;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\User;
+use App\Support\CandidatureDiplomeBlocks;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -106,12 +107,27 @@ final class CandidatureService
 
         // Empêche la modification de champs systèmes via le body PUT.
         $forbidden = ['id', 'uuid', 'numero_dossier', 'campagne_id', 'user_id',
-            'statut', 'submitted_at', 'reviewed_at', 'decided_at', 'withdrawn_at',
+            'statut', 'form_version', 'submitted_at', 'reviewed_at', 'decided_at', 'withdrawn_at',
             'frais_paye', 'mode_paiement', 'reference_paiement', 'date_paiement',
             'recipisse_pdf_path', 'recipisse_hash_sha256',
             'created_at', 'updated_at', 'deleted_at',
         ];
         $clean = array_diff_key($fields, array_flip($forbidden));
+
+        // Les blocs répétables ne sont jamais stockés tels quels : seules les
+        // clés attendues survivent (cf. CandidatureDiplomeBlocks).
+        if (array_key_exists('autres_diplomes', $clean)) {
+            $clean['autres_diplomes'] = CandidatureDiplomeBlocks::normalize(
+                $clean['autres_diplomes'],
+                CandidatureDiplomeBlocks::AUTRE_DIPLOME_KEYS,
+            );
+        }
+        if (array_key_exists('formations_professionnelles', $clean)) {
+            $clean['formations_professionnelles'] = CandidatureDiplomeBlocks::normalize(
+                $clean['formations_professionnelles'],
+                CandidatureDiplomeBlocks::FORMATION_PRO_KEYS,
+            );
+        }
 
         $candidature->fill($clean)->save();
 

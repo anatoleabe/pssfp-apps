@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
+use App\Models\User;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
@@ -106,4 +107,100 @@ it('applique le défaut 2 au niveau du schéma, pas du modèle', function (): vo
     ]);
 
     expect(DB::table('candidatures')->where('id', $id)->value('form_version'))->toBe(2);
+});
+
+function authedCandidatDiplome(): array
+{
+    $user = User::factory()->candidat()->create([
+        'phone_e164' => '+237691'.fake()->numerify('######'),
+        'phone_country' => 'CM',
+        'date_naissance' => '1990-06-15',
+    ]);
+    $token = $user->createToken('candidat', [
+        'profile:read', 'profile:write', 'application:create',
+        'application:read', 'application:submit',
+    ])->plainTextToken;
+
+    return [$user, $token];
+}
+
+it('enregistre les nouveaux champs via PUT /v1/applications/me', function (): void {
+    [, $token] = authedCandidatDiplome();
+
+    $response = $this->withToken($token)->putJson('/v1/applications/me', [
+        'diplome_requis' => 'master',
+        'annee_diplome_requis' => 2020,
+        'domaine_diplome_requis' => 'gestion',
+        'institut_diplome_requis' => 'Université de Douala',
+        'autres_diplomes' => [
+            ['intitule' => 'DESS', 'etablissement' => 'ENAM', 'annee' => 2019],
+        ],
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('data.diplome_requis', 'master')
+        ->assertJsonPath('data.annee_diplome_requis', 2020)
+        ->assertJsonPath('data.domaine_diplome_requis', 'gestion')
+        ->assertJsonPath('data.institut_diplome_requis', 'Université de Douala')
+        ->assertJsonPath('data.autres_diplomes.0.intitule', 'DESS')
+        ->assertJsonPath('data.form_version', 2);
+});
+
+it('renvoie un tableau vide et non null pour les blocs jamais renseignés', function (): void {
+    [, $token] = authedCandidatDiplome();
+
+    $this->withToken($token)->putJson('/v1/applications/me', ['nom' => 'Ndongo'])->assertOk();
+
+    $this->withToken($token)->getJson('/v1/applications/me')
+        ->assertOk()
+        ->assertJsonPath('data.autres_diplomes', [])
+        ->assertJsonPath('data.formations_professionnelles', []);
+});
+
+it('rejette un slug de diplôme requis inconnu', function (): void {
+    [, $token] = authedCandidatDiplome();
+
+    $this->withToken($token)->putJson('/v1/applications/me', ['diplome_requis' => 'doctorat'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('diplome_requis');
+});
+
+it('tolère une ligne incomplète au PUT pour ne pas casser l’auto-save', function (): void {
+    [, $token] = authedCandidatDiplome();
+
+    $this->withToken($token)->putJson('/v1/applications/me', [
+        'autres_diplomes' => [['intitule' => 'DE', 'etablissement' => '', 'annee' => null]],
+    ])->assertOk();
+});
+
+it('écarte les clés inconnues envoyées dans une ligne', function (): void {
+    [, $token] = authedCandidatDiplome();
+
+    $this->withToken($token)->putJson('/v1/applications/me', [
+        'formations_professionnelles' => [
+            ['centre' => 'ISMP', 'qualification' => 'Certificat', 'annee' => 2021, 'statut' => 'accepte'],
+        ],
+    ])->assertOk()
+        ->assertJsonPath('data.formations_professionnelles.0.centre', 'ISMP')
+        ->assertJsonMissingPath('data.formations_professionnelles.0.statut');
+});
+
+it('refuse plus de dix lignes', function (): void {
+    [, $token] = authedCandidatDiplome();
+
+    $rows = array_fill(0, 11, ['intitule' => 'DESS', 'etablissement' => 'ENAM', 'annee' => 2019]);
+
+    $this->withToken($token)->putJson('/v1/applications/me', ['autres_diplomes' => $rows])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('autres_diplomes');
+});
+
+it('interdit de forcer form_version via le body', function (): void {
+    [, $token] = authedCandidatDiplome();
+
+    $this->withToken($token)->putJson('/v1/applications/me', [
+        'nom' => 'Ndongo',
+        'form_version' => 1,
+    ])->assertOk()
+        ->assertJsonPath('data.form_version', 2);
 });

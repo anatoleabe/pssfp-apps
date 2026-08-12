@@ -59,6 +59,16 @@ final class CandidatureResource extends JsonResource
             'institut' => $this->institut,
             'specialite_diplome' => $this->specialite_diplome,
             'annee_diplome' => $this->annee_diplome,
+            'diplome_requis' => $this->diplome_requis,
+            'annee_diplome_requis' => $this->annee_diplome_requis,
+            'domaine_diplome_requis' => $this->domaine_diplome_requis,
+            'specialite_diplome_requis' => $this->specialite_diplome_requis,
+            'institut_diplome_requis' => $this->institut_diplome_requis,
+            // Toujours un tableau, jamais null : le frontend itère dessus sans garde.
+            'autres_diplomes' => $this->autres_diplomes ?? [],
+            'formations_professionnelles' => $this->formations_professionnelles ?? [],
+            // Pilote l'affichage conditionnel des nouveaux champs côté client.
+            'form_version' => (int) $this->form_version,
             'statut_actuel' => $this->statut_actuel,
             'fonction_actuelle' => $this->fonction_actuelle,
             'employeur' => $this->employeur,

@@ -69,6 +69,31 @@ final class UpdateCandidatureRequest extends FormRequest
             'institut' => ['sometimes', 'string', 'max:150'],
             'specialite_diplome' => ['sometimes', 'string', 'max:100'],
             'annee_diplome' => ['sometimes', 'integer', 'min:1950', 'max:'.now()->year],
+
+            // Diplôme requis pour l'admission — distinct du diplôme le plus
+            // élevé obtenu. Validation laxiste ici : l'obligation est portée
+            // par CandidatureService::checkSubmittable, et seulement pour
+            // form_version >= 2.
+            'diplome_requis' => ['sometimes', 'nullable', 'string', Rule::in(array_keys((array) config('diplome_requis', [])))],
+            'annee_diplome_requis' => ['sometimes', 'nullable', 'integer', 'min:1950', 'max:'.now()->year],
+            'domaine_diplome_requis' => ['sometimes', 'nullable', 'string', Rule::in(array_keys((array) config('domaines_diplome', [])))],
+            'specialite_diplome_requis' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'institut_diplome_requis' => ['sometimes', 'nullable', 'string', 'max:150'],
+
+            // Blocs répétables. Les champs de ligne restent nullable : une
+            // ligne à moitié saisie ne doit pas faire échouer l'auto-save 2 s.
+            // Leur complétude est vérifiée à la soumission.
+            'autres_diplomes' => ['sometimes', 'nullable', 'array', 'max:10'],
+            'autres_diplomes.*' => ['array'],
+            'autres_diplomes.*.intitule' => ['nullable', 'string', 'max:150'],
+            'autres_diplomes.*.etablissement' => ['nullable', 'string', 'max:150'],
+            'autres_diplomes.*.annee' => ['nullable', 'integer', 'min:1950', 'max:'.now()->year],
+            'formations_professionnelles' => ['sometimes', 'nullable', 'array', 'max:10'],
+            'formations_professionnelles.*' => ['array'],
+            'formations_professionnelles.*.centre' => ['nullable', 'string', 'max:150'],
+            'formations_professionnelles.*.qualification' => ['nullable', 'string', 'max:150'],
+            'formations_professionnelles.*.annee' => ['nullable', 'integer', 'min:1950', 'max:'.now()->year],
+
             'statut_actuel' => [
                 'sometimes', 'string',
                 'in:Etudiant,Sans-emploi,Fonctionnaire,Contractuel-Etat,Etablissement-public,Entreprise-publique,Prive,Independant,ONG-International,Autre,Fonctionnaire-Contractuel',
