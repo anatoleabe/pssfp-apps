@@ -489,8 +489,44 @@
       <td>{!! $field('Adresse professionnelle', $candidature->adresse_employeur) !!}</td>
       <td>{!! $field('Téléphone professionnel', $candidature->tel_employeur) !!}</td>
     </tr>
+    {{-- Bloc « diplôme requis » : présent uniquement sur les dossiers saisis
+         avec le formulaire d'août 2026. Un dossier antérieur rend exactement
+         le même document qu'avant. --}}
+    @if($candidature->diplome_requis)
+      <tr>
+        <td>{!! $field('Diplôme requis', config('diplome_requis.'.$candidature->diplome_requis, $candidature->diplome_requis)) !!}</td>
+        <td>{!! $field("Année d'obtention du diplôme requis", $candidature->annee_diplome_requis) !!}</td>
+        <td>{!! $field('Domaine du diplôme requis', config('domaines_diplome.'.$candidature->domaine_diplome_requis, $candidature->domaine_diplome_requis)) !!}</td>
+      </tr>
+      <tr>
+        <td>{!! $field('Spécialité du diplôme requis', $candidature->specialite_diplome_requis) !!}</td>
+        <td colspan="2">{!! $field('Établissement du diplôme requis', $candidature->institut_diplome_requis) !!}</td>
+      </tr>
+    @endif
   </table>
 </div>
+
+@if(!empty($candidature->autres_diplomes) || !empty($candidature->formations_professionnelles))
+<div class="card">
+  <div class="h">{!! $section('Autres diplômes et formations', 'Other qualifications and training') !!}</div>
+  <table class="fields">
+    @foreach(($candidature->autres_diplomes ?? []) as $ligne)
+      <tr>
+        <td>{!! $field('Diplôme complémentaire', $ligne['intitule'] ?? null) !!}</td>
+        <td>{!! $field("Établissement d'obtention", $ligne['etablissement'] ?? null) !!}</td>
+        <td>{!! $field("Année d'obtention", $ligne['annee'] ?? null) !!}</td>
+      </tr>
+    @endforeach
+    @foreach(($candidature->formations_professionnelles ?? []) as $ligne)
+      <tr>
+        <td>{!! $field('Qualification obtenue', $ligne['qualification'] ?? null) !!}</td>
+        <td>{!! $field('Centre de formation', $ligne['centre'] ?? null) !!}</td>
+        <td>{!! $field('Année de formation', $ligne['annee'] ?? null) !!}</td>
+      </tr>
+    @endforeach
+  </table>
+</div>
+@endif
 
 <table class="closing">
   <tr>
@@ -604,6 +640,13 @@
             {!! $field('Spécialité du diplôme', $candidature->specialite_diplome) !!}
             {!! $field('Établissement', $candidature->institut) !!}
             {!! $field("Année d'obtention", $candidature->annee_diplome) !!}
+            @if($candidature->diplome_requis)
+              {!! $field('Diplôme requis', config('diplome_requis.'.$candidature->diplome_requis, $candidature->diplome_requis)) !!}
+              {!! $field('Domaine du diplôme requis', config('domaines_diplome.'.$candidature->domaine_diplome_requis, $candidature->domaine_diplome_requis)) !!}
+              {!! $field('Spécialité du diplôme requis', $candidature->specialite_diplome_requis) !!}
+              {!! $field('Établissement du diplôme requis', $candidature->institut_diplome_requis) !!}
+              {!! $field("Année d'obtention du diplôme requis", $candidature->annee_diplome_requis) !!}
+            @endif
           </td>
           <td>
             {!! $field('Situation actuelle', $profStatus) !!}

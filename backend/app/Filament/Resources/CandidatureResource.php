@@ -157,6 +157,47 @@ class CandidatureResource extends Resource
                     Forms\Components\TextInput::make('institut'),
                     Forms\Components\TextInput::make('specialite_diplome'),
                     Forms\Components\TextInput::make('annee_diplome')->numeric()->minValue(1950)->maxValue(now()->year),
+                    Forms\Components\Select::make('diplome_requis')
+                        ->label('Diplôme requis')
+                        ->options(config('diplome_requis'))
+                        ->native(false),
+                    Forms\Components\TextInput::make('annee_diplome_requis')
+                        ->label("Année d'obtention du diplôme requis")
+                        ->numeric()->minValue(1950)->maxValue(now()->year),
+                    Forms\Components\Select::make('domaine_diplome_requis')
+                        ->label('Domaine du diplôme requis')
+                        ->options(config('domaines_diplome'))
+                        ->native(false)
+                        ->live(),
+                    Forms\Components\TextInput::make('specialite_diplome_requis')
+                        ->label('Spécialité du diplôme requis')
+                        ->maxLength(100)
+                        ->visible(fn (Forms\Get $get): bool => $get('domaine_diplome_requis') === 'autres'),
+                    Forms\Components\TextInput::make('institut_diplome_requis')
+                        ->label('Établissement de délivrance du diplôme requis')
+                        ->maxLength(150),
+                    Forms\Components\Repeater::make('autres_diplomes')
+                        ->label('Autres diplômes académiques')
+                        ->schema([
+                            Forms\Components\TextInput::make('intitule')->label('Intitulé du diplôme')->maxLength(150),
+                            Forms\Components\TextInput::make('etablissement')->label("Établissement d'obtention")->maxLength(150),
+                            Forms\Components\TextInput::make('annee')->label("Année d'obtention")->numeric()->minValue(1950)->maxValue(now()->year),
+                        ])
+                        ->columns(3)
+                        ->maxItems(10)
+                        ->defaultItems(0)
+                        ->columnSpanFull(),
+                    Forms\Components\Repeater::make('formations_professionnelles')
+                        ->label('Formations professionnelles')
+                        ->schema([
+                            Forms\Components\TextInput::make('centre')->label('Centre de formation')->maxLength(150),
+                            Forms\Components\TextInput::make('qualification')->label('Qualification obtenue')->maxLength(150),
+                            Forms\Components\TextInput::make('annee')->label('Année de formation')->numeric()->minValue(1950)->maxValue(now()->year),
+                        ])
+                        ->columns(3)
+                        ->maxItems(10)
+                        ->defaultItems(0)
+                        ->columnSpanFull(),
                     Forms\Components\Select::make('statut_actuel')->options([
                         'Etudiant' => 'Étudiant(e)',
                         'Sans-emploi' => 'Sans emploi / en recherche d’emploi',

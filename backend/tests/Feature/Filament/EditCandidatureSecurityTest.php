@@ -97,3 +97,42 @@ it('allows super_admin to edit a decided candidature (exceptional correction)', 
     $this->livewire(EditCandidature::class, ['record' => $cand->getRouteKey()])
         ->assertSuccessful();
 });
+
+it('expose les champs du diplôme requis et les blocs répétables dans l’admin', function (): void {
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $cand = Candidature::factory()->forCampagne($this->campagne)->create([
+        'user_id' => User::factory()->candidat()->create()->id,
+        'phone_e164' => '+237691333444',
+        'specialite' => array_values((array) config('specialites'))[0],
+    ]);
+
+    $this->actingAs($admin);
+
+    $this->livewire(EditCandidature::class, ['record' => $cand->getRouteKey()])
+        ->assertFormFieldExists('diplome_requis')
+        ->assertFormFieldExists('annee_diplome_requis')
+        ->assertFormFieldExists('domaine_diplome_requis')
+        ->assertFormFieldExists('institut_diplome_requis')
+        ->assertFormFieldExists('autres_diplomes')
+        ->assertFormFieldExists('formations_professionnelles')
+        ->fillForm([
+            'diplome_requis' => 'master',
+            'annee_diplome_requis' => 2015,
+            'domaine_diplome_requis' => 'gestion',
+            'institut_diplome_requis' => 'Université de Douala',
+            'autres_diplomes' => [
+                ['intitule' => 'DESS', 'etablissement' => 'ENAM', 'annee' => 2019],
+            ],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $cand->refresh();
+
+    expect($cand->diplome_requis)->toBe('master')
+        ->and($cand->annee_diplome_requis)->toBe(2015)
+        ->and($cand->domaine_diplome_requis)->toBe('gestion')
+        ->and($cand->autres_diplomes[0]['intitule'])->toBe('DESS');
+});

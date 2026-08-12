@@ -342,3 +342,58 @@ it('ignore les nouvelles exigences pour un dossier v1 même incomplet', function
 
     expect(app(CandidatureService::class)->checkSubmittable($candidature))->toBe([]);
 });
+
+/**
+ * Contrat de la vue tel que le construit RecipisseService::generate.
+ *
+ * @return array<string, mixed>
+ */
+function recipisseViewData(Candidature $candidature): array
+{
+    return [
+        'candidature' => $candidature,
+        'campagne' => $candidature->campagne,
+        'qrSvg' => null,
+        'logoSrc' => null,
+        'enteteSrc' => null,
+        'photoSrc' => null,
+        'generatedAt' => now(),
+        'programName' => 'Master Professionnel en Finances Publiques',
+        'contact' => [
+            'adresse' => 'Campus de Messa, Yaoundé — Cameroun',
+            'tel' => '+237 222 234 567',
+            'web' => 'www.pssfp.org',
+            'email' => 'contact@pssfp.org',
+        ],
+        'hashPlaceholder' => '__HASH_PLACEHOLDER__',
+        'vcodePlaceholder' => '__VCODE_PLACEHOLDER__',
+    ];
+}
+
+it('imprime les nouveaux champs sur le récépissé d’un dossier v2', function (): void {
+    $candidature = candidatureComplete($this->campagne->id, [
+        'diplome_requis' => 'licence-bachelor',
+        'annee_diplome_requis' => 2012,
+        'domaine_diplome_requis' => 'droit',
+        'institut_diplome_requis' => 'Université de Yaoundé II',
+        'autres_diplomes' => [['intitule' => 'DESS', 'etablissement' => 'ENAM', 'annee' => 2019]],
+    ]);
+
+    $html = view('pdf.candidature-recipisse', recipisseViewData($candidature))->render();
+
+    expect($html)->toContain('Diplôme requis')
+        ->and($html)->toContain('Licence / Bachelor')
+        ->and($html)->toContain('Domaine du diplôme requis')
+        ->and($html)->toContain('Autres diplômes et formations')
+        ->and($html)->toContain('DESS')
+        ->and($html)->toContain('ENAM');
+});
+
+it('n’ajoute rien au récépissé d’un dossier v1', function (): void {
+    $candidature = forceFormVersion(candidatureComplete($this->campagne->id), 1);
+
+    $html = view('pdf.candidature-recipisse', recipisseViewData($candidature))->render();
+
+    expect($html)->not->toContain('Diplôme requis')
+        ->and($html)->not->toContain('Autres diplômes et formations');
+});
