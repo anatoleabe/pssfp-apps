@@ -59,6 +59,15 @@ class Candidature extends Model
         'institut',
         'specialite_diplome',
         'annee_diplome',
+        // Diplôme requis pour l'admission — distinct du diplôme le plus élevé.
+        'diplome_requis',
+        'annee_diplome_requis',
+        'domaine_diplome_requis',
+        'specialite_diplome_requis',
+        'institut_diplome_requis',
+        // Blocs répétables facultatifs (JSONB).
+        'autres_diplomes',
+        'formations_professionnelles',
         'statut_actuel',
         'fonction_actuelle',
         'employeur',
@@ -94,6 +103,11 @@ class Candidature extends Model
         'date_paiement' => 'date',
         'frais_paye' => 'boolean',
         'annee_diplome' => 'integer',
+        'annee_diplome_requis' => 'integer',
+        'autres_diplomes' => 'array',
+        'formations_professionnelles' => 'array',
+        // Champ système : jamais dans $fillable, valorisé par le DEFAULT Postgres.
+        'form_version' => 'integer',
     ];
 
     /** Le `id` reste BIGSERIAL ; HasUuids génère uniquement le champ `uuid`. */
