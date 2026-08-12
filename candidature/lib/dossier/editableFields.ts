@@ -1,3 +1,5 @@
+import type { AutreDiplomeRow, FormationProRow } from '@/lib/diplomes/rows';
+
 /**
  * Liste des champs éditables depuis /dossier/edition (PR H).
  *
@@ -44,6 +46,13 @@ export const EDITABLE_FIELDS = [
   'institut',
   'specialite_diplome',
   'annee_diplome',
+  'diplome_requis',
+  'annee_diplome_requis',
+  'domaine_diplome_requis',
+  'specialite_diplome_requis',
+  'institut_diplome_requis',
+  'autres_diplomes',
+  'formations_professionnelles',
   'statut_actuel',
   'fonction_actuelle',
   'employeur',
@@ -57,7 +66,14 @@ export const EDITABLE_FIELDS = [
 
 export type EditableField = (typeof EDITABLE_FIELDS)[number];
 
-export type EditableFields = Partial<Record<EditableField, string | number | null>>;
+/**
+ * Les blocs répétables sont des tableaux d'objets, pas des scalaires : le type
+ * de valeur les accueille explicitement plutôt que de les faire transiter par
+ * un `any` déguisé.
+ */
+export type EditableValue = string | number | null | AutreDiplomeRow[] | FormationProRow[];
+
+export type EditableFields = Partial<Record<EditableField, EditableValue>>;
 
 export const SECTION_OF_FIELD: Record<EditableField, 'identite' | 'coordonnees' | 'diplome' | 'engagement'> = {
   civilite: 'identite',
@@ -87,6 +103,13 @@ export const SECTION_OF_FIELD: Record<EditableField, 'identite' | 'coordonnees' 
   institut: 'diplome',
   specialite_diplome: 'diplome',
   annee_diplome: 'diplome',
+  diplome_requis: 'diplome',
+  annee_diplome_requis: 'diplome',
+  domaine_diplome_requis: 'diplome',
+  specialite_diplome_requis: 'diplome',
+  institut_diplome_requis: 'diplome',
+  autres_diplomes: 'diplome',
+  formations_professionnelles: 'diplome',
   statut_actuel: 'diplome',
   fonction_actuelle: 'diplome',
   employeur: 'diplome',

@@ -17,6 +17,9 @@ const KNOWN_FIELDS = new Set([
   'diplome_obtenu', 'institut', 'specialite_diplome', 'annee_diplome',
   'statut_actuel', 'fonction_actuelle', 'employeur', 'moyen_connaissance',
   'moyen_connaissance_detail', 'engagement_nom',
+  'diplome_requis', 'annee_diplome_requis', 'domaine_diplome_requis',
+  'specialite_diplome_requis', 'institut_diplome_requis',
+  'autres_diplomes', 'formations_professionnelles',
 ]);
 
 export function DossierCompleteness({ candidature }: { candidature: MyCandidature }): JSX.Element {

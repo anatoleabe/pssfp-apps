@@ -100,6 +100,45 @@ export function checkSubmittable(c: MyCandidature): SubmittableResult {
     errors.moyen_connaissance_detail = 'Veuillez préciser comment vous avez connu le PSSFP.';
   }
 
+  // Miroir de CandidatureService::checkDiplomeRequis — n'applique les nouvelles
+  // exigences qu'aux dossiers créés après la mise en production d'août 2026.
+  if ((c.form_version ?? 1) >= 2) {
+    const requiredV2: ReadonlyArray<[keyof MyCandidature, string]> = [
+      ['diplome_requis', 'Le diplôme requis est obligatoire.'],
+      ['annee_diplome_requis', "L'année d'obtention du diplôme requis est obligatoire."],
+      ['domaine_diplome_requis', 'Le domaine du diplôme requis est obligatoire.'],
+      ['institut_diplome_requis', "L'établissement de délivrance du diplôme requis est obligatoire."],
+    ];
+
+    for (const [field, message] of requiredV2) {
+      const v = c[field];
+      if (v === null || v === undefined || v === '') {
+        missing.push(String(field));
+        errors[String(field)] = message;
+      }
+    }
+
+    if (c.domaine_diplome_requis === 'autres' && !c.specialite_diplome_requis) {
+      missing.push('specialite_diplome_requis');
+      errors.specialite_diplome_requis =
+        'La spécialité du diplôme requis est obligatoire lorsque le domaine est « Autres ».';
+    }
+
+    (c.autres_diplomes ?? []).forEach((row, index) => {
+      if (!row.intitule || !row.etablissement || !row.annee) {
+        errors[`autres_diplomes.${index}`] =
+          'Chaque diplôme complémentaire ajouté doit indiquer son intitulé, son établissement et son année.';
+      }
+    });
+
+    (c.formations_professionnelles ?? []).forEach((row, index) => {
+      if (!row.centre || !row.qualification || !row.annee) {
+        errors[`formations_professionnelles.${index}`] =
+          'Chaque formation professionnelle ajoutée doit indiquer son centre, sa qualification et son année.';
+      }
+    });
+  }
+
   const allowedSpecialiteLabels = new Set(FALLBACK_SPECIALITES.map((s) => s.label));
   if (c.specialite && !allowedSpecialiteLabels.has(c.specialite)) {
     // Tolérant : si le backend a une liste plus longue, on ne bloque pas. Le

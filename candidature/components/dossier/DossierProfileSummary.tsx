@@ -3,7 +3,11 @@ import { Link } from '@/navigation';
 import { Pencil, UserRoundSearch } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
 import { formatDateFr } from '@/lib/format/date';
-import { STATUT_ACTUEL_OPTIONS } from '@/lib/dossier/options';
+import {
+  DIPLOME_REQUIS_OPTIONS,
+  DOMAINE_DIPLOME_OPTIONS,
+  STATUT_ACTUEL_OPTIONS,
+} from '@/lib/dossier/options';
 
 export function DossierProfileSummary({
   candidature,
@@ -15,6 +19,16 @@ export function DossierProfileSummary({
   const statusLabel =
     STATUT_ACTUEL_OPTIONS.find((option) => option.value === candidature.statut_actuel)?.label ??
     candidature.statut_actuel;
+  // Les colonnes stockent des slugs stables ; l'affichage passe par le libellé.
+  const diplomeRequisLabel =
+    DIPLOME_REQUIS_OPTIONS.find((option) => option.value === candidature.diplome_requis)?.label ??
+    candidature.diplome_requis ??
+    null;
+  const domaineDiplomeLabel =
+    DOMAINE_DIPLOME_OPTIONS.find((option) => option.value === candidature.domaine_diplome_requis)
+      ?.label ??
+    candidature.domaine_diplome_requis ??
+    null;
 
   return (
     <section
@@ -91,10 +105,24 @@ export function DossierProfileSummary({
           title={ts('sectionParcours')}
           editHref={canEdit ? '/dossier/edition?focus=diplome_obtenu' : null}
           rows={[
-            ['Diplôme', candidature.diplome_obtenu],
+            ['Diplôme le plus élevé', candidature.diplome_obtenu],
             ['Établissement', candidature.institut],
             ['Spécialité du diplôme', candidature.specialite_diplome],
             ['Année d’obtention', candidature.annee_diplome ? String(candidature.annee_diplome) : null],
+            // Bloc « diplôme requis » : absent des dossiers antérieurs à la
+            // mise en production d'août 2026, donc masqué pour eux.
+            ...(candidature.form_version >= 2
+              ? ([
+                  ['Diplôme requis', diplomeRequisLabel],
+                  [
+                    'Année d’obtention du diplôme requis',
+                    candidature.annee_diplome_requis ? String(candidature.annee_diplome_requis) : null,
+                  ],
+                  ['Domaine du diplôme requis', domaineDiplomeLabel],
+                  ['Spécialité du diplôme requis', candidature.specialite_diplome_requis ?? null],
+                  ['Établissement du diplôme requis', candidature.institut_diplome_requis ?? null],
+                ] as Array<[string, string | null]>)
+              : []),
           ]}
         />
         <ProfileGroup
