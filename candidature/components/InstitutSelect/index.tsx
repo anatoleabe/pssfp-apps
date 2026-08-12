@@ -13,6 +13,13 @@ export interface InstitutSelectProps {
   value: string;
   onChange: (next: string) => void;
   error?: string;
+  /**
+   * Le composant est instancié deux fois sur l'étape 3 (diplôme le plus élevé
+   * et diplôme requis) : sans identifiant distinct, les deux sélecteurs
+   * partageraient le même `data-testid` et le même libellé accessible.
+   */
+  testId?: string;
+  ariaLabel?: string;
 }
 
 /**
@@ -20,7 +27,14 @@ export interface InstitutSelectProps {
  * regroupées par pays (CEMAC, cf. GET /v1/reference/universites) — avec
  * échappatoire "Autre" en texte libre pour tout établissement non listé.
  */
-export function InstitutSelect({ universites, value, onChange, error }: InstitutSelectProps): JSX.Element {
+export function InstitutSelect({
+  universites,
+  value,
+  onChange,
+  error,
+  testId = 'step3-institut',
+  ariaLabel = 'Établissement de délivrance',
+}: InstitutSelectProps): JSX.Element {
   const tsi = useTranslations('selects.institut');
   const options = useMemo(() => {
     const flat = universites.flatMap((group) =>
@@ -38,8 +52,8 @@ export function InstitutSelect({ universites, value, onChange, error }: Institut
   return (
     <div>
       <SearchableSelect
-        testId="step3-institut"
-        ariaLabel="Établissement de délivrance"
+        testId={testId}
+        ariaLabel={ariaLabel}
         options={options}
         value={autreActive ? AUTRE : value}
         onChange={(next) => {

@@ -34,6 +34,7 @@ async function goToStep2(page: Page): Promise<void> {
   await page.getByTestId('step1-prenom').fill('Test');
   await page.getByTestId('step1-nom').fill('User');
   await page.getByTestId('step1-date-naissance').fill('1995-06-15');
+  await page.getByTestId('step1-lieu-naissance').fill('Yaoundé');
   await page.getByTestId('wizard-next').click();
   await expect(page.getByTestId('wizard-step-2')).toBeVisible();
 }

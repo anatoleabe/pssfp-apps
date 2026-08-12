@@ -4,7 +4,12 @@ import { CheckCircle2, Pencil, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { Pays } from '@/lib/api/types';
 import { formatDateFr } from '@/lib/format/date';
-import { STATUT_ACTUEL_OPTIONS } from '@/lib/dossier/options';
+import {
+  DIPLOME_REQUIS_OPTIONS,
+  DOMAINE_DIPLOME_OPTIONS,
+  STATUT_ACTUEL_OPTIONS,
+  needsSpecialiteDiplomeRequis,
+} from '@/lib/dossier/options';
 import type { WizardData } from './types';
 
 interface WizardStep5ReviewProps {
@@ -99,6 +104,50 @@ export function WizardStep5Review({
         <ReviewRow label={t('fields.institution')} value={data.institut} />
         <ReviewRow label={t('fields.degreeField')} value={data.specialite_diplome} />
         <ReviewRow label={t('fields.gradYear')} value={String(data.annee_diplome)} />
+        <ReviewRow
+          label={t('fields.requiredDegree')}
+          value={DIPLOME_REQUIS_OPTIONS.find((o) => o.value === data.diplome_requis)?.label ?? ''}
+        />
+        <ReviewRow
+          label={t('fields.requiredDegreeYear')}
+          value={data.annee_diplome_requis === '' ? '' : String(data.annee_diplome_requis)}
+        />
+        <ReviewRow
+          label={t('fields.requiredDegreeDomain')}
+          value={
+            DOMAINE_DIPLOME_OPTIONS.find((o) => o.value === data.domaine_diplome_requis)?.label ?? ''
+          }
+        />
+        {needsSpecialiteDiplomeRequis(data.domaine_diplome_requis) && (
+          <ReviewRow
+            label={t('fields.requiredDegreeField')}
+            value={data.specialite_diplome_requis}
+          />
+        )}
+        <ReviewRow
+          label={t('fields.requiredDegreeInstitution')}
+          value={data.institut_diplome_requis}
+        />
+        <ReviewRow
+          label={t('fields.otherDegrees')}
+          value={
+            data.autres_diplomes.length === 0
+              ? t('fields.none')
+              : data.autres_diplomes
+                  .map((d) => `${d.intitule} — ${d.etablissement} (${d.annee})`)
+                  .join(' · ')
+          }
+        />
+        <ReviewRow
+          label={t('fields.proTraining')}
+          value={
+            data.formations_professionnelles.length === 0
+              ? t('fields.none')
+              : data.formations_professionnelles
+                  .map((f) => `${f.qualification} — ${f.centre} (${f.annee})`)
+                  .join(' · ')
+          }
+        />
         <ReviewRow label={t('fields.currentSituation')} value={statusLabel} />
         {data.fonction_actuelle && <ReviewRow label={t('fields.role')} value={data.fonction_actuelle} />}
         {data.employeur && <ReviewRow label={t('fields.employer')} value={data.employeur} />}

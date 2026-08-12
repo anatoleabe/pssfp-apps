@@ -59,11 +59,22 @@ async function fillStep2(page: Page): Promise<void> {
 }
 
 async function fillStep3(page: Page): Promise<void> {
+  // Bloc « diplôme le plus élevé obtenu ». Sélection par testId et non par
+  // libellé : « Spécialité du diplôme » est désormais un préfixe commun à deux
+  // champs distincts, et getByLabel serait ambigu.
   await page.getByTestId('step3-diplome-obtenu').selectOption({ label: 'Licence' });
   await page.getByTestId('step3-annee-diplome').fill('2020');
+  await page.getByTestId('step3-specialite-diplome').fill('Économie');
   await page.getByTestId('step3-institut').click();
   await page.getByRole('option', { name: /Université de Yaoundé II/i }).click();
-  await page.getByLabel('Spécialité du diplôme').fill('Économie');
+
+  // Bloc « diplôme requis pour l'admission ».
+  await page.getByTestId('step3-diplome-requis').selectOption('licence-bachelor');
+  await page.getByTestId('step3-annee-diplome-requis').fill('2018');
+  await page.getByTestId('step3-domaine-diplome-requis').selectOption('economie');
+  await page.getByTestId('step3-institut-diplome-requis').click();
+  await page.getByRole('option', { name: /Université de Yaoundé II/i }).click();
+
   await page.getByTestId('step3-statut-actuel').selectOption('Etudiant');
   await page.getByLabel('Comment avez-vous connu le PSSFP ?').selectOption('Site officiel du PSSFP');
 }
@@ -237,7 +248,7 @@ test.describe('Inscription wizard — validation explicite des cinq étapes', ()
     await page.getByTestId('wizard-next').click();
 
     await page.getByTestId('wizard-next').click();
-    await expect(page.getByTestId('wizard-step-3').getByRole('alert')).toHaveCount(6);
+    await expect(page.getByTestId('wizard-step-3').getByRole('alert')).toHaveCount(10);
     await fillStep3(page);
     await page.getByTestId('wizard-next').click();
 

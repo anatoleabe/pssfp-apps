@@ -3,6 +3,7 @@
 import { putApplicationsMe, registerCandidat } from '@/lib/api/client';
 import { setCandidatToken } from '@/lib/auth/session';
 import type { WizardData, WizardServerActionResult } from '@/components/wizard/types';
+import { isRowEmpty } from '@/lib/diplomes/rows';
 import { isValidEngagement } from '@/lib/format/engagement';
 import { validateCandidatePin } from '@/lib/validation/pinValidation';
 import {
@@ -130,6 +131,18 @@ export async function submitInscription(payload: WizardData): Promise<WizardServ
       specialite_diplome: payload.specialite_diplome,
       annee_diplome:
         typeof payload.annee_diplome === 'number' ? payload.annee_diplome : undefined,
+      diplome_requis: payload.diplome_requis || null,
+      annee_diplome_requis:
+        typeof payload.annee_diplome_requis === 'number' ? payload.annee_diplome_requis : undefined,
+      domaine_diplome_requis: payload.domaine_diplome_requis || null,
+      specialite_diplome_requis: payload.specialite_diplome_requis || null,
+      institut_diplome_requis: payload.institut_diplome_requis || null,
+      // Les lignes vides ne sont pas envoyées : le backend les écarterait de
+      // toute façon, autant ne pas polluer la requête.
+      autres_diplomes: payload.autres_diplomes.filter((row) => !isRowEmpty(row)),
+      formations_professionnelles: payload.formations_professionnelles.filter(
+        (row) => !isRowEmpty(row),
+      ),
       statut_actuel:
         payload.statut_actuel === '' ? undefined : payload.statut_actuel,
       fonction_actuelle: payload.fonction_actuelle || null,

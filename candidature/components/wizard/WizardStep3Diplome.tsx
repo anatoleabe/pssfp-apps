@@ -5,7 +5,16 @@ import { useTranslations } from 'next-intl';
 import { DiplomeSelect } from '@/components/DiplomeSelect';
 import { EmployeurPublicSelect } from '@/components/EmployeurPublicSelect';
 import { InstitutSelect } from '@/components/InstitutSelect';
-import { MOYENS_CONNAISSANCE, STATUT_ACTUEL_OPTIONS, isPublicEmploymentStatus, needsEmployer } from '@/lib/dossier/options';
+import { AutresDiplomesEtFormations } from '@/components/diplomes/AutresDiplomesEtFormations';
+import {
+  DIPLOME_REQUIS_OPTIONS,
+  DOMAINE_DIPLOME_OPTIONS,
+  MOYENS_CONNAISSANCE,
+  STATUT_ACTUEL_OPTIONS,
+  isPublicEmploymentStatus,
+  needsEmployer,
+  needsSpecialiteDiplomeRequis,
+} from '@/lib/dossier/options';
 import type { Diplome, EmployeurPublicGroup, UniversitePays } from '@/lib/api/types';
 import type { WizardData, WizardErrors } from './types';
 
@@ -35,48 +44,149 @@ export function WizardStep3Diplome({
     <div className="space-y-5" data-testid="wizard-step-3">
       <h2 className="font-heading text-xl font-bold text-[#4A2E67]">{t('title')}</h2>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field label={t('diplome')} error={errors.diplome_obtenu} required>
-          <DiplomeSelect
-            diplomes={diplomes}
-            value={data.diplome_obtenu}
-            onChange={(v) => onChange({ diplome_obtenu: v })}
-            error={undefined}
-          />
-        </Field>
-        <Field label={t('annee')} error={errors.annee_diplome} required>
-          <input
-            data-testid="step3-annee-diplome"
-            type="number"
-            inputMode="numeric"
-            min={1950}
-            max={new Date().getFullYear()}
-            value={data.annee_diplome}
-            onChange={(e) =>
-              onChange({ annee_diplome: e.target.value === '' ? '' : Number(e.target.value) })
-            }
+      {/* Bloc 1 — diplôme le plus élevé obtenu (champs historiques). */}
+      <div className="space-y-4">
+        <h3 className="font-heading text-lg font-semibold text-[#4A2E67]">{t('blocPlusEleve')}</h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label={t('diplome')} error={errors.diplome_obtenu} required>
+            <DiplomeSelect
+              diplomes={diplomes}
+              value={data.diplome_obtenu}
+              onChange={(v) => onChange({ diplome_obtenu: v })}
+              error={undefined}
+            />
+          </Field>
+          <Field label={t('annee')} error={errors.annee_diplome} required>
+            <input
+              data-testid="step3-annee-diplome"
+              type="number"
+              inputMode="numeric"
+              min={1950}
+              max={new Date().getFullYear()}
+              value={data.annee_diplome}
+              onChange={(e) =>
+                onChange({ annee_diplome: e.target.value === '' ? '' : Number(e.target.value) })
+              }
+              className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
+            />
+          </Field>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label={t('specialiteDiplome')} error={errors.specialite_diplome} required>
+            <input
+              data-testid="step3-specialite-diplome"
+              type="text"
+              value={data.specialite_diplome}
+              onChange={(e) => onChange({ specialite_diplome: e.target.value })}
+              className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
+            />
+          </Field>
+          <Field label={t('institut')} error={errors.institut} required>
+            <InstitutSelect
+              universites={universites}
+              value={data.institut}
+              onChange={(v) => onChange({ institut: v })}
+              error={undefined}
+            />
+          </Field>
+        </div>
+      </div>
+
+      {/* Bloc 2 — diplôme requis pour l'admission. */}
+      <div className="space-y-4 border-t border-gray-100 pt-5">
+        <h3 className="font-heading text-lg font-semibold text-[#4A2E67]">{t('blocRequis')}</h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label={t('diplomeRequis')} error={errors.diplome_requis} required>
+            <select
+              data-testid="step3-diplome-requis"
+              value={data.diplome_requis}
+              onChange={(e) => onChange({ diplome_requis: e.target.value })}
+              className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
+            >
+              <option value="">{to('choose')}</option>
+              {DIPLOME_REQUIS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label={t('anneeDiplomeRequis')} error={errors.annee_diplome_requis} required>
+            <input
+              data-testid="step3-annee-diplome-requis"
+              type="number"
+              inputMode="numeric"
+              min={1950}
+              max={new Date().getFullYear()}
+              value={data.annee_diplome_requis}
+              onChange={(e) =>
+                onChange({
+                  annee_diplome_requis: e.target.value === '' ? '' : Number(e.target.value),
+                })
+              }
+              className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
+            />
+          </Field>
+        </div>
+
+        <Field label={t('domaineDiplomeRequis')} error={errors.domaine_diplome_requis} required>
+          <select
+            data-testid="step3-domaine-diplome-requis"
+            value={data.domaine_diplome_requis}
+            onChange={(e) => {
+              const domaine = e.target.value;
+              // Quitter « Autres » efface la spécialité : sans cela, une valeur
+              // masquée resterait enregistrée et s'imprimerait sur le récépissé.
+              onChange(
+                needsSpecialiteDiplomeRequis(domaine)
+                  ? { domaine_diplome_requis: domaine }
+                  : { domaine_diplome_requis: domaine, specialite_diplome_requis: '' },
+              );
+            }}
             className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
+          >
+            <option value="">{to('choose')}</option>
+            {DOMAINE_DIPLOME_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </Field>
+
+        {needsSpecialiteDiplomeRequis(data.domaine_diplome_requis) && (
+          <Field
+            label={t('specialiteDiplomeRequis')}
+            error={errors.specialite_diplome_requis}
+            required
+          >
+            <input
+              data-testid="step3-specialite-diplome-requis"
+              type="text"
+              value={data.specialite_diplome_requis}
+              onChange={(e) => onChange({ specialite_diplome_requis: e.target.value })}
+              className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
+            />
+          </Field>
+        )}
+
+        <Field label={t('institutDiplomeRequis')} error={errors.institut_diplome_requis} required>
+          <InstitutSelect
+            testId="step3-institut-diplome-requis"
+            ariaLabel={t('institutDiplomeRequis')}
+            universites={universites}
+            value={data.institut_diplome_requis}
+            onChange={(v) => onChange({ institut_diplome_requis: v })}
+            error={undefined}
           />
         </Field>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field label={t('institut')} error={errors.institut} required>
-          <InstitutSelect
-            universites={universites}
-            value={data.institut}
-            onChange={(v) => onChange({ institut: v })}
-            error={undefined}
-          />
-        </Field>
-        <Field label={t('specialiteDiplome')} error={errors.specialite_diplome} required>
-          <input
-            type="text"
-            value={data.specialite_diplome}
-            onChange={(e) => onChange({ specialite_diplome: e.target.value })}
-            className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
-          />
-        </Field>
+      {/* Bloc 3 — autres diplômes et formations, facultatif. */}
+      <div className="border-t border-gray-100 pt-5">
+        <AutresDiplomesEtFormations
+          autresDiplomes={data.autres_diplomes}
+          formationsProfessionnelles={data.formations_professionnelles}
+          errors={errors}
+          onChangeAutresDiplomes={(rows) => onChange({ autres_diplomes: rows })}
+          onChangeFormations={(rows) => onChange({ formations_professionnelles: rows })}
+        />
       </div>
 
       <Field label={t('statutActuel')} error={errors.statut_actuel} required>
