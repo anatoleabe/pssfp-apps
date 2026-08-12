@@ -31,10 +31,35 @@ beforeEach(function (): void {
     ]);
 });
 
-it('crée les nouvelles lignes avec form_version 2', function (): void {
+it('crée les nouvelles lignes en form_version 1 tant que la bascule n’a pas eu lieu', function (): void {
+    // Fenêtre de déploiement : entre la migration et la mise en ligne du bundle
+    // candidature, l'ancien écran est encore servi. Les dossiers créés dans cet
+    // intervalle doivent rester soumissibles avec l'ancien jeu de règles.
     $candidature = Candidature::factory()->create(['campagne_id' => $this->campagne->id]);
 
-    expect($candidature->refresh()->form_version)->toBe(2);
+    expect($candidature->refresh()->form_version)->toBe(1);
+});
+
+it('bascule les nouveaux dossiers en form_version 2 après activation', function (): void {
+    $avant = Candidature::factory()->create(['campagne_id' => $this->campagne->id]);
+
+    $this->artisan('candidatures:activer-formulaire-v2')->assertSuccessful();
+
+    $apres = Candidature::factory()->create(['campagne_id' => $this->campagne->id]);
+
+    expect($avant->refresh()->form_version)->toBe(1)
+        ->and($apres->refresh()->form_version)->toBe(2);
+});
+
+it('permet de revenir en arrière sans toucher aux dossiers existants', function (): void {
+    $this->artisan('candidatures:activer-formulaire-v2')->assertSuccessful();
+    $v2 = Candidature::factory()->create(['campagne_id' => $this->campagne->id]);
+
+    $this->artisan('candidatures:activer-formulaire-v2', ['--desactiver' => true])->assertSuccessful();
+    $apres = Candidature::factory()->create(['campagne_id' => $this->campagne->id]);
+
+    expect($v2->refresh()->form_version)->toBe(2)
+        ->and($apres->refresh()->form_version)->toBe(1);
 });
 
 it('accepte les nouveaux champs et les blocs JSONB', function (): void {
@@ -91,7 +116,9 @@ it('expose les libellés de référence en configuration', function (): void {
         ->and(array_keys((array) config('domaines_diplome')))->toBe(['droit', 'economie', 'gestion', 'autres']);
 });
 
-it('applique le défaut 2 au niveau du schéma, pas du modèle', function (): void {
+it('applique le défaut au niveau du schéma, pas du modèle', function (): void {
+    $this->artisan('candidatures:activer-formulaire-v2')->assertSuccessful();
+
     $id = DB::table('candidatures')->insertGetId([
         'uuid' => (string) Str::uuid(),
         'numero_dossier' => 'TEST-'.uniqid(),
@@ -126,6 +153,7 @@ function authedCandidatDiplome(): array
 }
 
 it('enregistre les nouveaux champs via PUT /v1/applications/me', function (): void {
+    $this->artisan('candidatures:activer-formulaire-v2')->assertSuccessful();
     [, $token] = authedCandidatDiplome();
 
     $response = $this->withToken($token)->putJson('/v1/applications/me', [
@@ -197,6 +225,7 @@ it('refuse plus de dix lignes', function (): void {
 });
 
 it('interdit de forcer form_version via le body', function (): void {
+    $this->artisan('candidatures:activer-formulaire-v2')->assertSuccessful();
     [, $token] = authedCandidatDiplome();
 
     $this->withToken($token)->putJson('/v1/applications/me', [
@@ -245,6 +274,10 @@ function candidatureComplete(int $campagneId, array $overrides = []): Candidatur
         'moyen_connaissance' => 'Site officiel du PSSFP',
         'engagement_nom' => 'Paul Ndongo',
     ], $overrides));
+
+    // Les règles v2 sont ce qu'on teste : on force la version plutôt que de
+    // dépendre du défaut de schéma, qui n'est à 2 qu'après activation.
+    DB::table('candidatures')->where('id', $candidature->id)->update(['form_version' => 2]);
 
     return $candidature->refresh();
 }

@@ -90,10 +90,17 @@ export function RepeatableRows<T extends object>({
       <legend className="px-1 text-sm font-semibold text-[#4A2E67]">{legend}</legend>
 
       <div ref={containerRef} className="space-y-4">
-        {rows.map((row, index) => (
+        {rows.map((row, index) => {
+          // Le backend et son miroir TS produisent une erreur au niveau de la
+          // LIGNE (`autres_diplomes.0`), pas de la cellule. Sans cette lecture,
+          // le message « chaque ligne doit être complète » n'apparaîtrait nulle
+          // part à côté de la ligne fautive.
+          const rowError = errors[`${fieldName}.${index}`];
+          return (
           <div
             key={index}
             data-testid={`${testIdPrefix}-row-${index}`}
+            data-field={`${fieldName}.${index}`}
             className="grid gap-3 rounded-md border border-[#E4DCEE] bg-white p-3 md:grid-cols-[1fr_1fr_8rem_auto]"
           >
             {columns.map((column) => {
@@ -135,8 +142,19 @@ export function RepeatableRows<T extends object>({
                 {removeLabel(index + 1)}
               </button>
             </div>
+
+            {rowError && (
+              <p
+                role="alert"
+                data-testid={`${testIdPrefix}-row-error-${index}`}
+                className="text-xs text-red-600 md:col-span-4"
+              >
+                {rowError}
+              </p>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <button

@@ -5,9 +5,9 @@ import { useTranslations } from 'next-intl';
 import type { Pays } from '@/lib/api/types';
 import { formatDateFr } from '@/lib/format/date';
 import {
-  DIPLOME_REQUIS_OPTIONS,
-  DOMAINE_DIPLOME_OPTIONS,
   STATUT_ACTUEL_OPTIONS,
+  isDiplomeRequisValue,
+  isDomaineDiplomeValue,
   needsSpecialiteDiplomeRequis,
 } from '@/lib/dossier/options';
 import type { WizardData } from './types';
@@ -106,7 +106,7 @@ export function WizardStep5Review({
         <ReviewRow label={t('fields.gradYear')} value={String(data.annee_diplome)} />
         <ReviewRow
           label={t('fields.requiredDegree')}
-          value={DIPLOME_REQUIS_OPTIONS.find((o) => o.value === data.diplome_requis)?.label ?? ''}
+          value={isDiplomeRequisValue(data.diplome_requis) ? to(`diplomeRequis.${data.diplome_requis}`) : ''}
         />
         <ReviewRow
           label={t('fields.requiredDegreeYear')}
@@ -115,7 +115,9 @@ export function WizardStep5Review({
         <ReviewRow
           label={t('fields.requiredDegreeDomain')}
           value={
-            DOMAINE_DIPLOME_OPTIONS.find((o) => o.value === data.domaine_diplome_requis)?.label ?? ''
+            isDomaineDiplomeValue(data.domaine_diplome_requis)
+              ? to(`domaineDiplome.${data.domaine_diplome_requis}`)
+              : ''
           }
         />
         {needsSpecialiteDiplomeRequis(data.domaine_diplome_requis) && (

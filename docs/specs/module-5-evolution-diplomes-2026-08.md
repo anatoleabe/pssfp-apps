@@ -56,15 +56,28 @@ en libellé se fait à l'affichage (front) et au rendu PDF (back), conformément
 
 ### 4.2 Stratégie `form_version`
 
-Séquence de migration, dans cet ordre, en une transaction :
+La migration pose `ADD COLUMN form_version smallint NOT NULL DEFAULT 1` et **s'arrête
+là** : toutes les lignes existantes prennent `1`, et les nouvelles aussi.
 
-1. `ADD COLUMN form_version smallint NOT NULL DEFAULT 1` → toutes les lignes de
-   production prennent `1`.
-2. `ALTER COLUMN form_version SET DEFAULT 2` → toute ligne insérée ensuite prend `2`.
+La bascule à `2` est un **acte de déploiement distinct** :
+`php artisan candidatures:activer-formulaire-v2`, joué **après** la mise en ligne du
+bundle candidature (`deploy.sh`, juste après le `pm2 reload`).
+
+Raison — `deploy.sh` exécute `artisan migrate --force` **avant** deux builds Next.js, soit
+plusieurs minutes pendant lesquelles l'ancien front est encore servi. Si la base imposait
+déjà les nouvelles règles dès la migration, un candidat créant son dossier dans cette
+fenêtre serait bloqué à la soumission sur des champs que son écran n'affiche pas. Avec
+`DEFAULT 1`, il reste sous l'ancien jeu de règles, qu'il peut satisfaire intégralement.
+
+Mode de défaillance choisi : si la commande d'activation est oubliée, **rien ne casse** —
+les dossiers continuent simplement d'être créés sur l'ancien formulaire. La commande
+accepte `--desactiver` pour revenir en arrière ; dans les deux sens, **aucun dossier
+existant n'est modifié**, seule la valeur par défaut des futures insertions change.
 
 Aucun code applicatif ne fixe `form_version` : le défaut Postgres suffit. La colonne est
-ajoutée à la liste noire de `CandidatureService::updateDraft`, donc **non assignable par
-le client**.
+en liste noire dans `CandidatureService::updateDraft` **et** dans
+`EditCandidature::mutateFormDataBeforeSave`, donc **non assignable**, ni par le candidat
+ni par l'administrateur.
 
 ### 4.3 Forme des blocs JSONB
 
@@ -82,6 +95,12 @@ le client**.
 Les lignes sont **normalisées côté serveur** avant écriture (`App\Support\CandidatureDiplomeBlocks`) :
 seules les trois clés attendues sont conservées, les valeurs sont typées, les lignes
 entièrement vides sont supprimées. Aucun JSON arbitraire venu du client n'atteint la base.
+
+La normalisation est appliquée sur **les deux chemins d'écriture** — l'API
+(`CandidatureService::updateDraft`) et l'admin Filament
+(`EditCandidature::mutateFormDataBeforeSave`) — sans quoi les `Repeater` Filament, qui
+remontent leurs champs en chaînes, stockeraient `annee` sous une forme différente de
+celle de l'API.
 
 Plafond de **10 lignes par bloc**, garde-fou anti-abus appliqué côté API.
 
@@ -243,10 +262,25 @@ extraite dans son propre fichier. Aucun autre refactoring n'est entrepris.
 
 ## 14. Séquence de mise en production
 
-1. Migration backend (additive, réversible, sans verrou long).
-2. Déploiement backend.
-3. Déploiement frontend candidature.
+`infra/deploy/deploy.sh` exécute désormais, dans cet ordre :
 
-L'ordre importe : le backend doit accepter les nouveaux champs avant que le front ne les
-envoie. Entre les deux étapes, l'ancien front reste pleinement fonctionnel — toutes les
-nouvelles colonnes sont nullables.
+1. Migration backend — additive, réversible. `form_version` reste à `DEFAULT 1`.
+2. Build et mise en ligne du bundle candidature (`pnpm build` puis `pm2 reload`).
+3. **`php artisan candidatures:activer-formulaire-v2`** — bascule du défaut à `2`.
+
+L'ordre est le point critique. Entre l'étape 1 et l'étape 2, l'ancien front est encore
+servi : les dossiers créés dans cet intervalle restent en `form_version 1`, donc
+**pleinement soumissibles** avec l'écran que le candidat a sous les yeux. Ils sont
+définitivement exemptés des nouvelles exigences, au même titre que les brouillons
+antérieurs.
+
+Sans l'étape 3, le déploiement est sans effet fonctionnel mais sans danger : les nouveaux
+dossiers continuent simplement sur l'ancien formulaire.
+
+**Contrôle après déploiement**
+
+- Ouvrir un dossier `postulant` antérieur : son écran d'édition doit être inchangé et le
+  dossier rester soumissible.
+- Créer un dossier neuf : les nouveaux champs doivent être exigés.
+- En cas d'anomalie, `php artisan candidatures:activer-formulaire-v2 --desactiver` remet
+  les futurs dossiers sur l'ancien formulaire sans toucher à l'existant.

@@ -136,3 +136,51 @@ it('expose les champs du diplôme requis et les blocs répétables dans l’admi
         ->and($cand->domaine_diplome_requis)->toBe('gestion')
         ->and($cand->autres_diplomes[0]['intitule'])->toBe('DESS');
 });
+
+it('normalise les blocs répétables saisis depuis l’admin', function (): void {
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $cand = Candidature::factory()->forCampagne($this->campagne)->create([
+        'user_id' => User::factory()->candidat()->create()->id,
+        'phone_e164' => '+237691555666',
+        'specialite' => array_values((array) config('specialites'))[0],
+    ]);
+
+    $this->actingAs($admin);
+
+    $this->livewire(EditCandidature::class, ['record' => $cand->getRouteKey()])
+        ->fillForm([
+            // Filament remonte les TextInput en chaînes : sans normalisation,
+            // `annee` serait stockée en "2019" alors que l'API stocke 2019.
+            'autres_diplomes' => [
+                ['intitule' => '  DESS  ', 'etablissement' => 'ENAM', 'annee' => '2019'],
+                ['intitule' => '', 'etablissement' => '', 'annee' => ''],
+            ],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $cand->refresh();
+
+    expect($cand->autres_diplomes)->toHaveCount(1)
+        ->and($cand->autres_diplomes[0]['annee'])->toBe(2019)
+        ->and($cand->autres_diplomes[0]['intitule'])->toBe('DESS');
+});
+
+it('interdit de forcer form_version depuis l’admin', function (): void {
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $cand = Candidature::factory()->forCampagne($this->campagne)->create([
+        'user_id' => User::factory()->candidat()->create()->id,
+        'phone_e164' => '+237691777888',
+        'specialite' => array_values((array) config('specialites'))[0],
+    ]);
+
+    $page = new EditCandidature;
+    $filtered = (fn (array $d): array => $this->mutateFormDataBeforeSave($d))
+        ->call($page, ['nom' => 'Ndongo', 'form_version' => 1]);
+
+    expect($filtered)->toBe(['nom' => 'Ndongo']);
+});

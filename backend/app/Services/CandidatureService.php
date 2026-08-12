@@ -277,6 +277,15 @@ final class CandidatureService
             foreach ($rows as $index => $row) {
                 if (! CandidatureDiplomeBlocks::isRowComplete($row, $spec['keys'])) {
                     $errors["{$field}.{$index}"] = $spec['message'];
+
+                    continue;
+                }
+
+                // L'année n'est bornée que par le FormRequest : le chemin
+                // Filament la contournerait sans ce contrôle.
+                $annee = (int) $row['annee'];
+                if ($annee < 1950 || $annee > (int) now()->year) {
+                    $errors["{$field}.{$index}"] = "L'année indiquée doit être comprise entre 1950 et ".now()->year.'.';
                 }
             }
         }

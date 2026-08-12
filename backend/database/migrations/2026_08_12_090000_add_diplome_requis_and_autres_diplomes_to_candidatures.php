@@ -14,9 +14,21 @@ use Illuminate\Support\Facades\Schema;
  * Migration strictement additive : toutes les nouvelles colonnes métier sont
  * NULLABLE, aucune ligne de production n'est réécrite ni invalidée.
  *
- * `form_version` discrimine l'ancien formulaire du nouveau :
- *   1. ADD COLUMN ... DEFAULT 1        -> toutes les lignes existantes prennent 1
- *   2. ALTER COLUMN ... SET DEFAULT 2  -> toute ligne insérée ensuite prend 2
+ * `form_version` discrimine l'ancien formulaire du nouveau. La migration pose
+ * DEFAULT 1 et s'arrête là : la bascule à 2 est un acte de déploiement séparé
+ * (`php artisan candidatures:activer-formulaire-v2`), joué APRÈS la mise en
+ * ligne du bundle candidature.
+ *
+ * Raison : `deploy.sh` exécute les migrations avant deux builds Next.js, soit
+ * plusieurs minutes pendant lesquelles l'ancien front est encore servi. Si la
+ * base imposait déjà les nouvelles règles, un candidat créant son dossier dans
+ * cette fenêtre serait bloqué à la soumission sur des champs que son écran
+ * n'affiche pas. Avec DEFAULT 1, il reste sous l'ancien jeu de règles, qu'il
+ * peut satisfaire intégralement.
+ *
+ * Mode de défaillance choisi : si la commande d'activation est oubliée, rien
+ * ne casse — les dossiers continuent simplement sur l'ancien formulaire.
+ *
  * Aucun code applicatif ne fixe cette colonne : le défaut Postgres suffit, et
  * CandidatureService la maintient en liste noire du PUT.
  *
@@ -27,19 +39,21 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Pas de `->after()` : le modificateur n'existe que dans la grammaire
+        // MySQL et serait silencieusement ignoré par PostgreSQL. Les colonnes
+        // sont donc ajoutées en fin de table, ce qui n'a aucune incidence.
         Schema::table('candidatures', function (Blueprint $table): void {
-            $table->string('diplome_requis', 30)->nullable()->after('annee_diplome');
-            $table->smallInteger('annee_diplome_requis')->nullable()->after('diplome_requis');
-            $table->string('domaine_diplome_requis', 30)->nullable()->after('annee_diplome_requis');
-            $table->string('specialite_diplome_requis', 100)->nullable()->after('domaine_diplome_requis');
-            $table->string('institut_diplome_requis', 150)->nullable()->after('specialite_diplome_requis');
-            $table->jsonb('autres_diplomes')->nullable()->after('institut_diplome_requis');
-            $table->jsonb('formations_professionnelles')->nullable()->after('autres_diplomes');
-            $table->smallInteger('form_version')->default(1)->after('statut');
+            $table->string('diplome_requis', 30)->nullable();
+            $table->smallInteger('annee_diplome_requis')->nullable();
+            $table->string('domaine_diplome_requis', 30)->nullable();
+            $table->string('specialite_diplome_requis', 100)->nullable();
+            $table->string('institut_diplome_requis', 150)->nullable();
+            $table->jsonb('autres_diplomes')->nullable();
+            $table->jsonb('formations_professionnelles')->nullable();
+            // NOT NULL implicite (pas de ->nullable()), avec un défaut constant :
+            // PostgreSQL 11+ n'effectue donc aucune réécriture de table.
+            $table->smallInteger('form_version')->default(1);
         });
-
-        DB::statement('ALTER TABLE candidatures ALTER COLUMN form_version SET DEFAULT 2');
-        DB::statement('ALTER TABLE candidatures ALTER COLUMN form_version SET NOT NULL');
 
         DB::statement(<<<'SQL'
             ALTER TABLE candidatures

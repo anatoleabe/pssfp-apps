@@ -3061,15 +3061,29 @@ git commit -m "test(candidature): accessibilité de l'étape 3 étendue"
 ```
 
 ---
-
 ## Séquence de mise en production
 
-Une fois la branche fusionnée dans `main` et la CI verte, appliquer dans cet ordre :
+> **Corrigé après revue.** La séquence prévue au moment de la rédaction laissait une
+> fenêtre de plusieurs minutes pendant laquelle la base imposait déjà les nouvelles
+> règles alors que l'ancien front était encore servi — un candidat créant son dossier
+> dans cet intervalle aurait été bloqué à la soumission sur des champs invisibles pour
+> lui. Voir §14 de la spec pour la séquence retenue.
 
-1. `php artisan migrate` sur le VPS — migration additive, sans verrou long.
-2. Build et redémarrage du backend.
-3. Build et redémarrage de l'app candidature.
+`infra/deploy/deploy.sh` porte désormais la séquence complète :
 
-L'ordre compte : le backend doit accepter les nouveaux champs avant que le front ne les envoie. Entre les deux étapes, l'ancien front reste pleinement fonctionnel puisque toutes les nouvelles colonnes sont nullables.
+1. `artisan migrate --force` — additive, `form_version` reste à `DEFAULT 1`.
+2. Builds Next.js puis `pm2 reload` — le nouveau front devient le front servi.
+3. `artisan candidatures:activer-formulaire-v2` — bascule du défaut à `2`.
 
-**Contrôle après déploiement :** ouvrir un dossier `postulant` antérieur à la mise en production, vérifier que son écran d'édition est inchangé et qu'il reste soumissible. Puis créer un dossier neuf et vérifier que les nouveaux champs sont exigés.
+Les dossiers créés entre 1 et 2 restent en `form_version 1` : ils sont soumissibles avec
+l'écran que le candidat a effectivement sous les yeux, et définitivement exemptés des
+nouvelles exigences, au même titre que les brouillons antérieurs.
+
+Si l'étape 3 est oubliée, rien ne casse : les nouveaux dossiers continuent simplement sur
+l'ancien formulaire.
+
+**Contrôle après déploiement :** ouvrir un dossier `postulant` antérieur, vérifier que son
+écran d'édition est inchangé et qu'il reste soumissible. Puis créer un dossier neuf et
+vérifier que les nouveaux champs sont exigés. En cas d'anomalie,
+`artisan candidatures:activer-formulaire-v2 --desactiver` rétablit l'ancien formulaire
+pour les futurs dossiers sans toucher à l'existant.

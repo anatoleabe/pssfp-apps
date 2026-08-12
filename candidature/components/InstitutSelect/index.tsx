@@ -33,15 +33,19 @@ export function InstitutSelect({
   onChange,
   error,
   testId = 'step3-institut',
-  ariaLabel = 'Établissement de délivrance',
+  ariaLabel,
 }: InstitutSelectProps): JSX.Element {
   const tsi = useTranslations('selects.institut');
+  const tf = useTranslations('dossier.fields');
+  // Défaut traduit et non littéral français : sans cela un lecteur d'écran
+  // annonçait « Établissement de délivrance » sur la version anglaise.
+  const resolvedAriaLabel = ariaLabel ?? tf('institut');
   const options = useMemo(() => {
     const flat = universites.flatMap((group) =>
       group.universites.map((nom) => ({ value: nom, label: `${nom} (${group.pays})` })),
     );
-    return [...flat, { value: AUTRE, label: 'Autre (préciser)' }];
-  }, [universites]);
+    return [...flat, { value: AUTRE, label: tsi('other') }];
+  }, [universites, tsi]);
 
   const knownValues = useMemo(
     () => new Set(universites.flatMap((group) => group.universites)),
@@ -53,7 +57,7 @@ export function InstitutSelect({
     <div>
       <SearchableSelect
         testId={testId}
-        ariaLabel={ariaLabel}
+        ariaLabel={resolvedAriaLabel}
         options={options}
         value={autreActive ? AUTRE : value}
         onChange={(next) => {

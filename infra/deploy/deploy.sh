@@ -43,6 +43,13 @@ pnpm build
 log "PM2 : reload des apps Next.js"
 pm2 reload "$APP_DIR/infra/pm2/ecosystem.config.js" --update-env
 
+# La bascule du formulaire candidature v2 vient APRÈS le reload PM2 : tant que
+# l'ancien bundle est servi, les nouveaux dossiers doivent rester en v1, sinon
+# un candidat se verrait exiger des champs que son écran n'affiche pas encore.
+log "Candidatures : activation du formulaire v2 (diplôme requis)"
+cd "$APP_DIR/backend"
+"$PHP_BIN" artisan candidatures:activer-formulaire-v2
+
 log "Queue worker : restart (obligatoire — le code des jobs a pu changer)"
 sudo systemctl restart pssfp-queue.service
 

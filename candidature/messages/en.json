@@ -812,6 +812,16 @@
       "divorce": "Divorced",
       "veuf": "Widowed",
       "autre": "Other"
+    },
+    "diplomeRequis": {
+      "licence-bachelor": "Bachelor's degree",
+      "master": "Master's degree"
+    },
+    "domaineDiplome": {
+      "droit": "Law",
+      "economie": "Economics",
+      "gestion": "Management",
+      "autres": "Other"
     }
   },
   "uploads": {
@@ -873,7 +883,8 @@
       "phoneNumber": "Phone number"
     },
     "institut": {
-      "precisePlaceholder": "Specify the institution"
+      "precisePlaceholder": "Specify the institution",
+      "other": "Other (specify)"
     }
   },
   "sessionAlreadyOpen": {

@@ -9,8 +9,8 @@ import { InstitutSelect } from '@/components/InstitutSelect';
 import type { Diplome, EmployeurPublicGroup, UniversitePays } from '@/lib/api/types';
 import type { AutreDiplomeRow, FormationProRow } from '@/lib/diplomes/rows';
 import {
-  DIPLOME_REQUIS_OPTIONS,
-  DOMAINE_DIPLOME_OPTIONS,
+  DIPLOME_REQUIS_VALUES,
+  DOMAINE_DIPLOME_VALUES,
   MOYENS_CONNAISSANCE,
   STATUT_ACTUEL_OPTIONS,
   isPublicEmploymentStatus,
@@ -101,8 +101,8 @@ export function SectionDiplome({
                 className={inputCls}
               >
                 <option value="">{to('choose')}</option>
-                {DIPLOME_REQUIS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
+                {DIPLOME_REQUIS_VALUES.map((value) => (
+                  <option key={value} value={value}>{to(`diplomeRequis.${value}`)}</option>
                 ))}
               </select>
             </Field>
@@ -146,8 +146,8 @@ export function SectionDiplome({
               className={inputCls}
             >
               <option value="">{to('choose')}</option>
-              {DOMAINE_DIPLOME_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+              {DOMAINE_DIPLOME_VALUES.map((value) => (
+                <option key={value} value={value}>{to(`domaineDiplome.${value}`)}</option>
               ))}
             </select>
           </Field>

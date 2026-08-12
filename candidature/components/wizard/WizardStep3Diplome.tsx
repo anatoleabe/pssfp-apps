@@ -7,8 +7,8 @@ import { EmployeurPublicSelect } from '@/components/EmployeurPublicSelect';
 import { InstitutSelect } from '@/components/InstitutSelect';
 import { AutresDiplomesEtFormations } from '@/components/diplomes/AutresDiplomesEtFormations';
 import {
-  DIPLOME_REQUIS_OPTIONS,
-  DOMAINE_DIPLOME_OPTIONS,
+  DIPLOME_REQUIS_VALUES,
+  DOMAINE_DIPLOME_VALUES,
   MOYENS_CONNAISSANCE,
   STATUT_ACTUEL_OPTIONS,
   isPublicEmploymentStatus,
@@ -104,8 +104,8 @@ export function WizardStep3Diplome({
               className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
             >
               <option value="">{to('choose')}</option>
-              {DIPLOME_REQUIS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+              {DIPLOME_REQUIS_VALUES.map((value) => (
+                <option key={value} value={value}>{to(`diplomeRequis.${value}`)}</option>
               ))}
             </select>
           </Field>
@@ -144,8 +144,8 @@ export function WizardStep3Diplome({
             className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-[#4A2E67] focus:outline-none focus:ring-2 focus:ring-[#4A2E67]/30"
           >
             <option value="">{to('choose')}</option>
-            {DOMAINE_DIPLOME_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+            {DOMAINE_DIPLOME_VALUES.map((value) => (
+              <option key={value} value={value}>{to(`domaineDiplome.${value}`)}</option>
             ))}
           </select>
         </Field>

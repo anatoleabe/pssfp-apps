@@ -4,9 +4,9 @@ import { Pencil, UserRoundSearch } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
 import { formatDateFr } from '@/lib/format/date';
 import {
-  DIPLOME_REQUIS_OPTIONS,
-  DOMAINE_DIPLOME_OPTIONS,
   STATUT_ACTUEL_OPTIONS,
+  isDiplomeRequisValue,
+  isDomaineDiplomeValue,
 } from '@/lib/dossier/options';
 
 export function DossierProfileSummary({
@@ -15,20 +15,21 @@ export function DossierProfileSummary({
   candidature: MyCandidature;
 }): JSX.Element {
   const ts = useTranslations('dossier.summary');
+  const tf = useTranslations('dossier.fields');
+  const to = useTranslations('options');
   const canEdit = candidature.statut === 'postulant' && candidature.withdrawn_at === null;
   const statusLabel =
     STATUT_ACTUEL_OPTIONS.find((option) => option.value === candidature.statut_actuel)?.label ??
     candidature.statut_actuel;
-  // Les colonnes stockent des slugs stables ; l'affichage passe par le libellé.
-  const diplomeRequisLabel =
-    DIPLOME_REQUIS_OPTIONS.find((option) => option.value === candidature.diplome_requis)?.label ??
-    candidature.diplome_requis ??
-    null;
-  const domaineDiplomeLabel =
-    DOMAINE_DIPLOME_OPTIONS.find((option) => option.value === candidature.domaine_diplome_requis)
-      ?.label ??
-    candidature.domaine_diplome_requis ??
-    null;
+  // Les colonnes stockent des slugs stables ; l'affichage passe par le libellé
+  // traduit. Une valeur héritée inconnue est rendue telle quelle plutôt que de
+  // faire échouer la résolution de clé.
+  const diplomeRequisLabel = isDiplomeRequisValue(candidature.diplome_requis)
+    ? to(`diplomeRequis.${candidature.diplome_requis}`)
+    : candidature.diplome_requis ?? null;
+  const domaineDiplomeLabel = isDomaineDiplomeValue(candidature.domaine_diplome_requis)
+    ? to(`domaineDiplome.${candidature.domaine_diplome_requis}`)
+    : candidature.domaine_diplome_requis ?? null;
 
   return (
     <section
@@ -113,14 +114,14 @@ export function DossierProfileSummary({
             // mise en production d'août 2026, donc masqué pour eux.
             ...(candidature.form_version >= 2
               ? ([
-                  ['Diplôme requis', diplomeRequisLabel],
+                  [tf('diplome_requis'), diplomeRequisLabel],
                   [
-                    'Année d’obtention du diplôme requis',
+                    tf('annee_diplome_requis'),
                     candidature.annee_diplome_requis ? String(candidature.annee_diplome_requis) : null,
                   ],
-                  ['Domaine du diplôme requis', domaineDiplomeLabel],
-                  ['Spécialité du diplôme requis', candidature.specialite_diplome_requis ?? null],
-                  ['Établissement du diplôme requis', candidature.institut_diplome_requis ?? null],
+                  [tf('domaine_diplome_requis'), domaineDiplomeLabel],
+                  [tf('specialite_diplome_requis'), candidature.specialite_diplome_requis ?? null],
+                  [tf('institut_diplome_requis'), candidature.institut_diplome_requis ?? null],
                 ] as Array<[string, string | null]>)
               : []),
           ]}
