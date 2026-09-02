@@ -40,6 +40,18 @@ return [
         'provider' => env('SMS_PROVIDER', 'fake'),
     ],
 
+    // Passerelle SMS auto-hébergée (API Laravel/Sanctum, POST /sent/compose).
+    // Le jeton n'existe QUE dans .env — jamais dans le dépôt.
+    'sms_gateway' => [
+        // Racine de l'API, suffixe /api compris. Ex : https://sms.exemple.org/api
+        'base_url' => env('SMS_GATEWAY_BASE_URL'),
+        'token' => env('SMS_GATEWAY_TOKEN'),
+        // 'sender_id' (recommandé, nom court affiché) ou 'phone_number'.
+        'from_type' => env('SMS_GATEWAY_FROM_TYPE', 'sender_id'),
+        'sender_id' => env('SMS_GATEWAY_SENDER_ID'),
+        'from_number' => env('SMS_GATEWAY_FROM_NUMBER'),
+    ],
+
     'africas_talking' => [
         'username' => env('AFRICAS_TALKING_USERNAME'),
         'api_key' => env('AFRICAS_TALKING_API_KEY'),

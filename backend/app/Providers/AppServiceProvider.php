@@ -10,6 +10,7 @@ use App\Services\Scanner\NoopPhotoScanner;
 use App\Services\Scanner\PhotoScannerInterface;
 use App\Services\Sms\AfricasTalkingProvider;
 use App\Services\Sms\FakeSmsProvider;
+use App\Services\Sms\GatewayApiProvider;
 use App\Services\Sms\SmsServiceInterface;
 use Illuminate\Support\ServiceProvider;
 
@@ -20,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SmsServiceInterface::class, function ($app) {
             return match (config('services.sms.provider', 'fake')) {
                 'africas_talking' => $app->make(AfricasTalkingProvider::class),
+                'gateway_api' => $app->make(GatewayApiProvider::class),
                 default => $app->make(FakeSmsProvider::class),
             };
         });
