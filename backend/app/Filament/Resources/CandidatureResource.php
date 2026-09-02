@@ -12,6 +12,7 @@ use App\Models\Candidature;
 use App\Models\DepartementCameroun;
 use App\Models\Pays;
 use App\Models\RegionCameroun;
+use App\Services\CandidatureService;
 use App\Services\DepotPhysiqueService;
 use App\Services\DocumentUploadService;
 use App\Services\RecipisseService;
@@ -25,6 +26,7 @@ use Filament\Resources\Resource;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\IconPosition;
 use Filament\Tables;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -359,6 +361,40 @@ class CandidatureResource extends Resource
                     ->placeholder('Tous')
                     ->trueLabel('Payés uniquement')
                     ->falseLabel('Non payés uniquement'),
+                // Liste nominative des brouillons à relancer, avec téléphone
+                // et email déjà présents dans la colonne « Candidat ». Les
+                // identifiants sont calculés en PHP par CandidatureService,
+                // faute de pouvoir exprimer en SQL les règles conditionnelles
+                // de checkSubmittable sans les dupliquer.
+                Tables\Filters\SelectFilter::make('blocage_brouillon')
+                    ->label('Brouillons à relancer')
+                    ->options([
+                        CandidatureService::DRAFT_READY => 'Prêts à soumettre',
+                        CandidatureService::DRAFT_PHOTO_ONLY => 'Bloqués par la photo',
+                        CandidatureService::DRAFT_OTHER => 'Autres champs manquants',
+                    ])
+                    ->query(function (Builder $query, array $data, HasTable $livewire): Builder {
+                        $cause = $data['value'] ?? null;
+                        if ($cause === null || $cause === '') {
+                            return $query;
+                        }
+
+                        // La campagne est lue dans l'état du filtre voisin, et
+                        // non dans la requête HTTP : un admin qui consulte une
+                        // campagne passée doit obtenir SES brouillons, pas ceux
+                        // de la campagne ouverte.
+                        $campagneId = $livewire->getTableFilterState('campagne_id')['value'] ?? null;
+                        $campagneId = $campagneId ?: CampagneCandidature::currentlyOpen()->value('id');
+
+                        if ($campagneId === null) {
+                            return $query->whereRaw('1 = 0');
+                        }
+
+                        $buckets = app(CandidatureService::class)
+                            ->classifyDraftsForCampagne((int) $campagneId);
+
+                        return $query->whereIn('id', $buckets[$cause] ?? []);
+                    }),
                 Tables\Filters\TernaryFilter::make('depot_physique')
                     ->label('Dossier papier')
                     ->placeholder('Tous')

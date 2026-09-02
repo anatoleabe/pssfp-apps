@@ -6,6 +6,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
+use App\Services\CandidatureService;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -15,6 +16,11 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  * Stats :
  * - Total dossiers soumis (statut != postulant)
  * - Décomposition postulant / candidat / accepté / refusé
+ * - Ventilation des brouillons par cause de blocage (prêt / photo / autre),
+ *   ajoutée en septembre 2026 : le seul compteur « postulant » ne permettait
+ *   pas de distinguer un dossier abandonné d'un dossier complet en attente
+ *   d'un simple clic. La liste nominative correspondante est accessible via
+ *   le filtre « Brouillons à relancer » de CandidatureResource.
  * - Taux frais payés
  * - Compte à rebours date de clôture (couleur conditionnelle)
  *
@@ -64,6 +70,15 @@ class AvancementCampagneWidget extends BaseWidget
 
         $tauxFrais = $total > 0 ? round(($fraisPayes / $total) * 100, 1) : 0.0;
 
+        // Pourquoi les brouillons n'avancent pas. Sans cette ventilation, le
+        // compteur « postulant » ne dit pas si ces dossiers sont abandonnés ou
+        // simplement à relancer d'un appel — la distinction change tout à
+        // l'approche de la clôture.
+        $blocages = app(CandidatureService::class)->classifyDraftsForCampagne($campagne->id);
+        $prets = count($blocages[CandidatureService::DRAFT_READY]);
+        $photoSeule = count($blocages[CandidatureService::DRAFT_PHOTO_ONLY]);
+        $autresManques = count($blocages[CandidatureService::DRAFT_OTHER]);
+
         $now = now();
         $remainingDays = $campagne->closes_at !== null
             ? (int) max(0, $now->diffInDays($campagne->closes_at, false))
@@ -86,6 +101,25 @@ class AvancementCampagneWidget extends BaseWidget
                 "P: {$postulants}  ·  C: {$candidats}  ·  A: {$acceptes}  ·  R: {$refuses}")
                 ->description('Postulant / Candidat / Accepté / Refusé')
                 ->color('info'),
+
+            Stat::make('Prêts à soumettre', (string) $prets)
+                ->description($prets > 0
+                    ? 'Dossiers complets, en attente du clic du candidat — à relancer'
+                    : 'Aucun dossier complet en attente')
+                ->descriptionIcon('heroicon-m-phone-arrow-up-right')
+                ->color($prets > 0 ? 'warning' : 'success'),
+
+            Stat::make('Bloqués par la photo', (string) $photoSeule)
+                ->description($photoSeule > 0
+                    ? 'La photo d\'identité est le seul élément manquant'
+                    : 'Aucun dossier bloqué sur la photo')
+                ->descriptionIcon('heroicon-m-camera')
+                ->color($photoSeule > 0 ? 'warning' : 'success'),
+
+            Stat::make('Autres champs manquants', (string) $autresManques)
+                ->description('Brouillons incomplets au-delà de la photo')
+                ->descriptionIcon('heroicon-m-pencil-square')
+                ->color($autresManques > 0 ? 'info' : 'success'),
 
             Stat::make('Taux frais payés', $tauxFrais.'%')
                 ->description("{$fraisPayes} dossier(s) sur {$total}")

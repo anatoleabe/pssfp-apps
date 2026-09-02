@@ -32,6 +32,15 @@ final class CandidatureService
 {
     private const SUBMIT_IDEMPOTENCY_TTL_SECONDS = 300; // 5 min
 
+    /** Brouillon complet : il ne manque que le clic « Soumettre ». */
+    public const DRAFT_READY = 'ready';
+
+    /** Brouillon dont la photo d'identité est le seul élément manquant. */
+    public const DRAFT_PHOTO_ONLY = 'photo_only';
+
+    /** Brouillon auquel il manque au moins un champ autre que la photo. */
+    public const DRAFT_OTHER = 'other';
+
     public function __construct(
         private readonly ConnectionInterface $db,
         private readonly RecipisseService $recipisse,
@@ -145,6 +154,64 @@ final class CandidatureService
      *
      * @return array<string, string>
      */
+    /**
+     * Pourquoi un brouillon n'a-t-il pas encore été soumis ?
+     *
+     * Trois causes seulement, parce que ce sont les trois qui appellent des
+     * actions différentes de la part de la scolarité : relancer d'un simple
+     * appel (dossier prêt), aider à fournir une photo, ou signaler des champs
+     * manquants. S'appuie sur checkSubmittable pour rester aligné avec ce que
+     * le candidat voit réellement dans son espace.
+     */
+    public function classifyDraft(Candidature $candidature): string
+    {
+        $errors = $this->checkSubmittable($candidature);
+
+        if ($errors === []) {
+            return self::DRAFT_READY;
+        }
+
+        return array_keys($errors) === ['photo'] ? self::DRAFT_PHOTO_ONLY : self::DRAFT_OTHER;
+    }
+
+    /**
+     * Répartit les brouillons vivants d'une campagne par cause de blocage.
+     *
+     * Les dossiers soumis et ceux retirés par le candidat sont exclus : ni les
+     * uns ni les autres n'appellent de relance.
+     *
+     * Le classement se fait en PHP et non en SQL, faute de pouvoir traduire
+     * les règles conditionnelles de checkSubmittable (employeur selon la
+     * situation professionnelle, région selon le pays, bloc diplôme requis
+     * selon form_version) sans les dupliquer et les laisser dériver. Le coût
+     * reste négligeable à l'échelle d'une campagne — quelques centaines de
+     * dossiers — et le traitement est chunké pour ne pas charger la table
+     * entière en mémoire si ce volume augmentait.
+     *
+     * @return array{ready: list<int>, photo_only: list<int>, other: list<int>}
+     */
+    public function classifyDraftsForCampagne(int $campagneId): array
+    {
+        $buckets = [
+            self::DRAFT_READY => [],
+            self::DRAFT_PHOTO_ONLY => [],
+            self::DRAFT_OTHER => [],
+        ];
+
+        Candidature::query()
+            ->where('campagne_id', $campagneId)
+            ->where('statut', Candidature::STATUT_POSTULANT)
+            ->whereNull('withdrawn_at')
+            ->orderBy('id')
+            ->chunk(200, function ($drafts) use (&$buckets): void {
+                foreach ($drafts as $draft) {
+                    $buckets[$this->classifyDraft($draft)][] = $draft->id;
+                }
+            });
+
+        return $buckets;
+    }
+
     public function checkSubmittable(Candidature $candidature): array
     {
         $errors = [];
