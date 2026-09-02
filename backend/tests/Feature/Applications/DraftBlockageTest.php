@@ -210,14 +210,14 @@ it('respecte la campagne sélectionnée et non la campagne ouverte', function ()
     $pretCourante = draftComplet($this->campagne->id);
 
     config()->set('pssfp.filament.require_2fa', false);
-    $admin = App\Models\User::factory()->create();
+    $admin = User::factory()->create();
     $admin->assignRole('super_admin');
     $this->actingAs($admin);
 
     // Un admin qui consulte une campagne passée doit voir SES brouillons.
-    $this->livewire(App\Filament\Resources\CandidatureResource\Pages\ListCandidatures::class)
+    $this->livewire(ListCandidatures::class)
         ->filterTable('campagne_id', $ancienne->id)
-        ->filterTable('blocage_brouillon', App\Services\CandidatureService::DRAFT_READY)
+        ->filterTable('blocage_brouillon', CandidatureService::DRAFT_READY)
         ->assertCanSeeTableRecords([$pretAncienne])
         ->assertCanNotSeeTableRecords([$pretCourante]);
 });
