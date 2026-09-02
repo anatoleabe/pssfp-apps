@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useRef, useState, useTransition } from 'react';
 import { useRouter } from '@/navigation';
 import { uploadPhotoAction, deletePhotoAction } from '@/app/[locale]/dossier/photo/actions';
+import { compressPhotoIfNeeded } from '@/lib/photo/compressImage';
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const MIN_DIMENSION = 200;
@@ -12,7 +13,7 @@ const ACCEPTED = ['image/jpeg', 'image/png'];
 
 type UploaderState =
   | { kind: 'idle' }
-  | { kind: 'preview'; previewUrl: string; file: File }
+  | { kind: 'preview'; previewUrl: string; file: File; compressionNote: string | null }
   | { kind: 'uploading' }
   | { kind: 'success'; signedUrl: string }
   | { kind: 'error'; message: string };
@@ -44,6 +45,10 @@ export function PhotoUploader({
       return 'Format non supporté. Utilisez JPG ou PNG.';
     }
     if (file.size > MAX_BYTES) {
+      // N'arrive normalement plus : handleFile compresse en amont. Ce
+      // message ne reste atteignable qu'en dernier recours (compression
+      // échouée, ou fichier encore trop lourd après le palier le plus
+      // agressif — cf. compressPhotoIfNeeded).
       return `Fichier trop volumineux (${(file.size / 1024 / 1024).toFixed(1)} Mo). Maximum 2 Mo.`;
     }
     const dims = await new Promise<{ w: number; h: number } | null>((resolve) => {
@@ -70,15 +75,34 @@ export function PhotoUploader({
 
   const handleFile = useCallback(
     async (file: File): Promise<void> => {
-      const err = await validateClientSide(file);
+      let candidate = file;
+      let compressionNote: string | null = null;
+
+      // La compression ne s'applique qu'aux fichiers dépassant la limite —
+      // compressPhotoIfNeeded renvoie le fichier tel quel sinon, sans coût.
+      try {
+        const result = await compressPhotoIfNeeded(file);
+        candidate = result.file;
+        if (result.wasCompressed) {
+          const before = (result.originalBytes / 1024 / 1024).toFixed(1);
+          const after = (result.finalBytes / 1024 / 1024).toFixed(1);
+          compressionNote = tu('compressed', { before, after });
+        }
+      } catch {
+        // Compression indisponible (navigateur atypique, image corrompue) :
+        // on retombe sur le fichier d'origine — validateClientSide affichera
+        // le message « trop volumineux » s'il dépasse effectivement 2 Mo.
+      }
+
+      const err = await validateClientSide(candidate);
       if (err !== null) {
         setState({ kind: 'error', message: err });
         return;
       }
-      const previewUrl = URL.createObjectURL(file);
-      setState({ kind: 'preview', previewUrl, file });
+      const previewUrl = URL.createObjectURL(candidate);
+      setState({ kind: 'preview', previewUrl, file: candidate, compressionNote });
     },
-    [validateClientSide],
+    [validateClientSide, tu],
   );
 
   const onSelectInput = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -211,23 +235,30 @@ export function PhotoUploader({
         )}
 
         {state.kind === 'preview' && !isLocked && (
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={submit}
-              disabled={isPending}
-              className="inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-5 text-sm font-medium text-white hover:bg-[#5C3A7E] focus:outline-none focus:ring-2 focus:ring-[#4A2E67] focus:ring-offset-2 disabled:opacity-60"
-              data-testid="photo-submit"
-            >
-              {isPending ? 'Envoi…' : 'Enregistrer cette photo'}
-            </button>
-            <button
-              type="button"
-              onClick={reset}
-              className="inline-flex h-11 items-center rounded-md border border-gray-300 bg-white px-5 text-sm text-[#333] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4A2E67] focus:ring-offset-2"
-            >
-              {tu('chooseAnother')}
-            </button>
+          <div className="flex flex-col gap-3">
+            {state.compressionNote && (
+              <p data-testid="photo-compression-note" className="text-xs text-[#666]">
+                {state.compressionNote}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={submit}
+                disabled={isPending}
+                className="inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-5 text-sm font-medium text-white hover:bg-[#5C3A7E] focus:outline-none focus:ring-2 focus:ring-[#4A2E67] focus:ring-offset-2 disabled:opacity-60"
+                data-testid="photo-submit"
+              >
+                {isPending ? 'Envoi…' : 'Enregistrer cette photo'}
+              </button>
+              <button
+                type="button"
+                onClick={reset}
+                className="inline-flex h-11 items-center rounded-md border border-gray-300 bg-white px-5 text-sm text-[#333] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4A2E67] focus:ring-offset-2"
+              >
+                {tu('chooseAnother')}
+              </button>
+            </div>
           </div>
         )}
 

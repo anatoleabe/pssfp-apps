@@ -830,13 +830,14 @@
       "uploading": "Envoi en cours…",
       "dropHere": "Glissez-déposez votre photo ici",
       "choose": "Choisir un fichier",
-      "hint": "JPG ou PNG, max 2 Mo, minimum 200×200 px. Privilégiez une photo carrée et bien éclairée.",
+      "hint": "JPG ou PNG, minimum 200×200 px. Les photos volumineuses sont optimisées automatiquement avant l'envoi.",
       "chooseAnother": "Choisir une autre image",
       "replace": "Remplacer la photo",
       "locked": "Votre dossier est verrouillé : la photo ne peut plus être modifiée.",
       "dropzoneAria": "Zone de dépôt photo identité",
       "selectAria": "Sélectionner une photo",
-      "selectNewAria": "Sélectionner une nouvelle photo"
+      "selectNewAria": "Sélectionner une nouvelle photo",
+      "compressed": "Photo optimisée automatiquement : {before} Mo → {after} Mo."
     },
     "documents": {
       "view": "Voir",

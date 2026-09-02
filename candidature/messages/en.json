@@ -830,13 +830,14 @@
       "uploading": "Uploading…",
       "dropHere": "Drag and drop your photograph here",
       "choose": "Choose a file",
-      "hint": "JPG or PNG, max 2 MB, minimum 200×200 px. A square, well-lit photograph works best.",
+      "hint": "JPG or PNG, minimum 200×200 px. Large photos are automatically optimised before sending.",
       "chooseAnother": "Choose another image",
       "replace": "Replace the photograph",
       "locked": "Your application is locked: the photograph can no longer be changed.",
       "dropzoneAria": "Passport photograph drop zone",
       "selectAria": "Select a photograph",
-      "selectNewAria": "Select a new photograph"
+      "selectNewAria": "Select a new photograph",
+      "compressed": "Photo automatically optimised: {before} MB → {after} MB."
     },
     "documents": {
       "view": "View",
