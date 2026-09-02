@@ -48,6 +48,10 @@ beforeEach(function (): void {
         }
     };
     $this->app->instance(SmsServiceInterface::class, $this->smsSpy);
+
+    // Les tests d'envoi réel passent par la commande, qui refuse de partir
+    // si le provider configuré est `fake` (il réussirait sans rien envoyer).
+    config()->set('services.sms.provider', 'gateway_api');
 });
 
 function brouillonRelancable(int $campagneId, array $overrides = []): Candidature
@@ -273,4 +277,26 @@ it('n’envoie rien si la confirmation interactive est refusée', function (): v
 
     expect($this->smsEnvoyes)->toHaveCount(0)
         ->and(CandidatureRelance::count())->toBe(0);
+});
+
+it('refuse un envoi réel tant que le provider SMS est « fake »', function (): void {
+    // Sans ce garde-fou, les candidats seraient marqués comme relancés sans
+    // qu'aucun SMS ne parte, et l'anti-doublon bloquerait le vrai envoi.
+    config()->set('services.sms.provider', 'fake');
+    brouillonRelancable($this->campagne->id);
+
+    $this->artisan('candidatures:relancer-brouillons --envoyer --campagne=p14-test')
+        ->expectsOutputToContain('aucun SMS ne partirait réellement')
+        ->assertFailed();
+
+    expect($this->smsEnvoyes)->toHaveCount(0)
+        ->and(CandidatureRelance::count())->toBe(0);
+});
+
+it('autorise la simulation même avec le provider « fake »', function (): void {
+    config()->set('services.sms.provider', 'fake');
+    brouillonRelancable($this->campagne->id);
+
+    $this->artisan('candidatures:relancer-brouillons --campagne=p14-test')
+        ->assertSuccessful();
 });

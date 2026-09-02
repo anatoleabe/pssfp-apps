@@ -55,6 +55,25 @@ final class RelancerBrouillonsCandidature extends Command
         $envoiReel = (bool) $this->option('envoyer');
         $limite = $this->option('limite') !== null ? max(0, (int) $this->option('limite')) : null;
 
+        // Garde-fou décisif : le provider `fake` réussit sans rien envoyer.
+        // Un envoi réel dans cet état marquerait tous les candidats comme
+        // relancés, et l'anti-doublon interdirait ensuite le vrai envoi — les
+        // candidats ne recevraient jamais rien, sans que personne ne le voie.
+        $provider = (string) config('services.sms.provider', 'fake');
+        if ($envoiReel && $provider === 'fake') {
+            $this->error('SMS_PROVIDER vaut « fake » : aucun SMS ne partirait réellement.');
+            $this->line('Les candidats seraient pourtant marqués comme relancés, ce qui');
+            $this->line('empêcherait définitivement un envoi ultérieur.');
+            $this->newLine();
+            $this->line('Configurez la passerelle avant de relancer :');
+            $this->line('  SMS_PROVIDER=gateway_api');
+            $this->line('  SMS_GATEWAY_BASE_URL=https://.../api');
+            $this->line('  SMS_GATEWAY_TOKEN=...');
+            $this->line('  SMS_GATEWAY_SENDER_ID=...');
+
+            return self::FAILURE;
+        }
+
         $this->line('Campagne  : '.$campagne->slug);
         $this->line('Causes    : '.implode(', ', $causes));
         $this->line('Limite    : '.($limite ?? 'aucune'));

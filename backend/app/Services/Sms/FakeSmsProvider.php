@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Sms;
 
+use App\Support\PhoneMasker;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -18,7 +19,9 @@ final class FakeSmsProvider implements SmsServiceInterface
     public function send(string $phoneE164, string $message): void
     {
         Log::channel('sms')->info('[fake-sms] Outgoing message', [
-            'phone' => $phoneE164,
+            // Masqué même en dev : ces logs finissent en pièce jointe de
+            // ticket, et un numéro de candidat reste une donnée personnelle.
+            'phone' => PhoneMasker::mask($phoneE164),
             'message' => $message,
         ]);
     }
