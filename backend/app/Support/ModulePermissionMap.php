@@ -116,6 +116,7 @@ final class ModulePermissionMap
             'candidature.regenerate_recipisse' => 'Régénérer le récépissé PDF d\'un dossier',
             'candidature.withdraw' => 'Retirer administrativement un dossier',
             'candidature.delete_test' => 'Supprimer définitivement un compte de test',
+            'candidature.notify' => 'Notifier un groupe de candidats par SMS ou e-mail',
         ];
     }
 

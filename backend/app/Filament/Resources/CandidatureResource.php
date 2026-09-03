@@ -15,6 +15,7 @@ use App\Models\RegionCameroun;
 use App\Services\CandidatureService;
 use App\Services\DepotPhysiqueService;
 use App\Services\DocumentUploadService;
+use App\Services\NotificationCandidatsService;
 use App\Services\RecipisseService;
 use App\Services\TestCandidaturePurgeService;
 use App\Support\CandidatureDocumentTypeLabel;
@@ -31,6 +32,7 @@ use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -729,6 +731,158 @@ class CandidatureResource extends Resource
                                 'ignores' => $ignores,
                             ])
                             ->log('Réception groupée de dossiers physiques ('.count($marques).')');
+                    }),
+                // Écrire à un groupe de candidats selon les filtres en cours.
+                // Réservé à admin / super_admin : le message part au nom de
+                // l'institution vers des dizaines de personnes.
+                Tables\Actions\BulkAction::make('notifierCandidats')
+                    ->label('Notifier les candidats sélectionnés')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('warning')
+                    ->visible(fn (): bool => (bool) auth()->user()?->can('candidature.notify'))
+                    ->modalHeading('Notifier les candidats sélectionnés')
+                    ->modalDescription('Le message part au nom du PSSFP. Relisez l\'aperçu avant d\'envoyer : cet envoi ne se rattrape pas.')
+                    ->modalSubmitActionLabel('Envoyer')
+                    ->modalWidth('4xl')
+                    ->form([
+                        Forms\Components\Select::make('canal')
+                            ->label('Canal')
+                            ->options([
+                                NotificationCandidatsService::CANAL_SMS => 'SMS uniquement',
+                                NotificationCandidatsService::CANAL_EMAIL => 'E-mail uniquement',
+                                NotificationCandidatsService::CANAL_LES_DEUX => 'SMS et e-mail',
+                            ])
+                            ->default(NotificationCandidatsService::CANAL_SMS)
+                            ->required()
+                            ->live(),
+
+                        Forms\Components\Select::make('modele')
+                            ->label('Partir d\'un modèle')
+                            ->placeholder('Message libre')
+                            ->options(fn (): array => collect((array) config('notification_candidats.modeles'))
+                                ->mapWithKeys(fn (array $m, string $cle): array => [$cle => $m['libelle']])
+                                ->all())
+                            ->helperText('Le modèle pré-remplit les champs ci-dessous. Vous pouvez ensuite le modifier librement.')
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Set $set): void {
+                                if ($state === null || $state === '') {
+                                    return;
+                                }
+                                $modele = (array) config("notification_candidats.modeles.{$state}", []);
+                                $set('sujet', $modele['sujet'] ?? '');
+                                $set('corps', $modele['corps'] ?? '');
+                            }),
+
+                        Forms\Components\TextInput::make('sujet')
+                            ->label('Objet de l\'e-mail')
+                            ->maxLength(200)
+                            ->helperText('Ignoré si le canal est « SMS uniquement ».')
+                            ->visible(fn (Forms\Get $get): bool => $get('canal') !== NotificationCandidatsService::CANAL_SMS)
+                            ->required(fn (Forms\Get $get): bool => $get('canal') !== NotificationCandidatsService::CANAL_SMS),
+
+                        Forms\Components\Textarea::make('corps')
+                            ->label('Message')
+                            ->rows(5)
+                            ->required()
+                            ->maxLength(1000)
+                            ->live(onBlur: true)
+                            ->helperText(new HtmlString(
+                                'Variables disponibles : <code>{prenom}</code> <code>{nom}</code> '
+                                .'<code>{numero_dossier}</code> <code>{specialite}</code> '
+                                .'<code>{date_cloture}</code> <code>{url}</code>'
+                            )),
+
+                        // L'agent décide sur des chiffres, pas sur une intuition :
+                        // nombre réellement joignable, coût en SMS, et surtout
+                        // destinataires hors couverture — c'est ce qui a fait
+                        // échouer 7 envois lors de la relance du 3 septembre.
+                        Forms\Components\Placeholder::make('apercu')
+                            ->label('Aperçu et impact')
+                            ->content(function (Forms\Get $get, $livewire): HtmlString {
+                                $corps = (string) $get('corps');
+                                if (trim($corps) === '') {
+                                    return new HtmlString('<em>Saisissez un message pour voir l\'aperçu.</em>');
+                                }
+
+                                $records = $livewire->getSelectedTableRecords();
+                                $service = app(NotificationCandidatsService::class);
+                                $a = $service->apercu($records, (string) $get('canal'), $corps);
+
+                                $lignes = [
+                                    '<strong>Destinataires sélectionnés :</strong> '.$a['total'],
+                                ];
+
+                                if ($service->canalInclutSms((string) $get('canal'))) {
+                                    $lignes[] = '<strong>Joignables par SMS :</strong> '.$a['avec_sms']
+                                        .' — coût estimé <strong>'.$a['cout_sms'].' SMS</strong>'
+                                        .' ('.$a['sms_par_message'].' par message)';
+                                    if ($a['sms_par_message'] > 1) {
+                                        $lignes[] = '<span style="color:#b45309">Message de plus de 160 caractères : '
+                                            .'chaque envoi sera facturé '.$a['sms_par_message'].' SMS.</span>';
+                                    }
+                                    if ($a['sms_hors_couverture'] > 0) {
+                                        $lignes[] = '<span style="color:#b91c1c"><strong>'.$a['sms_hors_couverture']
+                                            .' numéro(s) hors Cameroun</strong> — la passerelle ne les dessert pas, '
+                                            .'ces SMS échoueront. Privilégiez l\'e-mail pour ceux-là.</span>';
+                                    }
+                                }
+
+                                if ($service->canalInclutEmail((string) $get('canal'))) {
+                                    $lignes[] = '<strong>Joignables par e-mail :</strong> '.$a['avec_email'];
+                                    if ($a['sans_email'] > 0) {
+                                        $lignes[] = $a['sans_email'].' candidat(s) sans adresse e-mail.';
+                                    }
+                                }
+
+                                $lignes[] = '<br><strong>Message tel qu\'il sera reçu par le premier candidat :</strong>';
+                                $lignes[] = '<div style="padding:8px;background:#f5f3ff;border-radius:6px">'
+                                    .nl2br(e($a['apercu'])).'</div>';
+
+                                return new HtmlString(implode('<br>', $lignes));
+                            }),
+                    ])
+                    ->action(function ($records, array $data): void {
+                        $service = app(NotificationCandidatsService::class);
+                        $agent = auth()->user();
+
+                        $rapport = $service->envoyer(
+                            $records,
+                            (string) $data['canal'],
+                            (string) $data['corps'],
+                            $data['sujet'] ?? null,
+                            $agent,
+                        );
+
+                        $corpsNotif = [];
+                        if ($rapport['sms_envoyes'] > 0 || $rapport['sms_echecs'] > 0) {
+                            $corpsNotif[] = "SMS : {$rapport['sms_envoyes']} envoyé(s), {$rapport['sms_echecs']} en échec.";
+                        }
+                        if ($rapport['emails_envoyes'] > 0 || $rapport['emails_echecs'] > 0) {
+                            $corpsNotif[] = "E-mails : {$rapport['emails_envoyes']} envoyé(s), {$rapport['emails_echecs']} en échec.";
+                        }
+                        if ($rapport['ignores'] > 0) {
+                            $corpsNotif[] = "{$rapport['ignores']} candidat(s) sans coordonnée exploitable.";
+                        }
+
+                        $enEchec = $rapport['sms_echecs'] + $rapport['emails_echecs'];
+
+                        Notification::make()
+                            ->title($enEchec === 0 ? 'Notification envoyée' : 'Notification envoyée avec des échecs')
+                            ->body(implode(' ', $corpsNotif))
+                            ->{$enEchec === 0 ? 'success' : 'warning'}()
+                            ->persistent()
+                            ->send();
+
+                        activity('candidatures')->causedBy($agent)
+                            ->event('candidature_notification_bulk')
+                            ->withProperties([
+                                'canal' => $data['canal'],
+                                'destinataires' => $records->count(),
+                                'sms_envoyes' => $rapport['sms_envoyes'],
+                                'emails_envoyes' => $rapport['emails_envoyes'],
+                                'echecs' => $enEchec,
+                            ])
+                            ->log('Notification groupée de candidats ('.$records->count().' sélectionné(s))');
                     }),
                 Tables\Actions\BulkAction::make('regenerateRecipisseBulk')
                     ->label('Régénérer les récépissés')

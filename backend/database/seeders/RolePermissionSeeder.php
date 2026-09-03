@@ -74,6 +74,9 @@ final class RolePermissionSeeder extends Seeder
                     'candidature.export_csv',
                     'candidature.mark_depot_physique',
                     'candidature.regenerate_recipisse',
+                    // Écrire à un groupe de candidats engage l'institution :
+                    // réservé à admin et super_admin (arbitrage 3 sept. 2026).
+                    'candidature.notify',
                 ],
             ],
             'editor' => [
