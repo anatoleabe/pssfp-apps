@@ -17,31 +17,52 @@ pas des abandons : **60 sont récupérables**.
 Ces candidats ont échoué il y a 16 jours en médiane. Sans relance, ils ne
 reviendront pas d'eux-mêmes.
 
-## Ce qu'il reste à faire avant le premier envoi
+## Configuration de la passerelle
 
-**Une seule information manque : l'URL de la passerelle SMS.** La documentation
-Postman fournie décrit l'API mais son `BASE_URL` est un placeholder
-(`http://localhost:8000/api`), et aucune URL réelle n'est configurée nulle part
-sur le serveur.
+Fournisseur : **Echo SMS** (https://account.echosms.io).
 
-Renseigner dans `/var/www/pssfp/app/backend/.env` :
+Deux particularités à connaître, vérifiées contre l'API de production :
+
+- `/sent/compose` authentifie par **`api_key` en query**, pas par Bearer. Un
+  Bearer sur cet endpoint répond `1003 API Not Found`. D'autres routes, comme
+  `/sent/list`, exigent au contraire un Bearer. L'API mélange les deux schémas.
+- Le code HTTP est **200 y compris sur un refus métier** : seul le code
+  applicatif de la réponse `{"response":"...."}` fait foi. `1016` = envoyé.
+
+Dans `/var/www/pssfp/app/backend/.env` :
 
 ```
-SMS_PROVIDER=gateway_api
-SMS_GATEWAY_BASE_URL=https://<hôte-de-la-passerelle>/api
-SMS_GATEWAY_TOKEN=<le jeton Sanctum>
-SMS_GATEWAY_FROM_TYPE=sender_id
-SMS_GATEWAY_SENDER_ID=<id retourné par GET /api/sender-id>
+SMS_PROVIDER=echosms
+ECHOSMS_BASE_URL=https://account.echosms.io/api
+ECHOSMS_API_KEY=<la cle>
+ECHOSMS_FROM_TYPE=sender_id
+ECHOSMS_SENDER_ID=PSSFP
 ```
 
 Puis `php artisan config:clear && php artisan optimize`.
 
-Pour connaître le `SENDER_ID` disponible :
+Le compte ne dispose d'**aucun numéro émetteur** (`/api/customer/number` renvoie
+une liste vide) : `from_type=phone_number` n'est pas utilisable, il faut passer
+par le masking.
 
-```bash
-curl -s -H "Authorization: Bearer <jeton>" -H "Accept: application/json" \
-     https://<hôte>/api/sender-id
-```
+### Sender IDs approuvés
+
+| Masking | Statut | Expiration |
+|---|---|---|
+| `PSSFP` | approuvé | **15/09/2026** |
+| `Opprio` | approuvé | 15/09/2026 |
+
+> **Point de vigilance** — le masking `PSSFP` expire le **15/09/2026**, soit
+> trois jours avant la clôture de la campagne (18/09). Toute relance postérieure
+> au 15/09 échouerait avec le code `1002` (« Sender ID / masking invalide »).
+> À renouveler auprès d'Echo SMS si des relances tardives sont prévues.
+
+## Codes de réponse Echo SMS
+
+`1016` envoyé · `1015` envoyé partiellement · `1002` sender ID invalide ·
+`1007` solde insuffisant · `1010` numéro invalide · `1011` crédit insuffisant ·
+`1017` aucun forfait actif. La liste complète est traduite en messages lisibles
+dans `EchoSmsProvider::MESSAGES`.
 
 ## Séquence d'envoi recommandée
 

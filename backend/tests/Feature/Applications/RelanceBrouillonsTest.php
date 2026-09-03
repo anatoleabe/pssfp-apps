@@ -51,7 +51,7 @@ beforeEach(function (): void {
 
     // Les tests d'envoi réel passent par la commande, qui refuse de partir
     // si le provider configuré est `fake` (il réussirait sans rien envoyer).
-    config()->set('services.sms.provider', 'gateway_api');
+    config()->set('services.sms.provider', 'echosms');
 });
 
 function brouillonRelancable(int $campagneId, array $overrides = []): Candidature

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use App\Exceptions\NotConfiguredException;
 use App\Services\Sms\AfricasTalkingProvider;
+use App\Services\Sms\EchoSmsProvider;
 use App\Services\Sms\FakeSmsProvider;
-use App\Services\Sms\GatewayApiProvider;
 use App\Services\Sms\SmsServiceInterface;
 use Illuminate\Support\Facades\Log;
 
@@ -49,9 +49,9 @@ it('FakeSmsProvider does not perform any network call', function (): void {
     $provider->send('+237691234567', 'Hello');
 });
 
-it('bind GatewayApiProvider quand SMS_PROVIDER vaut gateway_api', function (): void {
-    config()->set('services.sms.provider', 'gateway_api');
+it('bind EchoSmsProvider quand SMS_PROVIDER vaut echosms', function (): void {
+    config()->set('services.sms.provider', 'echosms');
 
     expect(app(SmsServiceInterface::class))
-        ->toBeInstanceOf(GatewayApiProvider::class);
+        ->toBeInstanceOf(EchoSmsProvider::class);
 });

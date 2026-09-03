@@ -66,10 +66,9 @@ final class RelancerBrouillonsCandidature extends Command
             $this->line('empêcherait définitivement un envoi ultérieur.');
             $this->newLine();
             $this->line('Configurez la passerelle avant de relancer :');
-            $this->line('  SMS_PROVIDER=gateway_api');
-            $this->line('  SMS_GATEWAY_BASE_URL=https://.../api');
-            $this->line('  SMS_GATEWAY_TOKEN=...');
-            $this->line('  SMS_GATEWAY_SENDER_ID=...');
+            $this->line('  SMS_PROVIDER=echosms');
+            $this->line('  ECHOSMS_API_KEY=...');
+            $this->line('  ECHOSMS_SENDER_ID=PSSFP');
 
             return self::FAILURE;
         }
