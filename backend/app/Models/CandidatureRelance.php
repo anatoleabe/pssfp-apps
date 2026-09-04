@@ -36,6 +36,8 @@ class CandidatureRelance extends Model
         'message',
         'sujet',
         'envoye_par',
+        'expediteur',
+        'code_fournisseur',
         'sent_at',
     ];
 

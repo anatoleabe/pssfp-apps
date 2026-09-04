@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\CandidatureRelance;
+use App\Services\Sms\ReportsSmsDelivery;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\PhoneMasker;
 use Illuminate\Support\Facades\Log;
@@ -121,13 +122,23 @@ final class RelanceCandidatureService
         array &$rapport,
     ): void {
         try {
-            $this->sms->send($numero, $message);
+            if ($this->sms instanceof ReportsSmsDelivery) {
+                $resultat = $this->sms->sendAndReport($numero, $message);
+                $expediteur = $resultat->expediteur;
+                $code = $resultat->codeFournisseur;
+            } else {
+                $this->sms->send($numero, $message);
+                $expediteur = null;
+                $code = null;
+            }
 
             CandidatureRelance::create([
                 'candidature_id' => $candidature->id,
                 'cause' => $cause,
                 'canal' => 'sms',
                 'statut' => CandidatureRelance::STATUT_ENVOYE,
+                'expediteur' => $expediteur,
+                'code_fournisseur' => $code,
                 'sent_at' => now(),
             ]);
 
@@ -153,6 +164,9 @@ final class RelanceCandidatureService
                 'canal' => 'sms',
                 'statut' => CandidatureRelance::STATUT_ECHEC,
                 'erreur' => mb_substr($e->getMessage(), 0, 500),
+                // Conservé même en échec : un Sender ID expiré est la cause
+                // la plus fréquente, et il faut pouvoir la lire directement.
+                'expediteur' => $this->expediteurConfigure(),
                 'sent_at' => now(),
             ]);
 
@@ -210,5 +224,21 @@ final class RelanceCandidatureService
             ':url' => (string) config('relance_sms.url'),
             ':date_cloture' => $cloture,
         ]);
+    }
+
+    /** Sender ID (ou numéro) configuré pour la passerelle SMS active. */
+    private function expediteurConfigure(): ?string
+    {
+        if ((string) config('services.sms.provider') !== 'echosms') {
+            return null;
+        }
+
+        $type = (string) config('services.echosms.from_type', 'sender_id');
+        $valeur = (string) config(
+            $type === 'sender_id' ? 'services.echosms.sender_id' : 'services.echosms.from_number',
+            ''
+        );
+
+        return $valeur === '' ? null : $valeur;
     }
 }

@@ -14,9 +14,14 @@ use Illuminate\Support\Facades\Log;
  * via Log::shouldReceive(...) ou en lisant le channel `sms` configuré dans
  * config/logging.php.
  */
-final class FakeSmsProvider implements SmsServiceInterface
+final class FakeSmsProvider implements ReportsSmsDelivery, SmsServiceInterface
 {
     public function send(string $phoneE164, string $message): void
+    {
+        $this->sendAndReport($phoneE164, $message);
+    }
+
+    public function sendAndReport(string $phoneE164, string $message): SmsSendResult
     {
         Log::channel('sms')->info('[fake-sms] Outgoing message', [
             // Masqué même en dev : ces logs finissent en pièce jointe de
@@ -24,5 +29,9 @@ final class FakeSmsProvider implements SmsServiceInterface
             'phone' => PhoneMasker::mask($phoneE164),
             'message' => $message,
         ]);
+
+        // `fake` se décrit comme tel : un journal d'envoi ne doit jamais
+        // laisser croire qu'un SMS est réellement parti en développement.
+        return new SmsSendResult(expediteur: 'fake', codeFournisseur: null);
     }
 }

@@ -8,6 +8,7 @@ use App\Mail\NotificationCandidatMail;
 use App\Models\Candidature;
 use App\Models\CandidatureRelance;
 use App\Models\User;
+use App\Services\Sms\ReportsSmsDelivery;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\PhoneMasker;
 use Illuminate\Support\Collection;
@@ -152,11 +153,25 @@ final class NotificationCandidatsService
         array &$rapport,
     ): void {
         try {
-            $this->sms->send($numero, $texte);
-            $this->tracer($candidature, CandidatureRelance::CANAL_SMS, CandidatureRelance::STATUT_ENVOYE, $texte, null, $auteur, null);
+            // Une passerelle qui sait se décrire remonte le Sender ID
+            // réellement présenté et le code fournisseur ; sinon on trace
+            // l'envoi sans ces détails plutôt que de deviner.
+            if ($this->sms instanceof ReportsSmsDelivery) {
+                $resultat = $this->sms->sendAndReport($numero, $texte);
+                $expediteur = $resultat->expediteur;
+                $code = $resultat->codeFournisseur;
+            } else {
+                $this->sms->send($numero, $texte);
+                $expediteur = null;
+                $code = null;
+            }
+            $this->tracer($candidature, CandidatureRelance::CANAL_SMS, CandidatureRelance::STATUT_ENVOYE, $texte, null, $auteur, null, $expediteur, $code);
             $rapport['sms_envoyes']++;
         } catch (Throwable $e) {
-            $this->tracer($candidature, CandidatureRelance::CANAL_SMS, CandidatureRelance::STATUT_ECHEC, $texte, null, $auteur, $e->getMessage());
+            // En échec, la passerelle n'a rien rendu : on conserve tout de
+            // même l'expéditeur configuré, c'est souvent lui la cause
+            // (Sender ID expiré ou refusé).
+            $this->tracer($candidature, CandidatureRelance::CANAL_SMS, CandidatureRelance::STATUT_ECHEC, $texte, null, $auteur, $e->getMessage(), $this->expediteurSmsConfigure(), null);
             Log::channel('sms')->error('Notification SMS en échec', [
                 'dossier' => $candidature->numero_dossier,
                 'phone' => PhoneMasker::mask($numero),
@@ -181,10 +196,10 @@ final class NotificationCandidatsService
 
         try {
             Mail::to($adresse)->send(new NotificationCandidatMail($candidature, $sujetRendu, $texte));
-            $this->tracer($candidature, CandidatureRelance::CANAL_EMAIL, CandidatureRelance::STATUT_ENVOYE, $texte, $sujetRendu, $auteur, null);
+            $this->tracer($candidature, CandidatureRelance::CANAL_EMAIL, CandidatureRelance::STATUT_ENVOYE, $texte, $sujetRendu, $auteur, null, $this->expediteurEmailConfigure(), null);
             $rapport['emails_envoyes']++;
         } catch (Throwable $e) {
-            $this->tracer($candidature, CandidatureRelance::CANAL_EMAIL, CandidatureRelance::STATUT_ECHEC, $texte, $sujetRendu, $auteur, $e->getMessage());
+            $this->tracer($candidature, CandidatureRelance::CANAL_EMAIL, CandidatureRelance::STATUT_ECHEC, $texte, $sujetRendu, $auteur, $e->getMessage(), $this->expediteurEmailConfigure(), null);
             Log::channel('single')->error('Notification e-mail en échec', [
                 'dossier' => $candidature->numero_dossier,
                 'error' => $e->getMessage(),
@@ -201,6 +216,8 @@ final class NotificationCandidatsService
         ?string $sujet,
         User $auteur,
         ?string $erreur,
+        ?string $expediteur = null,
+        ?string $codeFournisseur = null,
     ): void {
         CandidatureRelance::create([
             'candidature_id' => $candidature->id,
@@ -211,6 +228,8 @@ final class NotificationCandidatsService
             'sujet' => $sujet,
             'envoye_par' => $auteur->id,
             'erreur' => $erreur === null ? null : mb_substr($erreur, 0, 500),
+            'expediteur' => $expediteur,
+            'code_fournisseur' => $codeFournisseur,
             'sent_at' => now(),
         ]);
 
@@ -220,6 +239,29 @@ final class NotificationCandidatsService
             ->withProperties(['canal' => $canal, 'statut' => $statut])
             ->event('candidature_notification_manuelle')
             ->log('Notification manuelle envoyée au candidat');
+    }
+
+    /** Sender ID (ou numéro) configuré pour la passerelle SMS active. */
+    private function expediteurSmsConfigure(): ?string
+    {
+        if ((string) config('services.sms.provider') !== 'echosms') {
+            return null;
+        }
+
+        $type = (string) config('services.echosms.from_type', 'sender_id');
+        $valeur = (string) config(
+            $type === 'sender_id' ? 'services.echosms.sender_id' : 'services.echosms.from_number',
+            ''
+        );
+
+        return $valeur === '' ? null : $valeur;
+    }
+
+    private function expediteurEmailConfigure(): ?string
+    {
+        $adresse = (string) config('mail.from.address', '');
+
+        return $adresse === '' ? null : $adresse;
     }
 
     /** Remplace les variables du modèle par les données du candidat. */

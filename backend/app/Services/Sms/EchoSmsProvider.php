@@ -30,7 +30,7 @@ use RuntimeException;
  * La clé transitant en query, elle apparaîtrait dans les traces d'exception
  * incluant l'URL : aucun message d'erreur construit ici ne contient l'URL.
  */
-final class EchoSmsProvider implements SmsServiceInterface
+final class EchoSmsProvider implements ReportsSmsDelivery, SmsServiceInterface
 {
     private const TIMEOUT_SECONDS = 20;
 
@@ -62,6 +62,11 @@ final class EchoSmsProvider implements SmsServiceInterface
     ];
 
     public function send(string $phoneE164, string $message): void
+    {
+        $this->sendAndReport($phoneE164, $message);
+    }
+
+    public function sendAndReport(string $phoneE164, string $message): SmsSendResult
     {
         $baseUrl = rtrim((string) config('services.echosms.base_url', ''), '/');
         $apiKey = (string) config('services.echosms.api_key', '');
@@ -135,5 +140,11 @@ final class EchoSmsProvider implements SmsServiceInterface
             'partiel' => $code === self::CODE_ENVOI_PARTIEL,
             'length' => mb_strlen($message),
         ]);
+
+        return new SmsSendResult(
+            expediteur: $fromType === 'sender_id' ? $senderId : $fromNumber,
+            codeFournisseur: $code,
+            partiel: $code === self::CODE_ENVOI_PARTIEL,
+        );
     }
 }
