@@ -533,6 +533,9 @@
       "recipisse": "Récépissé PDF"
     },
     "photoCard": {
+      "savedDraft": "Photo enregistrée. Elle apparaîtra sur votre récépissé et sera vérifiée au dépôt physique de votre dossier.",
+      "savedSubmitted": "Photo enregistrée. Elle sera vérifiée au dépôt physique de votre dossier.",
+      "missing": "Ajoutez une photo d'identité récente, bien éclairée, fond neutre. Format JPG ou PNG, minimum 200×200 px, max 2 Mo.",
       "eyebrow": "Identité visuelle",
       "title": "Photo d'identité",
       "none": "Aucune photo",
@@ -557,6 +560,8 @@
       "actionIs": "Cette action est"
     },
     "checklist": {
+      "stateDone": "Fait :",
+      "stateTodo": "À faire :",
       "checklistAria": "Checklist avant soumission",
       "photoRecommended": "Photo d'identité — à fournir",
       "docsRecommended": "Pièces justificatives — recommandées",
@@ -616,6 +621,8 @@
       "title": "Pièces justificatives"
     },
     "photoPage": {
+      "introDraft": "Cette photo apparaîtra sur votre récépissé et sera vérifiée au dépôt physique de votre dossier. Choisissez une photo récente, bien éclairée, fond neutre.",
+      "introSubmitted": "Choisissez une photo récente, bien éclairée, fond neutre. Elle sera vérifiée au dépôt physique de votre dossier.",
       "lateUploadNotice": "Votre dossier est déjà soumis. Votre photo sera bien ajoutée et transmise à la scolarité, mais le récépissé déjà délivré n'est pas refabriqué : il continuera de mentionner que la photo reste à déposer.",
       "breadcrumbRoot": "Mon dossier",
       "back": "← Retour au dossier",

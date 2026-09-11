@@ -10,7 +10,12 @@ interface DossierPhotoCardProps {
 export function DossierPhotoCard({ candidature }: DossierPhotoCardProps): JSX.Element {
   const tp = useTranslations('dossier.photoCard');
   const hasPhoto = candidature.has_photo === true;
-  const isLocked = candidature.statut !== 'postulant';
+  // ADR-0009 : miroir exact du garde `uploadPhoto()` côté Laravel. Sans la
+  // condition sur la photo, cette carte affichait « Photo verrouillée » juste
+  // à côté du rappel « déposez-la maintenant » de DossierCompleteness, sur le
+  // même écran — soit l'inverse exact de ce que l'ADR débloque.
+  const isLocked =
+    candidature.statut !== 'postulant' && (hasPhoto || candidature.withdrawn_at !== null);
 
   return (
     <section
@@ -62,14 +67,10 @@ export function DossierPhotoCard({ candidature }: DossierPhotoCardProps): JSX.El
         <div className="flex flex-col gap-4 text-sm leading-relaxed text-[#555]">
           {hasPhoto ? (
             <p>
-              Photo enregistrée. Elle apparaîtra sur votre récépissé et sera vérifiée au dépôt
-              physique de votre dossier.
+              {candidature.statut === 'postulant' ? tp('savedDraft') : tp('savedSubmitted')}
             </p>
           ) : (
-            <p>
-              Ajoutez une photo d&apos;identité récente, bien éclairée, fond neutre. Format JPG ou
-              PNG, minimum 200×200 px, max 2 Mo.
-            </p>
+            <p>{tp('missing')}</p>
           )}
 
           {!isLocked ? (

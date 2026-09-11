@@ -173,6 +173,47 @@ it('refuse le depot tardif sur un dossier retire par le candidat', function (): 
     expect($cand->refresh()->photo_path)->toBeNull();
 });
 
+it('refuse le depot tardif sur un dossier deja decide', function (): void {
+    foreach (['accepte', 'refuse'] as $statut) {
+        [, $token, $cand] = authedCandidatPhoto($this->campagne, $statut);
+        $cand->update(['photo_path' => null]);
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->post('/v1/applications/me/photo', [
+                'photo' => UploadedFile::fake()->image('me.jpg', 400, 400),
+            ], ['Accept' => 'application/json']);
+
+        expect($response->status())->toBe(409, "statut {$statut}");
+        expect($cand->refresh()->photo_path)->toBeNull();
+    }
+});
+
+it('ne laisse pas une seconde requete ecraser la photo deposee sous verrou', function (): void {
+    Bus::fake();
+    [, $token, $cand] = authedCandidatPhoto($this->campagne, 'candidat');
+    $cand->update(['photo_path' => null]);
+
+    // 1re requête : comblement légitime.
+    $this->withHeader('Authorization', "Bearer {$token}")
+        ->post('/v1/applications/me/photo', [
+            'photo' => UploadedFile::fake()->image('premiere.jpg', 400, 400),
+        ], ['Accept' => 'application/json'])
+        ->assertStatus(201);
+
+    $deposee = $cand->refresh()->photo_path;
+
+    // 2e requête : le garde du contrôleur voit désormais une photo, et la
+    // vérification sous verrou constitue le second filet contre la course.
+    $this->withHeader('Authorization', "Bearer {$token}")
+        ->post('/v1/applications/me/photo', [
+            'photo' => UploadedFile::fake()->image('seconde.jpg', 400, 400),
+        ], ['Accept' => 'application/json'])
+        ->assertStatus(409);
+
+    expect($cand->refresh()->photo_path)->toBe($deposee);
+    Storage::disk('minio_candidatures')->assertExists($deposee);
+});
+
 it('replaces an existing photo and deletes the previous file', function (): void {
     Bus::fake();
     [, $token, $cand] = authedCandidatPhoto($this->campagne);

@@ -22,6 +22,7 @@ use App\Services\RecipisseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -89,7 +90,7 @@ final class CandidatureController extends Controller
 
         try {
             $candidature = $this->service->updateDraft($candidature, $request->validated());
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], Response::HTTP_CONFLICT);
         }
 
@@ -131,7 +132,7 @@ final class CandidatureController extends Controller
                 $candidature,
                 $request->header('X-Idempotency-Key'),
             );
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], Response::HTTP_CONFLICT);
         }
 
@@ -179,16 +180,34 @@ final class CandidatureController extends Controller
         // elle manque — jamais REMPLACÉE. Substituer une pièce sur un dossier
         // déjà certifié ouvrirait un trou dans la certification.
         //
-        // Un dossier retiré par le candidat sort du même coup de cette
-        // tolérance : il n'est plus en course, rien ne doit plus s'y ajouter.
-        if ($candidature->statut !== Candidature::STATUT_POSTULANT
-            && ($candidature->photo_path !== null || $candidature->withdrawn_at !== null)) {
+        // Liste blanche explicite plutôt que liste d'exclusions : un dossier
+        // retiré ou déjà décidé (accepté / refusé) n'est plus en course, rien
+        // ne doit plus s'y ajouter — et un statut ajouté plus tard sera refusé
+        // par défaut au lieu d'être autorisé par oubli.
+        $comblementTardif = $candidature->statut === Candidature::STATUT_CANDIDAT
+            && $candidature->photo_path === null
+            && $candidature->withdrawn_at === null;
+
+        if ($candidature->statut !== Candidature::STATUT_POSTULANT && ! $comblementTardif) {
             return response()->json([
                 'message' => 'Le dossier est verrouillé : la photo ne peut plus être remplacée.',
             ], Response::HTTP_CONFLICT);
         }
 
-        $path = $this->photo->upload($request->file('photo'), $candidature);
+        try {
+            // `$comblementTardif` est revérifié sous verrou : sans cela, deux
+            // requêtes concurrentes franchiraient toutes deux le garde ci-dessus
+            // et la seconde écraserait la photo de la première.
+            $path = $this->photo->upload($request->file('photo'), $candidature, $comblementTardif);
+        } catch (RuntimeException $e) {
+            if ($e->getMessage() !== 'photo_already_present') {
+                throw $e;
+            }
+
+            return response()->json([
+                'message' => 'Le dossier est verrouillé : la photo ne peut plus être remplacée.',
+            ], Response::HTTP_CONFLICT);
+        }
 
         return response()->json([
             'data' => [
@@ -264,7 +283,7 @@ final class CandidatureController extends Controller
 
         try {
             $this->service->withdraw($candidature);
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             $message = match ($e->getMessage()) {
                 'already_withdrawn' => 'Candidature déjà retirée.',
                 'already_decided' => 'Cette candidature a déjà été décidée par le comité, le retrait administratif ne peut plus être fait par le candidat.',

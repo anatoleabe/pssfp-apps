@@ -58,13 +58,11 @@ export default async function PhotoPage(): Promise<JSX.Element> {
 
       <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">{tphp('title')}</h1>
       <p className="mt-2 text-sm text-[#666]">
-        Cette photo apparaîtra sur votre récépissé et sera vérifiée au dépôt physique de votre
-        dossier. Choisissez une photo récente, bien éclairée, fond neutre.
+        {candidature.statut === 'postulant' ? tphp('introDraft') : tphp('introSubmitted')}
       </p>
 
       {candidature.statut !== 'postulant' && !hasPhoto && !isWithdrawn && (
         <p
-          role="status"
           data-testid="photo-late-upload-notice"
           className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
         >

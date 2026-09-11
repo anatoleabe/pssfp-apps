@@ -29,7 +29,18 @@ final class PhotoUploadService
 
     private const DISK = 'minio_candidatures';
 
-    public function upload(UploadedFile $file, Candidature $candidature): string
+    /**
+     * @param  bool  $onlyIfMissing  N'accepte le dépôt que si aucune photo n'est
+     *                               déjà enregistrée. La vérification est refaite
+     *                               SOUS le verrou : la tester uniquement dans le
+     *                               contrôleur laisserait deux requêtes concurrentes
+     *                               passer le garde, et la seconde écraserait — puis
+     *                               supprimerait — la photo de la première sur un
+     *                               dossier déjà certifié (ADR-0009 décision 3).
+     *
+     * @throws RuntimeException si $onlyIfMissing et qu'une photo existe déjà
+     */
+    public function upload(UploadedFile $file, Candidature $candidature, bool $onlyIfMissing = false): string
     {
         // Extension dérivée uniquement du MIME réel (cf. revue sécu PR G —
         // ne jamais faire confiance au nom de fichier client).
@@ -52,14 +63,27 @@ final class PhotoUploadService
 
         // Transaction + verrou pessimiste sur la candidature pour éviter la
         // race condition où deux uploads concurrents s'écrasent (cf. revue PR G).
-        $previous = DB::transaction(function () use ($candidature, $path): ?string {
-            $locked = Candidature::query()->whereKey($candidature->id)->lockForUpdate()->firstOrFail();
-            $previous = $locked->photo_path;
-            $locked->update(['photo_path' => $path]);
-            $candidature->setAttribute('photo_path', $path);
+        try {
+            $previous = DB::transaction(function () use ($candidature, $path, $onlyIfMissing): ?string {
+                $locked = Candidature::query()->whereKey($candidature->id)->lockForUpdate()->firstOrFail();
+                $previous = $locked->photo_path;
 
-            return $previous;
-        });
+                if ($onlyIfMissing && $previous !== null) {
+                    throw new RuntimeException('photo_already_present');
+                }
+
+                $locked->update(['photo_path' => $path]);
+                $candidature->setAttribute('photo_path', $path);
+
+                return $previous;
+            });
+        } catch (\Throwable $e) {
+            // L'objet vient d'être écrit sur MinIO : ne pas laisser d'orphelin
+            // derrière un dépôt refusé.
+            $this->disk()->delete($path);
+
+            throw $e;
+        }
 
         if ($previous !== null && $previous !== $path) {
             $this->disk()->delete($previous);

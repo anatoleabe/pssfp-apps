@@ -145,6 +145,5 @@ export function checkSubmittable(c: MyCandidature): SubmittableResult {
     // submit backend re-valide de toute façon (défense en profondeur).
   }
 
-  const ok = missing.length === 0 && Object.keys(errors).every((k) => !errors[k] || REQUIRED_FIELDS.includes(k as keyof MyCandidature) ? !missing.includes(k) : false);
   return { ok: missing.length === 0 && Object.keys(errors).length === 0, missing, errors };
 }

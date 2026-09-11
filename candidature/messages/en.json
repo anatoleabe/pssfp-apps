@@ -533,6 +533,9 @@
       "recipisse": "Acknowledgement PDF"
     },
     "photoCard": {
+      "savedDraft": "Photograph saved. It will appear on your receipt and will be checked when you hand in your file.",
+      "savedSubmitted": "Photograph saved. It will be checked when you hand in your file.",
+      "missing": "Add a recent passport photograph, well lit, against a plain background. JPG or PNG, at least 200×200 px, 2 MB maximum.",
       "eyebrow": "Visual identity",
       "title": "Passport photograph",
       "none": "No photograph",
@@ -557,6 +560,8 @@
       "actionIs": "This action is"
     },
     "checklist": {
+      "stateDone": "Done:",
+      "stateTodo": "To do:",
       "checklistAria": "Pre-submission checklist",
       "photoRecommended": "Passport photograph — to be provided",
       "docsRecommended": "Supporting documents — recommended",
@@ -616,6 +621,8 @@
       "title": "Supporting documents"
     },
     "photoPage": {
+      "introDraft": "This photograph will appear on your receipt and will be checked when you hand in your file. Choose a recent, well-lit photograph against a plain background.",
+      "introSubmitted": "Choose a recent, well-lit photograph against a plain background. It will be checked when you hand in your file.",
       "lateUploadNotice": "Your application has already been submitted. Your photograph will be added and passed on to the Academic Office, but the receipt already issued is not reproduced: it will keep stating that the photograph is still to be provided.",
       "breadcrumbRoot": "My application",
       "back": "← Back to my application",

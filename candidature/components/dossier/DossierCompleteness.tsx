@@ -34,6 +34,7 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
   const [reviewError, setReviewError] = useState<string | null>(null);
   const confirmButtonRef = useRef<HTMLButtonElement | null>(null);
   const reviewCheckboxRef = useRef<HTMLInputElement | null>(null);
+  const submittedHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const router = useRouter();
 
   const fieldLabel = (field: string): string =>
@@ -54,6 +55,12 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
   useEffect(() => {
     if (confirmOpen) reviewCheckboxRef.current?.focus();
   }, [confirmOpen]);
+
+  // Voir submittedHeadingRef : rend la confirmation audible et redonne un point
+  // de départ clavier après le remontage déclenché par router.refresh().
+  useEffect(() => {
+    if (isAlreadySubmitted) submittedHeadingRef.current?.focus();
+  }, [isAlreadySubmitted]);
 
   const openConfirmation = (): void => {
     setReviewConfirmed(false);
@@ -100,7 +107,12 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
         aria-labelledby="completeness-heading"
         className="rounded-lg border border-emerald-200 bg-emerald-50 p-6"
       >
-        <h2 id="completeness-heading" className="font-heading text-lg font-bold text-emerald-800">
+        <h2
+          id="completeness-heading"
+          ref={submittedHeadingRef}
+          tabIndex={-1}
+          className="font-heading text-lg font-bold text-emerald-800 focus-visible:ring-2 focus-visible:ring-[#4A2E67]"
+        >
           {t('completeness.submittedTitle')}
         </h2>
         <p className="mt-2 text-sm text-emerald-900">{t('completeness.submittedBody')}</p>
@@ -109,21 +121,23 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
             n'aurait ni moyen ni raison de la fournir ensuite — le blocage
             serait déplacé, pas levé. */}
         {!candidature.has_photo && candidature.withdrawn_at === null && (
-          <div
-            role="status"
+          <aside
+            aria-labelledby="submitted-photo-title"
             data-testid="submitted-photo-reminder"
             className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-4"
           >
-            <p className="text-sm font-semibold text-amber-900">{tc('submittedPhotoTitle')}</p>
+            <h3 id="submitted-photo-title" className="text-sm font-semibold text-amber-900">
+              {tc('submittedPhotoTitle')}
+            </h3>
             <p className="mt-1 text-sm text-amber-900">{tc('submittedPhotoBody')}</p>
             <Link
               href="/dossier/photo"
               data-testid="submitted-photo-cta"
-              className="mt-3 inline-flex h-10 items-center rounded-md bg-[#4A2E67] px-4 text-sm font-semibold text-white hover:bg-[#3A2452] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
+              className="mt-3 inline-flex h-11 items-center rounded-md bg-[#4A2E67] px-4 text-sm font-semibold text-white hover:bg-[#3A2452] focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 focus-visible:ring-offset-amber-50"
             >
               {tc('submittedPhotoCta')}
             </Link>
-          </div>
+          </aside>
         )}
       </section>
     );
@@ -141,10 +155,12 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
       <ul className="mt-4 space-y-2 text-sm" aria-label={tc('checklistAria')}>
         <li className={candidature.has_photo ? 'text-emerald-800' : 'text-amber-900'}>
           <span aria-hidden="true">{candidature.has_photo ? '☑' : '☐'} </span>
+          <span className="sr-only">{candidature.has_photo ? tc('stateDone') : tc('stateTodo')} </span>
           {tc('photoRecommended')}
         </li>
         <li className={hasRecommendedDocuments ? 'text-emerald-800' : 'text-[#595959]'}>
           <span aria-hidden="true">{hasRecommendedDocuments ? '☑' : '☐'} </span>
+          <span className="sr-only">{hasRecommendedDocuments ? tc('stateDone') : tc('stateTodo')} </span>
           {tc('docsRecommended')}
         </li>
       </ul>
@@ -271,7 +287,7 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
 function ReviewItem({ label, value }: { label: string; value: string }): JSX.Element {
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-wide text-[#777]">{label}</dt>
+      <dt className="text-xs font-semibold uppercase tracking-wide text-[#6B6B6B]">{label}</dt>
       <dd className="mt-0.5 break-words font-medium text-[#292929]">{value || 'Non renseigné'}</dd>
     </div>
   );
