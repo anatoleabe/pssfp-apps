@@ -130,14 +130,34 @@ it('rejects an image smaller than 200x200 pixels with 422', function (): void {
     $response->assertJsonValidationErrors(['photo']);
 });
 
-it('returns 409 when uploading after submission (statut != postulant)', function (): void {
-    [, $token] = authedCandidatPhoto($this->campagne, 'candidat');
+// ADR-0009 : après soumission la photo peut encore être DÉPOSÉE si elle
+// manque, jamais REMPLACÉE — substituer une pièce sur un dossier déjà
+// certifié ouvrirait un trou dans la certification.
+it('accepte le depot de la photo apres soumission quand elle manque', function (): void {
+    Bus::fake();
+    [, $token, $cand] = authedCandidatPhoto($this->campagne, 'candidat');
+    $cand->update(['photo_path' => null]);
+
     $file = UploadedFile::fake()->image('me.jpg', 400, 400);
 
     $response = $this->withHeader('Authorization', "Bearer {$token}")
         ->post('/v1/applications/me/photo', ['photo' => $file], ['Accept' => 'application/json']);
 
+    $response->assertStatus(201);
+    expect($cand->refresh()->photo_path)->not->toBeNull();
+});
+
+it('refuse de remplacer une photo existante apres soumission', function (): void {
+    [, $token, $cand] = authedCandidatPhoto($this->campagne, 'candidat');
+    $cand->update(['photo_path' => 'candidat-photos/test/photo.jpg']);
+
+    $file = UploadedFile::fake()->image('autre.jpg', 400, 400);
+
+    $response = $this->withHeader('Authorization', "Bearer {$token}")
+        ->post('/v1/applications/me/photo', ['photo' => $file], ['Accept' => 'application/json']);
+
     $response->assertStatus(409);
+    expect($cand->refresh()->photo_path)->toBe('candidat-photos/test/photo.jpg');
 });
 
 it('replaces an existing photo and deletes the previous file', function (): void {

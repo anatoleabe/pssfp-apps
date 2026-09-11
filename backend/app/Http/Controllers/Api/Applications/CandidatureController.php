@@ -175,9 +175,13 @@ final class CandidatureController extends Controller
 
         $candidature = $this->service->upsertForUser($request->user(), $campagne);
 
-        if ($candidature->statut !== Candidature::STATUT_POSTULANT) {
+        // ADR-0009 : après soumission, la photo peut encore être DÉPOSÉE si
+        // elle manque — jamais REMPLACÉE. Substituer une pièce sur un dossier
+        // déjà certifié ouvrirait un trou dans la certification.
+        if ($candidature->statut !== Candidature::STATUT_POSTULANT
+            && $candidature->photo_path !== null) {
             return response()->json([
-                'message' => 'Le dossier est verrouillé : la photo ne peut plus être modifiée.',
+                'message' => 'Le dossier est verrouillé : la photo ne peut plus être remplacée.',
             ], Response::HTTP_CONFLICT);
         }
 
