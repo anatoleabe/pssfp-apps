@@ -375,11 +375,6 @@ class CandidatureResource extends Resource
                     ->placeholder('Tous')
                     ->trueLabel('Payés uniquement')
                     ->falseLabel('Non payés uniquement'),
-                // Liste nominative des brouillons à relancer, avec téléphone
-                // et email déjà présents dans la colonne « Candidat ». Les
-                // identifiants sont calculés en PHP par CandidatureService,
-                // faute de pouvoir exprimer en SQL les règles conditionnelles
-                // de checkSubmittable sans les dupliquer.
                 // ADR-0009 : la photo ne bloquant plus la soumission, des
                 // dossiers soumis circulent sans photo. Ce filtre est le seul
                 // moyen pour la scolarité de voir qui relancer — sans lui, la
@@ -392,6 +387,11 @@ class CandidatureResource extends Resource
                         ->whereNotNull('submitted_at')
                         ->whereNull('photo_path'))
                     ->toggle(),
+                // Liste nominative des brouillons à relancer, avec téléphone
+                // et email déjà présents dans la colonne « Candidat ». Les
+                // identifiants sont calculés en PHP par CandidatureService,
+                // faute de pouvoir exprimer en SQL les règles conditionnelles
+                // de checkSubmittable sans les dupliquer.
                 Tables\Filters\SelectFilter::make('blocage_brouillon')
                     ->label('Brouillons à relancer')
                     ->options([
