@@ -313,6 +313,18 @@ class CandidatureResource extends Resource
                 Tables\Columns\IconColumn::make('frais_paye')->label('Frais')
                     ->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle')
                     ->tooltip(fn (Candidature $r): string => $r->frais_paye ? 'Frais payés' : 'Frais non payés'),
+                // ADR-0009 : rendre l'absence de photo lisible d'un coup d'œil
+                // sur la liste, et pas seulement derrière un filtre.
+                Tables\Columns\IconColumn::make('photo_path')
+                    ->label('Photo')
+                    ->boolean()
+                    ->state(fn (Candidature $r): bool => $r->photo_path !== null)
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-exclamation-triangle')
+                    ->falseColor('warning')
+                    ->tooltip(fn (Candidature $r): string => $r->photo_path !== null
+                        ? 'Photo fournie'
+                        : 'Photo manquante — à réclamer au candidat'),
                 Tables\Columns\TextColumn::make('documents_count')
                     ->label('Pièces')
                     ->badge()
@@ -368,6 +380,18 @@ class CandidatureResource extends Resource
                 // identifiants sont calculés en PHP par CandidatureService,
                 // faute de pouvoir exprimer en SQL les règles conditionnelles
                 // de checkSubmittable sans les dupliquer.
+                // ADR-0009 : la photo ne bloquant plus la soumission, des
+                // dossiers soumis circulent sans photo. Ce filtre est le seul
+                // moyen pour la scolarité de voir qui relancer — sans lui, la
+                // charge transférée du candidat vers l'administration serait
+                // aveugle. Exprimable en SQL pur, contrairement au filtre
+                // voisin : deux colonnes suffisent.
+                Tables\Filters\Filter::make('soumis_sans_photo')
+                    ->label('Soumis sans photo')
+                    ->query(fn (Builder $query): Builder => $query
+                        ->whereNotNull('submitted_at')
+                        ->whereNull('photo_path'))
+                    ->toggle(),
                 Tables\Filters\SelectFilter::make('blocage_brouillon')
                     ->label('Brouillons à relancer')
                     ->options([

@@ -221,3 +221,26 @@ it('respecte la campagne sélectionnée et non la campagne ouverte', function ()
         ->assertCanSeeTableRecords([$pretAncienne])
         ->assertCanNotSeeTableRecords([$pretCourante]);
 });
+
+// ADR-0009 : la photo ne bloquant plus la soumission, des dossiers soumis
+// circulent sans photo. La scolarité doit pouvoir les isoler pour relancer,
+// sinon la charge transférée du candidat vers l'administration est aveugle.
+it('filtre la liste admin sur les dossiers soumis sans photo', function (): void {
+    $sansPhoto = draftComplet($this->campagne->id, ['photo_path' => null]);
+    $sansPhoto->update(['statut' => Candidature::STATUT_CANDIDAT, 'submitted_at' => now()]);
+
+    $avecPhoto = draftComplet($this->campagne->id);
+    $avecPhoto->update(['statut' => Candidature::STATUT_CANDIDAT, 'submitted_at' => now()]);
+
+    $brouillonSansPhoto = draftComplet($this->campagne->id, ['photo_path' => null]);
+
+    config()->set('pssfp.filament.require_2fa', false);
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+    $this->actingAs($admin);
+
+    $this->livewire(ListCandidatures::class)
+        ->filterTable('soumis_sans_photo', true)
+        ->assertCanSeeTableRecords([$sansPhoto])
+        ->assertCanNotSeeTableRecords([$avecPhoto, $brouillonSansPhoto]);
+});
