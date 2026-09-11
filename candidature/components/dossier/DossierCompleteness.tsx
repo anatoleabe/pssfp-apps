@@ -46,7 +46,9 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
   const idempotencyKeyRef = useRef<string | null>(null);
 
   const isAlreadySubmitted = candidature.statut !== 'postulant';
-  const canSubmit = result.ok && candidature.has_photo && !isAlreadySubmitted && candidature.withdrawn_at === null;
+  // ADR-0009 : la photo n'est plus une condition de soumission — elle reste
+  // recommandée et peut être déposée après coup.
+  const canSubmit = result.ok && !isAlreadySubmitted && candidature.withdrawn_at === null;
   const hasRecommendedDocuments = candidature.documents.length > 0;
 
   useEffect(() => {
@@ -102,6 +104,27 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
           {t('completeness.submittedTitle')}
         </h2>
         <p className="mt-2 text-sm text-emerald-900">{t('completeness.submittedBody')}</p>
+
+        {/* ADR-0009 : sans ce rappel, un candidat qui a soumis sans photo
+            n'aurait ni moyen ni raison de la fournir ensuite — le blocage
+            serait déplacé, pas levé. */}
+        {!candidature.has_photo && (
+          <div
+            role="status"
+            data-testid="submitted-photo-reminder"
+            className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-4"
+          >
+            <p className="text-sm font-semibold text-amber-900">{tc('submittedPhotoTitle')}</p>
+            <p className="mt-1 text-sm text-amber-900">{tc('submittedPhotoBody')}</p>
+            <Link
+              href="/dossier/photo"
+              data-testid="submitted-photo-cta"
+              className="mt-3 inline-flex h-10 items-center rounded-md bg-[#4A2E67] px-4 text-sm font-semibold text-white hover:bg-[#3A2452] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
+            >
+              {tc('submittedPhotoCta')}
+            </Link>
+          </div>
+        )}
       </section>
     );
   }
@@ -118,7 +141,7 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
       <ul className="mt-4 space-y-2 text-sm" aria-label={tc('checklistAria')}>
         <li className={candidature.has_photo ? 'text-emerald-800' : 'text-amber-900'}>
           <span aria-hidden="true">{candidature.has_photo ? '☑' : '☐'} </span>
-          {tc('photoRequired')}
+          {tc('photoRecommended')}
         </li>
         <li className={hasRecommendedDocuments ? 'text-emerald-800' : 'text-[#595959]'}>
           <span aria-hidden="true">{hasRecommendedDocuments ? '☑' : '☐'} </span>
@@ -180,7 +203,7 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
       </button>
       {!candidature.has_photo && (
         <p className="mt-2 text-xs text-amber-900" role="status">
-          {tc('addPhotoToSubmit')}
+          {tc('photoStillNeeded')}
         </p>
       )}
 

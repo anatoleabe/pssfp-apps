@@ -37,9 +37,13 @@ export default async function PhotoPage(): Promise<JSX.Element> {
   }
 
   const candidature = result.data;
-  const isLocked = candidature.statut !== 'postulant';
   const initialSignedUrl = candidature.photo_url ?? null;
   const hasPhoto = candidature.has_photo === true;
+  // ADR-0009 : après soumission, une photo déjà déposée reste verrouillée,
+  // mais une photo manquante doit pouvoir être fournie. Miroir exact du garde
+  // de `uploadPhoto()` côté Laravel, qui renvoie 409 dans le seul cas du
+  // remplacement.
+  const isLocked = candidature.statut !== 'postulant' && hasPhoto;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">
@@ -56,6 +60,16 @@ export default async function PhotoPage(): Promise<JSX.Element> {
         Cette photo apparaîtra sur votre récépissé et sera vérifiée au dépôt physique de votre
         dossier. Choisissez une photo récente, bien éclairée, fond neutre.
       </p>
+
+      {candidature.statut !== 'postulant' && !hasPhoto && (
+        <p
+          role="status"
+          data-testid="photo-late-upload-notice"
+          className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
+        >
+          {tphp('lateUploadNotice')}
+        </p>
+      )}
 
       <div className="mt-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <PhotoUploader

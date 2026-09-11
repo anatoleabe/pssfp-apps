@@ -558,11 +558,14 @@
     },
     "checklist": {
       "checklistAria": "Checklist avant soumission",
-      "photoRequired": "Photo d'identité — obligatoire",
+      "photoRecommended": "Photo d'identité — à fournir",
       "docsRecommended": "Pièces justificatives — recommandées",
-      "addPhotoToSubmit": "Ajoutez votre photo d'identité pour activer la soumission.",
+      "photoStillNeeded": "Vous pouvez soumettre sans photo, mais elle restera à déposer pour que votre dossier soit recevable.",
+      "submittedPhotoTitle": "Il vous reste à déposer votre photo d'identité",
+      "submittedPhotoBody": "Votre candidature est bien enregistrée. Votre photo reste nécessaire pour que votre dossier soit recevable — vous pouvez la déposer dès maintenant.",
+      "submittedPhotoCta": "Déposer ma photo",
       "confirmTitle": "Confirmer la soumission définitive",
-      "confirmBody": "Après confirmation, votre photo et vos pièces seront verrouillées. Vous ne pourrez plus les modifier ni revenir sur les informations certifiées.",
+      "confirmBody": "Après confirmation, vos informations et vos pièces seront verrouillées : vous ne pourrez plus les modifier ni revenir sur ce que vous avez certifié. Seule votre photo d'identité, si elle manque encore, pourra être déposée ensuite.",
       "reviewHeading": "Informations essentielles à relire",
       "edit": "Modifier",
       "rowCandidat": "Candidat",
@@ -613,6 +616,7 @@
       "title": "Pièces justificatives"
     },
     "photoPage": {
+      "lateUploadNotice": "Votre dossier est déjà soumis. Votre photo sera bien ajoutée et transmise à la scolarité, mais le récépissé déjà délivré n'est pas refabriqué : il continuera de mentionner que la photo reste à déposer.",
       "breadcrumbRoot": "Mon dossier",
       "back": "← Retour au dossier",
       "breadcrumbAria": "Fil d'Ariane",

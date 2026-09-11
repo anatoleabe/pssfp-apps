@@ -49,10 +49,10 @@ export function checkSubmittable(c: MyCandidature): SubmittableResult {
   const missing: string[] = [];
   const errors: Record<string, string> = {};
 
-  if (!c.has_photo) {
-    missing.push('photo');
-    errors.photo = "La photo d'identité est obligatoire pour soumettre la candidature.";
-  }
+  // La photo ne figure volontairement pas ici (ADR-0009) : elle reste
+  // obligatoire pour la recevabilité du dossier, mais ne bloque plus l'acte
+  // de soumettre. Le miroir de cette règle est `checkSubmittable()` côté
+  // Laravel — les deux doivent rester alignés.
 
   for (const field of REQUIRED_FIELDS) {
     const v = c[field];

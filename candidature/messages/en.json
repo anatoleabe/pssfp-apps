@@ -558,11 +558,14 @@
     },
     "checklist": {
       "checklistAria": "Pre-submission checklist",
-      "photoRequired": "Passport photograph — required",
+      "photoRecommended": "Passport photograph — to be provided",
       "docsRecommended": "Supporting documents — recommended",
-      "addPhotoToSubmit": "Upload your passport photograph to enable submission.",
+      "photoStillNeeded": "You may submit without a photograph, but it will still be required for your application to be admissible.",
+      "submittedPhotoTitle": "Your passport photograph is still needed",
+      "submittedPhotoBody": "Your application has been recorded. Your photograph is still required for it to be admissible — you can upload it now.",
+      "submittedPhotoCta": "Upload my photograph",
       "confirmTitle": "Confirm final submission",
-      "confirmBody": "Once confirmed, your photograph and documents will be locked. You will no longer be able to change them or revisit the information you have certified.",
+      "confirmBody": "Once confirmed, your information and documents will be locked: you will no longer be able to change them or revisit what you have certified. Only your passport photograph, if it is still missing, can be uploaded afterwards.",
       "reviewHeading": "Key information to check",
       "edit": "Edit",
       "rowCandidat": "Applicant",
@@ -613,6 +616,7 @@
       "title": "Supporting documents"
     },
     "photoPage": {
+      "lateUploadNotice": "Your application has already been submitted. Your photograph will be added and passed on to the Academic Office, but the receipt already issued is not reproduced: it will keep stating that the photograph is still to be provided.",
       "breadcrumbRoot": "My application",
       "back": "← Back to my application",
       "breadcrumbAria": "Breadcrumb",
