@@ -43,7 +43,8 @@ export default async function PhotoPage(): Promise<JSX.Element> {
   // mais une photo manquante doit pouvoir être fournie. Miroir exact du garde
   // de `uploadPhoto()` côté Laravel, qui renvoie 409 dans le seul cas du
   // remplacement.
-  const isLocked = candidature.statut !== 'postulant' && hasPhoto;
+  const isWithdrawn = candidature.withdrawn_at !== null;
+  const isLocked = candidature.statut !== 'postulant' && (hasPhoto || isWithdrawn);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">
@@ -61,7 +62,7 @@ export default async function PhotoPage(): Promise<JSX.Element> {
         dossier. Choisissez une photo récente, bien éclairée, fond neutre.
       </p>
 
-      {candidature.statut !== 'postulant' && !hasPhoto && (
+      {candidature.statut !== 'postulant' && !hasPhoto && !isWithdrawn && (
         <p
           role="status"
           data-testid="photo-late-upload-notice"

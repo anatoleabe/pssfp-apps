@@ -160,6 +160,19 @@ it('refuse de remplacer une photo existante apres soumission', function (): void
     expect($cand->refresh()->photo_path)->toBe('candidat-photos/test/photo.jpg');
 });
 
+it('refuse le depot tardif sur un dossier retire par le candidat', function (): void {
+    [, $token, $cand] = authedCandidatPhoto($this->campagne, 'candidat');
+    $cand->update(['photo_path' => null, 'withdrawn_at' => now()]);
+
+    $file = UploadedFile::fake()->image('me.jpg', 400, 400);
+
+    $response = $this->withHeader('Authorization', "Bearer {$token}")
+        ->post('/v1/applications/me/photo', ['photo' => $file], ['Accept' => 'application/json']);
+
+    $response->assertStatus(409);
+    expect($cand->refresh()->photo_path)->toBeNull();
+});
+
 it('replaces an existing photo and deletes the previous file', function (): void {
     Bus::fake();
     [, $token, $cand] = authedCandidatPhoto($this->campagne);

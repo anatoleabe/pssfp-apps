@@ -108,7 +108,7 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
         {/* ADR-0009 : sans ce rappel, un candidat qui a soumis sans photo
             n'aurait ni moyen ni raison de la fournir ensuite — le blocage
             serait déplacé, pas levé. */}
-        {!candidature.has_photo && (
+        {!candidature.has_photo && candidature.withdrawn_at === null && (
           <div
             role="status"
             data-testid="submitted-photo-reminder"

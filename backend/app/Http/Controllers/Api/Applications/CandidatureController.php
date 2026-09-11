@@ -178,8 +178,11 @@ final class CandidatureController extends Controller
         // ADR-0009 : après soumission, la photo peut encore être DÉPOSÉE si
         // elle manque — jamais REMPLACÉE. Substituer une pièce sur un dossier
         // déjà certifié ouvrirait un trou dans la certification.
+        //
+        // Un dossier retiré par le candidat sort du même coup de cette
+        // tolérance : il n'est plus en course, rien ne doit plus s'y ajouter.
         if ($candidature->statut !== Candidature::STATUT_POSTULANT
-            && $candidature->photo_path !== null) {
+            && ($candidature->photo_path !== null || $candidature->withdrawn_at !== null)) {
             return response()->json([
                 'message' => 'Le dossier est verrouillé : la photo ne peut plus être remplacée.',
             ], Response::HTTP_CONFLICT);
