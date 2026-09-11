@@ -67,6 +67,11 @@ export async function submitDossierAction(
   if (r.status === 409) {
     return { ok: false, errorKind: 'already_submitted', message: 'Candidature déjà soumise.' };
   }
+  // Le portail n'affiche au candidat qu'un message générique ; sans cette
+  // trace, un timeout côté API était indistinguable d'une coupure réseau dans
+  // les logs pm2 (cf. incident « soumission qui ne passe qu'au 2e essai »).
+  console.error('[submit] échec non métier', { status: r.status, message: r.message });
+
   return {
     ok: false,
     errorKind: 'network',

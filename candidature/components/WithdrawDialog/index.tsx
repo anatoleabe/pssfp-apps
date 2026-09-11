@@ -45,9 +45,9 @@ export function WithdrawDialog(): JSX.Element {
           aria-modal="true"
           aria-labelledby="withdraw-title"
           data-testid="withdraw-dialog"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4"
         >
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+          <div className="my-auto max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
             <h2 id="withdraw-title" className="font-heading text-lg font-bold text-red-700">
               {tw('confirmTitle')}
             </h2>

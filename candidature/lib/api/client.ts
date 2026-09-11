@@ -42,7 +42,31 @@ interface FetchOptions {
    * et les données sensibles resteraient en cache partagé côté serveur.
    */
   noStore?: boolean;
+  /**
+   * Budget réseau de l'appel, en millisecondes. Par défaut
+   * `READ_TIMEOUT_MS` en GET et `MUTATION_TIMEOUT_MS` sur les écritures.
+   */
+  timeoutMs?: number;
 }
+
+/**
+ * Budget d'une lecture SSR : une API indisponible ne doit jamais suspendre le
+ * rendu du portail, donc on échoue vite et la page se rend en mode dégradé.
+ */
+const READ_TIMEOUT_MS = 3_000;
+
+/**
+ * Budget d'une écriture déclenchée par un clic explicite du candidat.
+ *
+ * `POST /applications/me/submit` génère le récépissé (deux rendus DomPDF, la
+ * lecture de la photo et l'écriture du PDF sur MinIO) : il dépasse
+ * régulièrement 3 s sur le VPS en période d'affluence. Avec l'ancien budget de
+ * lecture appliqué à tous les appels, la 1re tentative de soumission était
+ * avortée côté portail (« Erreur réseau ») alors que le backend committait bien
+ * la candidature ; la 2e tentative, servie par le cache d'idempotence,
+ * réussissait instantanément. D'où le symptôme « ça ne marche qu'au 2e essai ».
+ */
+const MUTATION_TIMEOUT_MS = 30_000;
 
 async function apiCall<T>(
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
@@ -56,6 +80,9 @@ async function apiCall<T>(
   if (process.env.PSSFP_E2E_OFFLINE === '1' && typeof window === 'undefined') {
     return { ok: false, status: 0, message: 'API indisponible en environnement E2E' };
   }
+
+  const timeoutMs =
+    options.timeoutMs ?? (method === 'GET' ? READ_TIMEOUT_MS : MUTATION_TIMEOUT_MS);
 
   const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
   const headers: Record<string, string> = {
@@ -85,9 +112,7 @@ async function apiCall<T>(
         : options.revalidate !== undefined
           ? { next: { revalidate: options.revalidate } }
           : {}),
-      // Une API indisponible ne doit jamais suspendre le rendu SSR du portail.
-      // Les uploads ont leur propre chemin ; 3 s suffisent pour ces appels JSON.
-      signal: options.signal ?? AbortSignal.timeout(3_000),
+      signal: options.signal ?? AbortSignal.timeout(timeoutMs),
     });
 
     let payload: unknown = null;

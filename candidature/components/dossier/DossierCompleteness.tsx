@@ -185,8 +185,8 @@ export function DossierCompleteness({ candidature }: { candidature: MyCandidatur
       )}
 
       {confirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div role="alertdialog" aria-modal="true" aria-labelledby="submit-confirm-title" aria-describedby="submit-confirm-description" className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="submit-confirm-title" aria-describedby="submit-confirm-description" className="my-auto max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
             <h3 id="submit-confirm-title" className="font-heading text-2xl font-bold text-[#4A2E67]">{tc('confirmTitle')}</h3>
             <p id="submit-confirm-description" className="mt-3 text-sm leading-relaxed text-[#333333]">
               {tc('confirmBody')}
