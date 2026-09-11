@@ -212,13 +212,17 @@ final class CandidatureService
         return $buckets;
     }
 
+    /**
+     * Règles bloquant la soumission.
+     *
+     * La photo d'identité n'en fait PAS partie depuis l'ADR-0009 : elle reste
+     * obligatoire pour la recevabilité administrative du dossier, mais ne
+     * retient plus des dossiers par ailleurs complets. Son absence se lit via
+     * `classifyDraft()` et le filtre admin « soumis sans photo ».
+     */
     public function checkSubmittable(Candidature $candidature): array
     {
         $errors = [];
-
-        if (empty($candidature->photo_path)) {
-            $errors['photo'] = 'La photo d\'identité est obligatoire pour soumettre la candidature.';
-        }
 
         $required = [
             'civilite', 'nom', 'prenom', 'date_naissance', 'lieu_naissance',

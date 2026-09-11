@@ -144,15 +144,22 @@ it('returns 422 with field list when profile is incomplete', function (): void {
     expect($response->json('errors'))->toHaveKey('engagement_nom');
 });
 
-it('returns 422 when the required identity photo is missing', function (): void {
+// ADR-0009 : la photo cesse de bloquer la soumission. 47 dossiers par
+// ailleurs complets étaient retenus par ce seul fichier.
+it('submits without an identity photo and transitions to candidat', function (): void {
     [$user, $token] = authedFullCandidat($this->campagne);
     Candidature::where('user_id', $user->id)->update(['photo_path' => null]);
 
     $response = $this->withHeader('Authorization', "Bearer {$token}")
         ->postJson('/v1/applications/me/submit', ['confirmation_engagement' => true]);
 
-    $response->assertStatus(422);
-    expect($response->json('errors'))->toHaveKey('photo');
+    $response->assertOk();
+    $response->assertJsonPath('data.statut', 'candidat');
+
+    $cand = Candidature::where('user_id', $user->id)->first();
+    expect($cand->statut)->toBe('candidat');
+    expect($cand->submitted_at)->not->toBeNull();
+    expect($cand->photo_path)->toBeNull();
 });
 
 it('requires the discovery source before submission', function (): void {
