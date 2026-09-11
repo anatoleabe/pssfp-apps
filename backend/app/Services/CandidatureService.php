@@ -167,11 +167,15 @@ final class CandidatureService
     {
         $errors = $this->checkSubmittable($candidature);
 
-        if ($errors === []) {
-            return self::DRAFT_READY;
+        if ($errors !== []) {
+            return self::DRAFT_OTHER;
         }
 
-        return array_keys($errors) === ['photo'] ? self::DRAFT_PHOTO_ONLY : self::DRAFT_OTHER;
+        // La photo ne figure plus dans checkSubmittable (ADR-0009) : elle se
+        // lit directement, sinon le segment « bloqués par la photo » — filtre
+        // admin, widget d'avancement, ciblage des relances — disparaîtrait en
+        // silence, tous ces dossiers basculant en DRAFT_READY.
+        return empty($candidature->photo_path) ? self::DRAFT_PHOTO_ONLY : self::DRAFT_READY;
     }
 
     /**
