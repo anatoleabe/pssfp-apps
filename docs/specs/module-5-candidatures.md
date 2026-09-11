@@ -13,7 +13,7 @@ Après analyse du code PHP de la promotion 13 (`candidature_p13.zip`), la spec e
 
 **M1 — 1 seul vœu de spécialité** (au lieu de 3 ordonnés). Le système actuel n'utilise qu'un seul vœu et le comité d'admission gère les réorientations manuellement. **Conséquence** : le wizard étape 2 demande uniquement `specialite` (single select) + un champ texte court optionnel « second choix éventuel ».
 
-**M2 — Pièces jointes en ligne minimales**. Seule la **photo identité** est obligatoire en ligne. Le **CV PDF** et le **diplôme PDF** sont optionnels. Toutes les autres pièces (lettre, pièce d'identité, relevés de notes) sont apportées en papier au dépôt physique au PSSFP. Aligné sur la réalité culturelle camerounaise. **Conséquence** : `/candidature/[numero]/pieces` simplifié à 3 zones d'upload, dont 2 optionnelles.
+**M2 — Pièces jointes en ligne minimales**. Seule la **photo identité** est requise en ligne — obligatoire pour la **recevabilité** du dossier, mais **non bloquante à la soumission** depuis l'ADR-0009 : elle peut être déposée après coup tant que la campagne est ouverte. Le **CV PDF** et le **diplôme PDF** sont optionnels. Toutes les autres pièces (lettre, pièce d'identité, relevés de notes) sont apportées en papier au dépôt physique au PSSFP. Aligné sur la réalité culturelle camerounaise. **Conséquence** : `/candidature/[numero]/pieces` simplifié à 3 zones d'upload, dont 2 optionnelles.
 
 **M3 — Statuts métier simplifiés**. 4 statuts au total :
 
