@@ -619,3 +619,62 @@ Une fois le déploiement vérifié, depuis l'admin Filament :
 - **Aucune migration**, aucune colonne ajoutée.
 - **Aucun remplacement de photo** après soumission.
 - **Aucune optimisation du double rendu DomPDF** (2,90 s des 3,93 s de génération du récépissé). C'est le vrai levier de latence restant, mais il touche au schéma d'auto-référence du hash et mérite son propre ADR.
+
+---
+
+## Journal d'exécution — 2026-09-11
+
+Plan exécuté intégralement et déployé en production. Commits `0560046` → `3034005`,
+en plus de `a19a68a` (correctif timeout + modales mobiles).
+
+### Fait
+
+Les 7 tâches, plus les correctifs issus des deux revues.
+
+Trois défauts ont été trouvés **pendant** l'exécution, absents du plan initial :
+
+1. **`DossierPhotoCard` non mis à jour** — affichait « Photo verrouillée — dossier
+   déposé », sans CTA, dans la même grille que le rappel « déposez-la maintenant ».
+   Le plan n'avait recensé que `PhotoUploader` : ce composant-ci ne consomme pas
+   `PhotoUploader` et était passé sous le radar du relevé de fichiers.
+2. **Course concurrente sur le dépôt tardif** — `PhotoUploadService` vérifiait
+   l'absence de photo hors verrou. Deux requêtes simultanées écrasaient la photo
+   déposée. Vérification refaite sous `lockForUpdate`.
+3. **Dossiers retirés et décidés** — la tolérance de comblement s'appliquait aussi
+   aux dossiers `withdrawn`, `accepte` et `refuse`. Garde passé en liste blanche.
+
+### Vérifié en production
+
+- 490 tests Pest, 99 Playwright, typecheck, lint, Pint, build : verts.
+- Toutes les surfaces publiques + `/admin` en HTTP 200.
+- Règle métier active : `classifyDraft` renvoie bien **47** dossiers en
+  `DRAFT_PHOTO_ONLY` — le segment admin et le ciblage des relances sont intacts.
+- `php-fpm` : `pm.max_children` 5 → 20.
+
+### Non fait — à traiter
+
+**Relance des deux segments (tâche 7 étape 6).** Non déclenchée : envoyer des
+SMS et e-mails à 84 personnes réelles est une action sortante irréversible, elle
+demande un feu vert explicite. Segments prêts dans l'admin : « Bloqués par la
+photo » (47) et postulants complets avec photo non soumis (37).
+
+**Reliquats identifiés par les revues, hors périmètre ADR-0009 :**
+
+- `submit()`, `updateDraft()` et `uploadDocument()` ignorent `withdrawn_at` :
+  `withdraw()` ne pose que la date et laisse `statut = postulant`, donc l'API
+  accepte encore une soumission sur un dossier retiré. Le portail bloque, pas
+  l'API. **Pré-existant**, mais c'est le trou symétrique de celui fermé sur
+  `uploadPhoto` — et il produirait des dossiers `submitted + withdrawn` que le
+  filtre « Soumis sans photo » remonterait à la scolarité.
+- Les deux modales (`DossierCompleteness`, `WithdrawDialog`) déclarent
+  `aria-modal="true"` sans piège de focus, sans fermeture par `Échap` et sans
+  restauration du focus. Pré-existant. Le `Dialog` de `@pssfp/ui` réglerait les
+  trois d'un coup.
+- `DossierEtapesRestantes` : état `done`/`current` porté uniquement par une icône
+  `aria-hidden` et par la couleur — même défaut que la checklist, corrigé ici.
+- Textes français en dur restants : `DossierEtapesRestantes`, `dossier/page.tsx`,
+  message 409 de `dossier/photo/actions.ts`.
+- Aucun test Playwright ne couvre `submitted-photo-reminder` ni
+  `photo-late-upload-notice` : les deux exigent un backend live et un dossier
+  soumis sans photo.
+- `pssfp-frontend` : **545 redémarrages** pm2. Sans rapport avec ce lot.
