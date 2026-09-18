@@ -12,6 +12,7 @@ use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Support\Facades\Http;
 
 uses()->group('filament', 'journal-envois');
 
@@ -178,4 +179,59 @@ it('n’affiche aucun badge quand tout est parti', function (): void {
     relance();
 
     expect(CandidatureRelanceResource::getNavigationBadge())->toBeNull();
+});
+
+// Suivi de livraison (spec module 6) : le journal tracait ce que la passerelle
+// acceptait, jamais ce qu'elle livrait.
+it('masque l\'actualisation sur une ligne sans identifiant de message', function (): void {
+    config()->set('services.sms.provider', 'techsoft');
+    config()->set('services.techsoft.base_url', 'https://app.techsoft-sms.com/api/v3');
+    config()->set('services.techsoft.api_token', 'jeton-de-test-secret');
+    config()->set('services.techsoft.sender_id', 'PSSFP');
+
+    $u = User::factory()->create();
+    $u->assignRole('super_admin');
+    $this->actingAs($u);
+
+    $ligne = relance(['message_uid' => null]);
+
+    $this->livewire(ListCandidatureRelances::class)
+        ->assertTableActionHidden('actualiser_statut', $ligne);
+});
+
+it('actualise le statut de livraison depuis la passerelle', function (): void {
+    config()->set('services.sms.provider', 'techsoft');
+    config()->set('services.techsoft.base_url', 'https://app.techsoft-sms.com/api/v3');
+    config()->set('services.techsoft.api_token', 'jeton-de-test-secret');
+    config()->set('services.techsoft.sender_id', 'PSSFP');
+
+    Http::fake([
+        '*/sms/u-123' => Http::response([
+            'status' => 'success',
+            'data' => ['uid' => 'u-123', 'status' => 'Delivered', 'cost' => '12'],
+        ], 200),
+    ]);
+
+    $u = User::factory()->create();
+    $u->assignRole('super_admin');
+    $this->actingAs($u);
+
+    $ligne = relance(['message_uid' => 'u-123', 'statut_livraison' => 'Success']);
+
+    $this->livewire(ListCandidatureRelances::class)
+        ->callTableAction('actualiser_statut', $ligne);
+
+    expect($ligne->refresh()->statut_livraison)->toBe('Delivered')
+        ->and($ligne->cout)->toBe('12');
+});
+
+it('traduit le code fournisseur au lieu de l\'afficher brut', function (): void {
+    $u = User::factory()->create();
+    $u->assignRole('super_admin');
+    $this->actingAs($u);
+
+    relance(['code_fournisseur' => '1007']);
+
+    $this->livewire(ListCandidatureRelances::class)
+        ->assertSee('Solde insuffisant');
 });

@@ -6,7 +6,12 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CandidatureRelanceResource\Pages;
 use App\Models\CandidatureRelance;
+use App\Services\Sms\EchoSmsCodes;
+use App\Services\Sms\QueriesMessageStatus;
+use App\Services\Sms\SmsServiceInterface;
+use App\Services\Sms\TechSoftCodes;
 use Filament\Forms\Components\DatePicker;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -132,14 +137,48 @@ class CandidatureRelanceResource extends Resource
                     ->formatStateUsing(fn (string $state): string => $state === CandidatureRelance::STATUT_ENVOYE ? 'Envoyé' : 'Échec')
                     ->color(fn (string $state): string => $state === CandidatureRelance::STATUT_ENVOYE ? 'success' : 'danger'),
 
+                // Statut réel chez la passerelle, distinct du statut d'envoi :
+                // une passerelle peut accepter un message puis échouer à le
+                // livrer. C'est le cas que le journal ne savait pas montrer.
+                Tables\Columns\TextColumn::make('statut_livraison')
+                    ->label('Livraison')
+                    ->badge()
+                    ->placeholder('Inconnu')
+                    ->color(fn (?string $state): string => match (mb_strtolower((string) $state)) {
+                        'delivered' => 'success',
+                        'failed' => 'danger',
+                        '' => 'gray',
+                        default => 'warning',
+                    })
+                    ->formatStateUsing(fn (?string $state): string => match (mb_strtolower((string) $state)) {
+                        'delivered' => 'Livré',
+                        'success' => 'Envoyé',
+                        'failed' => 'Échec',
+                        '' => 'Inconnu',
+                        // Statut non documenté : affiché tel quel.
+                        default => (string) $state,
+                    })
+                    ->description(fn (CandidatureRelance $record): ?string => $record->cout === null
+                        ? null
+                        : 'coût '.$record->cout),
+
                 Tables\Columns\TextColumn::make('expediteur')
                     ->label('Expéditeur')
                     ->badge()
                     ->color('warning')
                     ->placeholder('—')
-                    ->description(fn (CandidatureRelance $record): ?string => $record->code_fournisseur !== null
-                        ? 'code '.$record->code_fournisseur
-                        : null)
+                    ->description(function (CandidatureRelance $record): ?string {
+                        if ($record->code_fournisseur === null) {
+                            return null;
+                        }
+
+                        // Les deux tables sont interrogées : le journal contient
+                        // des codes Echo SMS antérieurs à la bascule TechSoft.
+                        $libelle = EchoSmsCodes::libelle($record->code_fournisseur)
+                            ?? TechSoftCodes::libelle($record->code_fournisseur);
+
+                        return ($libelle ?? 'code').' ('.$record->code_fournisseur.')';
+                    })
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('cause')
@@ -223,7 +262,35 @@ class CandidatureRelanceResource extends Resource
                         return 'Période : '.($data['du'] ?? '…').' → '.($data['au'] ?? '…');
                     }),
             ])
-            ->actions([])
+            ->actions([
+                Tables\Actions\Action::make('actualiser_statut')
+                    ->label('Actualiser le statut')
+                    ->icon('heroicon-o-arrow-path')
+                    // Masquée sans identifiant : tout l'historique antérieur à
+                    // la bascule TechSoft est dans ce cas, et la passerelle
+                    // active doit savoir répondre.
+                    ->visible(fn (CandidatureRelance $record): bool => $record->message_uid !== null
+                        && app(SmsServiceInterface::class) instanceof QueriesMessageStatus)
+                    ->action(function (CandidatureRelance $record): void {
+                        try {
+                            $statut = app(SmsServiceInterface::class)
+                                ->statutMessage((string) $record->message_uid);
+                        } catch (\Throwable $e) {
+                            Notification::make()->danger()
+                                ->title('Statut indisponible')->body($e->getMessage())->send();
+
+                            return;
+                        }
+
+                        $record->update([
+                            'statut_livraison' => $statut->brut,
+                            'cout' => $statut->cout ?? $record->cout,
+                        ]);
+
+                        Notification::make()->success()
+                            ->title('Statut actualisé')->body($statut->libelle)->send();
+                    }),
+            ])
             ->bulkActions([])
             ->emptyStateHeading('Aucun envoi enregistré')
             ->emptyStateDescription(
