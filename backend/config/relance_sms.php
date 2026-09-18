@@ -23,12 +23,12 @@ return [
 
     'messages' => [
         // Dossier complet, jamais soumis : il ne manque que le clic final.
-        'ready' => 'PSSFP : votre dossier de candidature est complet mais pas encore soumis. '
-            .'Validez-le sur :url avant le :date_cloture pour qu il soit examine.',
+        'ready' => 'PSSFP : votre dossier est complet mais pas encore soumis. '
+            .'Validez-le sur :url avant le :date_cloture. Infos 677 25 72 72',
 
         // Seule la photo manque. Le blocage de taille ayant ete corrige, on le
         // dit explicitement : ces candidats ont deja essaye et echoue.
-        'photo_only' => 'PSSFP : il ne manque que la photo pour finaliser votre candidature. '
-            .'Le probleme de taille est resolu, reessayez sur :url avant le :date_cloture.',
+        'photo_only' => 'PSSFP : il ne manque que votre photo. Le probleme de taille est corrige, '
+            .'reessayez sur :url avant le :date_cloture. Infos 677 25 72 72',
     ],
 ];

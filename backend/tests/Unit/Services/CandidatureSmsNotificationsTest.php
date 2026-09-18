@@ -33,9 +33,13 @@ it('sends an SMS for every candidature lifecycle event', function (): void {
     $listener->handleAccepted(new CandidatureAccepted($candidature));
     $listener->handleRefused(new CandidatureRefused($candidature, 'Motif de recette'));
 
+    // Sans accents depuis le 18/09/2026 : un accent force le type unicode chez
+    // TechSoft, qui decoupe alors tous les 70 caracteres au lieu de 160 et
+    // double le cout du message.
     expect($messages)->toHaveCount(4)
-        ->and($messages[0])->toContain('compte candidat est créé')
-        ->and($messages[1])->toContain('soumise avec succès')
-        ->and($messages[2])->toContain('décision est disponible')
-        ->and($messages[3])->toContain('décision est disponible');
+        ->and($messages[0])->toContain('compte candidat est cree')
+        ->and($messages[1])->toContain('soumise avec succes')
+        ->and($messages[2])->toContain('decision est disponible')
+        ->and($messages[3])->toContain('decision est disponible')
+        ->and($messages[0])->toContain('677 25 72 72');
 });

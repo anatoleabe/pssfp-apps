@@ -170,7 +170,7 @@ final class AuthCandidatController extends Controller
 
                 $this->sms->send(
                     $phone,
-                    "PSSFP : votre code de réinitialisation est {$code}. Valable 10 minutes."
+                    "PSSFP : votre code de reinitialisation est {$code}. Valable 10 minutes. Infos 677 25 72 72"
                 );
             } catch (OtpCooldownException $e) {
                 Log::channel('single')->notice('OTP forgot-pin throttlé par numéro — 202 silencieux.', [
