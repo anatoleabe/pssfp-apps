@@ -30,9 +30,17 @@ use RuntimeException;
  * Le jeton voyage en en-tête et n'est jamais repris dans un message d'erreur
  * ni dans un log.
  */
-final class TechSoftProvider implements DescribesConfiguration, ReportsSmsDelivery, SmsServiceInterface
+final class TechSoftProvider implements ChecksConnectivity, DescribesConfiguration, QueriesMessageStatus, ReportsSmsDelivery, SmsServiceInterface
 {
     private const TIMEOUT_SECONDS = 20;
+
+    /** @var array<string, string> Statuts observés en production. */
+    private const STATUTS = [
+        'delivered' => 'Livré',
+        'success' => 'Envoyé',
+        'failed' => 'Échec',
+        'pending' => 'En attente',
+    ];
 
     public function decrire(): SmsConfigurationSummary
     {
@@ -80,6 +88,67 @@ final class TechSoftProvider implements DescribesConfiguration, ReportsSmsDelive
             messageId: isset($premier['uid']) ? (string) $premier['uid'] : null,
             statut: isset($premier['status']) ? (string) $premier['status'] : null,
             cout: isset($premier['cost']) ? (string) $premier['cost'] : null,
+        );
+    }
+
+    public function verifierConnexion(): ConnectivityReport
+    {
+        // Tout est dans le try, y compris baseUrl() qui lève quand la
+        // configuration est incomplète : un diagnostic doit pouvoir dire
+        // « injoignable » sans faire tomber la page qui l'affiche.
+        try {
+            $response = $this->requete()->get($this->baseUrl().'/user');
+        } catch (NotConfiguredException $e) {
+            return new ConnectivityReport(false, null, null, $e->getMessage());
+        } catch (\Throwable $e) {
+            return new ConnectivityReport(false, null, null, 'Passerelle injoignable.');
+        }
+
+        if (! $response->successful()) {
+            $code = (string) $response->status();
+
+            return new ConnectivityReport(
+                false, null, null,
+                TechSoftCodes::libelle($code) ?? 'La passerelle a refusé la requête (code '.$code.').',
+            );
+        }
+
+        // ATTENTION : la réponse contient `api_token` en clair. On n'extrait
+        // que ces trois champs et on ne journalise jamais le corps complet.
+        $prenom = $response->json('first_name');
+        $nom = $response->json('last_name');
+        $solde = $response->json('sms_unit');
+
+        $compte = trim(
+            (is_string($prenom) ? $prenom : '').' '.(is_string($nom) ? $nom : '')
+        );
+
+        return new ConnectivityReport(
+            joignable: true,
+            compte: $compte === '' ? null : $compte,
+            solde: is_scalar($solde) ? (string) $solde : null,
+            erreur: null,
+        );
+    }
+
+    public function statutMessage(string $uid): MessageStatus
+    {
+        $response = $this->requete()->get($this->baseUrl().'/sms/'.urlencode($uid));
+
+        $this->refuserSiErreur($response);
+
+        $brut = $response->json('data.status');
+        $brut = is_scalar($brut) ? (string) $brut : '';
+        $cout = $response->json('data.cost');
+
+        $normalise = mb_strtolower($brut);
+
+        return new MessageStatus(
+            brut: $brut,
+            // Statut inconnu : on rend le brut, jamais un libellé inventé.
+            libelle: self::STATUTS[$normalise] ?? ($brut === '' ? 'Inconnu' : $brut),
+            livre: $normalise === 'delivered',
+            cout: is_scalar($cout) ? (string) $cout : null,
         );
     }
 
