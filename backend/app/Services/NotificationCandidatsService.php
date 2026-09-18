@@ -8,10 +8,12 @@ use App\Mail\NotificationCandidatMail;
 use App\Models\Candidature;
 use App\Models\CandidatureRelance;
 use App\Models\User;
+use App\Services\Sms\DescribesConfiguration;
 use App\Services\Sms\ReportsSmsDelivery;
 use App\Services\Sms\SmsServiceInterface;
 use App\Services\Sms\TraceEnvoi;
 use App\Support\PhoneMasker;
+use App\Support\SecretRedactor;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -173,7 +175,7 @@ final class NotificationCandidatsService
             Log::channel('sms')->error('Notification SMS en échec', [
                 'dossier' => $candidature->numero_dossier,
                 'phone' => PhoneMasker::mask($numero),
-                'error' => $e->getMessage(),
+                'error' => SecretRedactor::redact($e->getMessage()),
             ]);
             $rapport['sms_echecs']++;
         }
@@ -200,7 +202,7 @@ final class NotificationCandidatsService
             $this->tracer($candidature, CandidatureRelance::CANAL_EMAIL, CandidatureRelance::STATUT_ECHEC, $texte, $sujetRendu, $auteur, $e->getMessage(), TraceEnvoi::email($this->expediteurEmailConfigure()));
             Log::channel('single')->error('Notification e-mail en échec', [
                 'dossier' => $candidature->numero_dossier,
-                'error' => $e->getMessage(),
+                'error' => SecretRedactor::redact($e->getMessage()),
             ]);
             $rapport['emails_echecs']++;
         }
@@ -224,7 +226,7 @@ final class NotificationCandidatsService
             'message' => $message,
             'sujet' => $sujet,
             'envoye_par' => $auteur->id,
-            'erreur' => $erreur === null ? null : mb_substr($erreur, 0, 500),
+            'erreur' => $erreur === null ? null : mb_substr((string) SecretRedactor::redact($erreur), 0, 500),
             'expediteur' => $trace?->expediteur,
             'code_fournisseur' => $trace?->codeFournisseur,
             'message_uid' => $trace?->messageUid,
@@ -242,19 +244,19 @@ final class NotificationCandidatsService
     }
 
     /** Sender ID (ou numéro) configuré pour la passerelle SMS active. */
+    /**
+     * Expéditeur de la passerelle active.
+     *
+     * Lu sur la passerelle elle-même, et non sur une configuration codée en
+     * dur : cette méthode ne connaissait qu'Echo SMS, si bien qu'après la
+     * bascule TechSoft toute ligne SMS en échec perdait son expéditeur —
+     * précisément la colonne qui sert à reconnaître un Sender ID refusé.
+     */
     private function expediteurSmsConfigure(): ?string
     {
-        if ((string) config('services.sms.provider') !== 'echosms') {
-            return null;
-        }
-
-        $type = (string) config('services.echosms.from_type', 'sender_id');
-        $valeur = (string) config(
-            $type === 'sender_id' ? 'services.echosms.sender_id' : 'services.echosms.from_number',
-            ''
-        );
-
-        return $valeur === '' ? null : $valeur;
+        return $this->sms instanceof DescribesConfiguration
+            ? $this->sms->decrire()->expediteur
+            : null;
     }
 
     private function expediteurEmailConfigure(): ?string

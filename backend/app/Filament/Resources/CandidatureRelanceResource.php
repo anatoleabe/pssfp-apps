@@ -8,8 +8,10 @@ use App\Filament\Resources\CandidatureRelanceResource\Pages;
 use App\Models\CandidatureRelance;
 use App\Services\Sms\EchoSmsCodes;
 use App\Services\Sms\QueriesMessageStatus;
+use App\Services\Sms\SmsDeliveryStatuses;
 use App\Services\Sms\SmsServiceInterface;
 use App\Services\Sms\TechSoftCodes;
+use App\Support\SecretRedactor;
 use Filament\Forms\Components\DatePicker;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -144,41 +146,43 @@ class CandidatureRelanceResource extends Resource
                     ->label('Livraison')
                     ->badge()
                     ->placeholder('Inconnu')
-                    ->color(fn (?string $state): string => match (mb_strtolower((string) $state)) {
-                        'delivered' => 'success',
-                        'failed' => 'danger',
-                        '' => 'gray',
-                        default => 'warning',
+                    // Table partagée avec le provider : les deux divergeaient,
+                    // un même statut portait deux libellés sur le même écran.
+                    ->color(fn (?string $state): string => SmsDeliveryStatuses::couleur($state))
+                    ->formatStateUsing(fn (?string $state): string => SmsDeliveryStatuses::libelle($state)),
+
+                Tables\Columns\TextColumn::make('cout')
+                    ->label('Coût')
+                    ->placeholder('—')
+                    ->toggleable(),
+
+                // Colonne autonome plutôt qu'une description accrochée à
+                // l'expéditeur : celle-ci disparaissait dès que l'expéditeur
+                // était nul, c'est-à-dire sur les échecs, quand le code est le
+                // plus utile.
+                Tables\Columns\TextColumn::make('code_fournisseur')
+                    ->label('Code fournisseur')
+                    ->placeholder('—')
+                    ->formatStateUsing(function (?string $state): string {
+                        if ($state === null || $state === '') {
+                            return '—';
+                        }
+
+                        // Les deux tables sont interrogées : le journal contient
+                        // des codes Echo SMS antérieurs à la bascule TechSoft.
+                        $libelle = EchoSmsCodes::libelle($state) ?? TechSoftCodes::libelle($state);
+
+                        return ($libelle ?? 'Code inconnu').' ('.$state.')';
                     })
-                    ->formatStateUsing(fn (?string $state): string => match (mb_strtolower((string) $state)) {
-                        'delivered' => 'Livré',
-                        'success' => 'Envoyé',
-                        'failed' => 'Échec',
-                        '' => 'Inconnu',
-                        // Statut non documenté : affiché tel quel.
-                        default => (string) $state,
-                    })
-                    ->description(fn (CandidatureRelance $record): ?string => $record->cout === null
-                        ? null
-                        : 'coût '.$record->cout),
+                    // Visible par défaut : c'est la colonne qui explique un
+                    // échec, la masquer reviendrait à annuler le gain.
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('expediteur')
                     ->label('Expéditeur')
                     ->badge()
                     ->color('warning')
                     ->placeholder('—')
-                    ->description(function (CandidatureRelance $record): ?string {
-                        if ($record->code_fournisseur === null) {
-                            return null;
-                        }
-
-                        // Les deux tables sont interrogées : le journal contient
-                        // des codes Echo SMS antérieurs à la bascule TechSoft.
-                        $libelle = EchoSmsCodes::libelle($record->code_fournisseur)
-                            ?? TechSoftCodes::libelle($record->code_fournisseur);
-
-                        return ($libelle ?? 'code').' ('.$record->code_fournisseur.')';
-                    })
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('cause')
@@ -215,6 +219,20 @@ class CandidatureRelanceResource extends Resource
                     ->toggleable(),
             ])
             ->filters([
+                // Sans ce filtre, la donnee est collectee mais inexploitable :
+                // le badge et l'onglet « Echecs » comptent les refus de la
+                // passerelle, pas les echecs de livraison — soit precisement
+                // le cas que ce lot devait rendre visible.
+                Tables\Filters\Filter::make('non_livres')
+                    ->label('Envoyés mais non livrés')
+                    ->query(fn (Builder $query): Builder => $query
+                        ->where('statut', CandidatureRelance::STATUT_ENVOYE)
+                        ->whereNotNull('message_uid')
+                        ->where(function (Builder $q): Builder {
+                            return $q->whereNull('statut_livraison')
+                                ->orWhereRaw('LOWER(statut_livraison) <> ?', [SmsDeliveryStatuses::LIVRE]);
+                        }))
+                    ->toggle(),
                 Tables\Filters\SelectFilter::make('canal')
                     ->label('Canal')
                     ->options([
@@ -270,22 +288,45 @@ class CandidatureRelanceResource extends Resource
                     // la bascule TechSoft est dans ce cas, et la passerelle
                     // active doit savoir répondre.
                     ->visible(fn (CandidatureRelance $record): bool => $record->message_uid !== null
+                        && $record->canal === CandidatureRelance::CANAL_SMS
                         && app(SmsServiceInterface::class) instanceof QueriesMessageStatus)
                     ->action(function (CandidatureRelance $record): void {
+                        $passerelle = app(SmsServiceInterface::class);
+
+                        // Re-testé au point d'appel : la garde vit dans
+                        // visible(), à distance, et l'élargir un jour
+                        // provoquerait un BadMethodCallException en pleine page.
+                        if (! $passerelle instanceof QueriesMessageStatus) {
+                            return;
+                        }
+
                         try {
-                            $statut = app(SmsServiceInterface::class)
-                                ->statutMessage((string) $record->message_uid);
+                            $statut = $passerelle->statutMessage((string) $record->message_uid);
                         } catch (\Throwable $e) {
                             Notification::make()->danger()
-                                ->title('Statut indisponible')->body($e->getMessage())->send();
+                                ->title('Statut indisponible')
+                                ->body(SecretRedactor::redact($e->getMessage()) ?? 'Motif inconnu.')
+                                ->send();
 
                             return;
                         }
+
+                        $avant = $record->statut_livraison;
 
                         $record->update([
                             'statut_livraison' => $statut->brut,
                             'cout' => $statut->cout ?? $record->cout,
                         ]);
+
+                        // Ce journal sert de preuve et se déclare non
+                        // modifiable : la seule écriture qui subsiste doit
+                        // laisser une trace de son auteur et de l'état d'avant.
+                        activity('envois')
+                            ->causedBy(auth()->user())
+                            ->performedOn($record)
+                            ->withProperties(['avant' => $avant, 'apres' => $statut->brut])
+                            ->event('statut_livraison_actualise')
+                            ->log('Statut de livraison actualisé depuis la passerelle');
 
                         Notification::make()->success()
                             ->title('Statut actualisé')->body($statut->libelle)->send();

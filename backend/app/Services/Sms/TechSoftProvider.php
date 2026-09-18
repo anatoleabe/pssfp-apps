@@ -34,14 +34,6 @@ final class TechSoftProvider implements ChecksConnectivity, DescribesConfigurati
 {
     private const TIMEOUT_SECONDS = 20;
 
-    /** @var array<string, string> Statuts observés en production. */
-    private const STATUTS = [
-        'delivered' => 'Livré',
-        'success' => 'Envoyé',
-        'failed' => 'Échec',
-        'pending' => 'En attente',
-    ];
-
     public function decrire(): SmsConfigurationSummary
     {
         $senderId = (string) config('services.techsoft.sender_id', '');
@@ -133,7 +125,7 @@ final class TechSoftProvider implements ChecksConnectivity, DescribesConfigurati
 
     public function statutMessage(string $uid): MessageStatus
     {
-        $response = $this->requete()->get($this->baseUrl().'/sms/'.urlencode($uid));
+        $response = $this->requete()->get($this->baseUrl().'/sms/'.rawurlencode($uid));
 
         $this->refuserSiErreur($response);
 
@@ -141,13 +133,12 @@ final class TechSoftProvider implements ChecksConnectivity, DescribesConfigurati
         $brut = is_scalar($brut) ? (string) $brut : '';
         $cout = $response->json('data.cost');
 
-        $normalise = mb_strtolower($brut);
-
         return new MessageStatus(
             brut: $brut,
-            // Statut inconnu : on rend le brut, jamais un libellé inventé.
-            libelle: self::STATUTS[$normalise] ?? ($brut === '' ? 'Inconnu' : $brut),
-            livre: $normalise === 'delivered',
+            // Table partagée avec la colonne du journal : deux tables
+            // divergeaient, un même statut y portait deux libellés.
+            libelle: SmsDeliveryStatuses::libelle($brut),
+            livre: SmsDeliveryStatuses::estLivre($brut),
             cout: is_scalar($cout) ? (string) $cout : null,
         );
     }

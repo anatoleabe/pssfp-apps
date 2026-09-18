@@ -7,9 +7,12 @@ namespace App\Services;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\CandidatureRelance;
+use App\Services\Sms\DescribesConfiguration;
 use App\Services\Sms\ReportsSmsDelivery;
 use App\Services\Sms\SmsServiceInterface;
+use App\Services\Sms\TraceEnvoi;
 use App\Support\PhoneMasker;
+use App\Support\SecretRedactor;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -123,13 +126,10 @@ final class RelanceCandidatureService
     ): void {
         try {
             if ($this->sms instanceof ReportsSmsDelivery) {
-                $resultat = $this->sms->sendAndReport($numero, $message);
-                $expediteur = $resultat->expediteur;
-                $code = $resultat->codeFournisseur;
+                $trace = TraceEnvoi::depuisResultat($this->sms->sendAndReport($numero, $message));
             } else {
                 $this->sms->send($numero, $message);
-                $expediteur = null;
-                $code = null;
+                $trace = TraceEnvoi::sms(null);
             }
 
             CandidatureRelance::create([
@@ -137,8 +137,14 @@ final class RelanceCandidatureService
                 'cause' => $cause,
                 'canal' => 'sms',
                 'statut' => CandidatureRelance::STATUT_ENVOYE,
-                'expediteur' => $expediteur,
-                'code_fournisseur' => $code,
+                'expediteur' => $trace->expediteur,
+                'code_fournisseur' => $trace->codeFournisseur,
+                // Sans ces trois champs, l'action « Actualiser le statut » du
+                // journal resterait définitivement masquée sur les relances
+                // automatiques — soit la majorité des envois.
+                'message_uid' => $trace->messageUid,
+                'statut_livraison' => $trace->statutLivraison,
+                'cout' => $trace->cout,
                 'sent_at' => now(),
             ]);
 
@@ -163,7 +169,7 @@ final class RelanceCandidatureService
                 'cause' => $cause,
                 'canal' => 'sms',
                 'statut' => CandidatureRelance::STATUT_ECHEC,
-                'erreur' => mb_substr($e->getMessage(), 0, 500),
+                'erreur' => mb_substr((string) SecretRedactor::redact($e->getMessage()), 0, 500),
                 // Conservé même en échec : un Sender ID expiré est la cause
                 // la plus fréquente, et il faut pouvoir la lire directement.
                 'expediteur' => $this->expediteurConfigure(),
@@ -174,7 +180,7 @@ final class RelanceCandidatureService
                 'dossier' => $candidature->numero_dossier,
                 'phone' => PhoneMasker::mask($numero),
                 'cause' => $cause,
-                'error' => $e->getMessage(),
+                'error' => SecretRedactor::redact($e->getMessage()),
             ]);
 
             $rapport['echecs']++;
@@ -226,19 +232,18 @@ final class RelanceCandidatureService
         ]);
     }
 
-    /** Sender ID (ou numéro) configuré pour la passerelle SMS active. */
+    /**
+     * Expéditeur de la passerelle SMS active.
+     *
+     * Lu sur la passerelle elle-même : cette méthode ne connaissait qu'Echo
+     * SMS, si bien qu'après la bascule TechSoft toute relance en échec perdait
+     * son expéditeur — la colonne qui sert justement à reconnaître un Sender ID
+     * refusé, comme le dit le commentaire de son unique appelant.
+     */
     private function expediteurConfigure(): ?string
     {
-        if ((string) config('services.sms.provider') !== 'echosms') {
-            return null;
-        }
-
-        $type = (string) config('services.echosms.from_type', 'sender_id');
-        $valeur = (string) config(
-            $type === 'sender_id' ? 'services.echosms.sender_id' : 'services.echosms.from_number',
-            ''
-        );
-
-        return $valeur === '' ? null : $valeur;
+        return $this->sms instanceof DescribesConfiguration
+            ? $this->sms->decrire()->expediteur
+            : null;
     }
 }

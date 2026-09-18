@@ -115,8 +115,8 @@ it('cache les actions d\'envoi à qui n\'a pas candidature.notify', function ():
     $this->actingAs($user);
 
     $this->livewire(Parametres::class)
-        ->assertActionHidden('tester_sms')
-        ->assertActionHidden('tester_email')
+        ->assertFormComponentActionHidden('test_telephone', 'tester_sms')
+        ->assertFormComponentActionHidden('test_email', 'tester_email')
         ->assertActionHidden('verifier_connexion');
 });
 
@@ -124,7 +124,65 @@ it('expose les actions d\'envoi à un super admin', function (): void {
     $this->actingAs(auteurDiagnostic());
 
     $this->livewire(Parametres::class)
-        ->assertActionVisible('tester_sms')
-        ->assertActionVisible('tester_email')
+        ->assertFormComponentActionVisible('test_telephone', 'tester_sms')
+        ->assertFormComponentActionVisible('test_email', 'tester_email')
         ->assertActionVisible('verifier_connexion');
+});
+
+// Chemin le plus fragile du lot : saisie dans un champ non déshydraté, lue
+// depuis l'action accolée. Aucune régression Filament ne doit le casser
+// silencieusement.
+it('envoie réellement le numéro saisi dans le champ de test', function (): void {
+    reponseEnvoiOk();
+    $this->actingAs(auteurDiagnostic());
+
+    $this->livewire(Parametres::class)
+        ->set('data.test_telephone', '691234567')
+        ->callFormComponentAction('test_telephone', 'tester_sms');
+
+    Http::assertSent(fn ($request): bool => $request['recipient'] === '+237691234567');
+});
+
+it('refuse un champ de test vide sans appeler la passerelle', function (): void {
+    Http::fake();
+    $this->actingAs(auteurDiagnostic());
+
+    $this->livewire(Parametres::class)
+        ->set('data.test_telephone', '')
+        ->callFormComponentAction('test_telephone', 'tester_sms');
+
+    Http::assertNothingSent();
+});
+
+it('refuse une adresse de test invalide sans envoyer d\'e-mail', function (): void {
+    Mail::fake();
+    $this->actingAs(auteurDiagnostic());
+
+    $this->livewire(Parametres::class)
+        ->set('data.test_email', 'pas-une-adresse')
+        ->callFormComponentAction('test_email', 'tester_email');
+
+    Mail::assertNothingSent();
+});
+
+it('n\'annonce pas un succès quand la passerelle est en simulation', function (): void {
+    config()->set('services.sms.provider', 'fake');
+    $this->actingAs(auteurDiagnostic());
+
+    $this->livewire(Parametres::class)
+        ->set('data.test_telephone', '691234567')
+        ->callFormComponentAction('test_telephone', 'tester_sms')
+        ->assertNotified('Aucun SMS envoyé — mode simulation');
+});
+
+it('un champ de test mal rempli n\'empêche pas d\'enregistrer les réglages', function (): void {
+    $this->actingAs(auteurDiagnostic());
+
+    // `dehydrated(false)` n'exempte pas de validation : une règle sur ce champ
+    // ferait échouer la sauvegarde des adresses Cci, qui n'ont aucun rapport.
+    $this->livewire(Parametres::class)
+        ->set('data.test_email', 'pas-une-adresse')
+        ->set('data.notification_bcc', ['scolarite@example.test'])
+        ->call('save')
+        ->assertHasNoFormErrors();
 });

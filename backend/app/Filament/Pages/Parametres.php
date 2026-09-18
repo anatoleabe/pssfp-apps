@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Models\User;
 use App\Services\EnvoiTestService;
 use App\Services\Sms\ChecksConnectivity;
 use App\Services\Sms\DescribesConfiguration;
 use App\Services\Sms\SmsConfigurationSummary;
+use App\Services\Sms\SmsDeliveryStatuses;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\AppSettings;
+use App\Support\SecretRedactor;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TagsInput;
@@ -20,6 +24,10 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\HtmlString;
+use RuntimeException;
 
 /**
  * Réglages applicatifs éditables sans redéploiement.
@@ -74,11 +82,17 @@ class Parametres extends Page implements HasForms
                     ]),
 
                 Section::make('Envois')
-                    ->description('Configuration des passerelles SMS et e-mail. Ces valeurs vivent dans le fichier .env du serveur et ne sont pas modifiables ici.')
+                    ->description('Configuration des passerelles SMS et e-mail. Elle vit dans le fichier .env du serveur et n\'est pas modifiable ici — seuls les deux champs de test ci-dessous sont saisissables.')
                     ->schema([
                         Placeholder::make('sms_simulation')
                             ->label('Attention')
-                            ->content('Mode simulation : aucun SMS ne part réellement.')
+                            // En danger, pas en texte neutre : c'est le cas où
+                            // l'on croit envoyer alors que rien ne part, et
+                            // c'est le motif d'existence de cet écran.
+                            ->content(new HtmlString(
+                                '<span class="font-semibold text-danger-600 dark:text-danger-400">'
+                                .'Mode simulation : aucun SMS ne part réellement.</span>'
+                            ))
                             ->visible(fn (): bool => ($this->descriptionSms()?->envoiReel ?? true) === false),
                         Placeholder::make('sms_fournisseur')
                             ->label('Fournisseur SMS')
@@ -98,15 +112,31 @@ class Parametres extends Page implements HasForms
                             ->label('Expéditeur e-mail')
                             ->content(fn (): string => (string) config('mail.from.address')
                                 .' ('.(string) config('mail.from.name').')'),
+                        // `dehydrated(false)` exclut de l'enregistrement mais
+                        // PAS de la validation : une règle `email` ici ferait
+                        // échouer la sauvegarde des adresses Cci voisines. La
+                        // validation se fait donc dans l'action.
                         TextInput::make('test_telephone')
                             ->label('Numéro pour un SMS de test')
                             ->helperText('Format international (+237…) ou numéro local à 9 chiffres.')
-                            ->tel()
-                            ->dehydrated(false),
+                            ->dehydrated(false)
+                            ->hintAction(
+                                FormAction::make('tester_sms')
+                                    ->label('Envoyer un SMS de test')
+                                    ->icon('heroicon-o-device-phone-mobile')
+                                    ->visible(fn (): bool => $this->peutEnvoyer())
+                                    ->action(fn (): null => $this->testerSms()),
+                            ),
                         TextInput::make('test_email')
                             ->label('Adresse pour un e-mail de test')
-                            ->email()
-                            ->dehydrated(false),
+                            ->dehydrated(false)
+                            ->hintAction(
+                                FormAction::make('tester_email')
+                                    ->label('Envoyer un e-mail de test')
+                                    ->icon('heroicon-o-envelope')
+                                    ->visible(fn (): bool => $this->peutEnvoyer())
+                                    ->action(fn (): null => $this->testerEmail()),
+                            ),
                     ]),
             ])
             ->statePath('data');
@@ -161,12 +191,23 @@ class Parametres extends Page implements HasForms
                 ->visible(fn (): bool => app(SmsServiceInterface::class) instanceof ChecksConnectivity
                     && $this->peutEnvoyer())
                 ->action(function (): void {
-                    $rapport = app(SmsServiceInterface::class)->verifierConnexion();
+                    $passerelle = app(SmsServiceInterface::class);
+
+                    // Re-testé ici et pas seulement dans visible() : la garde
+                    // est à vingt lignes de l'appel, et rien n'empêcherait
+                    // qu'on élargisse un jour la condition d'affichage.
+                    if (! $passerelle instanceof ChecksConnectivity) {
+                        return;
+                    }
+
+                    $this->consommerQuotaDiagnostic();
+
+                    $rapport = $passerelle->verifierConnexion();
 
                     if (! $rapport->joignable) {
                         Notification::make()->danger()
                             ->title('Passerelle injoignable')
-                            ->body($rapport->erreur ?? 'Motif inconnu.')
+                            ->body(SecretRedactor::redact($rapport->erreur) ?? 'Motif inconnu.')
                             ->send();
 
                         return;
@@ -178,64 +219,141 @@ class Parametres extends Page implements HasForms
                             .' — solde : '.($rapport->solde ?? 'inconnu'))
                         ->send();
                 }),
-
-            Action::make('tester_sms')
-                ->label('Envoyer un SMS de test')
-                ->icon('heroicon-o-device-phone-mobile')
-                ->visible(fn (): bool => $this->peutEnvoyer())
-                ->action(function (): void {
-                    $destinataire = trim((string) ($this->data['test_telephone'] ?? ''));
-
-                    if ($destinataire === '') {
-                        Notification::make()->warning()->title('Renseignez un numéro')->send();
-
-                        return;
-                    }
-
-                    try {
-                        $resultat = app(EnvoiTestService::class)
-                            ->envoyerSms($destinataire, auth()->user());
-                    } catch (\Throwable $e) {
-                        // Message de la passerelle affiché tel quel : c'est
-                        // toute l'utilité d'un bouton de test.
-                        Notification::make()->danger()
-                            ->title('Envoi refusé')->body($e->getMessage())->send();
-
-                        return;
-                    }
-
-                    Notification::make()->success()
-                        ->title('SMS de test envoyé')
-                        ->body('Expéditeur : '.($resultat->expediteur ?? 'inconnu')
-                            .($resultat->cout === null ? '' : ' — coût : '.$resultat->cout))
-                        ->send();
-                }),
-
-            Action::make('tester_email')
-                ->label('Envoyer un e-mail de test')
-                ->icon('heroicon-o-envelope')
-                ->visible(fn (): bool => $this->peutEnvoyer())
-                ->action(function (): void {
-                    $destinataire = trim((string) ($this->data['test_email'] ?? ''));
-
-                    if ($destinataire === '') {
-                        Notification::make()->warning()->title('Renseignez une adresse')->send();
-
-                        return;
-                    }
-
-                    try {
-                        app(EnvoiTestService::class)->envoyerEmail($destinataire, auth()->user());
-                    } catch (\Throwable $e) {
-                        Notification::make()->danger()
-                            ->title('Envoi refusé')->body($e->getMessage())->send();
-
-                        return;
-                    }
-
-                    Notification::make()->success()->title('E-mail de test envoyé')->send();
-                }),
         ];
+    }
+
+    /**
+     * Envoi de test SMS, déclenché par le bouton accolé au champ.
+     *
+     * La validation se fait ici : les règles du TextInput ne s'exécutent qu'à
+     * l'enregistrement du formulaire, jamais sur le chemin d'une action.
+     */
+    private function testerSms(): null
+    {
+        $donnees = Validator::make(
+            ['test_telephone' => trim((string) ($this->data['test_telephone'] ?? ''))],
+            ['test_telephone' => ['required', 'string', 'max:20', 'regex:/^(\+[1-9]\d{6,14}|\d{9})$/']],
+            ['test_telephone.regex' => 'Saisissez un numéro au format international (+237…) ou un numéro local à 9 chiffres.'],
+        );
+
+        if ($donnees->fails()) {
+            Notification::make()->warning()
+                ->title('Numéro invalide')
+                ->body((string) $donnees->errors()->first())
+                ->send();
+
+            return null;
+        }
+
+        try {
+            $resultat = app(EnvoiTestService::class)
+                ->envoyerSms((string) $donnees->validated()['test_telephone'], $this->auteur());
+        } catch (\Throwable $e) {
+            // Message de la passerelle affiché tel quel — c'est toute l'utilité
+            // d'un bouton de test — mais expurgé de tout secret : une clé en
+            // query se retrouverait sinon dans une exception de transport.
+            Notification::make()->danger()
+                ->title('Envoi refusé')
+                ->body(SecretRedactor::redact($e->getMessage()) ?? 'Motif inconnu.')
+                ->send();
+
+            return null;
+        }
+
+        $details = 'Expéditeur : '.($resultat->expediteur ?? 'inconnu')
+            .' — statut : '.SmsDeliveryStatuses::libelle($resultat->statut)
+            .($resultat->cout === null ? '' : ' — coût : '.$resultat->cout);
+
+        // En simulation, rien n'est parti : une notification verte ferait
+        // croire l'inverse, exactement le problème que cet écran doit lever.
+        if (($this->descriptionSms()?->envoiReel ?? true) === false) {
+            Notification::make()->warning()
+                ->title('Aucun SMS envoyé — mode simulation')
+                ->body('La passerelle active ne fait que journaliser. '.$details)
+                ->send();
+
+            return null;
+        }
+
+        Notification::make()->success()
+            ->title('SMS de test envoyé')
+            ->body($details)
+            ->send();
+
+        return null;
+    }
+
+    /** Envoi de test e-mail, déclenché par le bouton accolé au champ. */
+    private function testerEmail(): null
+    {
+        $donnees = Validator::make(
+            ['test_email' => trim((string) ($this->data['test_email'] ?? ''))],
+            ['test_email' => ['required', 'email:rfc', 'max:150']],
+        );
+
+        if ($donnees->fails()) {
+            Notification::make()->warning()
+                ->title('Adresse invalide')
+                ->body((string) $donnees->errors()->first())
+                ->send();
+
+            return null;
+        }
+
+        try {
+            app(EnvoiTestService::class)
+                ->envoyerEmail((string) $donnees->validated()['test_email'], $this->auteur());
+        } catch (\Throwable $e) {
+            Notification::make()->danger()
+                ->title('Envoi refusé')
+                ->body(SecretRedactor::redact($e->getMessage()) ?? 'Motif inconnu.')
+                ->send();
+
+            return null;
+        }
+
+        Notification::make()->success()->title('E-mail de test envoyé')->send();
+
+        return null;
+    }
+
+    /**
+     * Auteur de l'action.
+     *
+     * `canAccess()` garantit un utilisateur authentifié, mais le service attend
+     * un `User` non nullable : mieux vaut une exception explicite qu'un
+     * TypeError si cette garantie change un jour.
+     */
+    private function auteur(): User
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            throw new RuntimeException('Action de diagnostic sans utilisateur authentifié.');
+        }
+
+        return $user;
+    }
+
+    /**
+     * Le contrôle de connexion sort un appel HTTP synchrone de 20 s : il tombe
+     * sous le même quota que les envois de test pour qu'une session ne puisse
+     * pas marteler la passerelle depuis l'IP de production.
+     */
+    private function consommerQuotaDiagnostic(): void
+    {
+        $cle = 'diagnostic-envois:'.$this->auteur()->id;
+
+        if (RateLimiter::tooManyAttempts($cle, 5)) {
+            Notification::make()->warning()
+                ->title('Trop de vérifications')
+                ->body('Patientez une minute avant de réessayer.')
+                ->send();
+
+            return;
+        }
+
+        RateLimiter::hit($cle, 60);
     }
 
     /** @return array<Action> */
