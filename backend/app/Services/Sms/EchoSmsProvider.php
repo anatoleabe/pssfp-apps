@@ -30,7 +30,7 @@ use RuntimeException;
  * La clé transitant en query, elle apparaîtrait dans les traces d'exception
  * incluant l'URL : aucun message d'erreur construit ici ne contient l'URL.
  */
-final class EchoSmsProvider implements ReportsSmsDelivery, SmsServiceInterface
+final class EchoSmsProvider implements DescribesConfiguration, ReportsSmsDelivery, SmsServiceInterface
 {
     private const TIMEOUT_SECONDS = 20;
 
@@ -38,28 +38,20 @@ final class EchoSmsProvider implements ReportsSmsDelivery, SmsServiceInterface
 
     private const CODE_ENVOI_PARTIEL = '1015';
 
-    /** @var array<string, string> */
-    private const MESSAGES = [
-        '1001' => 'Utilisateur introuvable',
-        '1002' => 'Sender ID / masking invalide',
-        '1003' => 'API introuvable (mauvais endpoint ou authentification refusée)',
-        '1004' => 'Numéro WhatsApp invalide',
-        '1005' => 'Numéro émetteur invalide',
-        '1007' => 'Solde insuffisant',
-        '1008' => 'Message vide',
-        '1009' => 'Type de message non défini',
-        '1010' => 'Numéro invalide',
-        '1011' => 'Crédit insuffisant',
-        '1013' => 'Numéro introuvable, contacter l\'administrateur',
-        '1014' => 'Passerelle SMS non configurée côté Echo SMS',
-        '1015' => 'Message envoyé partiellement',
-        '1016' => 'Message envoyé',
-        '1017' => 'Aucun forfait actif sur le compte',
-        '1018' => 'OTP non activé',
-        '1019' => 'Fournisseur inactif, contacter l\'administrateur',
-        '1020' => 'Identifiants du fournisseur non configurés',
-        '1021' => 'Modèle introuvable',
-    ];
+    public function decrire(): SmsConfigurationSummary
+    {
+        $fromType = (string) config('services.echosms.from_type', 'sender_id');
+        $expediteur = $fromType === 'sender_id'
+            ? (string) config('services.echosms.sender_id', '')
+            : (string) config('services.echosms.from_number', '');
+
+        return new SmsConfigurationSummary(
+            libelle: 'Echo SMS',
+            expediteur: $expediteur === '' ? null : $expediteur,
+            jetonConfigure: (string) config('services.echosms.api_key', '') !== '',
+            envoiReel: true,
+        );
+    }
 
     public function send(string $phoneE164, string $message): void
     {
@@ -130,7 +122,7 @@ final class EchoSmsProvider implements ReportsSmsDelivery, SmsServiceInterface
         if ($code !== self::CODE_ENVOYE && $code !== self::CODE_ENVOI_PARTIEL) {
             throw new RuntimeException(
                 'Echo SMS a refusé l\'envoi (code '.$code.' : '
-                .(self::MESSAGES[$code] ?? 'motif inconnu').').'
+                .(EchoSmsCodes::libelle($code) ?? 'motif inconnu').').'
             );
         }
 

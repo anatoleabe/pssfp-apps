@@ -14,8 +14,18 @@ use Illuminate\Support\Facades\Log;
  * via Log::shouldReceive(...) ou en lisant le channel `sms` configuré dans
  * config/logging.php.
  */
-final class FakeSmsProvider implements ReportsSmsDelivery, SmsServiceInterface
+final class FakeSmsProvider implements DescribesConfiguration, ReportsSmsDelivery, SmsServiceInterface
 {
+    public function decrire(): SmsConfigurationSummary
+    {
+        return new SmsConfigurationSummary(
+            libelle: 'Simulation (aucun envoi réel)',
+            expediteur: 'fake',
+            jetonConfigure: true,
+            envoiReel: false,
+        );
+    }
+
     public function send(string $phoneE164, string $message): void
     {
         $this->sendAndReport($phoneE164, $message);

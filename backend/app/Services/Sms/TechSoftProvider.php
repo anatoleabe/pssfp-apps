@@ -30,9 +30,21 @@ use RuntimeException;
  * Le jeton voyage en en-tête et n'est jamais repris dans un message d'erreur
  * ni dans un log.
  */
-final class TechSoftProvider implements ReportsSmsDelivery, SmsServiceInterface
+final class TechSoftProvider implements DescribesConfiguration, ReportsSmsDelivery, SmsServiceInterface
 {
     private const TIMEOUT_SECONDS = 20;
+
+    public function decrire(): SmsConfigurationSummary
+    {
+        $senderId = (string) config('services.techsoft.sender_id', '');
+
+        return new SmsConfigurationSummary(
+            libelle: 'TechSoft Bulk SMS',
+            expediteur: $senderId === '' ? null : $senderId,
+            jetonConfigure: $this->apiToken() !== '',
+            envoiReel: true,
+        );
+    }
 
     public function send(string $phoneE164, string $message): void
     {
@@ -65,6 +77,9 @@ final class TechSoftProvider implements ReportsSmsDelivery, SmsServiceInterface
         return new SmsSendResult(
             expediteur: is_string($premier['from'] ?? null) ? $premier['from'] : $senderId,
             codeFournisseur: null,
+            messageId: isset($premier['uid']) ? (string) $premier['uid'] : null,
+            statut: isset($premier['status']) ? (string) $premier['status'] : null,
+            cout: isset($premier['cost']) ? (string) $premier['cost'] : null,
         );
     }
 

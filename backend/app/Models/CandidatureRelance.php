@@ -38,6 +38,9 @@ class CandidatureRelance extends Model
         'envoye_par',
         'expediteur',
         'code_fournisseur',
+        'message_uid',
+        'statut_livraison',
+        'cout',
         'sent_at',
     ];
 

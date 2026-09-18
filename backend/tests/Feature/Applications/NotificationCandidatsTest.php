@@ -10,10 +10,12 @@ use App\Models\CandidatureRelance;
 use App\Models\User;
 use App\Services\NotificationCandidatsService;
 use App\Services\Sms\SmsServiceInterface;
+use App\Services\Sms\TechSoftProvider;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 
 uses()->group('applications', 'notification');
@@ -318,4 +320,47 @@ it('exige un objet quand l’e-mail est demandé', function (): void {
             'sujet' => '',
         ])
         ->assertHasTableBulkActionErrors(['sujet']);
+});
+
+// ADR module 6 : TechSoft renvoie un identifiant de message reutilisable, ce
+// qu'Echo SMS ne faisait pas. Le journal doit le conserver, sinon le statut de
+// livraison reste inconsultable.
+it('enregistre l\'identifiant, le statut et le coût du message renvoyés par la passerelle', function (): void {
+    config()->set('services.sms.provider', 'techsoft');
+    config()->set('services.techsoft.base_url', 'https://app.techsoft-sms.com/api/v3');
+    config()->set('services.techsoft.api_token', 'jeton-de-test-secret');
+    config()->set('services.techsoft.sender_id', 'PSSFP');
+
+    // La passerelle reelle remplace l'espion du fichier pour ce test.
+    app()->forgetInstance(SmsServiceInterface::class);
+    app()->bind(SmsServiceInterface::class, fn () => app(TechSoftProvider::class));
+
+    Http::fake([
+        '*/sms/send' => Http::response([
+            'status' => 'success',
+            'data' => [[
+                'uid' => '683831eda796e',
+                'from' => 'PSSFP',
+                'status' => 'Delivered',
+                'cost' => '12',
+            ]],
+        ], 200),
+    ]);
+
+    $candidat = candidatANotifier($this->campagne->id);
+
+    app(NotificationCandidatsService::class)->envoyer(
+        collect([$candidat]),
+        NotificationCandidatsService::CANAL_SMS,
+        'PSSFP : message de test.',
+        null,
+        adminNotificateur(),
+    );
+
+    $ligne = CandidatureRelance::where('candidature_id', $candidat->id)->latest('id')->first();
+
+    expect($ligne->message_uid)->toBe('683831eda796e')
+        ->and($ligne->statut_livraison)->toBe('Delivered')
+        ->and($ligne->cout)->toBe('12')
+        ->and($ligne->expediteur)->toBe('PSSFP');
 });

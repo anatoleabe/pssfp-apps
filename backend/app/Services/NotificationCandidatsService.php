@@ -10,6 +10,7 @@ use App\Models\CandidatureRelance;
 use App\Models\User;
 use App\Services\Sms\ReportsSmsDelivery;
 use App\Services\Sms\SmsServiceInterface;
+use App\Services\Sms\TraceEnvoi;
 use App\Support\PhoneMasker;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -157,21 +158,18 @@ final class NotificationCandidatsService
             // réellement présenté et le code fournisseur ; sinon on trace
             // l'envoi sans ces détails plutôt que de deviner.
             if ($this->sms instanceof ReportsSmsDelivery) {
-                $resultat = $this->sms->sendAndReport($numero, $texte);
-                $expediteur = $resultat->expediteur;
-                $code = $resultat->codeFournisseur;
+                $trace = TraceEnvoi::depuisResultat($this->sms->sendAndReport($numero, $texte));
             } else {
                 $this->sms->send($numero, $texte);
-                $expediteur = null;
-                $code = null;
+                $trace = TraceEnvoi::sms(null);
             }
-            $this->tracer($candidature, CandidatureRelance::CANAL_SMS, CandidatureRelance::STATUT_ENVOYE, $texte, null, $auteur, null, $expediteur, $code);
+            $this->tracer($candidature, CandidatureRelance::CANAL_SMS, CandidatureRelance::STATUT_ENVOYE, $texte, null, $auteur, null, $trace);
             $rapport['sms_envoyes']++;
         } catch (Throwable $e) {
             // En échec, la passerelle n'a rien rendu : on conserve tout de
             // même l'expéditeur configuré, c'est souvent lui la cause
             // (Sender ID expiré ou refusé).
-            $this->tracer($candidature, CandidatureRelance::CANAL_SMS, CandidatureRelance::STATUT_ECHEC, $texte, null, $auteur, $e->getMessage(), $this->expediteurSmsConfigure(), null);
+            $this->tracer($candidature, CandidatureRelance::CANAL_SMS, CandidatureRelance::STATUT_ECHEC, $texte, null, $auteur, $e->getMessage(), TraceEnvoi::sms($this->expediteurSmsConfigure()));
             Log::channel('sms')->error('Notification SMS en échec', [
                 'dossier' => $candidature->numero_dossier,
                 'phone' => PhoneMasker::mask($numero),
@@ -196,10 +194,10 @@ final class NotificationCandidatsService
 
         try {
             Mail::to($adresse)->send(new NotificationCandidatMail($candidature, $sujetRendu, $texte));
-            $this->tracer($candidature, CandidatureRelance::CANAL_EMAIL, CandidatureRelance::STATUT_ENVOYE, $texte, $sujetRendu, $auteur, null, $this->expediteurEmailConfigure(), null);
+            $this->tracer($candidature, CandidatureRelance::CANAL_EMAIL, CandidatureRelance::STATUT_ENVOYE, $texte, $sujetRendu, $auteur, null, TraceEnvoi::email($this->expediteurEmailConfigure()));
             $rapport['emails_envoyes']++;
         } catch (Throwable $e) {
-            $this->tracer($candidature, CandidatureRelance::CANAL_EMAIL, CandidatureRelance::STATUT_ECHEC, $texte, $sujetRendu, $auteur, $e->getMessage(), $this->expediteurEmailConfigure(), null);
+            $this->tracer($candidature, CandidatureRelance::CANAL_EMAIL, CandidatureRelance::STATUT_ECHEC, $texte, $sujetRendu, $auteur, $e->getMessage(), TraceEnvoi::email($this->expediteurEmailConfigure()));
             Log::channel('single')->error('Notification e-mail en échec', [
                 'dossier' => $candidature->numero_dossier,
                 'error' => $e->getMessage(),
@@ -216,8 +214,7 @@ final class NotificationCandidatsService
         ?string $sujet,
         User $auteur,
         ?string $erreur,
-        ?string $expediteur = null,
-        ?string $codeFournisseur = null,
+        ?TraceEnvoi $trace = null,
     ): void {
         CandidatureRelance::create([
             'candidature_id' => $candidature->id,
@@ -228,8 +225,11 @@ final class NotificationCandidatsService
             'sujet' => $sujet,
             'envoye_par' => $auteur->id,
             'erreur' => $erreur === null ? null : mb_substr($erreur, 0, 500),
-            'expediteur' => $expediteur,
-            'code_fournisseur' => $codeFournisseur,
+            'expediteur' => $trace?->expediteur,
+            'code_fournisseur' => $trace?->codeFournisseur,
+            'message_uid' => $trace?->messageUid,
+            'statut_livraison' => $trace?->statutLivraison,
+            'cout' => $trace?->cout,
             'sent_at' => now(),
         ]);
 

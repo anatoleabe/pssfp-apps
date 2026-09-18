@@ -20,5 +20,11 @@ final class SmsSendResult
         public readonly ?string $codeFournisseur,
         /** La passerelle signale une livraison partielle (code 1015). */
         public readonly bool $partiel = false,
+        /** Identifiant du message chez la passerelle, s'il en fournit un. */
+        public readonly ?string $messageId = null,
+        /** Statut rendu à l'envoi, brut — jamais normalisé ici. */
+        public readonly ?string $statut = null,
+        /** Coût facturé, tel que rendu par la passerelle. */
+        public readonly ?string $cout = null,
     ) {}
 }

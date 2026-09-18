@@ -19,9 +19,21 @@ use RuntimeException;
  * Contrat d'erreur : toute panne lève une RuntimeException — les appelants
  * décident (forgot-pin l'avale et reste 202, anti-énumération).
  */
-final class AfricasTalkingProvider implements SmsServiceInterface
+final class AfricasTalkingProvider implements DescribesConfiguration, SmsServiceInterface
 {
     private const ENDPOINT = 'https://api.africastalking.com/version1/messaging';
+
+    public function decrire(): SmsConfigurationSummary
+    {
+        $senderId = (string) config('services.africas_talking.sender_id', '');
+
+        return new SmsConfigurationSummary(
+            libelle: 'Africa\'s Talking',
+            expediteur: $senderId === '' ? null : $senderId,
+            jetonConfigure: (string) config('services.africas_talking.api_key', '') !== '',
+            envoiReel: true,
+        );
+    }
 
     public function send(string $phoneE164, string $message): void
     {
