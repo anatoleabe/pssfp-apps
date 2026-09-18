@@ -52,6 +52,16 @@ return [
         'from_number' => env('ECHOSMS_FROM_NUMBER'),
     ],
 
+    // Passerelle SMS TechSoft Bulk SMS v3 (https://app.techsoft-sms.com).
+    // Jeton en en-tête Bearer, corps JSON. Le Sender ID doit être déclaré
+    // dans l'interface web de TechSoft : l'API n'expose aucun endpoint pour
+    // le vérifier, un expéditeur non déclaré ne se découvre qu'à l'envoi.
+    'techsoft' => [
+        'base_url' => env('TECHSOFT_BASE_URL', 'https://app.techsoft-sms.com/api/v3'),
+        'api_token' => env('TECHSOFT_API_TOKEN'),
+        'sender_id' => env('TECHSOFT_SENDER_ID'),
+    ],
+
     'africas_talking' => [
         'username' => env('AFRICAS_TALKING_USERNAME'),
         'api_key' => env('AFRICAS_TALKING_API_KEY'),

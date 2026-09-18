@@ -12,6 +12,7 @@ use App\Services\Sms\AfricasTalkingProvider;
 use App\Services\Sms\EchoSmsProvider;
 use App\Services\Sms\FakeSmsProvider;
 use App\Services\Sms\SmsServiceInterface;
+use App\Services\Sms\TechSoftProvider;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -22,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
             return match (config('services.sms.provider', 'fake')) {
                 'africas_talking' => $app->make(AfricasTalkingProvider::class),
                 'echosms' => $app->make(EchoSmsProvider::class),
+                'techsoft' => $app->make(TechSoftProvider::class),
                 default => $app->make(FakeSmsProvider::class),
             };
         });
