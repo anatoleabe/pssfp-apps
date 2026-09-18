@@ -108,3 +108,29 @@ it('refuse un Sender ID de plus de 11 caractères que TechSoft tronquerait', fun
 
     Http::assertNothingSent();
 });
+
+// Constaté en production : TechSoft stocke « créé » mais livre « cr¿¿ » quand
+// le type déclaré est `plain`.
+it('déclare le type unicode dès que le message porte un accent', function (): void {
+    configurerTechSoft();
+    Http::fake(['*/sms/send' => Http::response([
+        'status' => 'success',
+        'data' => [['uid' => 'u1', 'from' => 'PSSFP', 'status' => 'Delivered']],
+    ], 200)]);
+
+    app(TechSoftProvider::class)->sendAndReport('+237691234567', 'Votre compte est créé, complétez vos pièces.');
+
+    Http::assertSent(fn ($request): bool => $request['type'] === 'unicode');
+});
+
+it('reste en plain pour un message strictement ASCII', function (): void {
+    configurerTechSoft();
+    Http::fake(['*/sms/send' => Http::response([
+        'status' => 'success',
+        'data' => [['uid' => 'u1', 'from' => 'PSSFP', 'status' => 'Delivered']],
+    ], 200)]);
+
+    app(TechSoftProvider::class)->sendAndReport('+237691234567', 'PSSFP : test de configuration SMS.');
+
+    Http::assertSent(fn ($request): bool => $request['type'] === 'plain');
+});

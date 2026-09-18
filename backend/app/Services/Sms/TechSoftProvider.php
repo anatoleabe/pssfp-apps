@@ -55,10 +55,12 @@ final class TechSoftProvider implements ChecksConnectivity, DescribesConfigurati
     {
         $senderId = $this->senderId();
 
+        $type = $this->typeMessage($message);
+
         $response = $this->requete()->post($this->baseUrl().'/sms/send', [
             'recipient' => $phoneE164,
             'sender_id' => $senderId,
-            'type' => 'plain',
+            'type' => $type,
             'message' => $message,
         ]);
 
@@ -71,7 +73,11 @@ final class TechSoftProvider implements ChecksConnectivity, DescribesConfigurati
             'phone' => PhoneMasker::mask($phoneE164),
             'uid' => $premier['uid'] ?? null,
             'status' => $premier['status'] ?? null,
+            'type' => $type,
             'length' => mb_strlen($message),
+            // Utile au suivi du crédit : un message unicode se découpe tous
+            // les 70 caractères, contre 160 en plain.
+            'segments' => $premier['sms_count'] ?? null,
         ]);
 
         return new SmsSendResult(
@@ -141,6 +147,27 @@ final class TechSoftProvider implements ChecksConnectivity, DescribesConfigurati
             livre: SmsDeliveryStatuses::estLivre($brut),
             cout: is_scalar($cout) ? (string) $cout : null,
         );
+    }
+
+    /**
+     * Type de message à déclarer à TechSoft.
+     *
+     * `plain` ne survit pas aux accents : TechSoft stocke bien « créé » mais
+     * le téléphone reçoit « cr¿¿ ». Constaté en production le 18 septembre
+     * 2026 sur le SMS de création de compte. Seul `unicode` préserve les
+     * caractères non ASCII.
+     *
+     * Conséquence de facturation, assumée : un message unicode est découpé
+     * tous les 70 caractères au lieu de 160. Un texte accentué de 135
+     * caractères coûte donc deux segments au lieu d'un. Écrire les gabarits
+     * sans accent reste le moyen de rester à un segment.
+     */
+    private function typeMessage(string $message): string
+    {
+        // Tabulation et retours à la ligne restent tolérés en plain.
+        return preg_match('/[^\x09\x0A\x0D\x20-\x7E]/', $message) === 1
+            ? 'unicode'
+            : 'plain';
     }
 
     /**
