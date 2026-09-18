@@ -53,7 +53,7 @@ it('adds the configured recipients in blind copy of the admin notification', fun
 
     declencherNotification($this->candidature);
 
-    Mail::assertQueued(
+    Mail::assertSent(
         CandidatureSubmittedAdminMail::class,
         fn (CandidatureSubmittedAdminMail $mail): bool => $mail->hasBcc('direction@pssfp.net')
             && $mail->hasBcc('scolarite@pssfp.net')
@@ -66,7 +66,7 @@ it('never puts the copies in visible Cc', function (): void {
 
     declencherNotification($this->candidature);
 
-    Mail::assertQueued(
+    Mail::assertSent(
         CandidatureSubmittedAdminMail::class,
         fn (CandidatureSubmittedAdminMail $mail): bool => ! $mail->hasCc('direction@pssfp.net'),
     );
@@ -77,7 +77,7 @@ it('never puts the copies on the candidate confirmation', function (): void {
 
     declencherNotification($this->candidature);
 
-    Mail::assertQueued(
+    Mail::assertSent(
         CandidatureSubmittedMail::class,
         fn (CandidatureSubmittedMail $mail): bool => ! $mail->hasBcc('direction@pssfp.net'),
     );
@@ -86,7 +86,7 @@ it('never puts the copies on the candidate confirmation', function (): void {
 it('still notifies the admissions inbox when no copy is configured', function (): void {
     declencherNotification($this->candidature);
 
-    Mail::assertQueued(
+    Mail::assertSent(
         CandidatureSubmittedAdminMail::class,
         fn (CandidatureSubmittedAdminMail $mail): bool => $mail->hasTo(config('mail.admissions_recipient')),
     );

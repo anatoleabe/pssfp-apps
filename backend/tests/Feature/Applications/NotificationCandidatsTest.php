@@ -110,7 +110,7 @@ it('envoie un e-mail quand le canal le demande', function (): void {
     expect($rapport['emails_envoyes'])->toBe(1)
         ->and($this->smsEnvoyes)->toHaveCount(0);
 
-    Mail::assertQueued(NotificationCandidatMail::class, fn ($m): bool => $m->sujetMessage === 'Objet de test');
+    Mail::assertSent(NotificationCandidatMail::class, fn ($m): bool => $m->sujetMessage === 'Objet de test');
 });
 
 it('envoie sur les deux canaux quand demandé', function (): void {

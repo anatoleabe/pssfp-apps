@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Listeners;
 
 use App\Events\CandidatureSubmitted;
+use App\Jobs\SendThrottledMail;
 use App\Mail\CandidatureSubmittedAdminMail;
 use App\Mail\CandidatureSubmittedMail;
 use App\Support\AppSettings;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 /**
  * Listener déclenché après la soumission d'une candidature (LOT A).
@@ -33,20 +33,15 @@ final class SendCandidatureSubmittedEmail
                 'candidature_uuid' => $event->candidature->uuid,
             ]);
         } else {
-            Mail::to($email)->queue(new CandidatureSubmittedMail(
+            SendThrottledMail::dispatch([$email], new CandidatureSubmittedMail(
                 candidature: $event->candidature,
             ));
         }
 
-        $pending = Mail::to(config('mail.admissions_recipient'));
-
-        $bcc = AppSettings::candidatureNotificationBcc();
-        if ($bcc !== []) {
-            $pending->bcc($bcc);
-        }
-
-        $pending->queue(new CandidatureSubmittedAdminMail(
-            candidature: $event->candidature,
-        ));
+        SendThrottledMail::dispatch(
+            [(string) config('mail.admissions_recipient')],
+            new CandidatureSubmittedAdminMail(candidature: $event->candidature),
+            AppSettings::candidatureNotificationBcc(),
+        );
     }
 }

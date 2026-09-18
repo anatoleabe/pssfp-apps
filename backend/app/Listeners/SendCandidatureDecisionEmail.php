@@ -6,10 +6,10 @@ namespace App\Listeners;
 
 use App\Events\CandidatureAccepted;
 use App\Events\CandidatureRefused;
+use App\Jobs\SendThrottledMail;
 use App\Mail\CandidatureAcceptedMail;
 use App\Mail\CandidatureRefusedMail;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 /**
  * Listener déclenché après les events de décision (PR D F1).
@@ -31,7 +31,7 @@ final class SendCandidatureDecisionEmail
             return;
         }
 
-        Mail::to($email)->queue(new CandidatureAcceptedMail(
+        SendThrottledMail::dispatch([$email], new CandidatureAcceptedMail(
             candidature: $event->candidature,
             internalComment: $event->internalComment,
         ));
@@ -48,7 +48,7 @@ final class SendCandidatureDecisionEmail
             return;
         }
 
-        Mail::to($email)->queue(new CandidatureRefusedMail(
+        SendThrottledMail::dispatch([$email], new CandidatureRefusedMail(
             candidature: $event->candidature,
             motif: $event->motif,
         ));

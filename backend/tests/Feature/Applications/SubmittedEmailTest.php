@@ -116,11 +116,11 @@ it('queues the submission confirmation email when the candidate has an email', f
         ->postJson('/v1/applications/me/submit', ['confirmation_engagement' => true])
         ->assertOk();
 
-    Mail::assertQueued(
+    Mail::assertSent(
         CandidatureSubmittedMail::class,
         fn (CandidatureSubmittedMail $mail): bool => $mail->hasTo('candidat@example.com'),
     );
-    Mail::assertQueued(
+    Mail::assertSent(
         CandidatureSubmittedAdminMail::class,
         fn (CandidatureSubmittedAdminMail $mail): bool => $mail->hasTo('info@pfinancespubliques.org'),
     );
@@ -160,6 +160,6 @@ it('does not re-queue the email on an idempotent replay', function (): void {
         ->postJson('/v1/applications/me/submit', ['confirmation_engagement' => true])
         ->assertOk();
 
-    Mail::assertQueued(CandidatureSubmittedMail::class, 1);
-    Mail::assertQueued(CandidatureSubmittedAdminMail::class, 1);
+    Mail::assertSent(CandidatureSubmittedMail::class, 1);
+    Mail::assertSent(CandidatureSubmittedAdminMail::class, 1);
 });

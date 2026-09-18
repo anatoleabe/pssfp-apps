@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Jobs\SendThrottledMail;
 use App\Mail\NotificationCandidatMail;
 use App\Models\Candidature;
 use App\Models\CandidatureRelance;
@@ -16,7 +17,6 @@ use App\Support\PhoneMasker;
 use App\Support\SecretRedactor;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Throwable;
 
 /**
@@ -194,12 +194,25 @@ final class NotificationCandidatsService
     ): void {
         $sujetRendu = $this->rendre($sujet ?? 'PSSFP — information', $candidature);
 
+        // La ligne est créée AVANT l'envoi : le job bridé a besoin de son
+        // identifiant pour la basculer en échec si le message ne part jamais.
+        // Sans ce lien, le journal continuait d'afficher « envoyé » pour des
+        // messages refusés par le serveur SMTP des heures plus tard.
+        $ligne = $this->tracer($candidature, CandidatureRelance::CANAL_EMAIL, CandidatureRelance::STATUT_ENVOYE, $texte, $sujetRendu, $auteur, null, TraceEnvoi::email($this->expediteurEmailConfigure()));
+
         try {
-            Mail::to($adresse)->send(new NotificationCandidatMail($candidature, $sujetRendu, $texte));
-            $this->tracer($candidature, CandidatureRelance::CANAL_EMAIL, CandidatureRelance::STATUT_ENVOYE, $texte, $sujetRendu, $auteur, null, TraceEnvoi::email($this->expediteurEmailConfigure()));
+            SendThrottledMail::dispatch(
+                [$adresse],
+                new NotificationCandidatMail($candidature, $sujetRendu, $texte),
+                [],
+                $ligne->id,
+            );
             $rapport['emails_envoyes']++;
         } catch (Throwable $e) {
-            $this->tracer($candidature, CandidatureRelance::CANAL_EMAIL, CandidatureRelance::STATUT_ECHEC, $texte, $sujetRendu, $auteur, $e->getMessage(), TraceEnvoi::email($this->expediteurEmailConfigure()));
+            $ligne->update([
+                'statut' => CandidatureRelance::STATUT_ECHEC,
+                'erreur' => mb_substr((string) SecretRedactor::redact($e->getMessage()), 0, 500),
+            ]);
             Log::channel('single')->error('Notification e-mail en échec', [
                 'dossier' => $candidature->numero_dossier,
                 'error' => SecretRedactor::redact($e->getMessage()),
@@ -217,8 +230,8 @@ final class NotificationCandidatsService
         User $auteur,
         ?string $erreur,
         ?TraceEnvoi $trace = null,
-    ): void {
-        CandidatureRelance::create([
+    ): CandidatureRelance {
+        $ligne = CandidatureRelance::create([
             'candidature_id' => $candidature->id,
             'cause' => CandidatureRelance::CAUSE_MANUELLE,
             'canal' => $canal,
@@ -241,6 +254,8 @@ final class NotificationCandidatsService
             ->withProperties(['canal' => $canal, 'statut' => $statut])
             ->event('candidature_notification_manuelle')
             ->log('Notification manuelle envoyée au candidat');
+
+        return $ligne;
     }
 
     /** Sender ID (ou numéro) configuré pour la passerelle SMS active. */

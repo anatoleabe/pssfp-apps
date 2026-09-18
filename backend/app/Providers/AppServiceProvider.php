@@ -13,6 +13,8 @@ use App\Services\Sms\EchoSmsProvider;
 use App\Services\Sms\FakeSmsProvider;
 use App\Services\Sms\SmsServiceInterface;
 use App\Services\Sms\TechSoftProvider;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -35,6 +37,15 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // L'hébergement plafonne à 150 e-mails par heure et 1 500 par jour.
+        // On reste en dessous : le formulaire de contact et les envois de test
+        // partent en synchrone, hors de cette bride, et doivent garder de la
+        // marge. Dépasser coûte un « 550 sending too fast » et un message perdu.
+        RateLimiter::for('emails', fn (): array => [
+            Limit::perHour(100),
+            Limit::perDay(1200),
+        ]);
+
         Candidature::observe(CandidatureObserver::class);
 
         // Listeners email candidature (soumission + décisions) : enregistrés
