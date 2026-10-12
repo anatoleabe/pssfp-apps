@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CampagneCandidatureResource\Pages;
+use App\Filament\Resources\CampagneCandidatureResource\ResultatsSelectionActions;
 use App\Models\CampagneCandidature;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -141,6 +142,14 @@ class CampagneCandidatureResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    ResultatsSelectionActions::communique(Tables\Actions\Action::make('communiqueResultats')),
+                    ResultatsSelectionActions::pv(Tables\Actions\Action::make('pvJury')),
+                ])
+                    ->label('Résultats de sélection')
+                    ->icon('heroicon-o-trophy')
+                    ->button()
+                    ->color('gray'),
             ]);
     }
 

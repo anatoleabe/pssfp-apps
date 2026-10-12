@@ -402,6 +402,26 @@ Couvert par la spec module 6 §3.6 (Filament `CandidatureResource`). Récap des 
 
 Tous les changements sont tracés dans `candidature_status_history` (audit trail) et `activity_log` (Spatie).
 
+### 7.1 Documents de fin de sélection (ajout du 12 oct. 2026)
+
+Sur chaque campagne (liste des campagnes et page d'édition), le groupe d'actions « Résultats de sélection » produit, en Word (modifiable) ou en PDF, les deux documents à faire signer à la main :
+
+- **Communiqué conjoint MINFI / UY2** portant publication des résultats : candidats nationaux puis étrangers, par ordre alphabétique, avec le mode de formation (P/D).
+- **Procès-verbal des délibérations du jury** : composition du jury, méthodologie, totaux (inscriptions en ligne, dossiers physiques retenus), répartitions par pays, genre et mode de formation pour chaque spécialité, listes nominatives et bloc de signatures.
+
+Gabarits : modèles Word de la scolarité pour la 13e promotion (non versionnés, car ils contiennent des listes nominatives réelles).
+
+**Règle de sélection provisoire.** Un dossier est retenu s'il a été soumis en ligne et que son dossier papier a été réceptionné. Les dossiers retirés ou refusés ne figurent jamais dans les listes. La règle est isolée dans `ResultatsSelectionService::retenus()`.
+
+**Paramètres**
+- *Fixes d'une année sur l'autre* : la composition du jury, le secrétariat technique, les critères et les en-têtes sont définis dans `config/resultats_selection.php`.
+- *Propres à chaque séance* : la date et l'heure de la délibération, la note de service désignant le jury et le numéro d'enregistrement se saisissent dans la modale. Un champ laissé vide sort en pointillés, à compléter à la main.
+
+**Sécurité**
+- *Permission* : `campagne.download_resultats`, accordée à super_admin, admin et admission_committee. Elle est ajoutée par une migration qui se contente d'ajouter, sans resynchroniser les rôles.
+- *Stockage* : les documents sont générés à la volée et ne sont jamais conservés.
+- *Traçabilité* : chaque téléchargement est journalisé (`resultats_selection_downloaded`).
+
 ## 8. Frais de candidature 50 000 FCFA
 
 Payés en agence CREMINCAM, pas de paiement en ligne en V1.

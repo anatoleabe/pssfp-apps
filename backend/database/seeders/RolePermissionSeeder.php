@@ -77,6 +77,7 @@ final class RolePermissionSeeder extends Seeder
                     // Écrire à un groupe de candidats engage l'institution :
                     // réservé à admin et super_admin (arbitrage 3 sept. 2026).
                     'candidature.notify',
+                    'campagne.download_resultats',
                 ],
             ],
             'editor' => [
@@ -96,6 +97,7 @@ final class RolePermissionSeeder extends Seeder
                     'candidature.export_csv',
                     'candidature.mark_depot_physique',
                     'candidature.regenerate_recipisse',
+                    'campagne.download_resultats',
                 ],
             ],
             // Guichet de la scolarité (Yaoundé-Messa, porte 231) : consulter

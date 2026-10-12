@@ -117,6 +117,7 @@ final class ModulePermissionMap
             'candidature.withdraw' => 'Retirer administrativement un dossier',
             'candidature.delete_test' => 'Supprimer définitivement un compte de test',
             'candidature.notify' => 'Notifier un groupe de candidats par SMS ou e-mail',
+            'campagne.download_resultats' => 'Télécharger le communiqué des résultats et le PV du jury (listes nominatives)',
         ];
     }
 
