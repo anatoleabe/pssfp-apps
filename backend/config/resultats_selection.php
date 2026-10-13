@@ -68,24 +68,49 @@ return [
         'marches-publics-partenariats-public-prive',
     ],
 
+    /*
+     * Intitulés hors liste (anciens libellés) : rattachés à la première
+     * spécialité dont le mot-clé apparaît, sinon à la spécialité par défaut.
+     * Mots-clés comparés sans accents ni majuscules.
+     */
+    'mots_cles_specialites' => [
+        'audit' => 'audit-controle-finances-publiques',
+        'fiscal' => 'fiscalite-finance-comptabilite-publique',
+        'gouvernance' => 'gouvernance-territoriale-finances-publiques-locales',
+        'territorial' => 'gouvernance-territoriale-finances-publiques-locales',
+        'marche' => 'marches-publics-partenariats-public-prive',
+        'partenariat' => 'marches-publics-partenariats-public-prive',
+        'econom' => 'economie-publique-gestion-publique',
+        // Mots plus généraux, essayés après les précédents.
+        'controle' => 'audit-controle-finances-publiques',
+        'comptab' => 'fiscalite-finance-comptabilite-publique',
+        'locale' => 'gouvernance-territoriale-finances-publiques-locales',
+    ],
+    'specialite_par_defaut' => 'marches-publics-partenariats-public-prive',
+
+    /*
+     * En-tête du communiqué conjoint, repris du communiqué de la 13e promotion :
+     * [texte, taille en points]. Garamond gras ; l'adresse web n'est pas en gras.
+     */
     'entete_universite' => [
-        'MINISTERE DE L’ENSEIGNEMENT SUPERIEUR',
-        '--------------',
-        'UNIVERSITE DE YAOUNDE II',
-        '--------------',
-        'FACULTE DES SCIENCES ECONOMIQUES ET DE GESTION',
-        'B.P. : 1365 – YAOUNDE',
-        'CAMEROUN',
-        'www.univ-yde2.org',
+        ['MINISTERE DE L’ENSEIGNEMENT SUPERIEUR', 9],
+        ['--------------', 9],
+        ['UNIVERSITE DE YAOUNDE II', 9],
+        ['--------------', 9],
+        ['FACULTE DES SCIENCES', 9],
+        ['ECONOMIQUES ET DE GESTION', 9],
+        ['B.P. : 1365 –YAOUNDE', 9],
+        ['CAMEROUN', 9],
+        ['www.univ-yde2.org', 9],
     ],
 
     'entete_minfi' => [
-        'MINISTERE DES FINANCES',
-        '--------------',
-        'SECRETARIAT GENERAL',
-        '--------------',
-        'PROGRAMME SUPERIEUR DE SPECIALISATION EN FINANCES PUBLIQUES',
-        '--------------',
+        ['MINISTRY OF FINANCE', 10],
+        ['--------------', 9],
+        ['GENERAL SECRETARIAT', 10],
+        ['--------------', 9],
+        ['ADVANCED PROGRAM OF', 9],
+        ['SPECIALISATION IN PUBLIC FINANCE', 9],
     ],
 
     'pied_de_page' => [

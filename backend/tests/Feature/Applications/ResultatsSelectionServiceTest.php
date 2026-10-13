@@ -140,13 +140,63 @@ it('garde toutes les spécialités configurées même absentes de l\'ordre des P
         ->and(array_keys($r->parPays->lignes)[0])->toBe('Audit et contrôle des Finances Publiques');
 });
 
-it('regroupe une spécialité hors liste sur une ligne dédiée plutôt que de la perdre', function (): void {
+it('rattache un intitulé hors liste à une spécialité officielle, sans ligne « autre »', function (): void {
+    ($this->retenu)(['specialite' => 'Audit - Contrôle de Gestion Publique']);
+    ($this->retenu)(['specialite' => 'Fiscalité - Finance - Comptabilité Publique']);
     ($this->retenu)(['specialite' => 'Finances Publiques']);
+    ($this->retenu)(['specialite' => null]);
 
     $r = $this->service->construire($this->campagne, SeanceJury::vide());
 
-    expect($r->parPays->lignes)->toHaveKey('Autre spécialité')
-        ->and($r->parPays->total())->toBe(1);
+    expect($r->parPays->lignes)->toHaveCount(5)
+        ->and($r->parPays->totalLigne('Audit et contrôle des Finances Publiques'))->toBe(1)
+        ->and($r->parPays->totalLigne('Fiscalité, Finance et Comptabilité Publique'))->toBe(1)
+        // Intitulé inconnu ou absent : Marchés publics (arbitrage du 13 oct. 2026).
+        ->and($r->parPays->totalLigne('Marchés Publics et Partenariats Public-Privés'))->toBe(2)
+        ->and($r->parPays->total())->toBe(4);
+});
+
+it('signale une même personne retenue sur deux dossiers et n\'en garde qu\'un par défaut', function (): void {
+    $ancien = ($this->retenu)(['nom' => 'Mbarga', 'prenom' => 'Luc', 'date_naissance' => '1990-05-04',
+        'depot_physique_at' => now()->subDays(5), 'specialite' => 'Audit et contrôle des Finances Publiques']);
+    // Même personne, nom et prénom inversés, autre compte, papier reçu plus tard.
+    $recent = ($this->retenu)(['nom' => 'LUC', 'prenom' => 'Mbarga', 'date_naissance' => '1990-05-04',
+        'depot_physique_at' => now()->subDay(), 'specialite' => 'Fiscalité, Finance et Comptabilité Publique']);
+    // Homonyme né un autre jour : personne différente.
+    ($this->retenu)(['nom' => 'Mbarga', 'prenom' => 'Luc', 'date_naissance' => '1985-01-01']);
+
+    $doublons = $this->service->doublons($this->campagne);
+    expect($doublons)->toHaveCount(1)
+        ->and($doublons[0]->numeros)->toHaveCount(2)
+        ->and($doublons[0]->conserve)->toBe($recent->fresh()->numero_dossier);
+
+    $sans = $this->service->construire($this->campagne, SeanceJury::vide());
+    expect($sans->totalRetenus())->toBe(2)
+        ->and($sans->doublonsRetires)->toBe(1)
+        // Reste en Audit : l'homonyme seulement ; le dossier ancien est écarté.
+        ->and($sans->parPays->totalLigne('Audit et contrôle des Finances Publiques'))->toBe(1)
+        ->and($sans->parPays->totalLigne('Fiscalité, Finance et Comptabilité Publique'))->toBe(1);
+
+    $avec = $this->service->construire($this->campagne, SeanceJury::vide(), conserverDoublons: true);
+    expect($avec->totalRetenus())->toBe(3)
+        ->and($avec->doublonsRetires)->toBe(0);
+
+    expect($ancien->exists)->toBeTrue();
+});
+
+it('reconnaît une même personne malgré tirets et apostrophes, et départage trois dossiers', function (): void {
+    foreach (['Jean-Paul' => 4, 'Jean Paul' => 2, 'Jean’Paul' => 2] as $prenom => $jours) {
+        ($this->retenu)(['nom' => "Ngo'o", 'prenom' => $prenom, 'date_naissance' => '1991-03-03',
+            'depot_physique_at' => now()->subDays($jours)->startOfDay(), 'submitted_at' => now()->subDays(10 - strlen($prenom))]);
+    }
+
+    $doublons = $this->service->doublons($this->campagne);
+    $r = $this->service->construire($this->campagne, SeanceJury::vide());
+
+    expect($doublons)->toHaveCount(1)
+        ->and($doublons[0]->numeros)->toHaveCount(3)
+        ->and($r->totalRetenus())->toBe(1)
+        ->and($r->doublonsRetires)->toBe(2);
 });
 
 it('déduit la promotion et l\'année académique de la campagne', function (): void {

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services\ResultatsSelection;
 
 /**
- * Rendu Word (.docx) du communiqué des résultats et du PV du jury : même
- * contenu que la version PDF, mais modifiable avant impression.
+ * Rendu Word (.docx) du communiqué des résultats et du PV du jury,
+ * modifiable avant impression et signature.
  */
 final class ResultatsSelectionWord
 {

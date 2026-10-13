@@ -18,6 +18,9 @@ use Illuminate\Support\Str;
  * dossier soumis en ligne dont le dossier papier a été réceptionné au guichet.
  * Les dossiers retirés ou refusés n'y figurent jamais. Quand le jury
  * prononcera les admissions dans l'outil, seule `retenus()` changera.
+ *
+ * Une même personne retenue au titre de plusieurs dossiers est signalée à
+ * l'agent ; sauf choix contraire de sa part, un seul dossier est gardé.
  */
 final class ResultatsSelectionService
 {
@@ -25,17 +28,28 @@ final class ResultatsSelectionService
 
     private const NON_PRECISE = '—';
 
-    private const AUTRE_SPECIALITE = 'Autre spécialité';
+    private const COLONNES = ['id', 'numero_dossier', 'nom', 'prenom', 'date_naissance', 'genre', 'nationalite',
+        'specialite', 'type_etude', 'submitted_at', 'depot_physique_at'];
 
-    public function construire(CampagneCandidature $campagne, SeanceJury $seance): ResultatsSelection
+    public function __construct(private readonly DetecteurDoublons $detecteur) {}
+
+    /** @return list<Doublon> */
+    public function doublons(CampagneCandidature $campagne): array
     {
-        $retenus = $this->retenus($campagne)
-            ->get(['id', 'nom', 'prenom', 'genre', 'nationalite', 'specialite', 'type_etude']);
+        return $this->detecteur->doublons($this->retenus($campagne)->get(self::COLONNES));
+    }
+
+    public function construire(CampagneCandidature $campagne, SeanceJury $seance, bool $conserverDoublons = false): ResultatsSelection
+    {
+        $tous = $this->retenus($campagne)->get(self::COLONNES);
+        $retenus = $conserverDoublons ? $tous : $this->detecteur->dedoublonner($tous);
 
         $nomsPays = $this->nomsPays($retenus);
         $candidats = $retenus
             ->map(fn (Candidature $c): array => ['candidature' => $c, 'ligne' => $this->ligne($c, $nomsPays)])
-            ->sortBy(fn (array $r): string => Str::upper(Str::ascii($r['ligne']->nomComplet())))
+            // Numéro de dossier en second critère : homonymes numérotés à
+            // l'identique dans le communiqué et dans le PV.
+            ->sortBy(fn (array $r): string => Str::upper(Str::ascii($r['ligne']->nomComplet())).'|'.$r['candidature']->numero_dossier)
             ->values();
 
         [$nationaux, $etrangers] = $candidats->partition(
@@ -53,6 +67,7 @@ final class ResultatsSelectionService
             etrangers: $etrangers->pluck('ligne')->values()->all(),
             jury: (array) config('resultats_selection.jury', []),
             seance: $seance,
+            doublonsRetires: $tous->count() - $retenus->count(),
         );
     }
 
@@ -153,8 +168,8 @@ final class ResultatsSelectionService
     }
 
     /**
-     * Une ligne par spécialité officielle, même vide : d'abord dans l'ordre
-     * des PV, puis toute spécialité configurée qui n'y figurerait pas encore.
+     * Une ligne par spécialité officielle, dans l'ordre des PV, même vide ;
+     * un intitulé hors liste est rattaché à l'une d'elles.
      *
      * @param  Collection<int, Candidature>  $retenus
      * @param  callable(Candidature): string  $colonne
@@ -162,18 +177,10 @@ final class ResultatsSelectionService
      */
     private function lignes(Collection $retenus, callable $colonne): array
     {
-        $libelles = (array) config('specialites', []);
-        $ordre = array_intersect_key(
-            array_flip((array) config('resultats_selection.ordre_specialites', [])),
-            $libelles,
-        );
-        $lignes = [];
-        foreach (array_keys($ordre + $libelles) as $cle) {
-            $lignes[$libelles[$cle]] = [];
-        }
+        $lignes = array_fill_keys(array_values(SpecialitesOfficielles::ordonnees()), []);
 
         foreach ($retenus as $c) {
-            $ligne = array_key_exists((string) $c->specialite, $lignes) ? (string) $c->specialite : self::AUTRE_SPECIALITE;
+            $ligne = SpecialitesOfficielles::libelle($c->specialite);
             $col = $colonne($c);
             $lignes[$ligne][$col] = ($lignes[$ligne][$col] ?? 0) + 1;
         }

@@ -73,22 +73,21 @@ final readonly class SeanceJury
         return $this->reference((string) config('resultats_selection.reference_pv'));
     }
 
-    public function referenceCommunique(): string
-    {
-        return $this->reference((string) config('resultats_selection.reference_communique'));
-    }
-
     /** Date portée en en-tête courant du PV : « 01-10-2026 ». */
     public function dateCourte(): string
     {
         return $this->dateDeliberation?->format('d-m-Y') ?? self::BLANC;
     }
 
+    /** Préfixe des numéros d'enregistrement : « 26 » pour 2026. */
+    public function anneeReference(): string
+    {
+        return ($this->dateDeliberation ?? CarbonImmutable::now())->format('y');
+    }
+
     private function reference(string $suffixe): string
     {
-        $annee = ($this->dateDeliberation ?? CarbonImmutable::now())->format('y');
-
-        return 'N°'.$annee.'/'.($this->numero ?? self::BLANC).'/'.$suffixe;
+        return 'N°'.$this->anneeReference().'/'.($this->numero ?? self::BLANC).'/'.$suffixe;
     }
 
     private static function date(mixed $valeur): ?CarbonImmutable

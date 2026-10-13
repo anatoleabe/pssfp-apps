@@ -10,7 +10,10 @@ use InvalidArgumentException;
 
 /**
  * Point d'entrée des téléchargements depuis l'admin : construit les données,
- * rend le document au format demandé et trace le téléchargement.
+ * rend le document Word et trace le téléchargement.
+ *
+ * Word uniquement (arbitrage du 13 oct. 2026) : le document est relu et
+ * ajusté avant impression et signature.
  *
  * Rien n'est stocké : le document contient des données nominatives et se
  * régénère à la demande à partir de l'état courant des dossiers.
@@ -21,36 +24,30 @@ final class ResultatsSelectionExport
 
     public const PV = 'pv';
 
-    public const DOCX = 'docx';
-
-    public const PDF = 'pdf';
-
-    private const MIME = [
-        self::DOCX => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        self::PDF => 'application/pdf',
-    ];
+    public const MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
     public function __construct(
         private readonly ResultatsSelectionService $donnees,
-        private readonly ResultatsSelectionPdf $pdf,
         private readonly ResultatsSelectionWord $word,
     ) {}
 
     /** @return array{nom: string, mime: string, contenu: string} */
-    public function generer(CampagneCandidature $campagne, string $document, string $format, SeanceJury $seance, User $agent): array
-    {
-        if (! in_array($document, [self::COMMUNIQUE, self::PV], true) || ! array_key_exists($format, self::MIME)) {
-            throw new InvalidArgumentException("Document ou format inconnu : {$document}.{$format}");
+    public function generer(
+        CampagneCandidature $campagne,
+        string $document,
+        SeanceJury $seance,
+        User $agent,
+        bool $conserverDoublons = false,
+    ): array {
+        if (! in_array($document, [self::COMMUNIQUE, self::PV], true)) {
+            throw new InvalidArgumentException("Document inconnu : {$document}");
         }
 
-        $resultats = $this->donnees->construire($campagne, $seance);
+        $resultats = $this->donnees->construire($campagne, $seance, $conserverDoublons);
 
-        $contenu = match ([$document, $format]) {
-            [self::COMMUNIQUE, self::DOCX] => $this->word->communique($resultats),
-            [self::COMMUNIQUE, self::PDF] => $this->pdf->communique($resultats),
-            [self::PV, self::DOCX] => $this->word->pv($resultats),
-            default => $this->pdf->pv($resultats),
-        };
+        $contenu = $document === self::PV
+            ? $this->word->pv($resultats)
+            : $this->word->communique($resultats);
 
         activity('candidatures')
             ->causedBy($agent)
@@ -58,23 +55,20 @@ final class ResultatsSelectionExport
             ->event('resultats_selection_downloaded')
             ->withProperties([
                 'document' => $document,
-                'format' => $format,
+                'format' => 'docx',
                 'retenus' => $resultats->totalRetenus(),
                 'en_ligne' => $resultats->totalEnLigne,
+                'doublons_conserves' => $conserverDoublons,
+                'doublons_retires' => $resultats->doublonsRetires,
             ])
             ->log($document === self::PV ? 'PV du jury de sélection téléchargé' : 'Communiqué des résultats téléchargé');
 
-        return [
-            'nom' => $this->nomFichier($resultats, $document, $format),
-            'mime' => self::MIME[$format],
-            'contenu' => $contenu,
-        ];
-    }
-
-    private function nomFichier(ResultatsSelection $r, string $document, string $format): string
-    {
         $prefixe = $document === self::PV ? 'PV-jury-selection' : 'Communique-resultats';
 
-        return "{$prefixe}-P{$r->promotionNumero}-{$r->anneeAcademique}.{$format}";
+        return [
+            'nom' => "{$prefixe}-P{$resultats->promotionNumero}-{$resultats->anneeAcademique}.docx",
+            'mime' => self::MIME,
+            'contenu' => $contenu,
+        ];
     }
 }

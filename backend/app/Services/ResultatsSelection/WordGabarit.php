@@ -65,20 +65,25 @@ final class WordGabarit
         return $word;
     }
 
-    public static function section(PhpWord $word): Section
+    /**
+     * @param  array<string, int>  $marges  surcharges en twips (marginLeft, marginTop…)
+     * @param  array<string, mixed>  $policePied
+     */
+    public static function section(PhpWord $word, array $marges = [], array $policePied = []): Section
     {
-        $section = $word->addSection([
+        $section = $word->addSection(array_merge([
             'paperSize' => 'A4',
             'marginTop' => Converter::cmToTwip(1.4),
             'marginBottom' => Converter::cmToTwip(2.2),
             'marginLeft' => Converter::cmToTwip(1.8),
             'marginRight' => Converter::cmToTwip(1.8),
             'footerHeight' => Converter::cmToTwip(0.8),
-        ]);
+        ], $marges));
 
+        $police = array_merge(['name' => self::TABLEAU, 'size' => 7.5, 'color' => '444444'], $policePied);
         $pied = $section->addFooter();
         foreach ((array) config('resultats_selection.pied_de_page') as $i => $ligne) {
-            $pied->addText($ligne, ['name' => self::TABLEAU, 'size' => 7.5, 'bold' => $i > 0, 'color' => '444444'], self::CENTRE);
+            $pied->addText($ligne, $police + ['bold' => $i > 0], self::CENTRE);
         }
         $pied->addPreserveText('{PAGE} / {NUMPAGES}', ['name' => self::TABLEAU, 'size' => 8, 'color' => '555555'],
             ['alignment' => Jc::END, 'spaceAfter' => 0]);
@@ -93,26 +98,26 @@ final class WordGabarit
     }
 
     /** @param  list<array{0: string, 1: int}>  $colonnes  [libellé, largeur en twips] */
-    public static function enTete(Table $table, array $colonnes): void
+    public static function enTete(Table $table, array $colonnes, float $taille = 9.5): void
     {
         $table->addRow(null, ['tblHeader' => true, 'cantSplit' => true]);
         foreach ($colonnes as [$libelle, $largeur]) {
             $table->addCell($largeur, ['bgColor' => 'E6E6E6', 'valign' => 'center'])
-                ->addText($libelle, self::police(bold: true), self::CENTRE);
+                ->addText($libelle, self::police(bold: true, size: $taille), self::CENTRE);
         }
     }
 
     /**
      * @param  list<array{0: string, 1: int, 2?: bool}>  $cellules  [texte, largeur, centré]
      */
-    public static function ligne(Table $table, array $cellules, bool $total = false): void
+    public static function ligne(Table $table, array $cellules, bool $total = false, float $taille = 9.5): void
     {
         $table->addRow(null, ['cantSplit' => true]);
         foreach ($cellules as $cellule) {
             [$texte, $largeur] = $cellule;
             $alignement = ($cellule[2] ?? false) ? Jc::CENTER : Jc::START;
             $table->addCell($largeur, $total ? ['bgColor' => 'F2F2F2', 'valign' => 'center'] : ['valign' => 'center'])
-                ->addText($texte, self::police(bold: $total), ['alignment' => $alignement, 'spaceAfter' => 0]);
+                ->addText($texte, self::police(bold: $total, size: $taille), ['alignment' => $alignement, 'spaceAfter' => 0]);
         }
     }
 
@@ -122,10 +127,17 @@ final class WordGabarit
         return ['name' => self::TABLEAU, 'size' => $size, 'bold' => $bold, 'italic' => $italic];
     }
 
-    /** Tableau sans bordure, utile pour poser deux blocs côte à côte. */
-    public static function colonnes(Section $section): Table
+    /**
+     * Tableau sans bordure, utile pour poser des blocs côte à côte.
+     *
+     * @param  array<string, mixed>  $style  surcharges (largeur, retrait…)
+     */
+    public static function colonnes(Section $section, array $style = []): Table
     {
-        return $section->addTable(['borderSize' => 0, 'borderColor' => 'FFFFFF'] + self::LARGEUR_FIXE);
+        return $section->addTable(array_merge(
+            ['borderSize' => 0, 'borderColor' => 'FFFFFF', 'cellMargin' => 0] + self::LARGEUR_FIXE,
+            $style,
+        ));
     }
 
     public static function image(string $fichier): string

@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 
 /**
  * Tout ce que le communiqué et le PV affichent, calculé une seule fois puis
- * rendu à l'identique en Word et en PDF.
+ * rendu dans les deux documents Word.
  */
 final readonly class ResultatsSelection
 {
@@ -29,6 +29,8 @@ final readonly class ResultatsSelection
         public array $etrangers,
         public array $jury,
         public SeanceJury $seance,
+        /** Dossiers écartés parce que la même personne en avait plusieurs. */
+        public int $doublonsRetires = 0,
     ) {}
 
     public function totalRetenus(): int

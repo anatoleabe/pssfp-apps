@@ -13,8 +13,7 @@ use PhpOffice\PhpWord\Shared\Converter;
 use PhpOffice\PhpWord\SimpleType\Jc;
 
 /**
- * PV des délibérations du jury de sélection, au format Word. Même contenu que
- * la vue `pdf.resultats.pv`.
+ * PV des délibérations du jury de sélection, au format Word.
  */
 final class PvWord
 {
@@ -85,7 +84,9 @@ final class PvWord
         $section->addText('PROCESSUS D’EXAMEN DES DOSSIERS', self::TITRE, self::TITRE_PARAGRAPHE);
         $section->addText('Le secrétariat technique conduit par '.config('resultats_selection.secretariat_technique')
             .', a procédé au préalable à l’examen des inscriptions en ligne des '.$r->totalEnLigne.' candidats afin de s’assurer du dépôt physique effectif des dossiers. Par la suite, le jury a examiné chacun des dossiers qui lui ont été présentés, aussi bien dans la forme que dans le fond, sur la base des critères prédéfinis. Un total de '
-            .$r->totalRetenus().' dossiers physiques a ainsi été examiné et retenu. Ces dossiers se répartissent suivant les critères de nationalité, de genre et de mode de formation de la manière suivante :', [], G::JUSTIFIE);
+            .$r->totalRetenus().' dossiers physiques a ainsi été examiné et retenu'
+            .($r->doublonsRetires > 0 ? ', après retrait de '.$r->doublonsRetires.' dossier'.($r->doublonsRetires > 1 ? 's' : '').' en double' : '')
+            .'. Ces dossiers se répartissent suivant les critères de nationalité, de genre et de mode de formation de la manière suivante :', [], G::JUSTIFIE);
 
         $this->repartition($section, 'REPARTITION GENERALE DES DOSSIERS DEPOSES PAR PAYS', $r->parPays, 'SPECIALITE \\ PAYS', false);
         $this->repartition($section, 'REPARTITION DES DOSSIERS DEPOSES SELON LE GENRE', $r->parGenre, 'SPECIALITE / GENRE', true);

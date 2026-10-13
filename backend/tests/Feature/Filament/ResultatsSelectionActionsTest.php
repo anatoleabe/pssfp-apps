@@ -64,45 +64,44 @@ it('ne produit aucun document si l\'action est forcée sans la permission', func
     // monte pas une action masquée, rien n'est généré ni journalisé.
     $this->livewire(ListCampagneCandidatures::class)
         ->call('mountTableAction', 'pvJury', (string) $this->campagne->getKey())
-        ->set('mountedTableActionsData.0.format', 'pdf')
         ->call('callMountedTableAction')
         ->assertNoFileDownloaded();
 
     expect(Activity::query()->where('event', 'resultats_selection_downloaded')->exists())->toBeFalse();
 });
 
-it('télécharge le PV en PDF depuis la liste et trace le téléchargement', function (): void {
+it('télécharge le PV en Word depuis la liste et trace le téléchargement', function (): void {
     $comite = ($this->agent)('admission_committee');
     $this->actingAs($comite);
 
     $this->livewire(ListCampagneCandidatures::class)
         ->assertTableActionVisible('pvJury', $this->campagne)
         ->callTableAction('pvJury', $this->campagne, data: [
-            'format' => 'pdf',
             'date_deliberation' => '2026-10-14',
             'heure_deliberation' => '10 heures',
         ])
         ->assertHasNoTableActionErrors()
-        ->assertFileDownloaded('PV-jury-selection-P14-2026-2027.pdf');
+        ->assertFileDownloaded('PV-jury-selection-P14-2026-2027.docx');
 
     $log = Activity::query()->where('event', 'resultats_selection_downloaded')->sole();
     expect($log->causer_id)->toBe($comite->id)
         ->and($log->subject_id)->toBe($this->campagne->id)
-        ->and($log->properties->all())->toMatchArray(['document' => 'pv', 'format' => 'pdf', 'retenus' => 1, 'en_ligne' => 2]);
+        ->and($log->properties->all())->toMatchArray(['document' => 'pv', 'format' => 'docx', 'retenus' => 1, 'en_ligne' => 2,
+            'doublons_conserves' => false, 'doublons_retires' => 0]);
 });
 
 it('télécharge le communiqué en Word depuis la page d\'édition', function (): void {
     $this->actingAs(($this->agent)('admin'));
 
     $this->livewire(EditCampagneCandidature::class, ['record' => $this->campagne->getRouteKey()])
-        ->callAction('communiqueResultats', data: ['format' => 'docx'])
+        ->callAction('communiqueResultats')
         ->assertHasNoActionErrors()
         ->assertFileDownloaded('Communique-resultats-P14-2026-2027.docx');
 });
 
 it('produit un .docx valide qui liste les retenus, caractères spéciaux échappés', function (string $document): void {
     $fichier = app(ResultatsSelectionExport::class)->generer(
-        $this->campagne, $document, 'docx', SeanceJury::vide(), ($this->agent)('admin'),
+        $this->campagne, $document, SeanceJury::vide(), ($this->agent)('admin'),
     );
 
     $chemin = tempnam(sys_get_temp_dir(), 'docx');
@@ -119,17 +118,33 @@ it('produit un .docx valide qui liste les retenus, caractères spéciaux échapp
         ->and($fichier['mime'])->toBe('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
 })->with(['communique', 'pv']);
 
-it('produit un PDF pour chacun des deux documents', function (string $document): void {
-    $fichier = app(ResultatsSelectionExport::class)->generer(
-        $this->campagne, $document, 'pdf', SeanceJury::vide(), ($this->agent)('admin'),
-    );
+it('écarte le doublon à l\'export sauf si l\'agent choisit de le conserver', function (bool $conserver, int $retenus): void {
+    $this->actingAs(($this->agent)('admin'));
+    foreach ([3, 1] as $jours) {
+        Candidature::factory()->forCampagne($this->campagne)->submitted()->create([
+            'nom' => 'Ekane', 'prenom' => 'Rose', 'date_naissance' => '1992-02-02',
+            'depot_physique_at' => now()->subDays($jours),
+        ]);
+    }
 
-    expect($fichier['contenu'])->toStartWith('%PDF-')
-        ->and($fichier['mime'])->toBe('application/pdf');
-})->with(['communique', 'pv']);
+    $this->livewire(ListCampagneCandidatures::class)
+        ->mountTableAction('communiqueResultats', $this->campagne)
+        ->assertSee('1 doublon détecté')
+        ->assertSee('EKANE ROSE')
+        ->setTableActionData(['conserver_doublons' => $conserver])
+        ->callMountedTableAction()
+        ->assertFileDownloaded('Communique-resultats-P14-2026-2027.docx');
 
-it('refuse un format inconnu', function (): void {
+    $log = Activity::query()->where('event', 'resultats_selection_downloaded')->sole();
+    expect($log->properties['retenus'])->toBe($retenus)
+        ->and($log->properties['doublons_conserves'])->toBe($conserver);
+})->with([
+    'par défaut, un seul dossier' => [false, 2],
+    'conservés à la demande' => [true, 3],
+]);
+
+it('refuse un document inconnu', function (): void {
     app(ResultatsSelectionExport::class)->generer(
-        $this->campagne, 'pv', 'odt', SeanceJury::vide(), ($this->agent)('admin'),
+        $this->campagne, 'attestation', SeanceJury::vide(), ($this->agent)('admin'),
     );
 })->throws(InvalidArgumentException::class);

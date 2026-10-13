@@ -402,25 +402,29 @@ Couvert par la spec module 6 §3.6 (Filament `CandidatureResource`). Récap des 
 
 Tous les changements sont tracés dans `candidature_status_history` (audit trail) et `activity_log` (Spatie).
 
-### 7.1 Documents de fin de sélection (ajout du 12 oct. 2026)
+### 7.1 Documents de fin de sélection (ajout du 12 oct. 2026, révisé le 13 oct.)
 
-Sur chaque campagne (liste des campagnes et page d'édition), le groupe d'actions « Résultats de sélection » produit, en Word (modifiable) ou en PDF, les deux documents à faire signer à la main :
+Sur chaque campagne (liste des campagnes et page d'édition), le groupe d'actions « Résultats de sélection » produit, **au format Word uniquement**, les deux documents à relire puis à faire signer à la main :
 
-- **Communiqué conjoint MINFI / UY2** portant publication des résultats : candidats nationaux puis étrangers, par ordre alphabétique, avec le mode de formation (P/D).
-- **Procès-verbal des délibérations du jury** : composition du jury, méthodologie, totaux (inscriptions en ligne, dossiers physiques retenus), répartitions par pays, genre et mode de formation pour chaque spécialité, listes nominatives et bloc de signatures.
+- **Communiqué conjoint MINFI / UY2** portant publication des résultats : candidats nationaux puis étrangers, par ordre alphabétique, avec le mode de formation (P/D). L'en-tête et les polices reprennent le communiqué de la 13e promotion (Garamond, Times New Roman, Bodoni MT, Berlin Sans FB Demi, Arial Narrow) ; ces polices Office doivent être installées sur le poste qui ouvre le document.
+- **Procès-verbal des délibérations du jury** : composition du jury, méthodologie, totaux (inscriptions en ligne, dossiers physiques retenus), répartitions par nationalité, genre et mode de formation pour chaque spécialité, listes nominatives et bloc de signatures.
 
 Gabarits : modèles Word de la scolarité pour la 13e promotion (non versionnés, car ils contiennent des listes nominatives réelles).
 
 **Règle de sélection provisoire.** Un dossier est retenu s'il a été soumis en ligne et que son dossier papier a été réceptionné. Les dossiers retirés ou refusés ne figurent jamais dans les listes. La règle est isolée dans `ResultatsSelectionService::retenus()`.
 
+**Spécialités.** Les tableaux ne comportent que les cinq spécialités officielles. Un intitulé ancien ou hors liste est rattaché par mot-clé (« Audit - Contrôle de Gestion Publique » → Audit et contrôle) ; à défaut, à Marchés publics et PPP (`config/resultats_selection.php`).
+
+**Doublons.** Une même personne (nom et prénoms sans accents ni ordre des mots, et date de naissance) retenue au titre de plusieurs dossiers est signalée dans la fenêtre d'export, avec ses numéros de dossier. La case « Conserver les doublons » est décochée par défaut : un seul dossier est alors gardé, celui dont le dossier papier a été reçu en dernier.
+
 **Paramètres**
 - *Fixes d'une année sur l'autre* : la composition du jury, le secrétariat technique, les critères et les en-têtes sont définis dans `config/resultats_selection.php`.
-- *Propres à chaque séance* : la date et l'heure de la délibération, la note de service désignant le jury et le numéro d'enregistrement se saisissent dans la modale. Un champ laissé vide sort en pointillés, à compléter à la main.
+- *Propres à chaque séance* : la date et l'heure de la délibération, la note de service désignant le jury et le numéro d'enregistrement se saisissent dans la modale. Un champ laissé vide sort en pointillés ou en blanc souligné, à compléter à la main.
 
 **Sécurité**
 - *Permission* : `campagne.download_resultats`, accordée à super_admin, admin et admission_committee. Elle est ajoutée par une migration qui se contente d'ajouter, sans resynchroniser les rôles.
 - *Stockage* : les documents sont générés à la volée et ne sont jamais conservés.
-- *Traçabilité* : chaque téléchargement est journalisé (`resultats_selection_downloaded`).
+- *Traçabilité* : chaque téléchargement est journalisé (`resultats_selection_downloaded`), avec le choix fait sur les doublons et le nombre de dossiers écartés.
 
 ## 8. Frais de candidature 50 000 FCFA
 
