@@ -202,19 +202,7 @@ class CandidatureResource extends Resource
                         ->maxItems(10)
                         ->defaultItems(0)
                         ->columnSpanFull(),
-                    Forms\Components\Select::make('statut_actuel')->options([
-                        'Etudiant' => 'Étudiant(e)',
-                        'Sans-emploi' => 'Sans emploi / en recherche d’emploi',
-                        'Fonctionnaire' => 'Fonctionnaire titulaire',
-                        'Contractuel-Etat' => 'Agent contractuel de l’État',
-                        'Etablissement-public' => 'Agent d’un établissement public',
-                        'Entreprise-publique' => 'Salarié(e) d’une entreprise publique',
-                        'Prive' => 'Salarié(e) du secteur privé',
-                        'Independant' => 'Indépendant(e) / profession libérale',
-                        'ONG-International' => 'ONG / organisation internationale',
-                        'Autre' => 'Autre situation professionnelle',
-                        'Fonctionnaire-Contractuel' => 'Fonctionnaire / Contractuel (ancien dossier)',
-                    ]),
+                    Forms\Components\Select::make('statut_actuel')->options(fn (): array => (array) config('statuts_actuels')),
                     Forms\Components\TextInput::make('fonction_actuelle')->label('Fonction ou poste'),
                     Forms\Components\TextInput::make('employeur'),
                     Forms\Components\TextInput::make('adresse_employeur'),

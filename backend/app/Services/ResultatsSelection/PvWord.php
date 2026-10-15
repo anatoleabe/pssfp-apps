@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\ResultatsSelection;
 
+use App\Services\ResultatsSelection\TableauRepartitionWord as Tableau;
 use App\Services\ResultatsSelection\WordGabarit as G;
 use App\Support\NombreEnLettres;
 use PhpOffice\PhpWord\Element\Header;
 use PhpOffice\PhpWord\Element\Section;
-use PhpOffice\PhpWord\Element\Table;
 use PhpOffice\PhpWord\Shared\Converter;
 use PhpOffice\PhpWord\SimpleType\Jc;
 
@@ -20,6 +20,8 @@ final class PvWord
     private const TITRE = ['bold' => true, 'underline' => 'single'];
 
     private const TITRE_PARAGRAPHE = ['spaceBefore' => 200, 'spaceAfter' => 100, 'keepNext' => true];
+
+    public function __construct(private readonly PvStatistiquesWord $statistiques) {}
 
     public function generer(ResultatsSelection $r): string
     {
@@ -88,69 +90,11 @@ final class PvWord
             .($r->doublonsRetires > 0 ? ', après retrait de '.$r->doublonsRetires.' dossier'.($r->doublonsRetires > 1 ? 's' : '').' en double' : '')
             .'. Ces dossiers se répartissent suivant les critères de nationalité, de genre et de mode de formation de la manière suivante :', [], G::JUSTIFIE);
 
-        $this->repartition($section, 'REPARTITION GENERALE DES DOSSIERS DEPOSES PAR PAYS', $r->parPays, 'SPECIALITE \\ PAYS', false);
-        $this->repartition($section, 'REPARTITION DES DOSSIERS DEPOSES SELON LE GENRE', $r->parGenre, 'SPECIALITE / GENRE', true);
-        $this->repartition($section, 'REPARTITION DES DOSSIERS DEPOSES PAR MODE DE FORMATION', $r->parMode, 'SPECIALITE / MODE DE FORMATION', true);
-    }
-
-    private function repartition(Section $section, string $titre, Repartition $rep, string $entete, bool $pourcentages): void
-    {
-        $section->addText($titre, ['bold' => true, 'size' => 10], G::centre(['spaceBefore' => 200, 'spaceAfter' => 60, 'keepNext' => true]));
-
-        $colonnes = array_keys($rep->colonnes);
-        $nbValeurs = count($colonnes) + ($pourcentages ? 0 : 1);
-        $largeurValeur = min(1400, intdiv(G::LARGEUR - 600 - 3600, max(1, $nbValeurs)));
-        $largeurSpecialite = G::LARGEUR - 600 - $largeurValeur * $nbValeurs;
-
-        $table = G::grille($section);
-        $enTete = [['N°', 600], [$entete, $largeurSpecialite]];
-        foreach ($rep->colonnes as $libelle) {
-            $enTete[] = [$libelle, $largeurValeur];
-        }
-        if (! $pourcentages) {
-            $enTete[] = ['TOTAL', $largeurValeur];
-        }
-        G::enTete($table, $enTete);
-
-        foreach (array_keys($rep->lignes) as $i => $specialite) {
-            $cellules = [[(string) ($i + 1), 600, true], [$specialite, $largeurSpecialite]];
-            foreach ($colonnes as $col) {
-                $cellules[] = [(string) $rep->valeur($specialite, $col), $largeurValeur, true];
-            }
-            if (! $pourcentages) {
-                $cellules[] = [(string) $rep->totalLigne($specialite), $largeurValeur, true];
-            }
-            G::ligne($table, $cellules);
-        }
-
-        $totaux = [['', 600], ['TOTAL', $largeurSpecialite]];
-        foreach ($colonnes as $col) {
-            $totaux[] = [(string) $rep->totalColonne($col), $largeurValeur, true];
-        }
-        if (! $pourcentages) {
-            $totaux[] = [(string) $rep->total(), $largeurValeur, true];
-        }
-        G::ligne($table, $totaux, total: true);
-
-        if ($pourcentages) {
-            $parts = [['', 600], ['EN % DU TOTAL', $largeurSpecialite]];
-            foreach ($colonnes as $col) {
-                $parts[] = [$rep->pourcentage($col), $largeurValeur, true];
-            }
-            G::ligne($table, $parts, total: true);
-        }
-
-        $this->ligneTotalGeneral($table, $pourcentages ? 'TOTAL GENERAL' : 'TOTAL DEPOT PHYSIQUE DES DOSSIERS',
-            $largeurSpecialite, $largeurValeur * $nbValeurs, $nbValeurs, $rep->total());
-    }
-
-    private function ligneTotalGeneral(Table $table, string $libelle, int $largeurLibelle, int $largeurValeurs, int $fusion, int $total): void
-    {
-        $fond = ['bgColor' => 'F2F2F2', 'valign' => 'center'];
-        $table->addRow(null, ['cantSplit' => true]);
-        $table->addCell(600, $fond);
-        $table->addCell($largeurLibelle, $fond)->addText($libelle, G::police(bold: true), ['spaceAfter' => 0]);
-        $table->addCell($largeurValeurs, $fond + ['gridSpan' => $fusion])->addText((string) $total, G::police(bold: true), G::CENTRE);
+        $this->statistiques->synthese($section, $r);
+        Tableau::parSpecialite($section, 'REPARTITION GENERALE DES DOSSIERS DEPOSES PAR PAYS', $r->parPays, 'SPECIALITE \\ PAYS', false);
+        Tableau::parSpecialite($section, 'REPARTITION DES DOSSIERS DEPOSES SELON LE GENRE', $r->parGenre, 'SPECIALITE / GENRE', true);
+        Tableau::parSpecialite($section, 'REPARTITION DES DOSSIERS DEPOSES PAR MODE DE FORMATION', $r->parMode, 'SPECIALITE / MODE DE FORMATION', true);
+        $this->statistiques->complements($section, $r);
     }
 
     private function listes(Section $section, ResultatsSelection $r): void

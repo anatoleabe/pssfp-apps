@@ -88,6 +88,20 @@ return [
     ],
     'specialite_par_defaut' => 'marches-publics-partenariats-public-prive',
 
+    /* Sigles des spécialités (colonnes étroites du PV, liste Excel). */
+    'sigles_specialites' => [
+        'economie-publique-gestion-publique' => 'EPGP',
+        'audit-controle-finances-publiques' => 'AC',
+        'gouvernance-territoriale-finances-publiques-locales' => 'GTFPL',
+        'fiscalite-finance-comptabilite-publique' => 'FFCP',
+        'marches-publics-partenariats-public-prive' => 'MPPPP',
+    ],
+
+    /* Statuts actuels comptés comme « secteur public » dans la synthèse du PV. */
+    'statuts_secteur_public' => [
+        'Fonctionnaire', 'Contractuel-Etat', 'Etablissement-public', 'Entreprise-publique', 'Fonctionnaire-Contractuel',
+    ],
+
     /*
      * En-tête du communiqué conjoint, repris du communiqué de la 13e promotion :
      * [texte, taille en points]. Garamond gras ; l'adresse web n'est pas en gras.

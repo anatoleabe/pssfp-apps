@@ -145,6 +145,7 @@ class CampagneCandidatureResource extends Resource
                 Tables\Actions\ActionGroup::make([
                     ResultatsSelectionActions::communique(Tables\Actions\Action::make('communiqueResultats')),
                     ResultatsSelectionActions::pv(Tables\Actions\Action::make('pvJury')),
+                    ResultatsSelectionActions::liste(Tables\Actions\Action::make('listeRetenus')),
                 ])
                     ->label('Résultats de sélection')
                     ->icon('heroicon-o-trophy')

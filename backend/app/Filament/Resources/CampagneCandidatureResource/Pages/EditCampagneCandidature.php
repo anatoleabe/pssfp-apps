@@ -20,6 +20,7 @@ class EditCampagneCandidature extends EditRecord
             Actions\ActionGroup::make([
                 ResultatsSelectionActions::communique(Actions\Action::make('communiqueResultats')),
                 ResultatsSelectionActions::pv(Actions\Action::make('pvJury')),
+                ResultatsSelectionActions::liste(Actions\Action::make('listeRetenus')),
             ])
                 ->label('Résultats de sélection')
                 ->icon('heroicon-o-trophy')

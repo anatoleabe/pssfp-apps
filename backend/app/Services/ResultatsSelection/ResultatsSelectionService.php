@@ -7,6 +7,8 @@ namespace App\Services\ResultatsSelection;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\Pays;
+use App\Support\TexteImprimable;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -26,12 +28,36 @@ final class ResultatsSelectionService
 {
     private const NATIONAL = 'CM';
 
-    private const NON_PRECISE = '—';
+    private const NON_PRECISE = Repartition::NON_PRECISE;
 
-    private const COLONNES = ['id', 'numero_dossier', 'nom', 'prenom', 'date_naissance', 'genre', 'nationalite',
-        'specialite', 'type_etude', 'submitted_at', 'depot_physique_at'];
+    /** Colonnes lues : celles des documents, rien de plus (minimisation). */
+    private const COLONNES = ['id', 'numero_dossier', 'nom', 'prenom', 'date_naissance', 'lieu_naissance', 'genre',
+        'nationalite', 'region', 'specialite', 'type_etude', 'premiere_langue', 'statut_actuel', 'fonction_actuelle',
+        'diplome_requis', 'domaine_diplome_requis', 'specialite_diplome_requis', 'institut_diplome_requis',
+        'annee_diplome_requis', 'submitted_at', 'depot_physique_at'];
 
-    public function __construct(private readonly DetecteurDoublons $detecteur) {}
+    public function __construct(
+        private readonly DetecteurDoublons $detecteur,
+        private readonly AnalyseurProfil $analyseur,
+    ) {}
+
+    /**
+     * Résultats et dossiers retenus issus d'une seule lecture, pour la liste
+     * Excel : mêmes candidats et mêmes chiffres que le titre et le journal.
+     * Ordre du PV : nationaux puis étrangers, alphabétique dans chaque groupe.
+     *
+     * @return array{0: ResultatsSelection, 1: Collection<int, Candidature>}
+     */
+    public function construireAvecDossiers(CampagneCandidature $campagne, SeanceJury $seance, bool $conserverDoublons = false): array
+    {
+        [$tous, $retenus] = $this->charger($campagne, $conserverDoublons);
+
+        $dossiers = $retenus
+            ->sortBy(fn (Candidature $c): string => ($c->nationalite === self::NATIONAL ? '0' : '1').$this->cleTri($c))
+            ->values();
+
+        return [$this->assembler($campagne, $seance, $tous, $retenus), $dossiers];
+    }
 
     /** @return list<Doublon> */
     public function doublons(CampagneCandidature $campagne): array
@@ -41,15 +67,31 @@ final class ResultatsSelectionService
 
     public function construire(CampagneCandidature $campagne, SeanceJury $seance, bool $conserverDoublons = false): ResultatsSelection
     {
-        $tous = $this->retenus($campagne)->get(self::COLONNES);
-        $retenus = $conserverDoublons ? $tous : $this->detecteur->dedoublonner($tous);
+        [$tous, $retenus] = $this->charger($campagne, $conserverDoublons);
 
+        return $this->assembler($campagne, $seance, $tous, $retenus);
+    }
+
+    /** @return array{0: Collection<int, Candidature>, 1: Collection<int, Candidature>} tous, puis retenus après dédoublonnage */
+    private function charger(CampagneCandidature $campagne, bool $conserverDoublons): array
+    {
+        $tous = $this->retenus($campagne)->get(self::COLONNES);
+
+        return [$tous, $conserverDoublons ? $tous : $this->detecteur->dedoublonner($tous)];
+    }
+
+    /**
+     * @param  Collection<int, Candidature>  $tous
+     * @param  Collection<int, Candidature>  $retenus
+     */
+    private function assembler(CampagneCandidature $campagne, SeanceJury $seance, Collection $tous, Collection $retenus): ResultatsSelection
+    {
         $nomsPays = $this->nomsPays($retenus);
         $candidats = $retenus
             ->map(fn (Candidature $c): array => ['candidature' => $c, 'ligne' => $this->ligne($c, $nomsPays)])
             // Numéro de dossier en second critère : homonymes numérotés à
             // l'identique dans le communiqué et dans le PV.
-            ->sortBy(fn (array $r): string => Str::upper(Str::ascii($r['ligne']->nomComplet())).'|'.$r['candidature']->numero_dossier)
+            ->sortBy(fn (array $r): string => $this->cleTri($r['candidature']))
             ->values();
 
         [$nationaux, $etrangers] = $candidats->partition(
@@ -61,14 +103,23 @@ final class ResultatsSelectionService
             anneeAcademique: $this->anneeAcademique($campagne),
             totalEnLigne: Candidature::query()->forCampagne($campagne->id)->soumises()->count(),
             parPays: $this->parPays($retenus, $nomsPays),
-            parGenre: $this->repartir($retenus, 'genre', ['M' => 'HOMMES', 'F' => 'FEMMES'], ['autre' => 'AUTRE']),
-            parMode: $this->repartir($retenus, 'type_etude', ['presentiel' => 'PRÉSENTIEL', 'distanciel' => 'DISTANCIEL']),
+            parGenre: SpecialitesOfficielles::repartir($retenus, fn (Candidature $c): ?string => $c->genre,
+                ['M' => 'HOMMES', 'F' => 'FEMMES'], ['autre' => 'AUTRE']),
+            parMode: SpecialitesOfficielles::repartir($retenus, fn (Candidature $c): ?string => $c->type_etude,
+                ['presentiel' => 'PRÉSENTIEL', 'distanciel' => 'DISTANCIEL']),
             nationaux: $nationaux->pluck('ligne')->values()->all(),
             etrangers: $etrangers->pluck('ligne')->values()->all(),
             jury: (array) config('resultats_selection.jury', []),
             seance: $seance,
             doublonsRetires: $tous->count() - $retenus->count(),
+            profil: $this->analyseur->analyser($retenus, $seance->dateDeliberation ?? CarbonImmutable::now()),
         );
+    }
+
+    /** Ordre alphabétique sans accents ; numéro de dossier entre homonymes. */
+    private function cleTri(Candidature $c): string
+    {
+        return Str::upper(Str::ascii($this->majuscules($c->nom).' '.$this->majuscules($c->prenom))).'|'.$c->numero_dossier;
     }
 
     /** @return Builder<Candidature> */
@@ -127,7 +178,7 @@ final class ResultatsSelectionService
             $colonnes[$code] = $nomsPays[$code] ?? 'NON PRÉCISÉE';
         }
 
-        return new Repartition($colonnes, $this->lignes($retenus, $pays));
+        return SpecialitesOfficielles::repartir($retenus, $pays, $colonnes);
     }
 
     /**
@@ -141,51 +192,6 @@ final class ResultatsSelectionService
         $code = (string) $c->nationalite;
 
         return ($code === self::NATIONAL || array_key_exists($code, $nomsPays)) ? $code : self::NON_PRECISE;
-    }
-
-    /**
-     * @param  Collection<int, Candidature>  $retenus
-     * @param  array<string, string>  $colonnes  valeurs attendues => libellé
-     * @param  array<string, string>  $optionnelles  colonnes affichées seulement si non vides
-     */
-    private function repartir(Collection $retenus, string $attribut, array $colonnes, array $optionnelles = []): Repartition
-    {
-        $connues = $colonnes + $optionnelles;
-        $cle = fn (Candidature $c): string => array_key_exists((string) $c->{$attribut}, $connues)
-            ? (string) $c->{$attribut}
-            : self::NON_PRECISE;
-
-        // Colonnes facultatives et « non précisé » seulement si un dossier en
-        // relève : les tableaux restent identiques aux PV précédents.
-        $presentes = $retenus->map($cle)->unique()->all();
-        foreach ($optionnelles + [self::NON_PRECISE => 'NON PRÉCISÉ'] as $valeur => $libelle) {
-            if (in_array($valeur, $presentes, true)) {
-                $colonnes[$valeur] = $libelle;
-            }
-        }
-
-        return new Repartition($colonnes, $this->lignes($retenus, $cle));
-    }
-
-    /**
-     * Une ligne par spécialité officielle, dans l'ordre des PV, même vide ;
-     * un intitulé hors liste est rattaché à l'une d'elles.
-     *
-     * @param  Collection<int, Candidature>  $retenus
-     * @param  callable(Candidature): string  $colonne
-     * @return array<string, array<string, int>>
-     */
-    private function lignes(Collection $retenus, callable $colonne): array
-    {
-        $lignes = array_fill_keys(array_values(SpecialitesOfficielles::ordonnees()), []);
-
-        foreach ($retenus as $c) {
-            $ligne = SpecialitesOfficielles::libelle($c->specialite);
-            $col = $colonne($c);
-            $lignes[$ligne][$col] = ($lignes[$ligne][$col] ?? 0) + 1;
-        }
-
-        return $lignes;
     }
 
     /**
@@ -204,16 +210,8 @@ final class ResultatsSelectionService
         return $debut.'-'.($debut + 1);
     }
 
-    /**
-     * Majuscules, espaces normalisés. Les caractères de contrôle et de format
-     * (saisis par erreur ou à dessein) sont retirés : interdits en XML, ils
-     * rendraient le .docx illisible dans Word.
-     */
     private function majuscules(?string $texte): string
     {
-        $texte = (string) preg_replace('/\s+/u', ' ', (string) $texte);
-        $texte = (string) preg_replace('/[\p{Cc}\p{Cf}]/u', '', $texte);
-
-        return mb_strtoupper(trim($texte));
+        return TexteImprimable::majuscules($texte);
     }
 }

@@ -13,6 +13,7 @@ use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Spatie\Activitylog\Models\Activity;
 
 uses()->group('filament', 'resultats-selection');
@@ -28,6 +29,7 @@ beforeEach(function (): void {
 
     Candidature::factory()->forCampagne($this->campagne)->submitted()->create([
         'nom' => 'Ndzana & Fils', 'prenom' => 'Aurélie', 'depot_physique_at' => now()->subDay(),
+        'domaine_diplome_requis' => 'economie', 'specialite_diplome_requis' => null,
         'specialite' => 'Audit et contrôle des Finances Publiques',
     ]);
     Candidature::factory()->forCampagne($this->campagne)->submitted()->create(['nom' => 'Absent', 'prenom' => 'Pierre']);
@@ -142,6 +144,80 @@ it('écarte le doublon à l\'export sauf si l\'agent choisit de le conserver', f
     'par défaut, un seul dossier' => [false, 2],
     'conservés à la demande' => [true, 3],
 ]);
+
+it('produit la liste Excel des retenus au format du modèle, sans formule injectable', function (): void {
+    Candidature::factory()->forCampagne($this->campagne)->submitted()->create([
+        'nom' => '=HYPERLINK("http://x")', 'prenom' => 'Eve', 'depot_physique_at' => now(),
+        'date_naissance' => '1990-05-04', 'genre' => 'F', 'type_etude' => 'distanciel', 'region' => 'CENTRE',
+        'diplome_requis' => 'licence-bachelor', 'domaine_diplome_requis' => 'autres', 'specialite_diplome_requis' => 'Droit public',
+        'institut_diplome_requis' => 'Université de Douala', 'annee_diplome_requis' => 2015,
+        'statut_actuel' => 'Contractuel-Etat', 'fonction_actuelle' => 'Comptable matières',
+        'specialite' => 'Fiscalité, Finance et Comptabilité Publique',
+    ]);
+
+    $fichier = app(ResultatsSelectionExport::class)->generer(
+        $this->campagne, 'liste', SeanceJury::vide(), ($this->agent)('admin'),
+    );
+    expect($fichier['nom'])->toBe('Liste-candidats-retenus-P14-2026-2027.xlsx')
+        ->and($fichier['mime'])->toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+    $chemin = tempnam(sys_get_temp_dir(), 'xlsx');
+    file_put_contents($chemin, $fichier['contenu']);
+    $feuille = IOFactory::load($chemin)->getActiveSheet();
+    unlink($chemin);
+
+    $entetes = $feuille->rangeToArray('A14:R14')[0];
+    expect($entetes)->toBe(['N°', 'N° dossier', 'NOM', 'PRENOM', 'Date Naiss.', 'Lieu Naissance', 'Région', 'Sexe',
+        'T. Etude', 'Diplôme Requis', 'Spécialité Requise', 'Établissement de délivrance', 'Année de délivrance',
+        'Statut actuel', 'Fonction', 'Spécialité', 'Pays', 'Décision'])
+        ->and($feuille->getTableCollection())->toHaveCount(1)
+        ->and($feuille->getPageSetup()->getRowsToRepeatAtTop())->toBe([14, 14]);
+
+    // Ligne de la candidate « =HYPERLINK… » (tri alphabétique : « = » avant les lettres).
+    $ligne = $feuille->rangeToArray('A15:R15', null, false, false)[0];
+    expect($feuille->getCell('C15')->getDataType())->toBe('s')
+        ->and($ligne[2])->toBe('=HYPERLINK("HTTP://X")')
+        ->and($ligne[6])->toBe('Centre')
+        ->and([$ligne[7], $ligne[8], $ligne[9]])->toBe(['F', 'D', 'Licence / Bachelor'])
+        ->and($ligne[10])->toBe('Droit public')
+        ->and([$ligne[11], $ligne[12], $ligne[13], $ligne[14]])->toBe(['Université de Douala', 2015, 'Agent contractuel de l’État', 'Comptable matières'])
+        ->and([$ligne[15], $ligne[16], $ligne[17]])->toBe(['FFCP', 'Cameroun', null])
+        ->and($feuille->getCell('E15')->getFormattedValue())->toBe('04/05/1990')
+        // Domaine Droit / Économie / Gestion : le domaine tient lieu de spécialité.
+        ->and($feuille->getCell('K16')->getValue())->toBe('Économie');
+});
+
+it('télécharge la liste Excel depuis la liste des campagnes', function (): void {
+    $this->actingAs(($this->agent)('admission_committee'));
+
+    $this->livewire(ListCampagneCandidatures::class)
+        ->callTableAction('listeRetenus', $this->campagne)
+        ->assertHasNoTableActionErrors()
+        ->assertFileDownloaded('Liste-candidats-retenus-P14-2026-2027.xlsx');
+});
+
+it('insère les statistiques et deux graphiques dans le PV', function (): void {
+    $fichier = app(ResultatsSelectionExport::class)->generer(
+        $this->campagne, 'pv', SeanceJury::vide(), ($this->agent)('admin'),
+    );
+
+    $chemin = tempnam(sys_get_temp_dir(), 'docx');
+    file_put_contents($chemin, $fichier['contenu']);
+    $zip = new ZipArchive;
+    $zip->open($chemin);
+    $xml = (string) $zip->getFromName('word/document.xml');
+    $graphique = (string) $zip->getFromName('word/charts/chart1.xml');
+    $statuts = $zip->getFromName('word/charts/chart2.xml');
+    $zip->close();
+    unlink($chemin);
+
+    expect($xml)->toContain('SYNTHESE DES DOSSIERS RETENUS')
+        ->toContain('REPARTITION SELON LE STATUT ACTUEL')
+        ->toContain('REPARTITION PAR TRANCHE D’AGE')
+        ->toContain('REPARTITION SELON LE DOMAINE DU DIPLOME D’ACCES')
+        ->and($graphique)->toContain('<c:overlay val="0"/>')
+        ->and($statuts)->not->toBeFalse();
+});
 
 it('refuse un document inconnu', function (): void {
     app(ResultatsSelectionExport::class)->generer(

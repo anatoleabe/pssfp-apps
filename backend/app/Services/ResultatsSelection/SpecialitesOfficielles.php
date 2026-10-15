@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\ResultatsSelection;
 
+use App\Models\Candidature;
 use Illuminate\Support\Str;
 
 /**
@@ -28,6 +29,34 @@ final class SpecialitesOfficielles
         }
 
         return $resultat;
+    }
+
+    /** Sigle d'une spécialité officielle (« FFCP »), à défaut son libellé. */
+    public static function sigle(string $libelle): string
+    {
+        $cle = array_search($libelle, (array) config('specialites', []), true);
+
+        return (string) (config('resultats_selection.sigles_specialites.'.$cle) ?? $libelle);
+    }
+
+    /**
+     * Tableau « une ligne par spécialité officielle » des PV, même vide.
+     *
+     * @param  iterable<Candidature>  $dossiers
+     * @param  callable(Candidature): ?string  $colonneDe
+     * @param  array<string, string>  $colonnes
+     * @param  array<string, string>  $optionnelles
+     */
+    public static function repartir(iterable $dossiers, callable $colonneDe, array $colonnes, array $optionnelles = []): Repartition
+    {
+        return Repartition::croiser(
+            $dossiers,
+            array_values(self::ordonnees()),
+            fn (Candidature $c): string => self::libelle($c->specialite),
+            $colonnes,
+            $colonneDe,
+            $optionnelles,
+        );
     }
 
     /** Libellé officiel de la spécialité d'un dossier. */

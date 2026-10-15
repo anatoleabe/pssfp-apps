@@ -199,6 +199,42 @@ it('reconnaît une même personne malgré tirets et apostrophes, et départage t
         ->and($r->doublonsRetires)->toBe(2);
 });
 
+it('dresse le profil des retenus : statut, âge, diplôme et synthèse', function (): void {
+    $seance = SeanceJury::depuisFormulaire(['date_deliberation' => '2026-10-20']);
+    ($this->retenu)(['statut_actuel' => 'Fonctionnaire', 'genre' => 'F', 'date_naissance' => '2002-10-21',
+        'diplome_requis' => 'licence-bachelor', 'domaine_diplome_requis' => 'droit', 'premiere_langue' => 'en']);
+    ($this->retenu)(['statut_actuel' => 'Contractuel-Etat', 'genre' => 'M', 'date_naissance' => '1980-01-01',
+        'diplome_requis' => 'master', 'domaine_diplome_requis' => 'gestion', 'type_etude' => 'distanciel',
+        'specialite' => 'Fiscalité, Finance et Comptabilité Publique']);
+    ($this->retenu)(['statut_actuel' => 'Etudiant', 'genre' => 'F', 'date_naissance' => '1996-10-20',
+        'diplome_requis' => null, 'domaine_diplome_requis' => null]);
+
+    $p = $this->service->construire($this->campagne, $seance)->profil;
+
+    // Statut × spécialité, colonnes en sigles.
+    expect($p->parStatut->colonnes)->toBe([
+        'Économie Publique et Gestion Publique' => 'EPGP',
+        'Audit et contrôle des Finances Publiques' => 'AC',
+        'Gouvernance Territoriale et Finances Publiques locales' => 'GTFPL',
+        'Fiscalité, Finance et Comptabilité Publique' => 'FFCP',
+        'Marchés Publics et Partenariats Public-Privés' => 'MPPPP',
+    ])
+        ->and($p->parStatut->lignes)->toHaveCount(10)
+        ->and($p->parStatut->valeur('Fonctionnaire titulaire', 'Audit et contrôle des Finances Publiques'))->toBe(1)
+        ->and($p->parStatut->valeur('Agent contractuel de l’État', 'Fiscalité, Finance et Comptabilité Publique'))->toBe(1)
+        // Âges au jour de la délibération : 23 (veille de ses 24 ans), 46, 30.
+        ->and($p->parAge->valeur('Moins de 25 ans', 'F'))->toBe(1)
+        ->and($p->parAge->valeur('30 à 34 ans', 'F'))->toBe(1)
+        ->and($p->parAge->valeur('45 ans et plus', 'M'))->toBe(1)
+        ->and([$p->ageMinimum, $p->ageMaximum, $p->ageMoyen])->toBe([23, 46, 33.0])
+        ->and($p->parDiplome->colonnes)->toBe(['licence-bachelor' => 'LICENCE / BACHELOR', 'master' => 'MASTER', '—' => 'NON PRÉCISÉ'])
+        ->and($p->parDomaine->totalColonne('droit'))->toBe(1)
+        // Synthèse.
+        ->and([$p->total, $p->femmes, $p->distanciel, $p->fonctionnaires, $p->secteurPublic, $p->anglophones])
+        ->toBe([3, 2, 1, 1, 2, 1])
+        ->and($p->part($p->femmes))->toBe('2 (67 %)');
+});
+
 it('déduit la promotion et l\'année académique de la campagne', function (): void {
     $r = $this->service->construire($this->campagne, SeanceJury::vide());
 

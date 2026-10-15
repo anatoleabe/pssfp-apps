@@ -16,8 +16,9 @@ use Illuminate\Support\HtmlString;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Téléchargement Word du communiqué des résultats et du PV du jury, depuis la
- * liste des campagnes et la page d'édition d'une campagne.
+ * Téléchargement du communiqué des résultats et du PV du jury (Word) et de la
+ * liste des retenus (Excel), depuis la liste des campagnes et la page
+ * d'édition d'une campagne.
  *
  * Configure indifféremment une action de tableau ou d'en-tête de page : les
  * deux héritent de MountableAction.
@@ -82,6 +83,24 @@ final class ResultatsSelectionActions
                 ]),
                 self::numero(),
             ]);
+    }
+
+    /**
+     * @template T of MountableAction
+     *
+     * @param  T  $action
+     * @return T
+     */
+    public static function liste(MountableAction $action): MountableAction
+    {
+        return self::configurer($action, ResultatsSelectionExport::LISTE)
+            ->label('Liste des candidats retenus (Excel)')
+            ->icon('heroicon-o-table-cells')
+            ->modalHeading('Liste Excel des candidats retenus')
+            ->modalDescription(fn (CampagneCandidature $record): string => self::avertissement($record)
+                .'Mêmes candidats que le PV et le communiqué, avec leurs informations d’état civil, de diplôme et de situation professionnelle. Colonne « Décision » laissée vide.')
+            ->modalSubmitActionLabel('Télécharger la liste Excel')
+            ->form(fn (CampagneCandidature $record): array => self::doublons($record));
     }
 
     /**

@@ -404,10 +404,11 @@ Tous les changements sont tracés dans `candidature_status_history` (audit trail
 
 ### 7.1 Documents de fin de sélection (ajout du 12 oct. 2026, révisé le 13 oct.)
 
-Sur chaque campagne (liste des campagnes et page d'édition), le groupe d'actions « Résultats de sélection » produit, **au format Word uniquement**, les deux documents à relire puis à faire signer à la main :
+Sur chaque campagne (liste des campagnes et page d'édition), le groupe d'actions « Résultats de sélection » produit, **au format Word**, les deux documents à relire puis à faire signer à la main, et la liste Excel des retenus :
 
 - **Communiqué conjoint MINFI / UY2** portant publication des résultats : candidats nationaux puis étrangers, par ordre alphabétique, avec le mode de formation (P/D). L'en-tête et les polices reprennent le communiqué de la 13e promotion (Garamond, Times New Roman, Bodoni MT, Berlin Sans FB Demi, Arial Narrow) ; ces polices Office doivent être installées sur le poste qui ouvre le document.
-- **Procès-verbal des délibérations du jury** : composition du jury, méthodologie, totaux (inscriptions en ligne, dossiers physiques retenus), répartitions par nationalité, genre et mode de formation pour chaque spécialité, listes nominatives et bloc de signatures.
+- **Procès-verbal des délibérations du jury** : composition du jury, méthodologie, totaux (inscriptions en ligne, dossiers physiques retenus), tableau de synthèse (femmes, distanciel, fonctionnaires, secteur public, âge moyen, anglophones), répartitions par nationalité, genre et mode de formation pour chaque spécialité, puis par statut actuel (× spécialité, en sigles), tranche d'âge (× genre), diplôme et domaine d'accès ; deux graphiques Word natifs (hommes/femmes par spécialité, effectifs par statut) ; listes nominatives et bloc de signatures.
+- **Liste Excel des retenus** (ajout du 15 oct. 2026) au format de la « liste provisoire » de la scolarité : en-tête bilingue et logo, tableau Excel filtrable, colonnes n°, n° de dossier, nom, prénoms, date et lieu de naissance, région, sexe, mode, diplôme d'accès, spécialité, établissement et année de délivrance, statut actuel, fonction, spécialité du master (sigle), pays et « Décision » (vide, à remplir par le jury). Les textes saisis par les candidats sont écrits comme du texte, jamais comme des formules.
 
 Gabarits : modèles Word de la scolarité pour la 13e promotion (non versionnés, car ils contiennent des listes nominatives réelles).
 
@@ -420,6 +421,8 @@ Gabarits : modèles Word de la scolarité pour la 13e promotion (non versionnés
 **Paramètres**
 - *Fixes d'une année sur l'autre* : la composition du jury, le secrétariat technique, les critères et les en-têtes sont définis dans `config/resultats_selection.php`.
 - *Propres à chaque séance* : la date et l'heure de la délibération, la note de service désignant le jury et le numéro d'enregistrement se saisissent dans la modale. Un champ laissé vide sort en pointillés ou en blanc souligné, à compléter à la main.
+
+Les libellés des statuts actuels sont centralisés dans `config/statuts_actuels.php` ; les sigles des spécialités (EPGP, AC, GTFPL, FFCP, MPPPP) dans `config/resultats_selection.php`.
 
 **Sécurité**
 - *Permission* : `campagne.download_resultats`, accordée à super_admin, admin et admission_committee. Elle est ajoutée par une migration qui se contente d'ajouter, sans resynchroniser les rôles.

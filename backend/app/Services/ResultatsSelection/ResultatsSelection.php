@@ -30,7 +30,8 @@ final readonly class ResultatsSelection
         public array $jury,
         public SeanceJury $seance,
         /** Dossiers écartés parce que la même personne en avait plusieurs. */
-        public int $doublonsRetires = 0,
+        public int $doublonsRetires,
+        public ProfilRetenus $profil,
     ) {}
 
     public function totalRetenus(): int

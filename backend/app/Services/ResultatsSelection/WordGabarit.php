@@ -13,6 +13,7 @@ use PhpOffice\PhpWord\Shared\Converter;
 use PhpOffice\PhpWord\SimpleType\Jc;
 use PhpOffice\PhpWord\Style\Language;
 use RuntimeException;
+use ZipArchive;
 
 /**
  * Mise en page Word commune au communiqué et au PV : A4, Times New Roman pour
@@ -154,10 +155,41 @@ final class WordGabarit
 
         try {
             IOFactory::createWriter($word, 'Word2007')->save($fichier);
+            self::legendesHorsGraphique($fichier);
 
             return (string) file_get_contents($fichier);
         } finally {
             @unlink($fichier);
+        }
+    }
+
+    /**
+     * PhpWord écrit `<c:legend>` sans `<c:overlay val="0"/>` : Word pose alors
+     * la légende par-dessus le tracé. On la place à côté, comme le fait Word
+     * lui-même pour un graphique inséré à la main.
+     */
+    private static function legendesHorsGraphique(string $fichier): void
+    {
+        $zip = new ZipArchive;
+        if ($zip->open($fichier) !== true) {
+            throw new RuntimeException('Document Word illisible après génération.');
+        }
+
+        try {
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $nom = (string) $zip->getNameIndex($i);
+                if (! str_starts_with($nom, 'word/charts/') || ! str_ends_with($nom, '.xml')) {
+                    continue;
+                }
+
+                $xml = (string) $zip->getFromIndex($i);
+                $corrige = (string) preg_replace('#(<c:legendPos val="\w+"/>)(</c:legend>)#', '$1<c:overlay val="0"/>$2', $xml);
+                if ($corrige !== $xml) {
+                    $zip->addFromString($nom, $corrige);
+                }
+            }
+        } finally {
+            $zip->close();
         }
     }
 }

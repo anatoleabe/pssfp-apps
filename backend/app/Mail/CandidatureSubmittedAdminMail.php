@@ -44,19 +44,8 @@ final class CandidatureSubmittedAdminMail extends Mailable implements ShouldQueu
             with: [
                 'candidature' => $this->candidature,
                 'adminUrl' => config('pssfp.admin_candidature_url'),
-                'statutLabel' => match ($this->candidature->statut_actuel) {
-                    'Etudiant' => 'Étudiant(e)',
-                    'Sans-emploi' => 'Sans emploi / en recherche d’emploi',
-                    'Fonctionnaire' => 'Fonctionnaire titulaire',
-                    'Contractuel-Etat' => 'Agent contractuel de l’État',
-                    'Etablissement-public' => 'Agent d’un établissement public',
-                    'Entreprise-publique' => 'Salarié(e) d’une entreprise publique',
-                    'Prive' => 'Salarié(e) du secteur privé',
-                    'Independant' => 'Indépendant(e) / profession libérale',
-                    'ONG-International' => 'ONG / organisation internationale',
-                    'Autre' => 'Autre situation professionnelle',
-                    default => (string) $this->candidature->statut_actuel,
-                },
+                'statutLabel' => config('statuts_actuels.'.$this->candidature->statut_actuel)
+                    ?? (string) $this->candidature->statut_actuel,
             ],
         );
     }

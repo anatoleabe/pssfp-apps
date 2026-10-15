@@ -30,3 +30,24 @@ it('produit des pourcentages entiers dont la somme fait toujours 100', function 
     'exact' => [['P' => 3, 'D' => 1], ['75 %', '25 %']],
     'vide' => [['P' => 0, 'D' => 0], ['0 %', '0 %']],
 ]);
+
+it('croise des éléments en gardant les lignes vides et en regroupant les valeurs inconnues', function (): void {
+    $r = Repartition::croiser(
+        [['l' => 'B', 'c' => 'x'], ['l' => 'B', 'c' => 'zzz'], ['l' => 'Hors liste', 'c' => 'y']],
+        ['A', 'B'],
+        fn (array $e): string => $e['l'],
+        ['x' => 'X', 'y' => 'Y'],
+        fn (array $e): string => $e['c'],
+    );
+
+    expect(array_keys($r->lignes))->toBe(['A', 'B', 'Hors liste'])
+        ->and($r->colonnes)->toBe(['x' => 'X', 'y' => 'Y', '—' => 'NON PRÉCISÉ'])
+        ->and($r->valeur('B', '—'))->toBe(1)
+        ->and($r->totalLigne('A'))->toBe(0);
+});
+
+it('donne la part de chaque ligne, arrondie pour totaliser 100', function (): void {
+    $r = new Repartition(['n' => 'N'], ['a' => ['n' => 1], 'b' => ['n' => 1], 'c' => ['n' => 1]]);
+
+    expect([$r->partLigne('a'), $r->partLigne('b'), $r->partLigne('c')])->toBe(['34 %', '33 %', '33 %']);
+});
