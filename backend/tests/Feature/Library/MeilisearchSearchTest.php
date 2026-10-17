@@ -11,8 +11,6 @@ use Meilisearch\Contracts\TasksQuery;
 
 uses()->group('module-3', 'library', 'meilisearch');
 
-const TEST_INDEX = 'test_documents';
-
 function meili(): Client
 {
     return new Client(config('scout.meilisearch.host'), config('scout.meilisearch.key'));
@@ -45,8 +43,12 @@ beforeEach(function (): void {
     }
 
     config(['scout.meilisearch.key' => $key, 'scout.driver' => 'meilisearch', 'scout.prefix' => 'test_', 'scout.queue' => false]);
+    // Garde : ne jamais toucher l'index réel de dev/prod.
+    $this->testIndex = (new Document)->searchableAs();
+    expect($this->testIndex)->toStartWith('test_');
+
     try {
-        meili()->deleteIndex(TEST_INDEX);
+        meili()->deleteIndex($this->testIndex);
         meiliIdle();
     } catch (Throwable) {
         // index absent
@@ -56,8 +58,12 @@ beforeEach(function (): void {
 });
 
 afterEach(function (): void {
+    if (! isset($this->testIndex) || ! str_starts_with($this->testIndex, 'test_')) {
+        return;
+    }
+
     try {
-        meili()->deleteIndex(TEST_INDEX);
+        meili()->deleteIndex($this->testIndex);
         meiliIdle();
     } catch (Throwable) {
         // rien à nettoyer
