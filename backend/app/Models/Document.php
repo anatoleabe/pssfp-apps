@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Searchable;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Translatable\HasTranslations;
@@ -30,6 +31,7 @@ class Document extends Model
     use HasTranslations;
     use HasUuids;
     use LogsActivity;
+    use Searchable;
     use SoftDeletes;
 
     public const STATUS_DRAFT = 'draft';
@@ -147,5 +149,46 @@ class Document extends Model
             ->logOnly(['title', 'type', 'status', 'access_level', 'price_xaf', 'file_path', 'external_url'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    public function searchableAs(): string
+    {
+        return 'documents';
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        return $this->isPublished() && ! $this->trashed();
+    }
+
+    /** @return array<string, mixed> */
+    public function toSearchableArray(): array
+    {
+        $this->loadMissing(['authors', 'motsCles']);
+
+        return [
+            'id' => $this->id,
+            'uuid' => $this->uuid,
+            'title' => $this->getTranslation('title', 'fr'),
+            'subtitle' => $this->getTranslation('subtitle', 'fr', false),
+            'abstract' => $this->getTranslation('abstract', 'fr', false),
+            'authors' => $this->authors->pluck('author_name')->all(),
+            'mots_cles' => $this->motsCles->pluck('slug')->all(),
+            'mots_cles_labels' => $this->motsCles->map(fn (MotCle $m) => $m->getTranslation('label', 'fr'))->all(),
+            'type' => $this->type,
+            'specialite' => $this->specialite,
+            'promotion' => $this->promotion,
+            'year' => $this->year,
+            'language' => $this->language,
+            'access_mode' => $this->access_mode,
+            'published_at' => $this->published_at?->getTimestamp(),
+            'views_count' => $this->views_count,
+            'downloads_count' => $this->downloads_count,
+        ];
+    }
+
+    protected function makeAllSearchableUsing(Builder $query): Builder
+    {
+        return $query->with(['authors', 'motsCles']);
     }
 }

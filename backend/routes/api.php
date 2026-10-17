@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Contact\ContactController;
 use App\Http\Controllers\Api\Library\CatalogueController;
 use App\Http\Controllers\Api\Library\DocumentController as LibraryDocumentController;
 use App\Http\Controllers\Api\Library\DownloadController;
+use App\Http\Controllers\Api\Library\SearchController;
 use App\Http\Controllers\Api\Pages\PageController;
 use App\Http\Controllers\Api\Reference\ReferenceController;
 use App\Http\Controllers\HealthController;
@@ -166,6 +167,7 @@ Route::prefix('library')->name('library.')->group(function (): void {
     Route::get('/stats', [CatalogueController::class, 'stats'])->name('stats');
     Route::get('/mots-cles', [CatalogueController::class, 'motsCles'])->name('mots-cles');
     Route::get('/redirects', [CatalogueController::class, 'redirect'])->name('redirects');
+    Route::get('/search', SearchController::class)->middleware('throttle:60,1')->name('search');
     Route::get('/documents', [LibraryDocumentController::class, 'index'])->name('documents.index');
     Route::get('/documents/{uuid}/download', DownloadController::class)
         ->middleware('throttle:30,1')
