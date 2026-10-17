@@ -18,7 +18,7 @@ App Next.js 14 servant la bibliothèque virtuelle sur `bibliotheque.pssfp.org` (
 app/
 ├── layout.tsx                 # en-tête, pied de page, lien d'évitement #main
 ├── page.tsx                   # / : héros + recherche, collections, nouveautés, plus lus (ISR 5 min)
-├── collections/[type]/page.tsx  # catalogue filtrable, trié, paginé (ISR 5 min)
+├── collections/[type]/page.tsx  # catalogue filtrable, trié, paginé (dynamique : searchParams ; cache de données 5 min, pas d'ISR)
 ├── recherche/page.tsx         # coquille serveur ; résultats demandés par le navigateur (noindex)
 ├── documents/[slug]/page.tsx  # fiche (ISR 5 min, generateStaticParams → [])
 ├── a-propos/page.tsx          # statique (force-static)
@@ -35,13 +35,16 @@ middleware.ts                  # anciennes URL Joomla → 301 via /v1/library/re
 - **Fiches** : `generateStaticParams` renvoie `[]` — aucune fiche au build, mais mise en cache ISR réelle au premier accès.
 - **Recherche côté navigateur** (`components/search/SearchExperience.tsx`) : débit par IP et journaux de recherche portent sur le visiteur, pas sur le serveur Next. Erreurs dans la page (`role="alert"`, message dédié sur 429). Le squelette réserve la place des facettes et assez de hauteur pour ne pas décaler la page (CLS).
 - **Consultations par balise** : `ViewBeacon` envoie `POST /v1/library/documents/{uuid}/view` depuis le navigateur (`sendBeacon`, repli `fetch keepalive`) ; rien n'est compté côté serveur (pages ISR).
-- **Anciennes URL** (`middleware.ts`) : chemins hors routes de l'app et hors fichiers statiques usuels → `resolveLegacyPath` (délai 2 s) ; trouvé → 301/302 vers un chemin interne uniquement ; réponses mémorisées 10 min par processus ; toute erreur → suite normale (404). Garder `APP_PREFIXES` synchronisé avec `app/` et `public/`.
+- **Collections** : `/collections/[type]` lit `searchParams`, donc rendue à la demande (`ƒ` au build) ; ne pas y remettre d'export `revalidate` (sans effet). Protection de l'API : cache de données des appels (300 s, mots-clés 3600 s). Page > dernière → état « page inexistante » ; page > 500 → 404. Après une navigation dans la page, `ResultsFocus` rend le focus au titre des résultats.
+- **Anciennes URL** (`middleware.ts`) : chemins hors routes de l'app et hors fichiers statiques usuels → `resolveLegacyPath` (délai 2 s), avec la query string pour `/index.php?…` ; trouvé → 301/302 vers un chemin interne du même site uniquement (`lib/redirects.ts`, `safeRedirectTarget`) ; réponses mémorisées 10 min par processus ; toute erreur → suite normale (404). Les anciennes URL `…/file` mènent à la fiche, jamais à l'API. Garder `APP_PREFIXES` synchronisé avec `app/` et `public/`.
+- **Focus** : anneau `ring-pssfp-prune` + `ring-offset-2` sur fond clair (contour global `*:focus-visible` prune) ; or uniquement sur le pied de page prune.
+- **Formats** : prix via `format.number(prix, PRICE_FORMAT)` et tailles via `fileSizeFormat` (`lib/format.ts`) : devise et unités viennent d'Intl, jamais des messages.
 - **SEO** : `/recherche` noindex + `Disallow`, exclue du sitemap ; variantes filtrées/paginées des collections noindex avec canonique nue.
 - **Textes** : tout passe par `next-intl` (`messages/fr.json`), y compris `aria-label`, `alt`, `title`.
 
 ## Tests
 
-Playwright (`tests/playwright/*.spec.ts`), verts **avec ou sans backend** (la CI ne démarre pas l'API) : les tests de données se marquent `test.skip()` si l'API est injoignable, et échouent explicitement sur un 429. Specs : `accueil`, `collections`, `recherche`, `fiche`, `layout`, `redirections`, `seo`, plus les tests unitaires de `lib/` (`routes`, `pagination`, `highlight`, `citation`, `api-client`, `composants`). Serveur de test : `pnpm dev --port 6002`. Les redirections utilisent celle de `LibraryDemoSeeder` (`/index.php/textes-et-lois` → `/collections/texte_loi`).
+Playwright (`tests/playwright/*.spec.ts`), verts **avec ou sans backend** (la CI ne démarre pas l'API) : les tests de données se marquent `test.skip()` si l'API est injoignable, et échouent explicitement sur un 429. Specs : `accueil`, `collections`, `recherche`, `fiche`, `layout`, `redirections`, `seo`, plus les tests unitaires de `lib/` (`routes`, `pagination`, `highlight`, `citation`, `api-client`, `composants`). Serveur de test : `pnpm dev --port 6002`. Les redirections utilisent celles de `LibraryDemoSeeder` (`/index.php/textes-et-lois` → `/collections/texte_loi`, `/index.php?option=com_docman&view=list&slug=memoires` → `/collections/memoire`).
 
 ### Avec l'API locale (`cd backend && php artisan serve --port=8000`)
 
@@ -60,7 +63,7 @@ Lighthouse ≥ 85 sur les 4 dimensions (CDC v2.0 §K.2), mesuré en local sur `p
 ## Variables d'env
 
 ```
-NEXT_PUBLIC_API_URL=http://localhost:8000/v1
+NEXT_PUBLIC_API_URL=http://localhost:8000/v1   # obligatoire pour `next build` en production (hors CI)
 NEXT_PUBLIC_SITE_URL=https://bibliotheque.pssfp.org
 NEXT_PUBLIC_MAIN_SITE_URL=http://localhost:6001
 NEXT_PUBLIC_FOAD_URL=https://foad.pssfp.net
