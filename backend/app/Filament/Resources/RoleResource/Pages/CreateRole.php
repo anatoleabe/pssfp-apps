@@ -27,7 +27,7 @@ class CreateRole extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $this->levels = (array) ($data['modules'] ?? []);
-        $this->sensitiveActions = array_values((array) ($data['sensitive_actions'] ?? []));
+        $this->sensitiveActions = RoleResource::mergeSensitiveActions($data['sensitive_actions'] ?? []);
 
         unset($data['modules'], $data['sensitive_actions']);
 

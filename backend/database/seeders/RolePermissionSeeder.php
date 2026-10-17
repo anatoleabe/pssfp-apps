@@ -21,7 +21,10 @@ final class RolePermissionSeeder extends Seeder
      * Un rôle réglé ici peut donc être relu et ajusté depuis l'admin sans
      * divergence entre les deux chemins.
      *
-     * Idempotent : `findOrCreate` + `syncPermissions`, re-runs sûrs en prod.
+     * Pour une base neuve (dev, tests, première installation) uniquement.
+     * **Ne jamais relancer en prod** : `syncPermissions` écraserait les
+     * réglages faits depuis l'écran Rôles. Toute nouvelle permission arrive en
+     * prod par une migration additive (ex. 2026_10_17_110000_grant_library_permissions).
      */
     public function run(): void
     {
@@ -63,13 +66,13 @@ final class RolePermissionSeeder extends Seeder
             'super_admin' => [
                 'label' => 'Super administrateur',
                 'description' => 'Accès total, y compris réglages, rôles et suppressions définitives.',
-                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage],
+                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage],
                 'sensitive' => array_keys(ModulePermissionMap::sensitiveActions()),
             ],
             'admin' => [
                 'label' => 'Administrateur',
                 'description' => 'Comptes, rôles, campagnes, réglages et exports.',
-                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage],
+                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage],
                 'sensitive' => [
                     'candidature.export_csv',
                     'candidature.mark_depot_physique',
@@ -78,18 +81,19 @@ final class RolePermissionSeeder extends Seeder
                     // réservé à admin et super_admin (arbitrage 3 sept. 2026).
                     'candidature.notify',
                     'campagne.download_resultats',
+                    'document.publish',
                 ],
             ],
             'editor' => [
                 'label' => 'Éditeur',
                 'description' => 'Contenus du site institutionnel : pages, actualités, médiathèque.',
-                'modules' => ['site' => $manage, 'admissions' => $none, 'administration' => $none],
+                'modules' => ['site' => $manage, 'admissions' => $none, 'administration' => $none, 'bibliotheque' => $none],
                 'sensitive' => [],
             ],
             'admission_committee' => [
                 'label' => 'Comité d\'admission',
                 'description' => 'Étude des dossiers de candidature et décisions d\'admission.',
-                'modules' => ['site' => $none, 'admissions' => $manage, 'administration' => $none],
+                'modules' => ['site' => $none, 'admissions' => $manage, 'administration' => $none, 'bibliotheque' => $none],
                 'sensitive' => [
                     'candidature.accept',
                     'candidature.refuse',
@@ -106,14 +110,14 @@ final class RolePermissionSeeder extends Seeder
             'receptionniste' => [
                 'label' => 'Réception scolarité',
                 'description' => 'Pointage des dossiers papier déposés au guichet.',
-                'modules' => ['site' => $none, 'admissions' => $read, 'administration' => $none],
+                'modules' => ['site' => $none, 'admissions' => $read, 'administration' => $none, 'bibliotheque' => $none],
                 'sensitive' => ['candidature.mark_depot_physique'],
             ],
             'librarian' => [
                 'label' => 'Bibliothécaire',
                 'description' => 'Bibliothèque virtuelle et encaissement des frais de dossier.',
-                'modules' => ['site' => $none, 'admissions' => $read, 'administration' => $none],
-                'sensitive' => ['candidature.mark_paid'],
+                'modules' => ['site' => $none, 'admissions' => $read, 'administration' => $none, 'bibliotheque' => $manage],
+                'sensitive' => ['candidature.mark_paid', 'document.publish'],
             ],
             // `teacher` et `auditor` n'ouvrent pas le back-office (cf.
             // User::NON_PANEL_ROLES) : ce sont des rôles d'API et de futurs
@@ -121,13 +125,13 @@ final class RolePermissionSeeder extends Seeder
             'teacher' => [
                 'label' => 'Enseignant',
                 'description' => 'Rôle d\'API — espace enseignant prévu en Phase II. Aucun accès back-office.',
-                'modules' => ['site' => $none, 'admissions' => $none, 'administration' => $none],
+                'modules' => ['site' => $none, 'admissions' => $none, 'administration' => $none, 'bibliotheque' => $none],
                 'sensitive' => [],
             ],
             'auditor' => [
                 'label' => 'Auditeur',
                 'description' => 'Rôle d\'API — espace auditeur prévu en Phase II. Aucun accès back-office.',
-                'modules' => ['site' => $none, 'admissions' => $none, 'administration' => $none],
+                'modules' => ['site' => $none, 'admissions' => $none, 'administration' => $none, 'bibliotheque' => $none],
                 'sensitive' => [],
             ],
         ];
