@@ -742,6 +742,8 @@ Liste complète des partenaires (non paginée).
 
 ## 8. Domaine — Bibliothèque virtuelle
 
+> **V1 livrée (octobre 2026)** — cf. `docs/specs/module-3-bibliotheque-v1-2026-10.md` §5.3. Routes réellement exposées : `GET /v1/library/stats`, `/library/documents` (filtres `type`, `specialite`, `promotion`, `annee_min`, `annee_max`, `langue`, `acces`, `mot_cle`, `tri`), `/library/documents/{slug}` (avec `access` et `related`), `/library/documents/{uuid}/download`, `/library/search?q=`, `/library/mots-cles`, `/library/redirects?path=`. Lecture seule, sans authentification ; favoris, citations et capacité `library:read:restricted` arrivent avec le sous-projet 4.
+
 API consommée par `bibliotheque.pssfp.net`. Cf. CDC bibliothèque v2.0 et data-model.md §8.
 
 ### `GET /v1/library/documents`
