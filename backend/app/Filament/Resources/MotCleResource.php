@@ -67,9 +67,14 @@ class MotCleResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('parent'))
             ->columns([
-                Tables\Columns\TextColumn::make('label.fr')->label('Libellé')->searchable(),
-                Tables\Columns\TextColumn::make('parent.slug')->label('Parent'),
+                // `label.fr` seul se lit comme une relation : état et recherche explicites.
+                Tables\Columns\TextColumn::make('label.fr')->label('Libellé')
+                    ->getStateUsing(fn (MotCle $record): string => $record->getTranslation('label', 'fr', false))
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('label->fr', 'ilike', '%'.$search.'%')),
+                Tables\Columns\TextColumn::make('parent.label')->label('Parent')
+                    ->getStateUsing(fn (MotCle $record): ?string => $record->parent?->getTranslation('label', 'fr', false)),
                 Tables\Columns\TextColumn::make('documents_count')->counts('documents')->label('Documents')->sortable(),
             ])
             ->actions([Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()])

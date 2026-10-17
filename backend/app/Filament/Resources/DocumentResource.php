@@ -13,6 +13,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -55,6 +56,8 @@ class DocumentResource extends Resource
         Document::STATUS_PUBLISHED => 'Publié',
         Document::STATUS_ARCHIVED => 'Archivé',
     ];
+
+    public const ACCESS_MODE_LABELS = ['libre' => 'Libre', 'reserve' => 'Réservé', 'payant' => 'Payant'];
 
     public static function form(Form $form): Form
     {
@@ -132,9 +135,13 @@ class DocumentResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('title.fr')->label('Titre')->searchable()->limit(60),
+                // `title.fr` seul se lit comme une relation : état et recherche explicites.
+                Tables\Columns\TextColumn::make('title.fr')->label('Titre')->limit(60)
+                    ->getStateUsing(fn (Document $record): string => $record->getTranslation('title', 'fr', false))
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('title->fr', 'ilike', '%'.$search.'%')),
                 Tables\Columns\TextColumn::make('type')->label('Type')->formatStateUsing(fn (string $state) => Document::TYPES[$state] ?? $state)->badge(),
                 Tables\Columns\TextColumn::make('access_mode')->label('Accès')->badge()
+                    ->formatStateUsing(fn (string $state) => self::ACCESS_MODE_LABELS[$state] ?? $state)
                     ->color(fn (string $state) => match ($state) {
                         'payant' => 'warning', 'reserve' => 'info', default => 'success'
                     }),
@@ -190,7 +197,7 @@ class DocumentResource extends Resource
 
                         Notification::make()
                             ->title("{$published} document(s) publié(s), {$skipped} ignoré(s)")
-                            ->success()
+                            ->status($published > 0 ? 'success' : 'warning')
                             ->send();
                     })
                     ->deselectRecordsAfterCompletion(),

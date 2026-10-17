@@ -21,7 +21,10 @@ final class RolePermissionSeeder extends Seeder
      * Un rôle réglé ici peut donc être relu et ajusté depuis l'admin sans
      * divergence entre les deux chemins.
      *
-     * Idempotent : `findOrCreate` + `syncPermissions`, re-runs sûrs en prod.
+     * Pour une base neuve (dev, tests, première installation) uniquement.
+     * **Ne jamais relancer en prod** : `syncPermissions` écraserait les
+     * réglages faits depuis l'écran Rôles. Toute nouvelle permission arrive en
+     * prod par une migration additive (ex. 2026_10_17_110000_grant_library_permissions).
      */
     public function run(): void
     {

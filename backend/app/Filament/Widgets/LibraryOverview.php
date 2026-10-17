@@ -14,6 +14,8 @@ class LibraryOverview extends StatsOverviewWidget
 {
     protected static ?int $sort = 40;
 
+    protected static ?string $pollingInterval = '60s';
+
     public static function canView(): bool
     {
         return auth()->user()?->can('view_any_document') ?? false;

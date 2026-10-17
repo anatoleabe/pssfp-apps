@@ -84,3 +84,9 @@ it('masque les widgets aux rôles sans accès bibliothèque', function (): void 
 
     expect(LibraryOverview::canView())->toBeFalse()->and(LibraryZeroResultSearches::canView())->toBeFalse();
 });
+
+it('rafraîchit le tableau de bord bibliothèque toutes les minutes', function (): void {
+    $method = new ReflectionMethod(LibraryOverview::class, 'getPollingInterval');
+
+    expect($method->invoke(new LibraryOverview))->toBe('60s');
+});

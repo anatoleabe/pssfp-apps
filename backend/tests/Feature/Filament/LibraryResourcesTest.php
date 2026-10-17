@@ -9,8 +9,10 @@ use App\Jobs\ProcessDocumentFile;
 use App\Models\Document;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -303,3 +305,49 @@ it('valide slug, lien et champs entiers de la notice', function (array $override
     'pages décimales' => [['pages_count' => '12.5'], 'pages_count'],
     'prix décimal' => [['price_xaf' => '1500.5'], 'price_xaf'],
 ]);
+
+it('affiche le titre français dans la liste', function (): void {
+    $doc = Document::factory()->create(['title' => ['fr' => 'Titre affiché en liste']]);
+    $this->actingAs($this->librarian);
+
+    $this->livewire(ListDocuments::class)
+        ->assertTableColumnStateSet('title.fr', 'Titre affiché en liste', $doc)
+        ->searchTable('affiché en')
+        ->assertCanSeeTableRecords([$doc]);
+});
+
+it('libelle le badge d\'accès en clair', function (array $attrs, string $label): void {
+    $doc = Document::factory()->create($attrs);
+    $this->actingAs($this->librarian);
+
+    $this->livewire(ListDocuments::class)->assertTableColumnFormattedStateSet('access_mode', $label, $doc);
+})->with([
+    'libre' => [[], 'Libre'],
+    'réservé' => [['access_level' => 'auditor'], 'Réservé'],
+    'payant' => [['price_xaf' => 2000], 'Payant'],
+]);
+
+it('avertit quand la publication groupée ne publie rien', function (): void {
+    $draft = Document::factory()->create(['status' => Document::STATUS_DRAFT]);
+    $this->actingAs($this->librarian);
+
+    $this->livewire(ListDocuments::class)
+        ->callTableBulkAction('publierLot', collect([$draft]))
+        ->assertNotified(Notification::make()->title('0 document(s) publié(s), 1 ignoré(s)')->warning());
+});
+
+it('trace la publication dans le journal d\'activité', function (): void {
+    $doc = Document::factory()->withFile()->create(['status' => Document::STATUS_IN_REVIEW]);
+    $this->actingAs($this->librarian);
+
+    $this->livewire(ListDocuments::class)->callTableAction('publier', $doc);
+
+    $entry = Activity::query()
+        ->where('subject_type', $doc->getMorphClass())->where('subject_id', $doc->id)
+        ->where('event', 'updated')->latest('id')->first();
+
+    expect($entry)->not->toBeNull()
+        ->and($entry->causer_id)->toBe($this->librarian->id)
+        ->and($entry->properties['attributes']['status'])->toBe(Document::STATUS_PUBLISHED)
+        ->and($entry->properties['old']['status'])->toBe(Document::STATUS_IN_REVIEW);
+});
