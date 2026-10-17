@@ -523,6 +523,16 @@ test.describe('Recherche — navigation dans les résultats (réponses simulées
     expect(await box.evaluate((el) => getComputedStyle(el).borderTopColor).then(contrastOnWhite)).toBeGreaterThanOrEqual(3);
   });
 
+  test('invite : puces de collections avec un contour au repos ≥ 3:1', async ({ page }) => {
+    await page.goto('/recherche');
+    // Seules les puces ont un contour (les suggestions sont des liens soulignés).
+    const borders = await page.getByTestId('search-invite').getByRole('link').evaluateAll((els) =>
+      els.map((el) => getComputedStyle(el)).filter((st) => st.borderTopWidth !== '0px').map((st) => st.borderTopColor),
+    );
+    expect(borders.length).toBeGreaterThan(0);
+    for (const border of borders) expect(borderContrast(border), border).toBeGreaterThanOrEqual(3);
+  });
+
   test('puces de portée : contour au repos ≥ 3:1', async ({ page }) => {
     await page.route(SEARCH_ROUTE, fulfillMock);
     await page.goto('/recherche?q=budget&type=memoire&acces=libre');

@@ -368,6 +368,31 @@ test.describe('Collections — données de l\'API', () => {
     expect(top).toBeLessThan(700);
   });
 
+  test('Retour sans changement de paramètres puis pagination : le titre est bien amené dans la fenêtre', async ({ page }) => {
+    test.skip(memoires!.meta.last_page < 2, 'une seule page de mémoires');
+    await page.setViewportSize({ width: 1280, height: 700 });
+    await page.goto(URL_MEMOIRES);
+    // Entrée d'historique de même query (ancre), puis Retour : `popstate` sans changement de paramètres.
+    const before = await page.evaluate(() => history.length);
+    await page.evaluate(() => history.pushState(history.state, '', `${location.pathname}${location.search}#resultats`));
+    await expect.poll(() => page.evaluate(() => history.length)).toBe(before + 1);
+    await page.goBack();
+    await expect(page).toHaveURL(new RegExp(`${URL_MEMOIRES}$`));
+
+    const pagination = page.getByRole('navigation', { name: 'Pagination' });
+    await pagination.getByRole('link', { name: 'Page 2', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/page=2$/);
+    await expect(page.locator('#results-title')).toBeFocused();
+    // Navigation par lien (pas par l'historique) : le focus fait défiler jusqu'au titre.
+    const { top, header } = await page.evaluate(() => ({
+      top: document.getElementById('results-title')?.getBoundingClientRect().top ?? -1,
+      header: document.querySelector('[data-testid="site-header"]')?.getBoundingClientRect().height ?? 0,
+    }));
+    expect(top).toBeGreaterThanOrEqual(header - 1);
+    expect(top).toBeLessThan(700);
+  });
+
   test('page au-delà de la dernière : état « page inexistante » et lien vers la page 1', async ({ page }) => {
     const beyond = memoires!.meta.last_page + 1;
     const res = await page.goto(`${URL_MEMOIRES}?acces=libre&page=${beyond}`);

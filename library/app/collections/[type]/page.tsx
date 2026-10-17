@@ -61,9 +61,11 @@ const RESULTS_GRID = 'grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-
 /**
  * Collection filtrable (maquette B) : filtres GET à gauche (tiroir `<details>` sur mobile),
  * résultats paginés à droite. Page dynamique (lecture de `searchParams`) : pas d'ISR de la page,
- * seuls les appels à l'API passent par le cache de données (5 min, 1 h pour les mots-clés). La liste des documents est indispensable : `unwrapOrThrow` lève une
- * exception en cas d'échec (l'ISR conserve alors la dernière version valide, sinon `app/error.tsx`).
- * Les mots-clés, eux, sont facultatifs (voir plus bas).
+ * seuls les appels à l'API passent par le cache de données (5 min, 1 h pour les mots-clés).
+ * La liste des documents est indispensable : `unwrapOrThrow` lève une exception en cas d'échec,
+ * rendue par `app/error.tsx` (aucune version antérieure de la page n'est conservée, faute d'ISR ;
+ * une réponse d'API encore dans le cache de données reste servie). Les mots-clés, eux, sont
+ * facultatifs (voir plus bas).
  */
 export default async function CollectionPage(props: CollectionPageProps): Promise<JSX.Element> {
   const { type, filters, page } = readRequest(props);

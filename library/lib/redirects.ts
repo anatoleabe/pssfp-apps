@@ -2,8 +2,8 @@
  * Validation des redirections d'anciennes URL (fonctions pures, utilisables par le middleware edge).
  */
 
-/** Chemin interne : `/x`, jamais `//hôte` ni `/\hôte` (hôte externe pour le navigateur). */
-const INTERNAL_PATH = /^\/(?![/\\])/;
+/** Chemin interne : `/x`, jamais `//hôte` (hôte externe pour le navigateur). */
+const INTERNAL_PATH = /^\/(?!\/)/;
 
 /**
  * Caractères de contrôle (C0 et DEL) : le parseur d'URL supprime tabulations et retours à la ligne,
@@ -13,15 +13,26 @@ const INTERNAL_PATH = /^\/(?![/\\])/;
 const CONTROL_CHARS = /[\u0000-\u001F\u007F]/;
 
 /**
- * Cible de redirection sûre, résolue contre l'URL demandée ; `null` si elle sort du site.
- * Double garde : forme du chemin, puis origine identique une fois l'URL construite.
+ * Segment `.` ou `..`, y compris encodé (`%2e`, sans casse), suivi de `/`, `?`, `#` ou de la fin.
+ * `new URL('/a/..//evil.com', base)` donne le chemin `//evil.com` (même origine !), que Next 14.2
+ * relativise ensuite en `Location: //evil.com` : le navigateur part sur evil.com.
+ * Même règle que `LibraryRedirect::isSafeTarget` et la contrainte CHECK de `library_redirects`.
+ */
+const DOT_SEGMENT = /(^|\/)(\.|%2e){1,2}([/?#]|$)/i;
+
+/**
+ * Cible de redirection sûre, résolue contre l'URL demandée ; `null` si elle peut sortir du site.
+ * Triple garde : forme de la chaîne (contrôle, barre inverse, `//`, segments points), même origine
+ * une fois l'URL construite, chemin normalisé ni `//…` ni `\`. La cible renvoyée est reconstruite
+ * à partir du chemin et de la query normalisés (jamais la chaîne brute, jamais de fragment).
  */
 export function safeRedirectTarget(to: unknown, base: URL | string): URL | null {
-  if (typeof to !== 'string' || CONTROL_CHARS.test(to) || !INTERNAL_PATH.test(to)) return null;
+  if (typeof to !== 'string' || CONTROL_CHARS.test(to) || to.includes('\\') || !INTERNAL_PATH.test(to) || DOT_SEGMENT.test(to)) return null;
   try {
     const origin = new URL(base).origin;
-    const dest = new URL(to, base);
-    return dest.origin === origin ? dest : null;
+    const dest = new URL(to, origin);
+    if (dest.origin !== origin || dest.pathname.startsWith('//') || dest.pathname.includes('\\')) return null;
+    return new URL(`${dest.pathname}${dest.search}`, origin);
   } catch {
     return null;
   }

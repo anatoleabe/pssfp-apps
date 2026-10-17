@@ -31,10 +31,25 @@ test.describe('Anciennes URL — validation (fonctions pures)', () => {
 
   test('seul un chemin interne du même site est accepté', () => {
     expect(safeRedirectTarget('/ok', BASE)?.href).toBe('https://bibliotheque.pssfp.org/ok');
+    expect(safeRedirectTarget('/collections/texte_loi', BASE)?.href).toBe('https://bibliotheque.pssfp.org/collections/texte_loi');
+    expect(safeRedirectTarget('/documents/x?y=1', BASE)?.href).toBe('https://bibliotheque.pssfp.org/documents/x?y=1');
     expect(safeRedirectTarget('/collections/memoire?acces=libre', BASE)?.href).toBe('https://bibliotheque.pssfp.org/collections/memoire?acces=libre');
-    for (const to of ['/\t/evil.com', '//evil.com', '/\\evil', '/\\/evil.com', 'https://evil.com/x', 'evil.com', '', '/ok\r\nSet-Cookie: x=1', '/ok\u0000', '/ok\u007F']) {
-      expect(safeRedirectTarget(to, BASE), JSON.stringify(to)).toBeNull();
-    }
+    // Points non isolés : pas des segments de chemin.
+    expect(safeRedirectTarget('/documents/rapport-v1.2', BASE)?.pathname).toBe('/documents/rapport-v1.2');
+    expect(safeRedirectTarget('/documents/a...b', BASE)?.pathname).toBe('/documents/a...b');
+    // Cible reconstruite (chemin + query) : jamais la chaîne brute, jamais de fragment.
+    expect(safeRedirectTarget('/documents/x?y=1#z', BASE)?.href).toBe('https://bibliotheque.pssfp.org/documents/x?y=1');
+  });
+
+  test('cibles piégées refusées (contrôle, barre inverse, //, segments . et .. même encodés)', () => {
+    const traps = [
+      '/\t/evil.com', '//evil.com', '/\\evil', '/\\/evil.com', 'https://evil.com/x', 'evil.com', '',
+      '/ok\r\nSet-Cookie: x=1', '/ok\u0000', '/ok\u007F',
+      // `new URL` normalise ces chemins en `//evil.com` (même origine), que Next relativise en `Location: //evil.com`.
+      '/a/..//evil.com', '/%2e%2e//evil.com', '/./\\evil.com', '/x/../\\evil.com',
+      '/%2e/x', '/a/%2E%2E/b', '/a/.', '/a/..?x=1', '/collections\\memoire',
+    ];
+    for (const to of traps) expect(safeRedirectTarget(to, BASE), JSON.stringify(to)).toBeNull();
     expect(safeRedirectTarget(42, BASE)).toBeNull();
     expect(safeRedirectTarget(null, BASE)).toBeNull();
   });
@@ -89,6 +104,8 @@ test.describe('Anciennes URL — redirections de l\'API', () => {
 
   test('ancienne URL /index.php?… : la query string sert à la recherche de la redirection', async ({ request }) => {
     const known = await request.get(`${API}/library/redirects?path=${encodeURIComponent(LEGACY_QUERY_PATH)}`, { timeout: 3000 }).catch(() => null);
+    // 429 : échec explicite, comme les autres specs (jamais un test ignoré à tort).
+    if (known?.status() === 429) throw new Error(THROTTLED_MESSAGE);
     test.skip(known === null || !known.ok(), 'redirection à query string absente (relancer LibraryDemoSeeder)');
     const res = await request.get(LEGACY_QUERY_PATH, { maxRedirects: 0 });
     expect(res.status()).toBe(301);
