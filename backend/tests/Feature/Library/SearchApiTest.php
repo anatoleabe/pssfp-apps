@@ -9,6 +9,7 @@ use App\Services\Library\Search\DocumentSearch;
 use App\Services\Library\Search\FallbackDocumentSearch;
 use App\Services\Library\Search\SearchResult;
 use GuzzleHttp\Psr7\Response;
+use Illuminate\Support\Facades\Log;
 use Meilisearch\Exceptions\ApiException;
 use Meilisearch\Exceptions\CommunicationException;
 
@@ -81,3 +82,29 @@ it('laisse remonter une erreur 4xx de Meilisearch mais se replie sur une 5xx', f
 
     $this->getJson('/v1/library/search?q=marches')->assertStatus($expected);
 })->with([[400, 500], [503, 200]]);
+
+it('se replie sur la base si l\'index Meilisearch est absent, et le journalise en erreur', function (string $code, int $status, int $expected): void {
+    Document::factory()->published()->create(['title' => ['fr' => 'Marchés publics']]);
+    Log::spy();
+    $api = new class($code, $status) implements DocumentSearch
+    {
+        public function __construct(private string $code, private int $status) {}
+
+        public function search(string $q, array $filters, int $page, int $perPage): SearchResult
+        {
+            throw new ApiException(new Response($this->status), ['message' => 'Index `documents` not found.', 'code' => $this->code, 'type' => 'invalid_request', 'link' => 'x']);
+        }
+    };
+    app()->instance(DocumentSearch::class, new FallbackDocumentSearch($api, new DatabaseDocumentSearch));
+
+    $response = $this->getJson('/v1/library/search?q=marches')->assertStatus($expected);
+
+    if ($expected === 200) {
+        $response->assertJsonPath('meta.total', 1);
+        Log::shouldHaveReceived('error')->once()->withArgs(fn (string $message, array $context): bool => ($context['code'] ?? null) === 'index_not_found');
+    }
+})->with([
+    'index absent' => ['index_not_found', 404, 200],
+    'autre 404' => ['document_not_found', 404, 500],
+    '400' => ['invalid_search_filter', 400, 500],
+]);
