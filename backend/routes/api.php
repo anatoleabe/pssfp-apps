@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\Applications\QrCandidatureController;
 use App\Http\Controllers\Api\Articles\ArticleController;
 use App\Http\Controllers\Api\Auth\AuthCandidatController;
 use App\Http\Controllers\Api\Contact\ContactController;
+use App\Http\Controllers\Api\Library\CatalogueController;
+use App\Http\Controllers\Api\Library\DocumentController as LibraryDocumentController;
 use App\Http\Controllers\Api\Pages\PageController;
 use App\Http\Controllers\Api\Reference\ReferenceController;
 use App\Http\Controllers\HealthController;
@@ -153,6 +155,18 @@ Route::get('/menu', [PageController::class, 'menu'])->name('menu');
 Route::prefix('articles')->name('articles.')->group(function (): void {
     Route::get('/', [ArticleController::class, 'index'])->name('index');
     Route::get('/{slug}', [ArticleController::class, 'show'])->name('show');
+});
+
+/*
+ * Bibliothèque virtuelle (Module 3 V1 — docs/specs/module-3-bibliotheque-v1-2026-10.md §5.3).
+ * Lecture seule et sans authentification en V1.
+ */
+Route::prefix('library')->name('library.')->group(function (): void {
+    Route::get('/stats', [CatalogueController::class, 'stats'])->name('stats');
+    Route::get('/mots-cles', [CatalogueController::class, 'motsCles'])->name('mots-cles');
+    Route::get('/redirects', [CatalogueController::class, 'redirect'])->name('redirects');
+    Route::get('/documents', [LibraryDocumentController::class, 'index'])->name('documents.index');
+    Route::get('/documents/{slug}', [LibraryDocumentController::class, 'show'])->name('documents.show');
 });
 
 /*
