@@ -86,7 +86,10 @@ class DocumentResource extends Resource
             Forms\Components\Section::make('Fichier et accès')->columns(2)->schema([
                 Forms\Components\FileUpload::make('file_path')->label('PDF')
                     ->disk((string) config('library.documents_disk'))->directory('documents')->visibility('private')
-                    ->acceptedFileTypes(['application/pdf'])->maxSize(204800)->columnSpanFull(),
+                    ->acceptedFileTypes(['application/pdf'])->maxSize(204800)->columnSpanFull()
+                    // Pas de HeadObject en prod : sans ce réglage, Filament croit le
+                    // PDF absent à l'ouverture et l'efface à l'enregistrement.
+                    ->fetchFileInformation(false),
                 Forms\Components\TextInput::make('external_url')->label('Ou lien externe')->url()->maxLength(500)->columnSpanFull(),
                 Forms\Components\Select::make('access_level')->label('Niveau d\'accès')->options(Document::ACCESS_LEVELS)->default('public')->required(),
                 Forms\Components\TextInput::make('price_xaf')->label('Prix (FCFA)')->numeric()->minValue(1)

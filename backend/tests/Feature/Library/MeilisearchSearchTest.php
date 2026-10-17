@@ -2,10 +2,18 @@
 
 declare(strict_types=1);
 
+use App\Filament\Resources\DocumentResource\Pages\EditDocument;
+use App\Jobs\ProcessDocumentFile;
 use App\Models\Document;
+use App\Models\MotCle;
+use App\Models\User;
+use App\Services\Library\Files\CoverRenderer;
 use App\Services\Library\Search\MeilisearchDocumentSearch;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Meilisearch\Client;
 use Meilisearch\Contracts\TasksQuery;
 
@@ -97,4 +105,65 @@ it('ne renvoie pas un document dépublié encore présent dans l\'index', functi
     $result = (new MeilisearchDocumentSearch)->search('audit', [], 1, 20);
 
     expect($result->documents)->toHaveCount(0);
+});
+
+it('n\'indexe pas un brouillon après le traitement de son fichier', function (): void {
+    Storage::fake('minio_documents');
+    Storage::fake('minio_media');
+    Storage::disk('minio_documents')->put('documents/brouillon.pdf', '%PDF-1.4 brouillon');
+    app()->instance(CoverRenderer::class, new class implements CoverRenderer
+    {
+        public function render(string $pdfPath): ?string
+        {
+            return null;
+        }
+    });
+    Document::factory()->published()->create(['title' => ['fr' => 'Fiscalité locale publiée']]);
+    $draft = Document::withoutEvents(fn () => Document::factory()->create([
+        'title' => ['fr' => 'Fiscalité locale en brouillon'],
+        'file_path' => 'documents/brouillon.pdf',
+    ]));
+
+    (new ProcessDocumentFile($draft->id))->handle(app(CoverRenderer::class));
+    meiliIdle();
+
+    $result = (new MeilisearchDocumentSearch)->search('fiscalite', [], 1, 20);
+
+    expect($result->total)->toBe(1)
+        ->and($result->documents->pluck('id')->all())->not->toContain($draft->id)
+        ->and($result->highlights)->not->toHaveKey($draft->uuid)
+        ->and($result->highlights)->toHaveCount(1);
+});
+
+it('ne surligne que les documents renvoyés', function (): void {
+    $doc = Document::factory()->published()->create(['title' => ['fr' => 'Contrôle budgétaire retiré']]);
+    meiliIdle();
+    Document::withoutSyncingToSearch(fn () => $doc->update(['status' => Document::STATUS_ARCHIVED]));
+
+    $result = (new MeilisearchDocumentSearch)->search('budgetaire', [], 1, 20);
+
+    expect($result->documents)->toHaveCount(0)
+        ->and($result->highlights)->toBe([]);
+});
+
+it('réindexe un document publié avec ses mots-clés après l\'édition Filament', function (): void {
+    Bus::fake([ProcessDocumentFile::class]);
+    config()->set('pssfp.filament.require_2fa', false);
+    $this->seed([RolePermissionSeeder::class]);
+    $librarian = User::factory()->create();
+    $librarian->assignRole('librarian');
+    $motCle = MotCle::query()->create(['slug' => 'dette-publique', 'label' => ['fr' => 'Dette publique']]);
+    $doc = Document::factory()->published()->create(['title' => ['fr' => 'Soutenabilité de la dette']]);
+    meiliIdle();
+
+    $this->actingAs($librarian);
+    $this->livewire(EditDocument::class, ['record' => $doc->getRouteKey()])
+        ->fillForm(['motsCles' => [$motCle->id]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+    meiliIdle();
+
+    $result = (new MeilisearchDocumentSearch)->search('dette', ['mot_cle' => 'dette-publique'], 1, 20);
+
+    expect($result->documents->pluck('id')->all())->toBe([$doc->id]);
 });

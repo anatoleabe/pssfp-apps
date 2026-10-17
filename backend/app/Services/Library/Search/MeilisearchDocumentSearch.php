@@ -33,9 +33,13 @@ final class MeilisearchDocumentSearch implements DocumentSearch
         $documents = Document::query()->published()->with(['authors', 'motsCles'])->whereIn('id', $ids)->get()
             ->sortBy(fn (Document $d): int|false => array_search($d->id, $ids, true))->values();
 
+        // Un document dépublié encore indexé ne doit pas fuiter par son titre surligné.
+        $returned = $documents->pluck('uuid')->flip();
         $highlights = [];
         foreach ($raw['hits'] as $hit) {
-            $highlights[$hit['uuid']] = self::highlight($hit['_formatted']['title'] ?? $hit['title']);
+            if ($returned->has($hit['uuid'])) {
+                $highlights[$hit['uuid']] = self::highlight($hit['_formatted']['title'] ?? $hit['title']);
+            }
         }
 
         return new SearchResult($documents, (int) ($raw['totalHits'] ?? 0), $raw['facetDistribution'] ?? [], $highlights);

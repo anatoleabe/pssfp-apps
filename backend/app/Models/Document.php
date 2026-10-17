@@ -164,6 +164,17 @@ class Document extends Model
         return $this->isPublished() && ! $this->trashed();
     }
 
+    /**
+     * Met l'index en phase après l'enregistrement des relations (auteurs,
+     * mots-clés), que Filament sauvegarde après le document lui-même à la création.
+     */
+    public function syncSearchIndex(): void
+    {
+        $this->load(['authors', 'motsCles']);
+
+        $this->shouldBeSearchable() ? $this->searchable() : $this->unsearchable();
+    }
+
     /** @return array<string, mixed> */
     public function toSearchableArray(): array
     {

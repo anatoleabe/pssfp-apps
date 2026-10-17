@@ -57,7 +57,8 @@ return [
     |
     */
 
-    'after_commit' => false,
+    // Bibliothèque : n'indexer qu'après validation de la transaction.
+    'after_commit' => true,
 
     /*
     |--------------------------------------------------------------------------

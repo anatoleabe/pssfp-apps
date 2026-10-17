@@ -94,6 +94,9 @@ final class ProcessDocumentFile implements ShouldQueue
         }
 
         Document::withoutEvents(fn () => $document->forceFill($attributes)->save());
-        $document->searchable();
+
+        // searchable() seul ne consulte pas shouldBeSearchable() : sans ce garde,
+        // un brouillon avec PDF partirait dans l'index public.
+        $document->syncSearchIndex();
     }
 }

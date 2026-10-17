@@ -140,6 +140,8 @@ Mobile d'abord (320 px sans défilement horizontal), charte ADR-0008, composants
 
 Nouveau processus pm2 `pssfp-library` (port 6002, à ajouter dans la copie locale de prod de `ecosystem.config.js`), vhost nginx + certificat, Meilisearch sur le VPS (service local, clé maître en `.env`), bucket `pssfp-documents`, `poppler-utils`. Séquence manuelle habituelle, sauvegarde de la base avant toute migration.
 
+**Limites d'envoi (PDF jusqu'à 200 Mo)** : Livewire dépose les envois temporaires sur le disque local (`config/livewire.php`, règle `max:204800`, 15 minutes d'envoi au plus). Aligner sur le VPS : PHP-FPM `upload_max_filesize = 200M` et `post_max_size = 210M`, nginx `client_max_body_size 210m;` dans le vhost `api` (sinon erreur 413 avant Laravel).
+
 ## 9. Tests
 
 - **Pest** : matrice `DocumentAccess` (5 raisons, dont `paid`), contrôleur de téléchargement (refus, journalisation, URL signée), filtres et tri de la liste, proxy de recherche (driver Scout `collection`), résolution des redirections, commande d'import sur un jeu d'essai fictif (idempotence, doublons, fichier manquant), permissions Filament.

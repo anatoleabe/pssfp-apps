@@ -16,4 +16,11 @@ class CreateDocument extends CreateRecord
     {
         return [...$data, 'status' => Document::STATUS_DRAFT, 'uploaded_by' => auth()->id()];
     }
+
+    protected function afterCreate(): void
+    {
+        /** @var Document $document */
+        $document = $this->getRecord();
+        $document->syncSearchIndex();
+    }
 }
