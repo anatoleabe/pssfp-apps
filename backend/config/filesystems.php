@@ -93,6 +93,7 @@ return [
             'bucket' => 'pssfp-media',
             // URL publique des médias (prod : https://media.pssfp.org/pssfp-media).
             // Absente en dev : Laravel retombe sur l'endpoint MinIO.
+            // Attention : change aussi les URL publiques des Asset et de CampagneCandidature.
             'url' => env('MINIO_MEDIA_PUBLIC_URL'),
             'endpoint' => env('MINIO_ENDPOINT', 'http://127.0.0.1:9000'),
             'use_path_style_endpoint' => env('MINIO_USE_PATH_STYLE_ENDPOINT', true),

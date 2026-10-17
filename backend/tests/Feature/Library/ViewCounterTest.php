@@ -43,3 +43,16 @@ it('n\'incrémente plus les consultations à la lecture de la fiche', function (
 
     expect($doc->fresh()->views_count)->toBe(0);
 });
+
+it('accepte une consultation envoyée depuis un domaine stateful (sans CSRF)', function (): void {
+    $doc = Document::factory()->published()->create();
+
+    // Le middleware CSRF est neutralisé en environnement « testing » : on le réactive.
+    app()->detectEnvironment(fn () => 'local');
+
+    $this->withHeaders(['Origin' => 'http://localhost:6002', 'Referer' => 'http://localhost:6002/documents/x'])
+        ->postJson("/v1/library/documents/{$doc->uuid}/view")
+        ->assertNoContent();
+
+    expect($doc->fresh()->views_count)->toBe(1);
+});

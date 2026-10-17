@@ -25,6 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
         $middleware->validateCsrfTokens(except: [
             // Endpoints publics dépourvus de CSRF (Sanctum couvre les requêtes stateful)
+            // Consultation d'une fiche : anonyme, idempotente par IP et par heure, limitée en débit.
+            'v1/library/documents/*/view',
         ]);
 
         $middleware->api(prepend: [

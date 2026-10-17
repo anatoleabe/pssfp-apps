@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use App\Models\Document;
 use App\Models\LibraryRedirect;
 use App\Models\MotCle;
+use Illuminate\Database\Eloquent\Factories\Sequence;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
@@ -18,8 +19,8 @@ final class LibraryDemoSeeder extends Seeder
 {
     public function run(): void
     {
-        if (app()->isProduction()) {
-            throw new RuntimeException('LibraryDemoSeeder est interdit en production.');
+        if (! app()->environment(['local', 'testing'])) {
+            throw new RuntimeException('LibraryDemoSeeder est réservé aux environnements local et testing.');
         }
 
         $motsCles = collect(['fiscalite' => 'Fiscalité', 'marches-publics' => 'Marchés publics', 'decentralisation' => 'Décentralisation', 'audit' => 'Audit et contrôle', 'budget' => 'Budget de l\'État'])
@@ -27,14 +28,19 @@ final class LibraryDemoSeeder extends Seeder
 
         $types = ['memoire' => 12, 'these' => 4, 'texte_loi' => 6, 'ouvrage_numerique' => 5, 'cours' => 3, 'article_scientifique' => 4];
         foreach ($types as $type => $count) {
-            Document::factory()->published()->count($count)->create(['type' => $type, 'promotion' => $type === 'memoire' ? fake()->numberBetween(1, 13) : null])
+            Document::factory()->published()->count($count)
+                ->state(new Sequence(fn (Sequence $s) => [
+                    'type' => $type,
+                    'promotion' => $type === 'memoire' ? fake()->numberBetween(1, 13) : null,
+                ]))
+                ->create()
                 ->each(function (Document $doc) use ($motsCles, $type): void {
                     $doc->authors()->create(['author_name' => fake()->name(), 'order' => 1]);
                     $doc->motsCles()->attach($motsCles->random(2)->pluck('id'));
-                    $doc->update(['views_count' => fake()->numberBetween(0, 900)]);
-                    if ($type === 'cours') {
-                        $doc->update(['access_level' => 'auditor']);
-                    }
+                    $doc->update([
+                        'views_count' => fake()->numberBetween(0, 900),
+                        ...($type === 'cours' ? ['access_level' => 'auditor'] : []),
+                    ]);
                 });
         }
 
