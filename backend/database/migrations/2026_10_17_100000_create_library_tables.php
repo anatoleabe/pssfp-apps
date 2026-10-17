@@ -111,7 +111,7 @@ return new class extends Migration
             $table->string('query', 255);
             $table->jsonb('filters')->nullable();
             $table->integer('results_count');
-            $table->ipAddress('ip')->nullable();
+            // Pas d'adresse IP : la finalité (recherches sans résultat) n'en a pas besoin.
             $table->timestampTz('searched_at')->useCurrent()->index();
         });
 

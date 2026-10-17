@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Library\Files;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /** Rendu de couverture via poppler-utils (`pdftoppm`), 600 px de large. */
@@ -25,14 +27,24 @@ final class PdftoppmCoverRenderer implements CoverRenderer
             ]);
 
             if (! $result->successful() || ! is_file($output)) {
+                Log::warning('Bibliothèque : couverture non rendue (pdftoppm)', [
+                    'exit_code' => $result->exitCode(),
+                    'stderr' => Str::limit(trim($result->errorOutput()), 500),
+                ]);
+
                 return null;
             }
 
             $bytes = file_get_contents($output);
 
             return $bytes === false || $bytes === '' ? null : $bytes;
-        } catch (RuntimeException) {
+        } catch (RuntimeException $e) {
             // Délai dépassé ou échec du processus : contrat « null en cas d'échec ».
+            Log::warning('Bibliothèque : couverture non rendue (pdftoppm)', [
+                'exception' => $e::class,
+                'error' => Str::limit($e->getMessage(), 500),
+            ]);
+
             return null;
         } finally {
             @unlink($prefix);

@@ -42,7 +42,6 @@ final class SearchController extends Controller
             'query' => mb_substr($data['q'], 0, 255),
             'filters' => $filters !== [] ? $filters : null,
             'results_count' => $result->total,
-            'ip' => $request->ip(),
             'searched_at' => now(),
         ]);
 

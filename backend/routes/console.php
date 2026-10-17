@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\DocumentDownload;
+use App\Models\SearchLog;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -21,4 +23,9 @@ Schedule::command('scout:import', ['App\\Models\\Document'])
 Schedule::command('library:check-index')
     ->weeklyOn(0, '04:30')
     ->when(fn (): bool => config('scout.driver') === 'meilisearch')
+    ->withoutOverlapping();
+
+// RGPD (spec V1 §5.1) : recherches purgées à 90 jours, téléchargements à 180 jours.
+Schedule::command('model:prune', ['--model' => [SearchLog::class, DocumentDownload::class]])
+    ->dailyAt('02:00')
     ->withoutOverlapping();

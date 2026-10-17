@@ -93,3 +93,12 @@ describe('avec Meilisearch', function (): void {
         );
     });
 });
+
+it('échoue proprement quand Meilisearch est injoignable', function (): void {
+    config(['scout.driver' => 'meilisearch', 'scout.meilisearch.host' => 'http://127.0.0.1:1', 'scout.prefix' => 'test_']);
+    Log::spy();
+
+    $this->artisan('library:check-index')->expectsOutputToContain('Meilisearch')->assertExitCode(1);
+
+    Log::shouldHaveReceived('warning')->once();
+});

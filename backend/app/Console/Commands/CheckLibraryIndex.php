@@ -8,6 +8,8 @@ use App\Models\Document;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Meilisearch\Client;
+use Meilisearch\Exceptions\ApiException;
+use Meilisearch\Exceptions\CommunicationException;
 
 /** Compare les documents publiés en base avec l'index Meilisearch (spec V1 §5.4). */
 final class CheckLibraryIndex extends Command
@@ -25,7 +27,16 @@ final class CheckLibraryIndex extends Command
         }
 
         $database = Document::query()->published()->count();
-        $indexed = (int) (new Client(config('scout.meilisearch.host'), config('scout.meilisearch.key')))->index((new Document)->searchableAs())->stats()['numberOfDocuments'];
+
+        try {
+            $indexed = (int) (new Client(config('scout.meilisearch.host'), config('scout.meilisearch.key')))
+                ->index((new Document)->searchableAs())->stats()['numberOfDocuments'];
+        } catch (ApiException|CommunicationException $e) {
+            Log::warning('Contrôle de l\'index bibliothèque impossible.', ['exception' => $e::class, 'error' => $e->getMessage()]);
+            $this->error('Meilisearch injoignable ou index absent : '.$e->getMessage());
+
+            return self::FAILURE;
+        }
 
         $this->line("Base : {$database} · Index : {$indexed}");
 

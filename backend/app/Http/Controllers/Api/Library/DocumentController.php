@@ -38,7 +38,7 @@ final class DocumentController extends Controller
         $query = Document::query()->published()
             ->with(['authors', 'motsCles'])
             ->tap(fn (Builder $q) => self::applyFilters($q, $filters))
-            ->orderBy($column, $direction)
+            ->tap(fn (Builder $q) => self::orderNullsLast($q, $column, $direction))
             ->orderBy('id');
 
         $perPage = min((int) ($filters['per_page'] ?? config('library.per_page')), (int) config('library.max_per_page'));
@@ -82,6 +82,18 @@ final class DocumentController extends Controller
     }
 
     /**
+     * Tri sans valeur en dernier (PostgreSQL les place en tête en DESC).
+     *
+     * Seul fragment SQL écrit à la main : le constructeur de requêtes n'expose
+     * pas NULLS LAST. Colonne et sens viennent de config('library.sorts'),
+     * jamais de la requête HTTP.
+     */
+    private static function orderNullsLast(Builder $query, string $column, string $direction): void
+    {
+        $query->orderByRaw($query->getQuery()->getGrammar()->wrap($column).($direction === 'desc' ? ' DESC' : ' ASC').' NULLS LAST');
+    }
+
+    /**
      * Même type, mots-clés communs en priorité, 4 au plus.
      *
      * @return Collection<int, Document>
@@ -94,10 +106,9 @@ final class DocumentController extends Controller
             ->with(['authors', 'motsCles'])
             ->where('id', '!=', $document->id)
             ->where('type', $document->type)
-            ->when($motCleIds->isNotEmpty(), fn (Builder $q) => $q->orderByRaw(
-                'EXISTS (SELECT 1 FROM document_mot_cle dmc WHERE dmc.document_id = documents.id AND dmc.mot_cle_id IN ('
-                .$motCleIds->map(fn ($id): int => (int) $id)->implode(',').')) DESC'
-            ))
+            ->when($motCleIds->isNotEmpty(), fn (Builder $q) => $q
+                ->withExists(['motsCles as shares_mot_cle' => fn (Builder $m) => $m->whereIn('mots_cles.id', $motCleIds)])
+                ->orderByDesc('shares_mot_cle'))
             ->orderByDesc('views_count')
             ->limit(4)
             ->get();

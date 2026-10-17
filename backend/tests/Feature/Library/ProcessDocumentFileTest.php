@@ -8,6 +8,7 @@ use App\Services\Library\Files\CoverRenderer;
 use App\Services\Library\Files\PdftoppmCoverRenderer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
@@ -149,4 +150,33 @@ it('supprime le fichier temporaire même si le rendu lève une exception', funct
     }))->toThrow(RuntimeException::class);
 
     expect(array_diff(glob(sys_get_temp_dir().'/doc*') ?: [], $avant))->toBe([]);
+});
+
+it('journalise le code de sortie et la sortie d\'erreur tronquée de pdftoppm', function (): void {
+    Process::fake(['*' => Process::result(output: '', errorOutput: str_repeat('Syntax Error: ', 100), exitCode: 99)]);
+    Log::spy();
+
+    expect((new PdftoppmCoverRenderer)->render('/tmp/inexistant.pdf'))->toBeNull();
+
+    Log::shouldHaveReceived('warning')->once()->withArgs(
+        fn (string $message, array $context): bool => $context['exit_code'] === 99
+            && str_starts_with($context['stderr'], 'Syntax Error')
+            && mb_strlen($context['stderr']) <= 503
+    );
+});
+
+it('journalise l\'échec du processus pdftoppm', function (): void {
+    Process::fake(['*' => fn () => throw new ProcessTimedOutException(new SymfonyProcess(['pdftoppm']), 1)]);
+    Log::spy();
+
+    expect((new PdftoppmCoverRenderer)->render('/tmp/inexistant.pdf'))->toBeNull();
+
+    Log::shouldHaveReceived('warning')->once()->withArgs(
+        // Laravel rehausse l'exception Symfony en Illuminate\Process\Exceptions\ProcessTimedOutException.
+        fn (string $message, array $context): bool => $context['exception'] === Illuminate\Process\Exceptions\ProcessTimedOutException::class
+    );
+});
+
+it('s\'arrête avant le délai de reprise de la file Redis', function (): void {
+    expect((new ProcessDocumentFile(1))->timeout)->toBeLessThan((int) config('queue.connections.redis.retry_after'));
 });

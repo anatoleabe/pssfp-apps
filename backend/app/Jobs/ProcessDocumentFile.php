@@ -29,7 +29,11 @@ final class ProcessDocumentFile implements ShouldQueue
 
     public int $tries = 2;
 
-    public int $timeout = 180;
+    /**
+     * Sous le `retry_after` de la file Redis (90 s, config/queue.php) : au-delà,
+     * le job serait relancé alors qu'il tourne encore. pdftoppm est borné à 60 s.
+     */
+    public int $timeout = 85;
 
     public function __construct(public readonly int $documentId) {}
 

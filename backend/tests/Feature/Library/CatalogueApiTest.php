@@ -114,3 +114,45 @@ it('résout une ancienne URL Joomla et compte l\'usage', function (): void {
     expect($r->fresh()->hits)->toBe(1);
     $this->getJson('/v1/library/redirects?path=/inconnu')->assertNotFound();
 });
+
+it('limite l\'ensemble de la bibliothèque à 120 requêtes par minute et par client', function (): void {
+    foreach (range(1, 120) as $i) {
+        $this->getJson('/v1/library/stats')->assertOk();
+    }
+
+    $this->getJson('/v1/library/stats')->assertStatus(429);
+    $this->getJson('/v1/library/mots-cles')->assertStatus(429);
+});
+
+it('garde 60 recherches par minute sous le plafond général', function (): void {
+    foreach (range(1, 60) as $i) {
+        $this->getJson('/v1/library/search?q=budget')->assertOk();
+    }
+
+    $this->getJson('/v1/library/search?q=budget')->assertStatus(429);
+    $this->getJson('/v1/library/stats')->assertOk();
+});
+
+it('place les documents sans date de publication en fin de tri récent', function (): void {
+    Document::factory()->published()->create(['slug' => 'sans-date', 'published_at' => null]);
+    Document::factory()->published()->create(['slug' => 'recent', 'published_at' => now()->subDay()]);
+    Document::factory()->published()->create(['slug' => 'ancien', 'published_at' => now()->subYear()]);
+
+    $slugs = collect($this->getJson('/v1/library/documents?tri=recent')->json('data'))->pluck('slug')->all();
+
+    expect($slugs)->toBe(['recent', 'ancien', 'sans-date']);
+});
+
+it('propose d\'abord les documents liés qui partagent un mot-clé', function (): void {
+    $motCle = MotCle::factory()->create();
+    $doc = Document::factory()->published()->create(['slug' => 'fiche', 'type' => 'memoire']);
+    $doc->motsCles()->attach($motCle);
+    $proche = Document::factory()->published()->create(['slug' => 'proche', 'type' => 'memoire', 'views_count' => 1]);
+    $proche->motsCles()->attach($motCle);
+    Document::factory()->published()->create(['slug' => 'populaire', 'type' => 'memoire', 'views_count' => 500]);
+    Document::factory()->published()->create(['slug' => 'autre-type', 'type' => 'these', 'views_count' => 900]);
+
+    $related = collect($this->getJson('/v1/library/documents/fiche')->json('related'))->pluck('slug')->all();
+
+    expect($related)->toBe(['proche', 'populaire']);
+});
