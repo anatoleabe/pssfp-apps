@@ -1,0 +1,69 @@
+import type { Metadata } from 'next';
+import { Suspense } from 'react';
+import { getTranslations } from 'next-intl/server';
+import { Eyebrow } from '@/components/home/Eyebrow';
+import { SearchForm } from '@/components/home/SearchForm';
+import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
+import { SearchExperience } from '@/components/search/SearchExperience';
+import { SearchSkeleton } from '@/components/search/SearchStates';
+import { searchParamsToFilters } from '@/lib/routes';
+import { MAX_QUERY_LENGTH } from '@/lib/search';
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('search');
+  return {
+    title: t('metaTitle'),
+    description: t('metaDescription'),
+    alternates: { canonical: '/recherche' },
+    // Pages de résultats : jamais indexées (contenu dérivé de la requête), liens suivis.
+    robots: { index: false, follow: true },
+  };
+}
+
+/**
+ * Coquille serveur de la recherche : en-tête et formulaire prérempli. Les résultats sont demandés
+ * par le navigateur (`SearchExperience`) : aucun appel à l'API ici, donc pas d'ISR ni de frontière d'erreur.
+ */
+export default async function SearchPage({ searchParams }: { searchParams: SearchParams }): Promise<JSX.Element> {
+  const t = await getTranslations('search');
+  const tCrumbs = await getTranslations('breadcrumbs');
+  const raw = Array.isArray(searchParams.q) ? searchParams.q[0] : searchParams.q;
+  const q = (raw ?? '').trim().slice(0, MAX_QUERY_LENGTH);
+  // Recherche lancée depuis une collection : la nouvelle requête reste dans ce type (facette visible et retirable).
+  const { type } = searchParamsToFilters(searchParams);
+
+  return (
+    <>
+      <section aria-labelledby="search-title" className="relative isolate overflow-hidden border-b border-pssfp-lavande/30">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-40 -top-48 -z-10 h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(closest-side,rgba(165,146,189,0.26),transparent)]" />
+        <div className="mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6 sm:pb-12 lg:pt-10">
+          <Breadcrumbs items={[{ href: '/', label: tCrumbs('home') }, { label: t('title') }]} />
+          <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,40rem)] lg:items-end lg:gap-16">
+            <div className="min-w-0">
+              <Eyebrow tone="or">{t('eyebrow')}</Eyebrow>
+              <h1 id="search-title" className="mt-4 text-balance font-heading text-pssfp-h1 font-semibold text-pssfp-prune lg:text-[4rem] lg:leading-none">
+                {t('title')}
+              </h1>
+            </div>
+            {/* `key` : remonté à chaque nouvelle requête, le champ reflète toujours `q`. */}
+            <SearchForm key={`${q}|${type ?? ''}`} size="hero" id="search-page-q" defaultQuery={q} type={type} />
+          </div>
+        </div>
+      </section>
+
+      <Suspense fallback={<SearchFallback />}>
+        <SearchExperience />
+      </Suspense>
+    </>
+  );
+}
+
+function SearchFallback(): JSX.Element {
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
+      <SearchSkeleton />
+    </div>
+  );
+}

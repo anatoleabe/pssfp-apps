@@ -1,0 +1,327 @@
+import { test, expect, type APIRequestContext, type Page, type Route } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+// Même base que l'app (playwright.config.ts charge .env.local comme `next dev`).
+import { API_BASE_URL as API } from '../../lib/api/client';
+import { MAX_SEARCH_PAGE, facetHref, readSearchRequest, searchPageHref, searchRequestKey, searchResetHref } from '../../lib/search';
+
+interface Doc { uuid: string; slug: string; type: string; title: string }
+interface SearchBody {
+  data: Doc[];
+  highlights: Record<string, string> | [];
+  meta: { total: number; page: number; last_page: number; facets: { type: Record<string, number> | []; access_mode: Record<string, number> | [] } };
+}
+
+/** Réponse 429 : la limite de débit de l'API est atteinte (LIBRARY_SEARCH_RATE_LIMIT dans backend/.env). */
+const THROTTLED = 'throttled';
+const THROTTLED_MESSAGE = 'API limitée (429) : relever LIBRARY_SEARCH_RATE_LIMIT dans backend/.env ou attendre une minute';
+
+/** Recherche directe sur l'API ; null si injoignable, `THROTTLED` si 429. */
+async function apiSearch(request: APIRequestContext, qs: string): Promise<SearchBody | typeof THROTTLED | null> {
+  try {
+    const res = await request.get(`${API}/library/search?${qs}`, { timeout: 5000 });
+    if (res.status() === 429) return THROTTLED;
+    if (!res.ok()) return null;
+    return (await res.json()) as SearchBody;
+  } catch {
+    return null;
+  }
+}
+
+const SEARCH_ROUTE = '**/library/search**';
+const isSearchRequest = (url: string): boolean => new URL(url).pathname.endsWith('/library/search');
+const fr = (n: number): string => new Intl.NumberFormat('fr-FR').format(n);
+
+/* ------------------------------------------------------------------------------------------------
+ * Réponse simulée : rend les tests d'interaction indépendants du backend (CI sans API).
+ * ---------------------------------------------------------------------------------------------- */
+
+function summary(i: number, type: string, access: 'libre' | 'reserve' | 'payant', title: string): Record<string, unknown> {
+  return {
+    uuid: `00000000-0000-4000-8000-00000000000${i}`, slug: `doc-simule-${i}`, type, type_label: type,
+    title, subtitle: null, year: 2020 + i, language: 'fr', specialite: null, promotion: null,
+    authors: ['Auteur Fictif'], mots_cles: [], cover_url: null, access_mode: access, price_xaf: access === 'payant' ? 3500 : null, published_at: null,
+  };
+}
+
+const MOCK_DOCS = [
+  summary(1, 'memoire', 'libre', 'La décentralisation fiscale au Cameroun'),
+  summary(2, 'memoire', 'libre', 'Budget-programme et performance'),
+  summary(3, 'these', 'reserve', 'Contrôle de l\'exécution du budget'),
+];
+
+function mockBody(url: URL): Record<string, unknown> {
+  const q = url.searchParams.get('q') ?? '';
+  const type = url.searchParams.get('type');
+  if (q === 'introuvable') {
+    return { data: [], highlights: [], meta: { total: 0, page: 1, per_page: 20, last_page: 1, facets: { type: [], access_mode: [] } } };
+  }
+  const docs = type ? MOCK_DOCS.filter((d) => d.type === type) : MOCK_DOCS;
+  return {
+    data: docs,
+    highlights: { [String(MOCK_DOCS[0].uuid)]: 'La <mark>décentralisation</mark> fiscale au Cameroun' },
+    meta: {
+      total: docs.length, page: Number(url.searchParams.get('page') ?? 1), per_page: 20, last_page: type ? 1 : 3,
+      facets: type ? { type: { [type]: docs.length }, access_mode: { libre: docs.length } } : { type: { memoire: 2, these: 1 }, access_mode: { libre: 2, reserve: 1 } },
+    },
+  };
+}
+
+async function fulfillMock(route: Route): Promise<void> {
+  await route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(mockBody(new URL(route.request().url()))) });
+}
+
+async function axeSerious(page: Page): Promise<string[]> {
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  return results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious').map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`);
+}
+
+/* ------------------------------------------------------------------------------------------------ */
+
+test.describe('Recherche — utilitaires', () => {
+  test('readSearchRequest : q nettoyé, deux caractères au moins, page bornée, sans tri', () => {
+    expect(readSearchRequest(new URLSearchParams(''))).toBeNull();
+    expect(readSearchRequest(new URLSearchParams('q=a'))).toBeNull();
+    expect(readSearchRequest(new URLSearchParams('q=%20%20a%20'))).toBeNull();
+    expect(readSearchRequest(new URLSearchParams('q=%20tva%20&type=memoire&tri=titre&acces=gratuit&page=2'))).toEqual({ q: 'tva', filters: { type: 'memoire' }, page: 2 });
+    expect(readSearchRequest(new URLSearchParams('q=tva&page=9999'))?.page).toBe(MAX_SEARCH_PAGE);
+    expect(readSearchRequest(new URLSearchParams('q=tva&page=-1'))?.page).toBe(1);
+    expect(readSearchRequest(new URLSearchParams(`q=${'x'.repeat(250)}`))?.q).toHaveLength(200);
+  });
+
+  test('searchRequestKey : identique pour des URL équivalentes, relu à l\'identique', () => {
+    const a = searchRequestKey(new URLSearchParams('type=memoire&q=tva&tri=titre'));
+    expect(a).toBe(searchRequestKey(new URLSearchParams('q=tva&type=memoire')));
+    expect(readSearchRequest(new URLSearchParams(a!))).toEqual({ q: 'tva', filters: { type: 'memoire' }, page: 1 });
+    expect(searchRequestKey(new URLSearchParams('q=a'))).toBeNull();
+  });
+
+  test('searchPageHref et searchResetHref conservent q', () => {
+    expect(searchPageHref('tva', { type: 'memoire' }, 1)).toBe('/recherche?type=memoire&q=tva');
+    expect(searchPageHref('tva', { type: 'memoire' }, 3)).toBe('/recherche?type=memoire&q=tva&page=3');
+    expect(searchResetHref('marchés publics')).toBe('/recherche?q=march%C3%A9s+publics');
+  });
+
+  test('facetHref ajoute le filtre (page 1) ou le retire s\'il est déjà appliqué', () => {
+    expect(facetHref('tva', { acces: 'libre' }, 'type', 'memoire')).toBe('/recherche?acces=libre&type=memoire&q=tva');
+    expect(facetHref('tva', { type: 'memoire', acces: 'libre' }, 'type', 'memoire')).toBe('/recherche?acces=libre&q=tva');
+    expect(facetHref('tva', { type: 'these' }, 'type', 'memoire')).toBe('/recherche?type=memoire&q=tva');
+    expect(facetHref('tva', {}, 'acces', 'reserve')).toBe('/recherche?acces=reserve&q=tva');
+  });
+});
+
+test.describe('Recherche — toujours (avec ou sans API)', () => {
+  test('sans q : invite, aucune requête de recherche, noindex', async ({ page }) => {
+    const searches: string[] = [];
+    page.on('request', (r) => { if (isSearchRequest(r.url())) searches.push(r.url()); });
+    const res = await page.goto('/recherche');
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recherche');
+    await expect(page.getByTestId('search-invite')).toContainText('Saisissez au moins deux caractères');
+    await expect(page.getByTestId('search-invite').getByRole('link', { name: 'TVA' })).toHaveAttribute('href', '/recherche?q=TVA');
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+    await page.waitForTimeout(300);
+    expect(searches).toEqual([]);
+  });
+
+  test('q d\'un caractère : invite, champ prérempli', async ({ page }) => {
+    await page.goto('/recherche?q=a');
+    await expect(page.getByTestId('search-invite')).toBeVisible();
+    await expect(page.getByRole('searchbox', { name: 'Rechercher dans le catalogue' })).toHaveValue('a');
+  });
+
+  test('la requête de recherche part du navigateur', async ({ page }) => {
+    const request = page.waitForRequest((r) => isSearchRequest(r.url()) && r.method() === 'GET');
+    await page.goto('/recherche?q=budget&type=memoire&tri=titre');
+    const url = new URL((await request).url());
+    expect(url.searchParams.get('q')).toBe('budget');
+    expect(url.searchParams.get('type')).toBe('memoire');
+    expect(url.searchParams.has('tri')).toBe(false);
+  });
+
+  test('chargement : squelette et aria-busy sur la région des résultats', async ({ page }) => {
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    await page.route(SEARCH_ROUTE, async (route) => { await held; await fulfillMock(route); });
+    await page.goto('/recherche?q=budget');
+    const region = page.getByTestId('search-results');
+    await expect(region).toHaveAttribute('aria-busy', 'true');
+    await expect(page.getByTestId('search-skeleton')).toBeVisible();
+    release();
+    await expect(region).toHaveAttribute('aria-busy', 'false');
+    await expect(page.getByTestId('search-skeleton')).toHaveCount(0);
+  });
+
+  test('API injoignable : alerte et « Réessayer » relance la requête', async ({ page }) => {
+    let calls = 0;
+    await page.route(SEARCH_ROUTE, (route) => { calls += 1; return route.abort(); });
+    await page.goto('/recherche?q=budget');
+    const error = page.getByTestId('state-error');
+    await expect(error).toBeVisible();
+    await expect(error).toHaveAttribute('role', 'alert');
+    // En dev, le mode strict de React monte l'effet deux fois (première requête annulée) : on compte à partir d'ici.
+    const before = calls;
+    expect(before).toBeGreaterThanOrEqual(1);
+    const retry = page.waitForRequest((r) => isSearchRequest(r.url()));
+    await error.getByRole('button', { name: 'Réessayer' }).click();
+    await retry;
+    await expect.poll(() => calls).toBe(before + 1);
+    await expect(page.getByTestId('state-error')).toBeVisible();
+    expect(await axeSerious(page)).toEqual([]);
+  });
+
+  test('résultats simulés : total annoncé dans une seule région polie, surlignage, cartes', async ({ page }) => {
+    await page.route(SEARCH_ROUTE, fulfillMock);
+    await page.goto('/recherche?q=budget');
+    const count = page.getByTestId('results-count');
+    await expect(count).toHaveText('3 résultats pour « budget »');
+    await expect(count).toHaveAttribute('aria-live', 'polite');
+    await expect(page.getByRole('main').locator('[aria-live], [role="status"], [role="alert"]')).toHaveCount(1);
+    const first = page.getByTestId('document-card-doc-simule-1');
+    await expect(first.locator('mark')).toHaveText('décentralisation');
+    await expect(page.getByTestId('document-card-doc-simule-3')).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Pagination' }).getByRole('link', { name: 'Page 2', exact: true })).toHaveAttribute('href', '/recherche?q=budget&page=2');
+  });
+
+  test('facette : ajoute type= sans changer q, annule la requête précédente ; Retour restaure', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const failed: string[] = [];
+    page.on('requestfailed', (r) => { if (isSearchRequest(r.url())) failed.push(r.url()); });
+    await page.route(SEARCH_ROUTE, fulfillMock);
+    await page.goto('/recherche?q=budget&page=2');
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
+
+    const facets = page.getByTestId('facets-desktop');
+    const memoires = facets.getByRole('link', { name: /^Mémoires/ });
+    await expect(memoires).toHaveAccessibleName(/2 documents/);
+    await memoires.click();
+    await expect(page).toHaveURL(/\/recherche\?type=memoire&q=budget$/);
+    await expect(page.getByTestId('results-count')).toHaveText('2 résultats pour « budget »');
+    await expect(page.getByTestId('document-card-doc-simule-3')).toHaveCount(0);
+    // Facette appliquée : signalée, et le même lien la retire.
+    const active = page.getByTestId('facets-desktop').getByRole('link', { name: /^Mémoires/ });
+    await expect(active).toHaveAttribute('aria-current', 'true');
+    await expect(active).toHaveAttribute('href', '/recherche?q=budget');
+    await expect(page.getByRole('link', { name: 'Retirer les filtres' })).toHaveAttribute('href', '/recherche?q=budget');
+
+    // Requête lente (type=these) abandonnée au retour arrière : sa réponse n'est jamais affichée.
+    await page.unroute(SEARCH_ROUTE);
+    await page.route(SEARCH_ROUTE, async (route) => {
+      if (new URL(route.request().url()).searchParams.get('type') === 'these') return; // jamais servie
+      await fulfillMock(route);
+    });
+    await page.goto('/recherche?q=budget');
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
+    await page.getByTestId('facets-desktop').getByRole('link', { name: /^Thèses/ }).click();
+    await expect(page).toHaveURL(/type=these/);
+    await expect(page.getByTestId('search-results')).toHaveAttribute('aria-busy', 'true');
+    await page.goBack();
+    await expect(page).toHaveURL(/\/recherche\?q=budget$/);
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
+    await expect.poll(() => failed.some((u) => u.includes('type=these'))).toBe(true);
+  });
+
+  test('zéro résultat : message, liens vers les collections, retrait des filtres', async ({ page }) => {
+    await page.route(SEARCH_ROUTE, fulfillMock);
+    await page.goto('/recherche?q=introuvable&acces=libre');
+    const empty = page.getByTestId('state-empty');
+    await expect(empty).toContainText('Aucun résultat pour « introuvable »');
+    await expect(page.getByTestId('results-count')).toHaveText('Aucun résultat pour « introuvable »');
+    await expect(empty.getByRole('link', { name: 'Retirer les filtres' })).toHaveAttribute('href', '/recherche?q=introuvable');
+    await expect(empty.getByRole('link', { name: 'Mémoires' })).toHaveAttribute('href', '/collections/memoire');
+    await expect(page.getByRole('main').locator('[aria-live], [role="status"], [role="alert"]')).toHaveCount(1);
+  });
+
+  test('axe : invite et résultats simulés (panneau mobile ouvert)', async ({ page }) => {
+    await page.goto('/recherche');
+    expect(await axeSerious(page)).toEqual([]);
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.route(SEARCH_ROUTE, fulfillMock);
+    await page.goto('/recherche?q=budget');
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
+    await page.getByTestId('facets-mobile').locator('summary').click();
+    expect(await axeSerious(page)).toEqual([]);
+  });
+
+  test('aucun défilement horizontal à 320 px', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 640 });
+    await page.route(SEARCH_ROUTE, fulfillMock);
+    await page.goto('/recherche?q=budget&type=memoire');
+    await expect(page.getByTestId('results-count')).toContainText('résultat');
+    await page.getByTestId('facets-mobile').locator('summary').click();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+});
+
+test.describe('Recherche — données de l\'API', () => {
+  let budget: SearchBody | null = null;
+  let throttled = false;
+
+  test.beforeAll(async ({ request }) => {
+    const r = await apiSearch(request, 'q=budget');
+    throttled = r === THROTTLED;
+    budget = r === THROTTLED ? null : r;
+  });
+
+  test.beforeEach(() => {
+    expect(throttled, THROTTLED_MESSAGE).toBe(false);
+    test.skip(budget === null, 'API injoignable : tests de données ignorés');
+  });
+
+  test('les cartes et le total sont ceux de l\'API', async ({ page }) => {
+    await page.goto('/recherche?q=budget');
+    const total = budget!.meta.total;
+    await expect(page.getByTestId('results-count')).toContainText(total === 0 ? 'Aucun résultat' : fr(total));
+    const ids = await page.getByTestId('search-results').locator('article[data-testid^="document-card-"]').evaluateAll((els) => els.map((el) => el.getAttribute('data-testid')));
+    expect(ids).toEqual(budget!.data.map((d) => `document-card-${d.slug}`));
+  });
+
+  test('surlignage <mark> quand le moteur en renvoie (faute tolérée par Meilisearch)', async ({ page, request }) => {
+    let chosen: { q: string; body: SearchBody } | null = null;
+    for (const q of ['decentralisaton', 'decentralisation']) {
+      const body = await apiSearch(request, `q=${q}`);
+      expect(body, THROTTLED_MESSAGE).not.toBe(THROTTLED);
+      if (body && body !== THROTTLED && body.data.length > 0) { chosen = { q, body }; break; }
+    }
+    test.skip(chosen === null, 'aucun document pour « décentralisation »');
+    await page.goto(`/recherche?q=${chosen!.q}`);
+    await expect(page.getByTestId('search-results').locator('article').first()).toBeVisible();
+    const highlights = Array.isArray(chosen!.body.highlights) ? {} : chosen!.body.highlights;
+    const marked = chosen!.body.data.find((d) => (highlights[d.uuid] ?? '').includes('<mark>'));
+    // Repli PostgreSQL : pas de surlignage, rien à vérifier de plus.
+    if (marked) await expect(page.getByTestId(`document-card-${marked.slug}`).locator('mark').first()).toBeVisible();
+  });
+
+  test('facette de type réelle : URL mise à jour, Retour restaure', async ({ page }) => {
+    const facets = Array.isArray(budget!.meta.facets.type) ? {} : budget!.meta.facets.type;
+    const type = Object.keys(facets)[0];
+    test.skip(!type, 'aucune facette de type');
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/recherche?q=budget');
+    await expect(page.getByTestId('search-results')).toHaveAttribute('aria-busy', 'false');
+    await page.getByTestId('facets-desktop').locator(`a[href="/recherche?type=${type}&q=budget"]`).click();
+    await expect(page).toHaveURL(new RegExp(`type=${type}`));
+    await expect(page.getByTestId('results-count')).toContainText(fr(facets[type]));
+    await page.goBack();
+    await expect(page).toHaveURL(/\/recherche\?q=budget$/);
+    await expect(page.getByTestId('results-count')).toContainText(fr(budget!.meta.total));
+  });
+
+  test('axe avec résultats réels', async ({ page }) => {
+    await page.goto('/recherche?q=budget');
+    await expect(page.getByTestId('search-results')).toHaveAttribute('aria-busy', 'false');
+    expect(await axeSerious(page)).toEqual([]);
+  });
+
+  // Captures d'écran pour la revue visuelle : uniquement si SCREENSHOT_DIR est défini (jamais en CI).
+  for (const width of [320, 1440]) {
+    test(`@visuel capture ${width} px`, async ({ page }) => {
+      test.skip(!process.env.SCREENSHOT_DIR || !!process.env.CI, 'captures manuelles uniquement');
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/recherche?q=budget');
+      await expect(page.getByTestId('search-results')).toHaveAttribute('aria-busy', 'false');
+      await page.waitForLoadState('networkidle');
+      await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/recherche-budget-${width}.png`, fullPage: true });
+    });
+  }
+});
