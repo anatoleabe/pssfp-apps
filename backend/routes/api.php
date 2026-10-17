@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Auth\AuthCandidatController;
 use App\Http\Controllers\Api\Contact\ContactController;
 use App\Http\Controllers\Api\Library\CatalogueController;
 use App\Http\Controllers\Api\Library\DocumentController as LibraryDocumentController;
+use App\Http\Controllers\Api\Library\DownloadController;
 use App\Http\Controllers\Api\Pages\PageController;
 use App\Http\Controllers\Api\Reference\ReferenceController;
 use App\Http\Controllers\HealthController;
@@ -166,6 +167,9 @@ Route::prefix('library')->name('library.')->group(function (): void {
     Route::get('/mots-cles', [CatalogueController::class, 'motsCles'])->name('mots-cles');
     Route::get('/redirects', [CatalogueController::class, 'redirect'])->name('redirects');
     Route::get('/documents', [LibraryDocumentController::class, 'index'])->name('documents.index');
+    Route::get('/documents/{uuid}/download', DownloadController::class)
+        ->middleware('throttle:30,1')
+        ->name('documents.download');
     Route::get('/documents/{slug}', [LibraryDocumentController::class, 'show'])->name('documents.show');
 });
 
