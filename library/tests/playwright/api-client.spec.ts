@@ -1,3 +1,5 @@
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
 import { test, expect } from '@playwright/test';
 import { apiGet } from '../../lib/api/client';
 import { getStats, searchDocuments } from '../../lib/api/library';
@@ -92,5 +94,30 @@ test.describe('normalisation des objets vides PHP', () => {
       expect(r.data.meta.facets.access_mode).toEqual({});
       expect(r.data.highlights).toEqual({});
     }
+  });
+});
+
+test.describe('next.config.js : NEXT_PUBLIC_API_URL en production', () => {
+  /** Charge la configuration dans un processus neuf, sans fichiers .env (environnement maîtrisé). */
+  function loadConfig(env: Record<string, string>): { status: number | null; stderr: string } {
+    const { PATH = '', HOME = '' } = process.env;
+    const r = spawnSync(process.execPath, ['-e', "require('./next.config.js')"], {
+      cwd: path.resolve(__dirname, '../..'),
+      env: { PATH, HOME, ...env },
+      encoding: 'utf8',
+    });
+    return { status: r.status, stderr: r.stderr };
+  }
+
+  test('build de production sans la variable (hors CI) : erreur explicite', () => {
+    const r = loadConfig({ NODE_ENV: 'production' });
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain('NEXT_PUBLIC_API_URL');
+  });
+
+  test('variable présente, ou build de CI, ou développement : configuration chargée', () => {
+    expect(loadConfig({ NODE_ENV: 'production', NEXT_PUBLIC_API_URL: 'https://api.pssfp.org/v1' }).status).toBe(0);
+    expect(loadConfig({ NODE_ENV: 'production', CI: 'true' }).status).toBe(0);
+    expect(loadConfig({ NODE_ENV: 'development' }).status).toBe(0);
   });
 });

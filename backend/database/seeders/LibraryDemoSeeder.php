@@ -49,5 +49,7 @@ final class LibraryDemoSeeder extends Seeder
 
         // Ancienne URL Joomla de démonstration (tests de redirection du Plan 2, tâche 8).
         LibraryRedirect::query()->firstOrCreate(['from_path' => '/index.php/textes-et-lois'], ['to_path' => '/collections/texte_loi']);
+        // Forme `/index.php?option=…` : stockée avec sa query string (même forme qu'au Plan 3).
+        LibraryRedirect::query()->firstOrCreate(['from_path' => '/index.php?option=com_docman&view=list&slug=memoires'], ['to_path' => '/collections/memoire']);
     }
 }

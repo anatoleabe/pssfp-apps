@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { resolveLegacyPath } from './lib/api/library';
+import { legacyLookupPath, safeRedirectTarget } from './lib/redirects';
 
 /**
- * Anciennes URL (Joomla : `/index.php/…`, fiches DOCman, `…/file`, pages de catégorie) :
- * tout chemin que l'app ne sert pas est soumis à `GET /v1/library/redirects`. Trouvé → 301
- * (ou 302) vers un chemin interne ; sinon, ou si l'API échoue, suite normale (→ 404 de l'app).
+ * Anciennes URL (Joomla : `/index.php/…`, `/index.php?option=…`, fiches DOCman, `…/file`, pages de
+ * catégorie) : tout chemin que l'app ne sert pas est soumis à `GET /v1/library/redirects` (avec sa
+ * query string pour `/index.php?…`). Trouvé → 301 (ou 302) vers un chemin interne du même site
+ * (`safeRedirectTarget`) ; sinon, ou si l'API échoue, suite normale (→ 404 de l'app).
  * Le middleware ne casse jamais une page : toute erreur mène à `NextResponse.next()`.
  */
 
@@ -24,9 +26,6 @@ const APP_PREFIXES = [
   '/sitemap.xml',
   '/robots.txt',
 ];
-
-/** Chemin interne uniquement : `/x`, jamais `//hôte` ni `/\hôte` (pas de redirection ouverte). */
-const INTERNAL_PATH = /^\/(?![/\\])/;
 
 /** Réponses mémorisées (par processus) : un robot qui balaie des URL n'épuise pas l'API. */
 const CACHE_TTL_MS = 10 * 60 * 1000;
@@ -58,7 +57,8 @@ async function resolve(path: string): Promise<Resolution | undefined> {
     return null;
   }
   const { to_path: to, status_code: code } = r.data.data;
-  const value: Resolution = typeof to === 'string' && INTERNAL_PATH.test(to) ? { to, status: code === 302 ? 302 : 301 } : null;
+  // La cible est revalidée à chaque redirection (safeRedirectTarget) ; ici, seulement sa forme.
+  const value: Resolution = typeof to === 'string' ? { to, status: code === 302 ? 302 : 301 } : null;
   remember(path, value);
   return value;
 }
@@ -68,8 +68,9 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   if ((req.method !== 'GET' && req.method !== 'HEAD') || isAppPath(pathname)) return NextResponse.next();
 
   try {
-    const target = await resolve(pathname);
-    if (target) return NextResponse.redirect(new URL(target.to, req.url), target.status);
+    const target = await resolve(legacyLookupPath(req.nextUrl));
+    const dest = target ? safeRedirectTarget(target.to, req.nextUrl.href) : null;
+    if (target && dest) return NextResponse.redirect(dest, target.status);
   } catch {
     // API ou URL cible inattendue : la page suit son cours normal.
   }
