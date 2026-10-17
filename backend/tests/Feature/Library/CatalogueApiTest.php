@@ -59,7 +59,7 @@ it('rejette un tri inconnu', function (): void {
     $this->getJson('/v1/library/documents?tri=hasard')->assertUnprocessable();
 });
 
-it('affiche une fiche avec la décision d\'accès et compte la consultation', function (): void {
+it('affiche une fiche avec la décision d\'accès', function (): void {
     $doc = Document::factory()->published()->withFile()->reserved()->create(['slug' => 'support-ue4']);
     $doc->authors()->create(['author_name' => 'Auteur Test', 'order' => 1]);
     Document::factory()->published()->create(['type' => $doc->type]);
@@ -71,7 +71,7 @@ it('affiche une fiche avec la décision d\'accès et compte la consultation', fu
         ->assertJsonPath('data.authors.0', 'Auteur Test')
         ->assertJsonCount(1, 'related');
 
-    expect($doc->fresh()->views_count)->toBe(1);
+    expect($doc->fresh()->views_count)->toBe(0);
 });
 
 it('reserve les champs de détail à la fiche, pas aux documents liés ni à la liste', function (): void {

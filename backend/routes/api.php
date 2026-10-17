@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Library\CatalogueController;
 use App\Http\Controllers\Api\Library\DocumentController as LibraryDocumentController;
 use App\Http\Controllers\Api\Library\DownloadController;
 use App\Http\Controllers\Api\Library\SearchController;
+use App\Http\Controllers\Api\Library\ViewController;
 use App\Http\Controllers\Api\Pages\PageController;
 use App\Http\Controllers\Api\Reference\ReferenceController;
 use App\Http\Controllers\HealthController;
@@ -176,6 +177,9 @@ Route::prefix('library')->name('library.')->middleware('throttle:120,1,library')
     Route::get('/documents/{uuid}/download', DownloadController::class)
         ->middleware('throttle:30,1,library-download')
         ->name('documents.download');
+    Route::post('/documents/{uuid}/view', ViewController::class)
+        ->middleware('throttle:20,1,library-view')
+        ->name('documents.view');
     Route::get('/documents/{slug}', [LibraryDocumentController::class, 'show'])->name('documents.show');
 });
 
