@@ -6,6 +6,8 @@ namespace App\Providers;
 
 use App\Models\Candidature;
 use App\Observers\CandidatureObserver;
+use App\Services\Library\Files\CoverRenderer;
+use App\Services\Library\Files\PdftoppmCoverRenderer;
 use App\Services\Library\Search\DatabaseDocumentSearch;
 use App\Services\Library\Search\DocumentSearch;
 use App\Services\Library\Search\FallbackDocumentSearch;
@@ -37,6 +39,8 @@ class AppServiceProvider extends ServiceProvider
         // Photo scanner (cf. spec PR G). Noop par défaut V1 — la version
         // ClamAV (socket clamd) sera bindée quand l'agent sera déployé sur Contabo.
         $this->app->bind(PhotoScannerInterface::class, NoopPhotoScanner::class);
+
+        $this->app->bind(CoverRenderer::class, PdftoppmCoverRenderer::class);
 
         $this->app->bind(DocumentSearch::class, function (): DocumentSearch {
             $database = new DatabaseDocumentSearch;

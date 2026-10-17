@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Observers\DocumentObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -25,6 +27,7 @@ use Spatie\Translatable\HasTranslations;
  * L'accès effectif se décide dans App\Services\Library\DocumentAccess ;
  * `access_mode` n'est que le libellé affiché et la facette de recherche.
  */
+#[ObservedBy(DocumentObserver::class)]
 class Document extends Model
 {
     use HasFactory;
