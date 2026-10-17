@@ -8,10 +8,12 @@ use App\Filament\Resources\DocumentResource\Pages;
 use App\Models\Document;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 /**
@@ -34,6 +36,14 @@ class DocumentResource extends Resource
     protected static ?int $navigationSort = 10;
 
     protected static ?string $recordTitleAttribute = 'slug';
+
+    public static function getGlobalSearchResultTitle(Model $record): string
+    {
+        return (string) ($record->getTranslation('title', 'fr', false) ?: $record->slug);
+    }
+
+    /** Un brouillon doit d'abord être soumis en revue. */
+    public const PUBLISHABLE_STATUSES = [Document::STATUS_IN_REVIEW, Document::STATUS_ARCHIVED];
 
     public const STATUS_LABELS = [
         Document::STATUS_DRAFT => 'Brouillon',
@@ -112,19 +122,37 @@ class DocumentResource extends Resource
             ])
             ->actions([
                 Tables\Actions\Action::make('soumettre')->label('Soumettre en revue')->icon('heroicon-o-paper-airplane')
+                    ->authorize(fn (Document $record) => (bool) auth()->user()?->can('update', $record))
                     ->visible(fn (Document $record) => $record->status === Document::STATUS_DRAFT)
                     ->action(fn (Document $record) => $record->update(['status' => Document::STATUS_IN_REVIEW])),
                 Tables\Actions\Action::make('publier')->label('Publier')->icon('heroicon-o-check-badge')->color('success')
-                    ->visible(fn (Document $record) => $record->status !== Document::STATUS_PUBLISHED && auth()->user()?->can('publish', $record))
+                    ->authorize(fn (Document $record) => (bool) auth()->user()?->can('publish', $record))
+                    ->visible(fn (Document $record) => in_array($record->status, self::PUBLISHABLE_STATUSES, true))
                     ->requiresConfirmation()
                     ->action(fn (Document $record) => self::publish($record)),
+                Tables\Actions\Action::make('archiver')->label('Archiver')->icon('heroicon-o-archive-box')->color('gray')
+                    ->authorize(fn (Document $record) => (bool) auth()->user()?->can('publish', $record))
+                    ->visible(fn (Document $record) => $record->status === Document::STATUS_PUBLISHED)
+                    ->requiresConfirmation()
+                    ->action(fn (Document $record) => self::archive($record)),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkAction::make('publierLot')->label('Publier la sélection')->icon('heroicon-o-check-badge')
-                    ->visible(fn () => auth()->user()?->can('document.publish'))
+                    ->authorize(fn () => (bool) auth()->user()?->can('document.publish'))
                     ->requiresConfirmation()
-                    ->action(fn (Collection $records) => $records->each(fn (Document $d) => self::publish($d)))
+                    ->action(function (Collection $records): void {
+                        $published = $records
+                            ->filter(fn (Document $d) => in_array($d->status, self::PUBLISHABLE_STATUSES, true))
+                            ->each(fn (Document $d) => self::publish($d))
+                            ->count();
+                        $skipped = $records->count() - $published;
+
+                        Notification::make()
+                            ->title("{$published} document(s) publié(s), {$skipped} ignoré(s)")
+                            ->success()
+                            ->send();
+                    })
                     ->deselectRecordsAfterCompletion(),
             ])
             ->defaultSort('updated_at', 'desc');
@@ -132,12 +160,24 @@ class DocumentResource extends Resource
 
     public static function publish(Document $document): void
     {
+        abort_unless(auth()->user()?->can('document.publish'), 403);
+        abort_unless(in_array($document->status, self::PUBLISHABLE_STATUSES, true), 403);
+
         $document->update([
             'status' => Document::STATUS_PUBLISHED,
             'published_at' => $document->published_at ?? now(),
             'approved_by' => auth()->id(),
             'approved_at' => now(),
         ]);
+    }
+
+    /** Dépublication : l'historique de publication et de validation est conservé. */
+    public static function archive(Document $document): void
+    {
+        abort_unless(auth()->user()?->can('document.publish'), 403);
+        abort_unless($document->status === Document::STATUS_PUBLISHED, 403);
+
+        $document->update(['status' => Document::STATUS_ARCHIVED]);
     }
 
     public static function getPages(): array
