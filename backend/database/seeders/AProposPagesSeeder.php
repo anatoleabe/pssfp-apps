@@ -428,7 +428,7 @@ Le PSSFP est hébergé au **Campus de Messa**, en plein cœur de Yaoundé. Le si
 - **Bibliothèque physique** au campus de Messa : ouvrages spécialisés en finances publiques, droit budgétaire, fiscalité, audit, gouvernance territoriale.
 - **Bibliothèque virtuelle** : accès distant à des milliers de ressources numériques (cours, manuels, articles, jurisprudence).
 
-[Accéder à la bibliothèque virtuelle →](https://bibliotheque.pssfp.org)
+[Accéder à la bibliothèque virtuelle →](https://bibliotheque.pssfp.net)
 
 ## Plateforme FOAD
 

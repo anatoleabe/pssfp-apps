@@ -69,7 +69,7 @@ export default async function PlanDuSitePage(): Promise<JSX.Element> {
               href={process.env.NEXT_PUBLIC_LIBRARY_URL ?? '#'}
               className="underline hover:text-[#4A2E67]"
             >
-              bibliotheque.pssfp.org
+              bibliotheque.pssfp.net
             </a>
           </li>
           <li>

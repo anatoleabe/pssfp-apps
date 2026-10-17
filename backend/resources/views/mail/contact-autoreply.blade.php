@@ -7,7 +7,7 @@ Notre équipe vous répondra dans les meilleurs délais (généralement sous 48 
 En attendant, vous pouvez consulter :
 
 - Le site institutionnel : https://pssfp.org
-- La bibliothèque virtuelle : https://bibliotheque.pssfp.org
+- La bibliothèque virtuelle : https://bibliotheque.pssfp.net
 - La plateforme FOAD : https://foad.pssfp.org
 - Les candidatures en ligne : https://apply.pssfp.org
 
