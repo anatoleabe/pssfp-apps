@@ -63,7 +63,9 @@
     "keywords": "Mots-clés",
     "related": "Documents proches",
     "views": "{count, plural, =0 {Aucune consultation} one {# consultation} other {# consultations}}",
-    "coverAlt": "Couverture : {title}"
+    "coverAlt": "Couverture : {title}",
+    "authorsEtAl": "{list} et al.",
+    "noDate": "s.d."
   },
   "search": {
     "label": "Rechercher dans le catalogue",
@@ -78,7 +80,22 @@
     "libre": "Libre",
     "reserve": "Réservé",
     "payant": "Payant",
-    "payantPrice": "Payant · {price} FCFA"
+    "payantPrice": "Payant · {price} FCFA",
+    "action": {
+      "download": "Télécharger le PDF",
+      "downloadWithSize": "Télécharger le PDF ({size})",
+      "sizeKo": "{value} Ko",
+      "sizeMo": "{value} Mo",
+      "external": "Consulter en ligne",
+      "newWindow": "(s'ouvre dans une nouvelle fenêtre)",
+      "reservedTitle": "Réservé aux auditeurs — bientôt disponible",
+      "reservedBody": "Ce document sera consultable par les auditeurs du PSSFP dès l'ouverture de l'espace personnel.",
+      "paidTitle": "Payant — bientôt disponible à l'achat",
+      "paidPrice": "Prix : {price} FCFA",
+      "paidBody": "Le paiement en ligne ouvrira prochainement. La notice reste consultable librement.",
+      "unpublishedTitle": "Document indisponible",
+      "unpublishedBody": "Ce document n'est pas encore publié dans le catalogue."
+    }
   },
   "types": {
     "memoire": { "one": "Mémoire", "other": "Mémoires" },
@@ -126,5 +143,34 @@
     "retry": "Réessayer",
     "emptyTitle": "Aucun document ne correspond.",
     "emptyBody": "Élargissez vos critères ou parcourez une autre collection."
+  },
+  "citation": {
+    "title": "Citer ce document",
+    "format": "Norme APA",
+    "copy": "Copier la citation",
+    "copied": "Citation copiée",
+    "copyFailed": "Copie impossible : sélectionnez le texte de la citation.",
+    "publisher": "Bibliothèque PSSFP",
+    "withAuthors": "{authors} ({year}). {title}. {type}. {publisher}. {url}",
+    "withoutAuthors": "{title} ({year}). {type}. {publisher}. {url}"
+  },
+  "devComponents": {
+    "metaTitle": "Composants documentaires",
+    "eyebrow": "Démonstration — hors production",
+    "title": "Composants documentaires",
+    "intro": "Données fictives, pour vérifier les composants du catalogue sans l'API.",
+    "cardsGrid": "Cartes en grille",
+    "cardsRow": "Cartes en liste et surlignage",
+    "covers": "Couvertures par type",
+    "actions": "Actions d'accès",
+    "reason": {
+      "public": "Accès libre",
+      "external": "Lien externe",
+      "reserved": "Accès réservé",
+      "paid": "Accès payant"
+    },
+    "citation": "Citation",
+    "pagination": "Pagination",
+    "states": "États vide et erreur"
   }
 }
