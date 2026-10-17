@@ -25,8 +25,15 @@ jobs:
             min_seo: 90
             min_bp: 90
           - app: library
+            # La CI ne démarre pas l'API : / sert la page de repli du build et /recherche sa coquille
+            # (résultats demandés par le navigateur), toutes deux en 200. /collections/memoire répondrait
+            # 500 (frontière d'erreur) et Lighthouse s'arrêterait (ERRORED_DOCUMENT_REQUEST) : elle est
+            # auditée en local avec le backend, /a-propos (statique) la remplace ici.
+            # /recherche est noindex par choix : SEO plafonné à ~63 (audit is-crawlable), avertissement attendu.
             urls: |
               http://localhost:6002/
+              http://localhost:6002/recherche?q=budget
+              http://localhost:6002/a-propos
             min_perf: 85
             min_a11y: 90
             min_seo: 85

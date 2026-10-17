@@ -124,12 +124,18 @@ Identifiants publics : `uuid` et `slug` uniquement, jamais l'`id` interne. Limit
 | Route | Rendu | Contenu |
 |---|---|---|
 | `/collections/[type]` | ISR 5 min | Mise en page B : filtres à gauche (tiroir sur mobile), résultats, pagination, tri |
-| `/recherche` | SSR | Mise en page B : état dans l'URL, facettes avec compteurs, extraits surlignés, message utile si zéro résultat |
-| `/documents/[slug]` | ISR 5 min | Couverture, métadonnées, auteurs, résumé, mots-clés cliquables, bouton d'accès selon `access` (Télécharger / Réservé / Payant bientôt / Consulter le lien), citation APA copiable, documents liés, JSON-LD |
-| `/a-propos` | SSG | Présentation, règles d'accès, contact bibliothécaire |
-| `sitemap.xml`, `robots.txt` | — | Toutes les fiches publiées |
+| `/recherche` | Coquille serveur + résultats côté navigateur | Mise en page B : état dans l'URL, facettes avec compteurs, extraits surlignés, message utile si zéro résultat ; `noindex, follow`, exclue du sitemap et interdite dans `robots.txt` |
+| `/documents/[slug]` | ISR 5 min (`generateStaticParams` → `[]`) | Couverture, métadonnées, auteurs, résumé, mots-clés cliquables, bouton d'accès selon `access` (Télécharger / Réservé / Payant bientôt / Consulter le lien), citation APA copiable, documents liés, JSON-LD |
+| `/a-propos` | Statique (`force-static`) | Présentation, règles d'accès (Libre / Réservé / Payant — bientôt), contact (page contact du site principal) |
+| `sitemap.xml` | ISR 1 h | Accueil, à propos, collections non vides, fiches publiées (`lastModified` = `published_at`, plafond 5 000) ; sitemap réduit si l'API ne répond pas (jamais d'échec du build) |
+| `robots.txt` | Statique | `Allow: /`, `Disallow: /dev/` et `/recherche`, lien du sitemap |
 
-**Anciennes URL** : le middleware Next.js interroge `/v1/library/redirects` pour tout chemin inconnu (y compris `/index.php/...` et `.../file`) et répond en 301 ; résultat mis en cache.
+**Décisions du 2026-10-17** :
+
+- **Recherche rendue côté navigateur** : `/recherche` est une coquille serveur (en-tête, formulaire, portée) ; les résultats sont demandés à `GET /v1/library/search` par le navigateur. La limite de débit par IP et les journaux de recherche portent ainsi sur le visiteur, pas sur le serveur Next. Pas d'ISR ni de frontière d'erreur sur cette page : l'échec de l'API s'affiche dans la page (`role="alert"`, Réessayer ; message dédié sur 429).
+- **Consultations par balise** : la fiche (ISR) ne compte rien côté serveur ; un composant client envoie `POST /v1/library/documents/{uuid}/view` (`navigator.sendBeacon`, repli `fetch keepalive`) à l'affichage.
+
+**Anciennes URL** : `library/middleware.ts` soumet à `/v1/library/redirects` tout chemin que l'app ne sert pas (y compris `/index.php/...`, `.../file`, `....html`) — les routes de l'app et les fichiers statiques usuels en sont exclus — et répond en 301 (302 si demandé) vers un chemin interne uniquement (pas de redirection ouverte). Réponses mémorisées 10 min par processus (introuvables compris) ; API en échec ou délai dépassé (2 s) → suite normale (404), jamais d'erreur.
 
 ### 6.3 Exigences
 

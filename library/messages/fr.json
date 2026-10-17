@@ -201,7 +201,33 @@
     }
   },
   "about": {
-    "title": "À propos de la bibliothèque"
+    "title": "À propos de la bibliothèque",
+    "metaTitle": "À propos",
+    "metaDescription": "La bibliothèque virtuelle du PSSFP : son fonds documentaire en finances publiques, ses règles d'accès (libre, réservé, payant) et le contact du service de la bibliothèque.",
+    "eyebrow": "La bibliothèque",
+    "lead": "Un catalogue unique pour le fonds documentaire du Programme Supérieur de Spécialisation en Finances Publiques : les travaux des promotions, les textes de référence et les ressources d'enseignement.",
+    "presentationTitle": "Un fonds au service des finances publiques",
+    "presentationBody": "La bibliothèque réunit ce que le PSSFP produit et mobilise depuis sa création : mémoires et thèses soutenus par les auditeurs, textes de loi et de réglementation, ouvrages numériques, articles et actes de conférences, supports de cours et rapports de stage.",
+    "presentationBody2": "Chaque document dispose d'une notice publique — auteurs, année, résumé, mots-clés, citation — consultable par tous, quel que soit son mode d'accès.",
+    "holdingsTitle": "Dans le catalogue",
+    "holdings": {
+      "travaux": "Mémoires, thèses et rapports de stage des promotions",
+      "textes": "Textes de loi, décrets et instruments de réglementation",
+      "ouvrages": "Ouvrages numériques, articles scientifiques et actes de conférences",
+      "cours": "Cours, bulletins et ressources pédagogiques"
+    },
+    "browse": "Parcourir les collections",
+    "accessTitle": "Règles d'accès",
+    "accessIntro": "Le mode d'accès figure sur chaque notice. Il détermine qui peut ouvrir le document lui-même ; la notice, elle, reste toujours publique.",
+    "rules": {
+      "libre": "Téléchargement ou consultation en ligne pour tous, sans compte.",
+      "reserve": "Réservé aux auditeurs et aux enseignants du PSSFP. La consultation ouvrira avec l'espace personnel.",
+      "payant": "Disponible à l'achat, au prix indiqué sur la notice. Le paiement en ligne ouvrira prochainement.",
+      "soon": "Bientôt"
+    },
+    "contactTitle": "Une question, un document introuvable ?",
+    "contactBody": "Le service de la bibliothèque répond aux demandes de documents, d'accès ou de correction d'une notice.",
+    "contactPage": "Page contact du PSSFP"
   },
   "access": {
     "libre": "Libre",
