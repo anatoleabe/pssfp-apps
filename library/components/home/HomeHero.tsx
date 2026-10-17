@@ -14,7 +14,10 @@ const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:rin
 
 interface HomeHeroProps {
   stats: LibraryStats | null;
-  /** Trois dernières nouveautés (colonne de droite, à partir de lg) ; null si l'API a échoué. */
+  /**
+   * Trois dernières nouveautés (colonne de droite, à partir de lg) ; null si l'API a échoué.
+   * Pas de `priority` : la colonne est masquée sous lg, et le LCP mobile est le h1.
+   */
   latest: DocumentSummary[] | null;
 }
 
@@ -34,7 +37,7 @@ export async function HomeHero({ stats, latest }: HomeHeroProps): Promise<JSX.El
 
       <div className="mx-auto grid max-w-7xl gap-12 px-4 pb-14 pt-12 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-16 lg:pb-24 lg:pt-20">
         <div className="min-w-0">
-          {stats && stats.total > 0 && <Eyebrow tone="or">{t('eyebrow', { count: stats.total })}</Eyebrow>}
+          {stats && stats.total > 0 && <Eyebrow tone="or" testId="home-eyebrow">{t('eyebrow', { count: stats.total })}</Eyebrow>}
           <h1
             id="home-title"
             className="mt-5 max-w-[15ch] text-balance font-heading text-pssfp-h1 font-semibold text-pssfp-prune lg:text-[4.25rem] lg:leading-[1.02]"
@@ -84,13 +87,13 @@ export async function HomeHero({ stats, latest }: HomeHeroProps): Promise<JSX.El
               {t('latestTitle')}
             </h2>
             <ol className="mt-6 space-y-3">
-              {latest.map((doc, i) => (
+              {latest.map((doc) => (
                 <li key={doc.uuid}>
                   <Link
                     href={documentHref(doc.slug)}
                     className={`group -mx-3 flex items-start gap-4 rounded-xl p-3 transition duration-300 ease-pssfp-out-expo hover:bg-white hover:shadow-pssfp-elevated ${FOCUS}`}
                   >
-                    <DocumentCover doc={doc} size="sm" priority={i === 0} sizes="80px" />
+                    <DocumentCover doc={doc} size="sm" sizes="80px" />
                     <span className="flex min-w-0 flex-col gap-1.5 pt-0.5">
                       <span className="font-heading text-xl font-semibold leading-snug text-pssfp-graphite [overflow-wrap:anywhere] group-hover:text-pssfp-prune">
                         {doc.title}

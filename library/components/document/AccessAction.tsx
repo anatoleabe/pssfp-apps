@@ -78,7 +78,7 @@ export function AccessAction({ doc }: AccessActionProps): JSX.Element {
         return (
           <Notice
             Icon={Coins}
-            tone="border-pssfp-or/60 bg-[#F6ECD9] text-[#7A5A1C]"
+            tone="border-pssfp-or/60 bg-[#F6ECD9] text-pssfp-or-dark"
             title={t('paidTitle')}
             lines={[...(doc.price_xaf !== null ? [t('paidPrice', { price: formatPrice(doc.price_xaf) })] : []), t('paidBody')]}
           />

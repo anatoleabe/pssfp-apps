@@ -29,7 +29,11 @@ export interface DocumentDetail extends DocumentSummary {
 
 export interface PageMeta { current_page: number; last_page: number; per_page: number; total: number }
 export interface Paginated<T> { data: T[]; meta: PageMeta }
-export interface LibraryStats { total: number; by_type: Partial<Record<DocumentType, number>>; paid_count: number }
+export interface LibraryStats {
+  total: number; by_type: Partial<Record<DocumentType, number>>; paid_count: number;
+  /** Promotions distinctes parmi les mémoires publiés (absent des anciennes API : 0). */
+  promotions_count?: number;
+}
 export interface MotCle { slug: string; label: string; parent_slug: string | null }
 
 export interface SearchResponse {

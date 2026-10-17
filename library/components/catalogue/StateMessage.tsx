@@ -22,7 +22,7 @@ export function StateMessage({ kind, title, body, action }: StateMessageProps): 
     >
       <span
         className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-          isError ? 'bg-white text-[#7A5A1C]' : 'bg-pssfp-ivoire text-pssfp-prune'
+          isError ? 'bg-white text-pssfp-or-dark' : 'bg-pssfp-ivoire text-pssfp-prune'
         }`}
       >
         <Icon size={20} strokeWidth={1.75} aria-hidden="true" />

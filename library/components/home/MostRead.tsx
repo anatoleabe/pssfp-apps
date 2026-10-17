@@ -38,6 +38,7 @@ export async function MostRead({ docs }: { docs: DocumentSummary[] | null }): Pr
             <ol
               id={LIST_ID}
               data-testid={LIST_ID}
+              aria-labelledby="most-read-title"
               className="scrollbar-none -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-6 pt-2 sm:mx-0 sm:scroll-px-0 sm:gap-6 sm:px-0"
             >
               {docs.map((doc, i) => (
@@ -50,7 +51,7 @@ export async function MostRead({ docs }: { docs: DocumentSummary[] | null }): Pr
                       <DocumentCover doc={doc} size="md" sizes={COVER_SIZES} />
                     </span>
                     <span className="mt-3 flex gap-2.5">
-                      <span aria-hidden="true" className="font-heading text-2xl font-semibold leading-none tabular-nums text-[#7A5A1C]">
+                      <span aria-hidden="true" className="font-heading text-2xl font-semibold leading-none tabular-nums text-pssfp-or-dark">
                         {String(i + 1).padStart(2, '0')}
                       </span>
                       <span className="line-clamp-3 min-w-0 font-heading text-base font-semibold leading-snug text-pssfp-graphite [overflow-wrap:anywhere] group-hover:text-pssfp-prune">

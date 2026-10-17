@@ -64,11 +64,12 @@
       "title": "Explorer le fonds",
       "intro": "Travaux des promotions, textes de référence et ressources d'enseignement : chaque collection s'ouvre sur son catalogue complet.",
       "collection": "Collection",
-      "memoireMeta": "{count, plural, one {travail} other {travaux}} · 13 promotions",
+      "memoireMeta": "{count, plural, one {travail} other {travaux}}",
+      "memoireMetaPromotions": "{count, plural, one {travail} other {travaux}} · {promotions, plural, one {# promotion} other {# promotions}}",
       "documents": "{count, plural, one {document} other {documents}}",
       "premiumTitle": "Ouvrages premium",
       "premiumBody": "Bientôt disponibles",
-      "premiumCount": "{count, plural, one {# titre en préparation} other {# titres en préparation}}",
+      "premiumCount": "{count, plural, one {# titre bientôt disponible à l'achat} other {# titres bientôt disponibles à l'achat}}",
       "error": "Les collections sont momentanément indisponibles."
     },
     "latest": {

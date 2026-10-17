@@ -13,7 +13,11 @@ export async function getStats(): Promise<ApiResult<{ data: LibraryStats }>> {
   const r = await apiGet<{ data: LibraryStats }>('/library/stats', { revalidate: ISR });
   if (!r.ok) return r;
   const stats = r.data.data;
-  return { ok: true, data: { data: { ...stats, by_type: asRecord<number>(stats.by_type) } } };
+  const promotions = stats.promotions_count;
+  return {
+    ok: true,
+    data: { data: { ...stats, by_type: asRecord<number>(stats.by_type), promotions_count: typeof promotions === 'number' && promotions > 0 ? promotions : 0 } },
+  };
 }
 
 export function listDocuments(filters: CatalogueFilters, page = 1, perPage?: number): Promise<ApiResult<Paginated<DocumentSummary>>> {

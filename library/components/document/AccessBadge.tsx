@@ -10,7 +10,7 @@ import { formatPrice } from '@/lib/format';
 const BADGES: Record<AccessMode, { className: string; Icon: LucideIcon }> = {
   libre: { className: 'bg-[#E6F0EC] text-[#1D5B46]', Icon: LockOpen },
   reserve: { className: 'bg-[#ECE6F3] text-pssfp-prune', Icon: Lock },
-  payant: { className: 'bg-[#F6ECD9] text-[#7A5A1C]', Icon: Coins },
+  payant: { className: 'bg-[#F6ECD9] text-pssfp-or-dark', Icon: Coins },
 };
 
 interface AccessBadgeProps {

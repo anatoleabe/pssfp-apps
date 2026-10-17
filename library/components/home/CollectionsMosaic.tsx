@@ -48,6 +48,7 @@ export async function CollectionsMosaic({ stats }: { stats: LibraryStats | null 
   const format = await getFormatter();
   const count = (type: DocumentType): number => stats?.by_type[type] ?? 0;
   const memoires = count('memoire');
+  const promotions = stats?.promotions_count ?? 0;
 
   return (
     <section id="collections" aria-labelledby="collections-title" className="scroll-mt-20 py-16 sm:py-20 lg:py-24">
@@ -89,7 +90,7 @@ export async function CollectionsMosaic({ stats }: { stats: LibraryStats | null 
                       <span data-testid="collection-count" className="font-heading text-6xl font-semibold leading-none tabular-nums text-white sm:text-7xl">
                         {format.number(memoires)}
                       </span>
-                      <span className="font-ui text-sm text-white/85">{t('memoireMeta', { count: memoires })}</span>
+                      <span className="font-ui text-sm text-white/85">{promotions > 0 ? t('memoireMetaPromotions', { count: memoires, promotions }) : t('memoireMeta', { count: memoires })}</span>
                     </span>
                     <TileArrow />
                   </span>

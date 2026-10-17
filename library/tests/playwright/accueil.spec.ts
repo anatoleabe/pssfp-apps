@@ -1,9 +1,9 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+// Même base que l'app (playwright.config.ts charge .env.local comme `next dev`).
+import { API_BASE_URL as API } from '../../lib/api/client';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/v1';
-
-interface Stats { total: number; by_type: Record<string, number> | []; paid_count: number }
+interface Stats { total: number; by_type: Record<string, number> | []; paid_count: number; promotions_count?: number }
 
 /** Statistiques de l'API, ou null si elle est injoignable (CI : pas de backend). */
 async function fetchStats(request: APIRequestContext): Promise<Stats | null> {
@@ -17,6 +17,22 @@ async function fetchStats(request: APIRequestContext): Promise<Stats | null> {
 }
 
 test.describe('Accueil — toujours (avec ou sans API)', () => {
+  test('sur-titre du héros : total de l\'API, masqué si elle est injoignable', async ({ page, request }) => {
+    const stats = await fetchStats(request);
+    // En dev, « Cache-Control: no-cache » contourne le cache de données de Next (comme un
+    // rechargement forcé) : sinon des statistiques mises en cache lors d'un passage avec
+    // backend resteraient servies (ISR 300 s) et le cas « API injoignable » ne serait pas testé.
+    await page.setExtraHTTPHeaders({ 'cache-control': 'no-cache' });
+    await page.goto('/');
+    const eyebrow = page.getByTestId('home-eyebrow');
+    if (stats === null || stats.total === 0) {
+      await expect(eyebrow).toHaveCount(0);
+    } else {
+      await expect(eyebrow).toContainText(`${new Intl.NumberFormat('fr-FR').format(stats.total)} document`);
+      await expect(eyebrow).toContainText('finances publiques');
+    }
+  });
+
   test('un seul h1 et un formulaire de recherche vers /recherche', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('h1')).toHaveCount(1);
@@ -83,6 +99,10 @@ test.describe('Accueil — données de l\'API', () => {
     }
     await expect(tile).toHaveAttribute('href', '/collections/memoire');
     await expect(tile.getByTestId('collection-count')).toHaveText(new Intl.NumberFormat('fr-FR').format(n));
+    // Promotions réelles : affichées seulement si l'API en compte.
+    const promotions = stats!.promotions_count ?? 0;
+    if (promotions > 0) await expect(tile).toContainText(`${promotions} promotion`);
+    else await expect(tile).not.toContainText('promotion');
   });
 
   test('six nouveautés au plus', async ({ page }) => {
@@ -104,23 +124,46 @@ test.describe('Accueil — données de l\'API', () => {
     }
   });
 
-  test('« Les plus lus » : liste ordonnée défilante avec commandes', async ({ page }) => {
+  test('« Les plus lus » : liste ordonnée étiquetée, avec commandes', async ({ page }) => {
     await page.goto('/');
     const list = page.getByTestId('most-read-list');
     await expect(list).toHaveJSProperty('tagName', 'OL');
+    await expect(list).toHaveAttribute('aria-labelledby', 'most-read-title');
+    await expect(page.getByRole('list', { name: 'Les plus lus' })).toBeVisible();
     expect(await list.locator('li').count()).toBeGreaterThanOrEqual(1);
-    const next = page.getByRole('button', { name: /suivants/i });
-    await expect(next).toHaveAttribute('aria-controls', (await list.getAttribute('id')) ?? '');
-    const previous = page.getByRole('button', { name: /précédents/i });
-    await expect(previous).toBeDisabled();
-    // Défilement d'une carte, dans le conteneur seul (mouvement réduit : saut immédiat).
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.setViewportSize({ width: 375, height: 800 });
-    if (await next.isEnabled()) {
-      await next.click();
-      await expect.poll(() => list.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
-      await expect(previous).toBeEnabled();
+    for (const name of [/suivants/i, /précédents/i]) {
+      await expect(page.getByRole('button', { name })).toHaveAttribute('aria-controls', 'most-read-list');
     }
+  });
+
+  test('« Les plus lus » : défilement d\'une carte, boutons aria-disabled aux bords', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' }); // saut immédiat, pas d'attente d'animation
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto('/');
+    const list = page.getByTestId('most-read-list');
+    await expect(list).toBeVisible();
+    const overflows = await list.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+    test.skip(!overflows, 'bandeau sans débordement (trop peu de documents) : rien à faire défiler');
+
+    const next = page.getByRole('button', { name: /suivants/i });
+    const previous = page.getByRole('button', { name: /précédents/i });
+    const scrollLeft = (): Promise<number> => list.evaluate((el) => el.scrollLeft);
+    await expect(previous).toHaveAttribute('aria-disabled', 'true');
+    await expect(next).toHaveAttribute('aria-disabled', 'false');
+
+    // Au bord, « précédents » reste focalisable (aria-disabled, pas disabled) mais ne fait rien.
+    await previous.focus();
+    await expect(previous).toBeFocused();
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(100); // laisse au défilement l'occasion (indue) de se produire
+    expect(await scrollLeft()).toBe(0);
+
+    await next.click();
+    await expect.poll(scrollLeft).toBeGreaterThan(0);
+    const afterOne = await scrollLeft();
+    await expect(previous).toHaveAttribute('aria-disabled', 'false');
+    await next.click();
+    await expect.poll(scrollLeft).toBeGreaterThan(afterOne);
   });
 
   // Captures d'écran pour la revue visuelle : uniquement si SCREENSHOT_DIR est défini (jamais en CI).
