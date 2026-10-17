@@ -5,6 +5,16 @@ declare(strict_types=1);
 /*
  * Bibliothèque virtuelle (Module 3) — cf. docs/specs/module-3-bibliotheque-v1-2026-10.md.
  */
+/*
+ * Plafond lu dans l'environnement ; une valeur vide, non numérique ou inférieure à 1
+ * reprend le défaut (un plafond nul renverrait 429 à tout le monde).
+ */
+$rateLimit = static function (string $key, int $default): int {
+    $value = env($key);
+
+    return is_numeric($value) && (int) $value >= 1 ? (int) $value : $default;
+};
+
 return [
     // PDF privés ; jamais d'URL publique directe.
     'documents_disk' => env('LIBRARY_DOCUMENTS_DISK', 'minio_documents'),
@@ -21,10 +31,10 @@ return [
      * et dans `search`, jamais deux fois dans le même.
      */
     'rate_limits' => [
-        'library' => (int) env('LIBRARY_RATE_LIMIT', 120),
-        'search' => (int) env('LIBRARY_SEARCH_RATE_LIMIT', 60),
-        'download' => (int) env('LIBRARY_DOWNLOAD_RATE_LIMIT', 30),
-        'view' => (int) env('LIBRARY_VIEW_RATE_LIMIT', 20),
+        'library' => $rateLimit('LIBRARY_RATE_LIMIT', 120),
+        'search' => $rateLimit('LIBRARY_SEARCH_RATE_LIMIT', 60),
+        'download' => $rateLimit('LIBRARY_DOWNLOAD_RATE_LIMIT', 30),
+        'view' => $rateLimit('LIBRARY_VIEW_RATE_LIMIT', 20),
     ],
 
     // IP jamais limitées (liste séparée par des virgules) : en prod, l'IP publique du VPS,

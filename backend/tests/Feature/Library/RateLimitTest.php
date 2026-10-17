@@ -81,3 +81,36 @@ it('lit la liste des IP exemptées depuis une variable séparée par des virgule
 
     expect($config['rate_limit_exempt_ips'])->toBe(['203.0.113.10', '198.51.100.7']);
 });
+
+it('reprend le plafond par défaut si la variable est vide, non numérique ou nulle', function (string $value): void {
+    $keys = ['LIBRARY_RATE_LIMIT', 'LIBRARY_SEARCH_RATE_LIMIT', 'LIBRARY_DOWNLOAD_RATE_LIMIT', 'LIBRARY_VIEW_RATE_LIMIT'];
+    foreach ($keys as $key) {
+        putenv("{$key}={$value}");
+        $_ENV[$key] = $_SERVER[$key] = $value;
+    }
+
+    try {
+        $config = require config_path('library.php');
+    } finally {
+        foreach ($keys as $key) {
+            putenv($key);
+            unset($_ENV[$key], $_SERVER[$key]);
+        }
+    }
+
+    expect($config['rate_limits'])->toBe(['library' => 120, 'search' => 60, 'download' => 30, 'view' => 20]);
+})->with(['vide' => '', 'texte' => 'abc', 'zéro' => '0', 'négatif' => '-5']);
+
+it('applique un plafond valide lu dans l\'environnement', function (): void {
+    putenv('LIBRARY_RATE_LIMIT=600');
+    $_ENV['LIBRARY_RATE_LIMIT'] = $_SERVER['LIBRARY_RATE_LIMIT'] = '600';
+
+    try {
+        $config = require config_path('library.php');
+    } finally {
+        putenv('LIBRARY_RATE_LIMIT');
+        unset($_ENV['LIBRARY_RATE_LIMIT'], $_SERVER['LIBRARY_RATE_LIMIT']);
+    }
+
+    expect($config['rate_limits']['library'])->toBe(600);
+});
