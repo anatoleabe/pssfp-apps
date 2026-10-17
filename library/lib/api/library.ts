@@ -4,13 +4,18 @@ import { filtersToSearchParams } from '../routes';
 
 const ISR = 300;
 
+/** Durée de cache de données propre à l'appelant (ex. sitemap : 3600 s). */
+export interface CacheOptions {
+  revalidate?: number;
+}
+
 /** PHP sérialise un tableau associatif vide en `[]` : on le ramène à `{}`. */
 export function asRecord<V>(value: unknown): Partial<Record<string, V>> {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as Partial<Record<string, V>>) : {};
 }
 
-export async function getStats(): Promise<ApiResult<{ data: LibraryStats }>> {
-  const r = await apiGet<{ data: LibraryStats }>('/library/stats', { revalidate: ISR });
+export async function getStats(options: CacheOptions = {}): Promise<ApiResult<{ data: LibraryStats }>> {
+  const r = await apiGet<{ data: LibraryStats }>('/library/stats', { revalidate: options.revalidate ?? ISR });
   if (!r.ok) return r;
   const stats = r.data.data;
   const promotions = stats.promotions_count;
@@ -20,12 +25,12 @@ export async function getStats(): Promise<ApiResult<{ data: LibraryStats }>> {
   };
 }
 
-export function listDocuments(filters: CatalogueFilters, page = 1, perPage?: number): Promise<ApiResult<Paginated<DocumentSummary>>> {
+export function listDocuments(filters: CatalogueFilters, page = 1, perPage?: number, options: CacheOptions = {}): Promise<ApiResult<Paginated<DocumentSummary>>> {
   const qs = filtersToSearchParams(filters);
   if (page > 1) qs.set('page', String(page));
   if (perPage) qs.set('per_page', String(perPage));
   const s = qs.toString();
-  return apiGet(`/library/documents${s ? `?${s}` : ''}`, { revalidate: ISR });
+  return apiGet(`/library/documents${s ? `?${s}` : ''}`, { revalidate: options.revalidate ?? ISR });
 }
 
 export function getDocument(slug: string): Promise<ApiResult<{ data: DocumentDetail; related: DocumentSummary[] }>> {

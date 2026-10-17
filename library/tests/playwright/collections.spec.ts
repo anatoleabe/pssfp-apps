@@ -2,7 +2,7 @@ import { test, expect, type APIRequestContext, type Page } from '@playwright/tes
 import AxeBuilder from '@axe-core/playwright';
 // Même base que l'app (playwright.config.ts charge .env.local comme `next dev`).
 import { API_BASE_URL as API } from '../../lib/api/client';
-import { COLLECTION_PER_PAGE, activeFilterKeys, collectionPageHref, collectionResetHref, isIndexable, parsePage, withoutFilter } from '../../lib/collections';
+import { COLLECTION_PER_PAGE, MAX_COLLECTION_PAGE, activeFilterKeys, collectionPageHref, collectionResetHref, isIndexable, parsePage, withoutFilter } from '../../lib/collections';
 
 interface Doc { slug: string; type: string }
 interface Listing { data: Doc[]; meta: { total: number; last_page: number } }
@@ -50,7 +50,10 @@ test.describe('Collections — utilitaires', () => {
     expect(parsePage(undefined)).toBe(1);
     expect(parsePage('3')).toBe(3);
     expect(parsePage(['4', '5'])).toBe(4);
-    for (const v of ['0', '-2', 'abc', '1.5', '1e3', '', '999999']) expect(parsePage(v)).toBe(1);
+    for (const v of ['0', '-2', 'abc', '1.5', '1e3', '', '1234567890']) expect(parsePage(v)).toBe(1);
+    // Au-delà du plafond : valeur conservée, la page répond 404 (pas de repli silencieux sur la page 1).
+    expect(parsePage('999999')).toBe(999999);
+    expect(MAX_COLLECTION_PAGE).toBe(500);
   });
 
   test('activeFilterKeys ignore type et tri', () => {
@@ -91,6 +94,13 @@ test.describe('Collections — toujours (avec ou sans API)', () => {
     const res = await page.goto('/collections/inconnu');
     expect(res?.status()).toBe(404);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('pas dans nos rayons');
+  });
+
+  test('page au-delà de 500 → 404 (sans appel à l\'API)', async ({ page }) => {
+    for (const p of ['501', '999999']) {
+      const res = await page.goto(`${URL_MEMOIRES}?page=${p}`);
+      expect(res?.status(), p).toBe(404);
+    }
   });
 
   test('un seul h1, même avec des paramètres invalides', async ({ page }) => {
@@ -324,6 +334,19 @@ test.describe('Collections — données de l\'API', () => {
     expect(scrollY).toBeGreaterThan(0);
     expect(top).toBeGreaterThanOrEqual(header - 1);
     expect(top).toBeLessThan(700);
+  });
+
+  test('page au-delà de la dernière : état « page inexistante » et lien vers la page 1', async ({ page }) => {
+    const beyond = memoires!.meta.last_page + 1;
+    const res = await page.goto(`${URL_MEMOIRES}?acces=libre&page=${beyond}`);
+    expect(res?.status()).toBe(200);
+    const state = page.getByTestId('state-page-out-of-range');
+    await expect(state).toBeVisible();
+    await expect(state.getByRole('link', { name: 'Revenir à la première page' })).toHaveAttribute('href', `${URL_MEMOIRES}?acces=libre`);
+    await expect(page.getByTestId('collection-results')).toHaveCount(0);
+    // Pas de pagination trompeuse (elle désignerait la dernière page comme courante).
+    await expect(page.getByRole('navigation', { name: 'Pagination' })).toHaveCount(0);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
   });
 
   test('métadonnées : canonique sans filtres, noindex dès qu\'un filtre', async ({ page }) => {

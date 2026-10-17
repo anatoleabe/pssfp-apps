@@ -8,19 +8,22 @@ export const COLLECTION_PER_PAGE = 12;
 export const FILTER_KEYS = ['acces', 'annee_min', 'annee_max', 'langue', 'promotion', 'mot_cle', 'specialite'] as const;
 export type FilterKey = (typeof FILTER_KEYS)[number];
 
-/** Pages au-delà : refusées (aucune collection n'en compte autant, évite des requêtes inutiles). */
-const MAX_PAGE = 9999;
+/** Pages au-delà : 404 sans appel à l'API (aucune collection n'en compte autant). */
+export const MAX_COLLECTION_PAGE = 500;
 
 export function isDocumentType(value: string): value is DocumentType {
   return (DOCUMENT_TYPES as readonly string[]).includes(value);
 }
 
-/** `?page=` non fiable → entier ≥ 1 (1 par défaut). */
+/**
+ * `?page=` non fiable → entier ≥ 1 (1 par défaut). Une valeur au-delà de `MAX_COLLECTION_PAGE`
+ * est conservée : la page répond alors 404 (pas de repli silencieux sur la page 1).
+ */
 export function parsePage(raw: string | string[] | undefined): number {
   const value = Array.isArray(raw) ? raw[0] : raw;
-  if (value === undefined || !/^\d{1,4}$/.test(value)) return 1;
+  if (value === undefined || !/^\d{1,9}$/.test(value)) return 1;
   const n = Number(value);
-  return n >= 1 && n <= MAX_PAGE ? n : 1;
+  return n >= 1 ? n : 1;
 }
 
 export function activeFilterKeys(filters: CatalogueFilters): FilterKey[] {

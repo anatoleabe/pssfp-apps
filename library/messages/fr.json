@@ -107,7 +107,10 @@
     "filterCount": "{count, plural, one {# filtre actif} other {# filtres actifs}}",
     "emptyTitle": "Cette collection ne contient pas encore de document.",
     "emptyBody": "Parcourez une autre collection ou lancez une recherche dans tout le catalogue.",
-    "backHome": "Retour à l'accueil"
+    "backHome": "Retour à l'accueil",
+    "pageOutOfRangeTitle": "Cette page n'existe pas.",
+    "pageOutOfRangeBody": "{last, plural, one {La liste ne compte qu'une page.} other {La liste compte # pages.}} Revenez à la première page pour parcourir les documents.",
+    "firstPage": "Revenir à la première page"
   },
   "specialites": {
     "economie-publique-gestion-publique": "Économie Publique et Gestion Publique",

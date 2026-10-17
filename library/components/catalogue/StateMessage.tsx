@@ -11,16 +11,18 @@ interface StateMessageProps {
    * l'état vide n'en crée pas une seconde (une seule région vivante par page).
    */
   live?: boolean;
+  /** Remplace le `data-testid` par défaut (`state-empty` / `state-error`). */
+  testId?: string;
 }
 
 /** État vide (role=status) ou d'erreur (role=alert) d'une liste ou d'une page. */
-export function StateMessage({ kind, title, body, action, live = true }: StateMessageProps): JSX.Element {
+export function StateMessage({ kind, title, body, action, live = true, testId }: StateMessageProps): JSX.Element {
   const isError = kind === 'error';
   const Icon = isError ? TriangleAlert : Inbox;
   return (
     <div
       role={live ? (isError ? 'alert' : 'status') : undefined}
-      data-testid={isError ? 'state-error' : 'state-empty'}
+      data-testid={testId ?? (isError ? 'state-error' : 'state-empty')}
       className={`flex flex-col items-start gap-4 rounded-pssfp-card border p-6 sm:flex-row sm:p-8 ${
         isError ? 'border-pssfp-or/60 bg-[#F6ECD9]' : 'border-dashed border-pssfp-lavande bg-white'
       }`}

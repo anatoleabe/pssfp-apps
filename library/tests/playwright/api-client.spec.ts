@@ -3,6 +3,7 @@ import path from 'node:path';
 import { test, expect } from '@playwright/test';
 import { apiGet } from '../../lib/api/client';
 import { getStats, searchDocuments } from '../../lib/api/library';
+import sitemap from '../../app/sitemap';
 
 type FetchFn = typeof fetch;
 const realFetch: FetchFn = globalThis.fetch;
@@ -119,5 +120,63 @@ test.describe('next.config.js : NEXT_PUBLIC_API_URL en production', () => {
     expect(loadConfig({ NODE_ENV: 'production', NEXT_PUBLIC_API_URL: 'https://api.pssfp.org/v1' }).status).toBe(0);
     expect(loadConfig({ NODE_ENV: 'production', CI: 'true' }).status).toBe(0);
     expect(loadConfig({ NODE_ENV: 'development' }).status).toBe(0);
+  });
+});
+
+test.describe('sitemap : cache d\'une heure et journalisation', () => {
+  type Call = { url: string; revalidate: unknown };
+  let calls: Call[] = [];
+  let warnings: string[] = [];
+  const realWarn = console.warn;
+
+  const doc = (i: number): Record<string, unknown> => ({ slug: `doc-${i}`, published_at: '2026-01-01T00:00:00Z' });
+
+  /** fetch factice : statistiques et listes paginées (`lastPage` pages pleines de 50 fiches). */
+  function stubApi(lastPage: number): void {
+    stubFetch(async (input, init) => {
+      const url = String(input);
+      calls.push({ url, revalidate: (init as { next?: { revalidate?: unknown } } | undefined)?.next?.revalidate });
+      if (url.includes('/library/stats')) return json({ data: { total: 2, by_type: { memoire: 2 }, paid_count: 0 } });
+      const page = Number(new URL(url).searchParams.get('page') ?? 1);
+      return json({ data: Array.from({ length: 50 }, (_, i) => doc((page - 1) * 50 + i)), meta: { current_page: page, last_page: lastPage, total: lastPage * 50 } });
+    });
+  }
+
+  test.beforeEach(() => {
+    calls = [];
+    warnings = [];
+    console.warn = (...args: unknown[]): void => {
+      warnings.push(args.map(String).join(' '));
+    };
+  });
+
+  test.afterEach(() => {
+    globalThis.fetch = realFetch;
+    console.warn = realWarn;
+  });
+
+  test('tous les appels de la sitemap demandent revalidate: 3600 (la route se régénère à l\'heure)', async () => {
+    stubApi(2);
+    const entries = await sitemap();
+    expect(calls.length).toBeGreaterThanOrEqual(3);
+    expect(calls.map((c) => c.revalidate)).toEqual(calls.map(() => 3600));
+    expect(entries.some((e) => e.url.endsWith('/collections/memoire'))).toBe(true);
+    expect(entries.filter((e) => e.url.includes('/documents/'))).toHaveLength(100);
+    expect(warnings).toEqual([]);
+  });
+
+  test('API en échec : sitemap réduite aux pages fixes, avertissement journalisé', async () => {
+    stubFetch(async () => json({ message: 'panne' }, 503));
+    const entries = await sitemap();
+    expect(entries.map((e) => new URL(e.url).pathname)).toEqual(['/', '/a-propos']);
+    expect(warnings.join('\n')).toMatch(/sitemap/i);
+    expect(warnings.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test('liste tronquée au plafond : avertissement journalisé', async () => {
+    stubApi(500);
+    const entries = await sitemap();
+    expect(entries.filter((e) => e.url.includes('/documents/'))).toHaveLength(5000);
+    expect(warnings.join('\n')).toMatch(/tronqu/i);
   });
 });

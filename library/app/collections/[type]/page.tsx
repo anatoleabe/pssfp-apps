@@ -17,10 +17,8 @@ import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { getMotsCles, listDocuments } from '@/lib/api/library';
 import type { CatalogueFilters, DocumentType } from '@/lib/api/types';
 import { unwrapOrThrow } from '@/lib/api/unwrap';
-import { COLLECTION_PER_PAGE, activeFilterKeys, collectionPageHref, collectionResetHref, isDocumentType, isIndexable, parsePage } from '@/lib/collections';
+import { COLLECTION_PER_PAGE, MAX_COLLECTION_PAGE, activeFilterKeys, collectionPageHref, collectionResetHref, isDocumentType, isIndexable, parsePage } from '@/lib/collections';
 import { filtersToSearchParams, searchParamsToFilters } from '@/lib/routes';
-
-export const revalidate = 300;
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -29,11 +27,16 @@ interface CollectionPageProps {
   searchParams: SearchParams;
 }
 
-/** Type validé (sinon 404) et filtres reconnus ; le type vient du chemin, jamais de la requête. */
+/**
+ * Type validé (sinon 404) et filtres reconnus ; le type vient du chemin, jamais de la requête.
+ * Page au-delà de `MAX_COLLECTION_PAGE` : 404, sans appel à l'API.
+ */
 function readRequest({ params, searchParams }: CollectionPageProps): { type: DocumentType; filters: CatalogueFilters; page: number } {
   if (!isDocumentType(params.type)) notFound();
   const type = params.type;
-  return { type, filters: { ...searchParamsToFilters(searchParams), type }, page: parsePage(searchParams.page) };
+  const page = parsePage(searchParams.page);
+  if (page > MAX_COLLECTION_PAGE) notFound();
+  return { type, filters: { ...searchParamsToFilters(searchParams), type }, page };
 }
 
 export async function generateMetadata(props: CollectionPageProps): Promise<Metadata> {
@@ -57,7 +60,8 @@ const RESULTS_GRID = 'grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-
 
 /**
  * Collection filtrable (maquette B) : filtres GET à gauche (tiroir `<details>` sur mobile),
- * résultats paginés à droite. La liste des documents est indispensable : `unwrapOrThrow` lève une
+ * résultats paginés à droite. Page dynamique (lecture de `searchParams`) : pas d'ISR de la page,
+ * seuls les appels à l'API passent par le cache de données (5 min, 1 h pour les mots-clés). La liste des documents est indispensable : `unwrapOrThrow` lève une
  * exception en cas d'échec (l'ISR conserve alors la dernière version valide, sinon `app/error.tsx`).
  * Les mots-clés, eux, sont facultatifs (voir plus bas).
  */
@@ -81,6 +85,9 @@ export default async function CollectionPage(props: CollectionPageProps): Promis
   const resetHref = collectionResetHref(type, filters);
   // Le tri renvoie les filtres courants (sans type ni tri) ; la page repart de 1.
   const sortHidden = Object.fromEntries(filtersToSearchParams({ ...filters, type: undefined, tri: undefined }));
+  // `?page=` au-delà de la dernière page : état dédié (jamais une liste vide), lien vers la page 1.
+  const outOfRange = page > 1 && page > meta.last_page;
+  const filteredEmpty = activeCount > 0 || page > 1;
 
   return (
     <>
@@ -153,20 +160,37 @@ export default async function CollectionPage(props: CollectionPageProps): Promis
           )}
 
           <div className="mt-6">
-            {docs.length === 0 ? (
+            {outOfRange ? (
               <StateMessage
                 kind="empty"
                 live={false}
-                title={activeCount > 0 || page > 1 ? tStates('emptyTitle') : t('emptyTitle')}
-                body={activeCount > 0 || page > 1 ? tStates('emptyBody') : t('emptyBody')}
+                testId="state-page-out-of-range"
+                title={t('pageOutOfRangeTitle')}
+                body={t('pageOutOfRangeBody', { last: meta.last_page })}
                 action={
                   <Link
-                    href={activeCount > 0 || page > 1 ? resetHref : '/'}
-                    // Réinitialisation dans la page : pas de remontée, le focus passe aux résultats.
-                    scroll={!(activeCount > 0 || page > 1)}
+                    href={collectionPageHref(type, filters)}
+                    scroll={false}
                     className="inline-flex h-10 items-center rounded-pssfp-button bg-pssfp-prune px-4 font-ui text-sm font-medium text-white transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2"
                   >
-                    {activeCount > 0 || page > 1 ? tCatalogue('resetFilters') : t('backHome')}
+                    {t('firstPage')}
+                  </Link>
+                }
+              />
+            ) : docs.length === 0 ? (
+              <StateMessage
+                kind="empty"
+                live={false}
+                title={filteredEmpty ? tStates('emptyTitle') : t('emptyTitle')}
+                body={filteredEmpty ? tStates('emptyBody') : t('emptyBody')}
+                action={
+                  <Link
+                    href={filteredEmpty ? resetHref : '/'}
+                    // Réinitialisation dans la page : pas de remontée, le focus passe aux résultats.
+                    scroll={!filteredEmpty}
+                    className="inline-flex h-10 items-center rounded-pssfp-button bg-pssfp-prune px-4 font-ui text-sm font-medium text-white transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2"
+                  >
+                    {filteredEmpty ? tCatalogue('resetFilters') : t('backHome')}
                   </Link>
                 }
               />
@@ -181,7 +205,7 @@ export default async function CollectionPage(props: CollectionPageProps): Promis
             )}
           </div>
 
-          <Pagination page={meta.current_page} lastPage={meta.last_page} hrefFor={(p) => collectionPageHref(type, filters, p)} scroll={false} />
+          {!outOfRange && <Pagination page={meta.current_page} lastPage={meta.last_page} hrefFor={(p) => collectionPageHref(type, filters, p)} scroll={false} />}
         </section>
       </div>
     </>
