@@ -63,11 +63,17 @@ export function SearchInvite(): JSX.Element {
   );
 }
 
+/**
+ * Cartes du squelette : assez pour pousser le pied de page sous la ligne de flottaison (une page de
+ * résultats en compte 20) ; sinon il saute vers le bas à l'arrivée des résultats (CLS).
+ */
+const SKELETON_CARDS = [0, 1, 2, 3, 4, 5, 6, 7];
+
 /** Squelette des cartes pendant la requête (décoratif : l'état passe par aria-busy et la région vivante). */
 export function SearchSkeleton(): JSX.Element {
   return (
     <ul data-testid="search-skeleton" aria-hidden="true" className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-      {[0, 1, 2, 3].map((i) => (
+      {SKELETON_CARDS.map((i) => (
         <li key={i} className="flex gap-4 rounded-pssfp-card border border-pssfp-lavande/30 bg-white p-3 shadow-pssfp-soft sm:gap-5 sm:p-4">
           <span className="h-28 w-20 shrink-0 rounded-md bg-pssfp-lavande/25 motion-safe:animate-pulse" />
           <span className="flex min-w-0 flex-1 flex-col gap-3 pt-1">

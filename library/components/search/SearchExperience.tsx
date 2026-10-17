@@ -136,6 +136,8 @@ export function SearchExperience(): JSX.Element {
   useInert(mobileFacetsRef, stale);
   useInert(paginationRef, stale);
   const withFacets = shown !== null && hasFacetValues(shown.data.meta.facets, shown.request.filters);
+  // Premier chargement d'une requête : la place des facettes est réservée (pas de décalage des résultats).
+  const reserveFacets = busy && shown === null;
   const activeCount = request ? countFilters(request.filters) : 0;
   const shownCount = shown ? countFilters(shown.request.filters) : 0;
 
@@ -155,7 +157,9 @@ export function SearchExperience(): JSX.Element {
   };
 
   return (
-    <div className={`mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14 ${withFacets ? 'grid gap-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-12' : ''}`}>
+    <div className={`mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14 ${withFacets || reserveFacets ? 'grid gap-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-12' : ''}`}>
+      {reserveFacets ? <FacetsPlaceholder /> : null}
+
       {withFacets && shown ? (
         <aside aria-labelledby="facets-title" data-testid="facets-desktop" className="hidden lg:block">
           <div className="rounded-pssfp-card border border-pssfp-lavande/30 bg-white p-6 shadow-pssfp-soft">
@@ -230,5 +234,25 @@ export function SearchExperience(): JSX.Element {
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * Emplacements des facettes pendant le premier chargement (décoratifs) : colonne ≥ lg, barre du tiroir
+ * en dessous, aux dimensions des éléments réels. Évite le décalage des résultats (CLS) à leur arrivée.
+ */
+function FacetsPlaceholder(): JSX.Element {
+  return (
+    <>
+      <div aria-hidden="true" data-testid="facets-placeholder" className="hidden lg:block">
+        <div className="space-y-4 rounded-pssfp-card border border-pssfp-lavande/30 bg-white p-6 shadow-pssfp-soft">
+          <span className="block h-7 w-24 rounded bg-pssfp-lavande/30 motion-safe:animate-pulse" />
+          {[0, 1, 2, 3, 4].map((i) => (
+            <span key={i} className="block h-4 rounded bg-pssfp-lavande/20 motion-safe:animate-pulse" />
+          ))}
+        </div>
+      </div>
+      <div aria-hidden="true" className="h-[2.875rem] rounded-pssfp-card border border-pssfp-lavande/40 bg-white shadow-pssfp-soft lg:hidden" />
+    </>
   );
 }
