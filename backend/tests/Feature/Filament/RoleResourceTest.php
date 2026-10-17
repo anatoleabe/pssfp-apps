@@ -153,6 +153,7 @@ it('round-trips levels through permissions without drift', function (): void {
     $levels = [
         'site' => ModulePermissionMap::LEVEL_READ,
         'admissions' => ModulePermissionMap::LEVEL_MANAGE,
+        'bibliotheque' => ModulePermissionMap::LEVEL_NONE,
         'administration' => ModulePermissionMap::LEVEL_NONE,
     ];
 

@@ -79,6 +79,18 @@ final class ModulePermissionMap
                     'create_campagne::candidature', 'update_campagne::candidature',
                 ],
             ],
+            'bibliotheque' => [
+                'label' => 'Module 3 — Bibliothèque',
+                'description' => 'Documents de la bibliothèque virtuelle et thésaurus. La publication reste une action sensible.',
+                'read' => [
+                    'view_any_document', 'view_document',
+                    'view_any_mot::cle', 'view_mot::cle',
+                ],
+                'manage' => [
+                    'create_document', 'update_document', 'delete_document',
+                    'create_mot::cle', 'update_mot::cle', 'delete_mot::cle',
+                ],
+            ],
             'administration' => [
                 'label' => 'Administration',
                 'description' => 'Comptes back-office, rôles et réglages applicatifs.',
@@ -106,6 +118,7 @@ final class ModulePermissionMap
     public static function sensitiveActions(): array
     {
         return [
+            'document.publish' => 'Publier ou dépublier un document de la bibliothèque',
             'candidature.mark_depot_physique' => 'Pointer la réception des dossiers papier au guichet',
             'candidature.export_csv' => 'Exporter les candidatures en CSV',
             'candidature.mark_paid' => 'Marquer les frais de dossier comme payés',
