@@ -135,11 +135,31 @@
     "promotion": "Promotion {n}",
     "abstract": "Résumé",
     "keywords": "Mots-clés",
-    "related": "Documents proches",
+    "related": "Documents liés",
     "views": "{count, plural, =0 {Aucune consultation} one {# consultation} other {# consultations}}",
     "coverAlt": "Couverture : {title}",
     "authorsEtAl": "{list} et al.",
     "noDate": "s.d."
+  },
+  "fiche": {
+    "metaDescriptionFallback": "{type} « {title} » : notice, conditions d'accès et citation, dans la bibliothèque virtuelle du PSSFP.",
+    "authorsLabel": "Auteurs :",
+    "detailsTitle": "Notice",
+    "fields": {
+      "year": "Année",
+      "promotion": "Promotion",
+      "specialite": "Spécialité",
+      "language": "Langue",
+      "pages": "Pages",
+      "journal": "Revue",
+      "doi": "DOI",
+      "isbn": "ISBN"
+    },
+    "promotionValue": "{n, selectordinal, one {#re} other {#e}}",
+    "accessTitle": "Accès au document",
+    "keywordsHint": "Chaque mot-clé ouvre la collection filtrée sur ce thème.",
+    "relatedEyebrow": "Pour prolonger la lecture",
+    "publisherName": "Programme Supérieur de Spécialisation en Finances Publiques (PSSFP)"
   },
   "search": {
     "label": "Rechercher dans le catalogue",

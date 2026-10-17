@@ -36,7 +36,7 @@ export const COVER_THEMES: Record<DocumentType, CoverTheme> = {
 const SIZES: Record<CoverSize, { box: string; sizes: string; pad: string; title: string; type: string }> = {
   sm: { box: 'w-16 sm:w-20', sizes: '80px', pad: 'p-2', title: 'text-2xl', type: 'hidden' },
   md: { box: 'w-full', sizes: '(min-width: 1024px) 240px, (min-width: 640px) 33vw, 90vw', pad: 'p-4', title: 'text-base line-clamp-4 sm:text-lg sm:line-clamp-5', type: 'text-[0.65rem]' },
-  lg: { box: 'w-full max-w-xs', sizes: '(min-width: 1024px) 320px, 80vw', pad: 'p-6', title: 'text-2xl line-clamp-6', type: 'text-xs' },
+  lg: { box: 'w-full max-w-xs', sizes: '(min-width: 1024px) 320px, 80vw', pad: 'p-6', title: 'text-2xl line-clamp-6 hyphens-auto [overflow-wrap:anywhere]', type: 'text-xs' },
 };
 
 interface DocumentCoverProps {
