@@ -135,6 +135,8 @@ Identifiants publics : `uuid` et `slug` uniquement, jamais l'`id` interne. Limit
 
 Mobile d'abord (320 px sans défilement horizontal), charte ADR-0008, composants partagés `@pssfp/ui`, textes via `next-intl` (aucun texte en dur), WCAG 2.1 AA, Lighthouse ≥ 85 sur les quatre axes, liste < 800 ms et recherche < 500 ms côté API.
 
+- **Pages ISR et API indisponible** : une page ISR ne met jamais en cache un état d'erreur. Toute donnée indispensable passe par `unwrapOrThrow` (`library/lib/api/unwrap.ts`) : 404 → `notFound()`, tout autre échec → exception. Pendant une revalidation, Next conserve alors la dernière page valide ; au premier rendu, `app/error.tsx` affiche une page « bibliothèque momentanément indisponible » utile (recherche, Réessayer, liens vers le site principal). Seule exception : le prérendu de `next build` sans API (CI) rend une page de repli au lieu d'échouer, remplacée à la première revalidation réussie. Un état vide (`role="status"`) reste distinct d'une erreur.
+
 ## 7. Sous-projet 3 — Migration et bascule
 
 1. **Extraction (hors prod)** : chargement du dump MySQL `assets-source/BD bibliotheque PSSFP …sql` dans un MySQL Docker jetable ; script d'export vers des fichiers JSON (catégories et documents DOCman, ouvrages et catégories Alexandria). Fichiers d'export non versionnés (données réelles).

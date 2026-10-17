@@ -69,13 +69,11 @@
       "documents": "{count, plural, one {document} other {documents}}",
       "premiumTitle": "Ouvrages premium",
       "premiumBody": "Bientôt disponibles",
-      "premiumCount": "{count, plural, one {# titre bientôt disponible à l'achat} other {# titres bientôt disponibles à l'achat}}",
-      "error": "Les collections sont momentanément indisponibles."
+      "premiumCount": "{count, plural, one {# titre bientôt disponible à l'achat} other {# titres bientôt disponibles à l'achat}}"
     },
     "latest": {
       "eyebrow": "Derniers ajouts au catalogue",
       "title": "Nouveautés",
-      "error": "Les nouveautés sont momentanément indisponibles.",
       "empty": "Aucune nouveauté pour le moment."
     },
     "mostRead": {
@@ -83,9 +81,17 @@
       "title": "Les plus lus",
       "previous": "Documents précédents",
       "next": "Documents suivants",
-      "error": "Le palmarès est momentanément indisponible.",
       "empty": "Aucune consultation enregistrée pour le moment."
     }
+  },
+  "errorPage": {
+    "eyebrow": "Service momentanément interrompu",
+    "title": "La bibliothèque est momentanément indisponible.",
+    "body": "Le catalogue ne répond pas pour l'instant. Réessayez dans quelques instants : vos documents vous attendent.",
+    "searchHint": "Vous pouvez aussi lancer une recherche dès maintenant :",
+    "retry": "Réessayer",
+    "mainSite": "Site du PSSFP",
+    "contact": "Contacter le PSSFP"
   },
   "catalogue": {
     "resultsCount": "{count, plural, =0 {Aucun document} one {# document} other {# documents}}",

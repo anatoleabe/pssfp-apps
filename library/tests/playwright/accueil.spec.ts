@@ -16,50 +16,29 @@ async function fetchStats(request: APIRequestContext): Promise<Stats | null> {
   }
 }
 
+/**
+ * En dev, « Cache-Control: no-cache » contourne le cache de données de Next (comme un rechargement
+ * forcé) : la page reflète l'état réel de l'API, même si un passage précédent avec backend a laissé
+ * des réponses en cache (ISR 300 s).
+ */
+const BYPASS_DATA_CACHE = { 'cache-control': 'no-cache' };
+
 test.describe('Accueil — toujours (avec ou sans API)', () => {
-  test('sur-titre du héros : total de l\'API, masqué si elle est injoignable', async ({ page, request }) => {
-    const stats = await fetchStats(request);
-    // En dev, « Cache-Control: no-cache » contourne le cache de données de Next (comme un
-    // rechargement forcé) : sinon des statistiques mises en cache lors d'un passage avec
-    // backend resteraient servies (ISR 300 s) et le cas « API injoignable » ne serait pas testé.
-    await page.setExtraHTTPHeaders({ 'cache-control': 'no-cache' });
-    await page.goto('/');
-    const eyebrow = page.getByTestId('home-eyebrow');
-    if (stats === null || stats.total === 0) {
-      await expect(eyebrow).toHaveCount(0);
-    } else {
-      await expect(eyebrow).toContainText(`${new Intl.NumberFormat('fr-FR').format(stats.total)} document`);
-      await expect(eyebrow).toContainText('finances publiques');
-    }
+  test.beforeEach(async ({ page }) => {
+    await page.setExtraHTTPHeaders(BYPASS_DATA_CACHE);
   });
 
   test('un seul h1 et un formulaire de recherche vers /recherche', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('h1')).toHaveCount(1);
-    await expect(page.locator('h1')).toContainText('finances publiques');
 
-    const form = page.getByTestId('home-hero').getByRole('search');
+    const form = page.getByRole('main').getByRole('search');
     const input = form.getByRole('searchbox', { name: /rechercher dans le catalogue/i });
     await expect(input).toHaveAttribute('name', 'q');
     await expect(input).toHaveAttribute('minlength', '2');
     await input.fill('tva');
     await form.getByRole('button', { name: 'Rechercher' }).click();
     await expect(page).toHaveURL(/\/recherche\?q=tva$/);
-  });
-
-  test('suggestions et puces de types mènent au catalogue', async ({ page }) => {
-    await page.goto('/');
-    const hero = page.getByTestId('home-hero');
-    await expect(hero.getByRole('link', { name: 'TVA', exact: true })).toHaveAttribute('href', '/recherche?q=TVA');
-    await expect(hero.getByRole('link', { name: 'Mémoires', exact: true })).toHaveAttribute('href', '/collections/memoire');
-  });
-
-  test('JSON-LD WebSite + SearchAction', async ({ page }) => {
-    await page.goto('/');
-    const raw = await page.getByTestId('json-ld').first().textContent();
-    const data = JSON.parse(raw ?? '{}') as { '@type': string; potentialAction?: { target?: { urlTemplate?: string } } };
-    expect(data['@type']).toBe('WebSite');
-    expect(data.potentialAction?.target?.urlTemplate).toContain('/recherche?q={search_term_string}');
   });
 
   test('axe : aucune violation critique ou grave', async ({ page }) => {
@@ -77,6 +56,45 @@ test.describe('Accueil — toujours (avec ou sans API)', () => {
   });
 });
 
+test.describe('Accueil — API injoignable : frontière d\'erreur', () => {
+  let stats: Stats | null = null;
+
+  test.beforeAll(async ({ request }) => {
+    stats = await fetchStats(request);
+  });
+
+  test.beforeEach(async ({ page }) => {
+    test.skip(stats !== null, 'API joignable : la frontière d\'erreur n\'est pas déclenchée');
+    await page.setExtraHTTPHeaders(BYPASS_DATA_CACHE);
+  });
+
+  test('page d\'erreur utile, dans le gabarit, sans contenu d\'accueil', async ({ page }) => {
+    await page.goto('/');
+    const error = page.getByTestId('page-error');
+    await expect(error).toBeVisible();
+    await expect(error.getByRole('alert')).toContainText('momentanément indisponible');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('La bibliothèque est momentanément indisponible');
+    // En-tête et pied de page du layout toujours présents.
+    await expect(page.getByRole('banner')).toBeVisible();
+    await expect(page.getByRole('contentinfo')).toBeVisible();
+    // Aucune donnée d'accueil (ni sur-titre chiffré, ni sections).
+    await expect(page.getByTestId('home-hero')).toHaveCount(0);
+    await expect(page.getByTestId('home-eyebrow')).toHaveCount(0);
+    // Sorties : site principal et contact.
+    await expect(error.getByRole('link', { name: /site du pssfp/i })).toHaveAttribute('href', /^https?:\/\//);
+    await expect(error.getByRole('link', { name: /contacter le pssfp/i })).toHaveAttribute('href', /\/contact$/);
+  });
+
+  test('« Réessayer » relance le rendu (toujours indisponible sans API)', async ({ page }) => {
+    await page.goto('/');
+    const retry = page.getByRole('button', { name: 'Réessayer' });
+    await expect(retry).toBeVisible();
+    await retry.click();
+    await expect(page.getByTestId('page-error')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  });
+});
+
 test.describe('Accueil — données de l\'API', () => {
   let stats: Stats | null = null;
 
@@ -86,6 +104,39 @@ test.describe('Accueil — données de l\'API', () => {
 
   test.beforeEach(() => {
     test.skip(stats === null, 'API injoignable : tests de données ignorés');
+  });
+
+  test('pas de frontière d\'erreur, sur-titre avec le total de l\'API', async ({ page }) => {
+    await page.setExtraHTTPHeaders(BYPASS_DATA_CACHE);
+    await page.goto('/');
+    await expect(page.getByTestId('page-error')).toHaveCount(0);
+    await expect(page.locator('h1')).toContainText('finances publiques');
+    const eyebrow = page.getByTestId('home-eyebrow');
+    if (stats!.total === 0) {
+      await expect(eyebrow).toHaveCount(0);
+      return;
+    }
+    await expect(eyebrow).toContainText(`${new Intl.NumberFormat('fr-FR').format(stats!.total)} document`);
+    await expect(eyebrow).toContainText('finances publiques');
+  });
+
+  test('suggestions et puces de types mènent au catalogue', async ({ page }) => {
+    await page.goto('/');
+    const hero = page.getByTestId('home-hero');
+    await expect(hero.getByRole('search')).toBeVisible();
+    await expect(hero.getByRole('link', { name: 'TVA', exact: true })).toHaveAttribute('href', '/recherche?q=TVA');
+    const byType = Array.isArray(stats!.by_type) ? {} : stats!.by_type;
+    if ((byType.memoire ?? 0) > 0) {
+      await expect(hero.getByRole('link', { name: 'Mémoires', exact: true })).toHaveAttribute('href', '/collections/memoire');
+    }
+  });
+
+  test('JSON-LD WebSite + SearchAction', async ({ page }) => {
+    await page.goto('/');
+    const raw = await page.getByTestId('json-ld').first().textContent();
+    const data = JSON.parse(raw ?? '{}') as { '@type': string; potentialAction?: { target?: { urlTemplate?: string } } };
+    expect(data['@type']).toBe('WebSite');
+    expect(data.potentialAction?.target?.urlTemplate).toContain('/recherche?q={search_term_string}');
   });
 
   test('la tuile Mémoires affiche le compteur de l\'API', async ({ page }) => {

@@ -27,7 +27,9 @@ export default defineConfig({
         // backend, devenues périmées, déclenchent sinon des revalidations en échec (API coupée)
         // qui font parfois échouer le rendu en dev (Next 14.2 : « failed to pipe response »).
         command: `node -e "require('fs').rmSync('.next/cache/fetch-cache',{recursive:true,force:true})" && pnpm dev --port 6002`,
-        url: BASE_URL,
+        // Sonde de disponibilité sur une ressource statique : sans API, « / » répond 500
+        // (frontière d'erreur, voulu) et Playwright n'attendrait jamais le serveur.
+        url: `${BASE_URL}/icon.png`,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
       },

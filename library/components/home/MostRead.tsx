@@ -12,9 +12,9 @@ const LIST_ID = 'most-read-list';
 const COVER_SIZES = '160px';
 
 /** Bandeau des 10 documents les plus consultés : liste ordonnée défilant dans son propre conteneur. */
-export async function MostRead({ docs }: { docs: DocumentSummary[] | null }): Promise<JSX.Element> {
+export async function MostRead({ docs }: { docs: DocumentSummary[] }): Promise<JSX.Element> {
   const t = await getTranslations('home.mostRead');
-  const hasItems = docs !== null && docs.length > 0;
+  const hasItems = docs.length > 0;
 
   return (
     <section data-testid="home-most-read" aria-labelledby="most-read-title" className="py-16 sm:py-20">
@@ -30,9 +30,7 @@ export async function MostRead({ docs }: { docs: DocumentSummary[] | null }): Pr
         </div>
 
         <div className="mt-10">
-          {docs === null ? (
-            <StateMessage kind="error" title={t('error')} />
-          ) : !hasItems ? (
+          {!hasItems ? (
             <StateMessage kind="empty" title={t('empty')} />
           ) : (
             <ol
