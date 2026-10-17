@@ -15,8 +15,9 @@ const CHIP =
 
 /**
  * Puces des filtres actifs : chacune est un lien qui retire ce seul filtre (tri conservé, retour en page 1).
- * Une spécialité sans intitulé connu (messages `specialites`) n'a pas de puce : jamais de slug brut affiché ;
- * elle reste retirable par « Retirer les filtres » ou « Réinitialiser ».
+ * Une spécialité sans intitulé connu (messages `specialites`) ou un mot-clé absent du thésaurus (ou thésaurus
+ * indisponible) n'a pas de puce : jamais de slug brut affiché ; le filtre reste retirable par « Retirer les
+ * filtres » ou « Réinitialiser ».
  */
 export function ActiveFilters({ type, filters, motsCles }: ActiveFiltersProps): JSX.Element | null {
   const t = useTranslations('activeFilters');
@@ -30,7 +31,7 @@ export function ActiveFilters({ type, filters, motsCles }: ActiveFiltersProps): 
   const valueOf = (key: FilterKey): string | null => {
     if (key === 'acces' && filters.acces) return tAccess(filters.acces);
     if (key === 'langue' && filters.langue) return tFilters(`languages.${filters.langue}`);
-    if (key === 'mot_cle') return motsCles.find((m) => m.slug === filters.mot_cle)?.label ?? String(filters.mot_cle);
+    if (key === 'mot_cle') return motsCles.find((m) => m.slug === filters.mot_cle)?.label ?? null;
     if (key === 'specialite') return filters.specialite && tSpecialites.has(filters.specialite) ? tSpecialites(filters.specialite) : null;
     return String(filters[key]);
   };

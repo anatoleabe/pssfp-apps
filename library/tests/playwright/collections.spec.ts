@@ -236,6 +236,12 @@ test.describe('Collections — données de l\'API', () => {
     await expect(page.getByText('inconnue')).toHaveCount(0);
   });
 
+  test('mot-clé sans intitulé connu : aucune puce, jamais le slug brut', async ({ page }) => {
+    await page.goto(`${URL_MEMOIRES}?mot_cle=mot-cle-inconnu-xyz`);
+    await expect(page.getByTestId('active-filters')).toHaveCount(0);
+    await expect(page.getByText('mot-cle-inconnu-xyz')).toHaveCount(0);
+  });
+
   test('pastille d\'accès cochée : coche visible et bordure épaissie en couleurs forcées', async ({ page }) => {
     await page.goto(`${URL_MEMOIRES}?acces=libre`);
     const form = page.getByRole('form', { name: 'Affiner' });

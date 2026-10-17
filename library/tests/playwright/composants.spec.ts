@@ -25,7 +25,7 @@ test.describe('Composants documentaires', () => {
 
     await expect(libre.getByTestId('access-badge')).toHaveText('Libre');
     await expect(reserve.getByTestId('access-badge')).toHaveText('Réservé');
-    await expect(payant.getByTestId('access-badge')).toHaveText(/^Payant · 2\s500 FCFA$/);
+    await expect(payant.getByTestId('access-badge')).toHaveText('Payant · 2\u202f500\u00a0FCFA');
 
     // Carte = article dont le lien principal est le titre.
     await expect(libre).toHaveJSProperty('tagName', 'ARTICLE');
@@ -58,7 +58,7 @@ test.describe('Composants documentaires', () => {
     const publicAction = page.locator('[data-testid="access-action"][data-reason="public"]');
     const download = publicAction.getByRole('link', { name: /Télécharger le PDF/ });
     await expect(download).toHaveAttribute('href', /\/library\/documents\/[^/]+\/download$/);
-    await expect(download).toContainText(/Mo|Ko/);
+    await expect(download).toContainText(/\((\d+|\d+,\d)\u202f(ko|Mo)\)$/);
 
     const external = page.locator('[data-testid="access-action"][data-reason="external"]').getByRole('link');
     await expect(external).toHaveAccessibleName(/Consulter en ligne.*nouvelle fenêtre/);
@@ -71,7 +71,7 @@ test.describe('Composants documentaires', () => {
 
     const paid = page.locator('[data-testid="access-action"][data-reason="paid"]');
     await expect(paid).toContainText('bientôt disponible à l\'achat');
-    await expect(paid).toContainText(/2\s500 FCFA/);
+    await expect(paid).toContainText('Prix : 2\u202f500\u00a0FCFA');
     await expect(paid.getByRole('link')).toHaveCount(0);
   });
 

@@ -5,7 +5,7 @@ import { API_BASE_URL as API } from '../../lib/api/client';
 import type { DocumentDetail } from '../../lib/api/types';
 import { abstractParagraphs, doiUrl, documentJsonLd, excerpt, isBookType, schemaType, shortTitle } from '../../lib/document';
 import { serializeJsonLd } from '../../lib/json-ld';
-import { formatPrice } from '../../lib/format';
+import { PRICE_FORMAT } from '../../lib/format';
 import { collectionHref, documentHref, downloadHref } from '../../lib/routes';
 
 interface Summary { uuid: string; slug: string; type: string; title: string; access_mode: 'libre' | 'reserve' | 'payant'; price_xaf: number | null }
@@ -290,7 +290,7 @@ test.describe('Fiche — données de l\'API', () => {
     await expect(action).toHaveAttribute('data-reason', 'paid');
     await expect(action.getByRole('link')).toHaveCount(0);
     await expect(page.getByRole('main').locator('a[href*="/download"]')).toHaveCount(0);
-    if (doc.price_xaf !== null) await expect(action).toContainText(`${formatPrice(doc.price_xaf)} FCFA`);
+    if (doc.price_xaf !== null) await expect(action).toContainText(`Prix : ${new Intl.NumberFormat('fr-FR', PRICE_FORMAT).format(doc.price_xaf)}`);
     expect(await seriousAxeViolations(page)).toEqual([]);
   });
 

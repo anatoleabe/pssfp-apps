@@ -48,8 +48,6 @@
     "search": "Rechercher un document"
   },
   "home": {
-    "title": "Bibliothèque virtuelle du PSSFP",
-    "intro": "Mémoires, thèses, textes de loi, ouvrages et cours en finances publiques, réunis dans un catalogue ouvert à tous.",
     "metaTitle": "Accueil",
     "metaDescription": "Mémoires, thèses, textes de loi, ouvrages et cours en finances publiques : consultez librement le fonds documentaire du PSSFP.",
     "hero": {
@@ -130,8 +128,6 @@
     "specialite": "Spécialité : {value}"
   },
   "document": {
-    "authors": "Auteurs",
-    "year": "Année",
     "promotion": "Promotion {n}",
     "abstract": "Résumé",
     "keywords": "Mots-clés",
@@ -165,7 +161,6 @@
     "label": "Rechercher dans le catalogue",
     "placeholder": "Titre, auteur, mot-clé, promotion…",
     "submit": "Rechercher",
-    "minLength": "Saisissez au moins deux caractères.",
     "formLabel": "Recherche dans le catalogue",
     "metaTitle": "Recherche",
     "metaDescription": "Recherchez dans tout le fonds documentaire du PSSFP : mémoires, thèses, textes de loi, ouvrages et cours en finances publiques.",
@@ -233,18 +228,16 @@
     "libre": "Libre",
     "reserve": "Réservé",
     "payant": "Payant",
-    "payantPrice": "Payant · {price} FCFA",
+    "payantPrice": "Payant · {price}",
     "action": {
       "download": "Télécharger le PDF",
       "downloadWithSize": "Télécharger le PDF ({size})",
-      "sizeKo": "{value} Ko",
-      "sizeMo": "{value} Mo",
       "external": "Consulter en ligne",
       "newWindow": "(s'ouvre dans une nouvelle fenêtre)",
       "reservedTitle": "Réservé aux auditeurs — bientôt disponible",
       "reservedBody": "Ce document sera consultable par les auditeurs du PSSFP dès l'ouverture de l'espace personnel.",
       "paidTitle": "Payant — bientôt disponible à l'achat",
-      "paidPrice": "Prix : {price} FCFA",
+      "paidPrice": "Prix : {price}",
       "paidBody": "Le paiement en ligne ouvrira prochainement. La notice reste consultable librement.",
       "unpublishedTitle": "Document indisponible",
       "unpublishedBody": "Ce document n'est pas encore publié dans le catalogue."
@@ -271,9 +264,7 @@
     "submit": "Trier"
   },
   "filters": {
-    "type": "Type de document",
     "acces": "Accès",
-    "specialite": "Spécialité",
     "promotion": "Promotion",
     "annee": "Année",
     "anneeMin": "De",
@@ -295,7 +286,6 @@
     "current": "Page {page} sur {total}"
   },
   "states": {
-    "loading": "Chargement…",
     "errorTitle": "Le catalogue est momentanément indisponible.",
     "errorBody": "Réessayez dans quelques instants.",
     "retry": "Réessayer",

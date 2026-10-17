@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { paginationItems } from '../../lib/pagination';
-import { fileSizeParts, formatPrice } from '../../lib/format';
+import messages from '../../messages/fr.json';
+import { PRICE_FORMAT, fileSizeFormat } from '../../lib/format';
 
 test('pagination : 1 … p-1 p p+1 … last', () => {
   expect(paginationItems(5, 12)).toEqual([1, 'ellipsis', 4, 5, 6, 'ellipsis', 12]);
@@ -17,9 +18,25 @@ test('pagination : bornes et valeurs invalides ramenées dans l\'intervalle', ()
   expect(paginationItems(Number.NaN, 0)).toEqual([1]);
 });
 
-test('formats : prix et taille de fichier en fr-FR', () => {
-  expect(formatPrice(2500)).toMatch(/^2\s500$/);
-  expect(fileSizeParts(512)).toEqual({ value: '1', unit: 'ko' });
-  expect(fileSizeParts(200 * 1024)).toEqual({ value: '200', unit: 'ko' });
-  expect(fileSizeParts(2.4 * 1024 * 1024)).toEqual({ value: '2,4', unit: 'mo' });
+test('formats : prix en XAF et taille de fichier par Intl (fr-FR), sans unité en dur', () => {
+  const fr = (value: number, options: Intl.NumberFormatOptions): string => new Intl.NumberFormat('fr-FR', options).format(value);
+  // Sortie réelle d'Intl : espace fine insécable (milliers) puis espace insécable avant « FCFA ».
+  expect(fr(2500, PRICE_FORMAT)).toBe('2\u202f500\u00a0FCFA');
+  expect(fr(2500.4, PRICE_FORMAT)).toBe('2\u202f500\u00a0FCFA');
+  const size = (bytes: number): string => {
+    const { value, format } = fileSizeFormat(bytes);
+    return fr(value, format);
+  };
+  expect(size(512)).toBe('1\u202fko');
+  expect(size(200 * 1024)).toBe('200\u202fko');
+  expect(size(2.4 * 1024 * 1024)).toBe('2,4\u202fMo');
+});
+
+test('messages : prix sans devise en dur, clés inutilisées supprimées', () => {
+  expect(messages.access.payantPrice).not.toContain('FCFA');
+  expect(messages.access.action.paidPrice).not.toContain('FCFA');
+  const has = (path: string): boolean => path.split('.').reduce<unknown>((node, k) => (node && typeof node === 'object' ? (node as Record<string, unknown>)[k] : undefined), messages) !== undefined;
+  for (const key of ['home.title', 'home.intro', 'document.authors', 'document.year', 'search.minLength', 'filters.type', 'filters.specialite', 'states.loading', 'access.action.sizeKo', 'access.action.sizeMo']) {
+    expect(has(key), key).toBe(false);
+  }
 });

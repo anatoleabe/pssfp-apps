@@ -1,7 +1,7 @@
 import { Coins, Download, ExternalLink, EyeOff, Lock, type LucideIcon } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import type { DocumentDetail } from '@/lib/api/types';
-import { fileSizeParts, formatPrice } from '@/lib/format';
+import { PRICE_FORMAT, fileSizeFormat } from '@/lib/format';
 import { downloadHref } from '@/lib/routes';
 
 const BUTTON =
@@ -48,15 +48,14 @@ interface AccessActionProps {
 /** Action principale de la fiche, selon la décision d'accès calculée par l'API. */
 export function AccessAction({ doc }: AccessActionProps): JSX.Element {
   const t = useTranslations('access.action');
+  const format = useFormatter();
   const { reason } = doc.access;
 
   const content = ((): JSX.Element => {
     switch (reason) {
       case 'public': {
-        const size = doc.file_size_bytes ? fileSizeParts(doc.file_size_bytes) : null;
-        const label = size
-          ? t('downloadWithSize', { size: t(size.unit === 'mo' ? 'sizeMo' : 'sizeKo', { value: size.value }) })
-          : t('download');
+        const size = doc.file_size_bytes ? fileSizeFormat(doc.file_size_bytes) : null;
+        const label = size ? t('downloadWithSize', { size: format.number(size.value, size.format) }) : t('download');
         return (
           <a href={downloadHref(doc.uuid)} className={BUTTON}>
             <Download size={16} aria-hidden="true" />
@@ -80,7 +79,7 @@ export function AccessAction({ doc }: AccessActionProps): JSX.Element {
             Icon={Coins}
             tone="border-pssfp-or/60 bg-[#F6ECD9] text-pssfp-or-dark"
             title={t('paidTitle')}
-            lines={[...(doc.price_xaf !== null ? [t('paidPrice', { price: formatPrice(doc.price_xaf) })] : []), t('paidBody')]}
+            lines={[...(doc.price_xaf !== null ? [t('paidPrice', { price: format.number(doc.price_xaf, PRICE_FORMAT) })] : []), t('paidBody')]}
           />
         );
       default:

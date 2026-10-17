@@ -1,7 +1,7 @@
 import { Coins, Lock, LockOpen, type LucideIcon } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import type { AccessMode } from '@/lib/api/types';
-import { formatPrice } from '@/lib/format';
+import { PRICE_FORMAT } from '@/lib/format';
 
 /*
  * Teintes des maquettes validées (2026-10-17). Contrastes :
@@ -20,8 +20,9 @@ interface AccessBadgeProps {
 
 export function AccessBadge({ mode, price = null }: AccessBadgeProps): JSX.Element {
   const t = useTranslations('access');
+  const format = useFormatter();
   const { className, Icon } = BADGES[mode];
-  const label = mode === 'payant' && price !== null ? t('payantPrice', { price: formatPrice(price) }) : t(mode);
+  const label = mode === 'payant' && price !== null ? t('payantPrice', { price: format.number(price, PRICE_FORMAT) }) : t(mode);
   return (
     <span
       data-testid="access-badge"
