@@ -15,6 +15,8 @@ interface DocumentCardProps {
   layout?: 'grid' | 'row';
   headingLevel?: 'h2' | 'h3';
   priority?: boolean;
+  /** Attribut `sizes` de la couverture, selon la grille qui accueille la carte. */
+  coverSizes?: string;
 }
 
 const CARD =
@@ -24,7 +26,7 @@ const CARD =
 const TITLE_LINK =
   'after:absolute after:inset-0 after:rounded-pssfp-card after:content-[""] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-pssfp-or focus-visible:after:ring-offset-2 [&_mark]:rounded-sm [&_mark]:bg-pssfp-or/35 [&_mark]:px-0.5 [&_mark]:text-inherit';
 
-export function DocumentCard({ doc, highlight, layout = 'grid', headingLevel = 'h3', priority = false }: DocumentCardProps): JSX.Element {
+export function DocumentCard({ doc, highlight, layout = 'grid', headingLevel = 'h3', priority = false, coverSizes }: DocumentCardProps): JSX.Element {
   const t = useTranslations();
   const Heading = headingLevel;
   const shown = doc.authors.slice(0, MAX_AUTHORS).join(', ');
@@ -36,14 +38,14 @@ export function DocumentCard({ doc, highlight, layout = 'grid', headingLevel = '
       data-testid={`document-card-${doc.slug}`}
       className={`${CARD} ${isRow ? 'flex items-start gap-4 p-3 sm:gap-5 sm:p-4' : 'flex flex-col p-3'}`}
     >
-      <DocumentCover doc={doc} size={isRow ? 'sm' : 'md'} priority={priority} />
+      <DocumentCover doc={doc} size={isRow ? 'sm' : 'md'} priority={priority} sizes={coverSizes} />
       <div className={`flex min-w-0 flex-1 flex-col gap-2 ${isRow ? '' : 'mt-4 px-1 pb-1'}`}>
         <p className="flex flex-wrap font-ui text-xs font-medium uppercase tracking-[0.12em] text-pssfp-bleu-petrole [&>span+span]:before:mx-1.5 [&>span+span]:before:content-['·']">
           <span>{t(`types.${doc.type}.one`)}</span>
           {doc.year !== null && <span>{doc.year}</span>}
           {doc.promotion !== null && <span>{t('document.promotion', { n: doc.promotion })}</span>}
         </p>
-        <Heading className={`font-heading font-semibold leading-snug [overflow-wrap:anywhere] text-pssfp-prune ${isRow ? 'text-xl' : 'text-[1.35rem]'}`}>
+        <Heading className={`font-heading font-semibold leading-snug hyphens-auto [overflow-wrap:anywhere] text-pssfp-prune ${isRow ? 'text-xl' : 'text-lg sm:text-[1.35rem]'}`}>
           {highlight ? (
             <Link href={documentHref(doc.slug)} className={TITLE_LINK} dangerouslySetInnerHTML={{ __html: sanitizeHighlight(highlight) }} />
           ) : (

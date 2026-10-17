@@ -48,7 +48,43 @@
   },
   "home": {
     "title": "Bibliothèque virtuelle du PSSFP",
-    "intro": "Mémoires, thèses, textes de loi, ouvrages et cours en finances publiques, réunis dans un catalogue ouvert à tous."
+    "intro": "Mémoires, thèses, textes de loi, ouvrages et cours en finances publiques, réunis dans un catalogue ouvert à tous.",
+    "metaTitle": "Accueil",
+    "metaDescription": "Mémoires, thèses, textes de loi, ouvrages et cours en finances publiques : consultez librement le fonds documentaire du PSSFP.",
+    "hero": {
+      "eyebrow": "{count, plural, one {# document} other {# documents}} · finances publiques",
+      "title": "Le savoir des finances publiques, en libre consultation.",
+      "suggestionsLabel": "Suggestions :",
+      "suggestions": ["marchés publics", "TVA", "décentralisation", "audit interne", "loi de finances"],
+      "typesLabel": "Parcourir par type",
+      "latestTitle": "Derniers arrivés"
+    },
+    "collections": {
+      "eyebrow": "Collections",
+      "title": "Explorer le fonds",
+      "intro": "Travaux des promotions, textes de référence et ressources d'enseignement : chaque collection s'ouvre sur son catalogue complet.",
+      "collection": "Collection",
+      "memoireMeta": "{count, plural, one {travail} other {travaux}} · 13 promotions",
+      "documents": "{count, plural, one {document} other {documents}}",
+      "premiumTitle": "Ouvrages premium",
+      "premiumBody": "Bientôt disponibles",
+      "premiumCount": "{count, plural, one {# titre en préparation} other {# titres en préparation}}",
+      "error": "Les collections sont momentanément indisponibles."
+    },
+    "latest": {
+      "eyebrow": "Derniers ajouts au catalogue",
+      "title": "Nouveautés",
+      "error": "Les nouveautés sont momentanément indisponibles.",
+      "empty": "Aucune nouveauté pour le moment."
+    },
+    "mostRead": {
+      "eyebrow": "Palmarès des consultations",
+      "title": "Les plus lus",
+      "previous": "Documents précédents",
+      "next": "Documents suivants",
+      "error": "Le palmarès est momentanément indisponible.",
+      "empty": "Aucune consultation enregistrée pour le moment."
+    }
   },
   "catalogue": {
     "resultsCount": "{count, plural, =0 {Aucun document} one {# document} other {# documents}}",
@@ -71,7 +107,8 @@
     "label": "Rechercher dans le catalogue",
     "placeholder": "Titre, auteur, mot-clé, promotion…",
     "submit": "Rechercher",
-    "minLength": "Saisissez au moins deux caractères."
+    "minLength": "Saisissez au moins deux caractères.",
+    "formLabel": "Recherche dans le catalogue"
   },
   "about": {
     "title": "À propos de la bibliothèque"

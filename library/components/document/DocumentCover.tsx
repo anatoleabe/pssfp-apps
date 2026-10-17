@@ -35,7 +35,7 @@ export const COVER_THEMES: Record<DocumentType, CoverTheme> = {
 
 const SIZES: Record<CoverSize, { box: string; sizes: string; pad: string; title: string; type: string }> = {
   sm: { box: 'w-16 sm:w-20', sizes: '80px', pad: 'p-2', title: 'text-2xl', type: 'hidden' },
-  md: { box: 'w-full', sizes: '(min-width: 1024px) 240px, (min-width: 640px) 33vw, 90vw', pad: 'p-4', title: 'text-lg line-clamp-5', type: 'text-[0.65rem]' },
+  md: { box: 'w-full', sizes: '(min-width: 1024px) 240px, (min-width: 640px) 33vw, 90vw', pad: 'p-4', title: 'text-base line-clamp-4 sm:text-lg sm:line-clamp-5', type: 'text-[0.65rem]' },
   lg: { box: 'w-full max-w-xs', sizes: '(min-width: 1024px) 320px, 80vw', pad: 'p-6', title: 'text-2xl line-clamp-6', type: 'text-xs' },
 };
 
@@ -43,10 +43,12 @@ interface DocumentCoverProps {
   doc: DocumentSummary;
   size?: CoverSize;
   priority?: boolean;
+  /** Remplace l'attribut `sizes` par défaut de la taille quand la mise en page le connaît mieux. */
+  sizes?: string;
 }
 
 /** Couverture 3:4 : image si l'API en fournit une, sinon couverture typographique décorative. */
-export function DocumentCover({ doc, size = 'md', priority = false }: DocumentCoverProps): JSX.Element {
+export function DocumentCover({ doc, size = 'md', priority = false, sizes }: DocumentCoverProps): JSX.Element {
   const t = useTranslations();
   const s = SIZES[size];
   const frame = `relative aspect-[3/4] shrink-0 overflow-hidden rounded-md shadow-pssfp-soft ${s.box}`;
@@ -58,7 +60,7 @@ export function DocumentCover({ doc, size = 'md', priority = false }: DocumentCo
           src={doc.cover_url}
           alt={t('document.coverAlt', { title: doc.title })}
           fill
-          sizes={s.sizes}
+          sizes={sizes ?? s.sizes}
           priority={priority}
           className="object-cover"
         />
