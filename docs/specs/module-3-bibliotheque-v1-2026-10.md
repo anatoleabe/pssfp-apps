@@ -31,7 +31,7 @@ Critère de succès V1 : les ressources de l'ancien site sont consultables sur l
 | Direction visuelle | **Combinaison A + B + C** des maquettes du 2026-10-17 (§6.1) | Validé le 2026-10-17. |
 | Domaine | Canonique **`bibliotheque.pssfp.org`** ; à la bascule, `bibliotheque.pssfp.net` pointe sur le VPS et redirige en 301 (en une seule étape, chemins anciens résolus). Configurable par variable d'environnement. | Cohérent avec la décision du 2026-07-04 (`pssfp.org` canonique). **À confirmer** — si le Chef de Projet préfère garder `.net`, seul l'environnement change. |
 | Application | App Next.js séparée `/library` (ADR-0001), API Laravel existante | Déjà scaffoldée, déploiement indépendant. |
-| Recherche | Meilisearch via Scout (ADR-0003), interrogé **uniquement via l'API Laravel** ; repli PostgreSQL (`ILIKE` + trigramme sur le titre) si Meilisearch est indisponible | Facettes et tolérance aux fautes ; pas de dépendance dure. |
+| Recherche | Meilisearch via Scout (ADR-0003), interrogé **uniquement via l'API Laravel** ; repli PostgreSQL (`ILIKE` insensible aux accents sur titre, résumé et auteurs ; pas d'extension `pg_trgm`) si Meilisearch est indisponible | Facettes et tolérance aux fautes ; pas de dépendance dure. |
 | Spécialité / promotion | `specialite` = code texte des spécialités déjà définies (`/v1/reference/specialites`) ; `promotion` = entier 1..n | Pas de tables `specialites`/`promotions` aujourd'hui ; inutile d'en créer. |
 | Auteurs | Table `document_authors` simplifiée : `author_name`, `author_affiliation`, `order` | Il n'existe pas de table `enseignants` ; les liens vers des comptes viendront avec le sous-projet 4. |
 | Tables Phase II `transactions`/`subscriptions` | **Non créées en V1** | Rien n'en dépend ; le sous-projet 5 les crée avec leur logique. |
@@ -67,25 +67,34 @@ Le libellé affiché (`access_mode` : `libre` / `reserve` / `payant`) est dériv
 
 Tables associées : `document_authors` (simplifiée, §3), `mots_cles` (thésaurus hiérarchique, `parent_id`) + pivot `document_mot_cle`, `document_downloads` (journal), `search_logs` (requêtes, utile pour repérer les recherches sans résultat), `library_redirects` (`from_path` UNIQUE, `to_path`, `status_code`, `hits`).
 
+**Journaux et données personnelles (RGPD)** :
+
+| Table | Finalité | Données | Conservation |
+|---|---|---|---|
+| `search_logs` | Repérer les recherches sans résultat pour enrichir le fonds et le thésaurus | Requête, filtres, nombre de résultats, date — **pas d'adresse IP** | 90 jours |
+| `document_downloads` | Statistiques de téléchargement et repérage des abus | Document, compte éventuel, IP, navigateur, date | 180 jours |
+
+Purge quotidienne à 02:00 par `model:prune` (modèles `Prunable`, `routes/console.php`). Les compteurs agrégés (`downloads_count`, `views_count`) ne sont pas touchés.
+
 ### 5.2 Fichiers
 
 - PDF sur le disque privé MinIO `pssfp-documents` (déjà défini). MD5 et taille calculés à l'envoi et stockés en base.
 - Téléchargement : `GET /v1/library/documents/{uuid}/download` → `DocumentAccess` → journalisation → redirection 302 vers une URL signée de 30 minutes. **Jamais de `Storage::exists()`** : la clé de prod n'autorise pas `HeadObject` (cf. mémoire projet) ; on se fie aux métadonnées en base.
-- Couverture : job en file Redis qui rend la première page en WebP (`pdftoppm` de poppler-utils, à installer sur le VPS), stockée sur le disque public média. Sans image, le front affiche une couverture typographique colorée selon le type.
+- Couverture : job en file Redis qui rend la première page en JPEG 600 px (`pdftoppm` de poppler-utils, à installer sur le VPS), stockée sur le disque public média. Sans image, le front affiche une couverture typographique colorée selon le type.
 
 ### 5.3 API publique (`/v1/library`, lecture seule, sans authentification en V1)
 
 | Méthode | Route | Rôle |
 |---|---|---|
 | GET | `/library/stats` | Compteurs par type pour l'accueil |
-| GET | `/library/documents` | Liste paginée (20) filtrable : type, spécialité, promotion, année (plage), langue, accès, mot-clé ; tri récent / ancien / titre / plus téléchargés |
+| GET | `/library/documents` | Liste paginée (20) filtrable : type, spécialité, promotion, année (plage), langue, accès, mot-clé ; tri récent / ancien / titre / populaire (consultations de fiche, `views_count`) |
 | GET | `/library/documents/{slug}` | Fiche complète + `access` (décision) + documents liés |
 | GET | `/library/documents/{uuid}/download` | Téléchargement contrôlé (§5.2) |
 | GET | `/library/search` | Recherche Meilisearch avec facettes et extraits surlignés ; journalise dans `search_logs` |
 | GET | `/library/mots-cles` | Thésaurus pour les filtres |
 | GET | `/library/redirects?path=` | Résolution d'une ancienne URL (utilisée par le middleware du front) |
 
-Identifiants publics : `uuid` et `slug` uniquement, jamais l'`id` interne. Limitation de débit sur `search` et `download`.
+Identifiants publics : `uuid` et `slug` uniquement, jamais l'`id` interne. Limitation de débit par client : 120/min sur tout le groupe, 60/min sur `search`, 30/min sur `download`.
 
 ### 5.4 Indexation
 
@@ -139,6 +148,15 @@ Mobile d'abord (320 px sans défilement horizontal), charte ADR-0008, composants
 ## 8. Déploiement
 
 Nouveau processus pm2 `pssfp-library` (port 6002, à ajouter dans la copie locale de prod de `ecosystem.config.js`), vhost nginx + certificat, Meilisearch sur le VPS (service local, clé maître en `.env`), bucket `pssfp-documents`, `poppler-utils`. Séquence manuelle habituelle, sauvegarde de la base avant toute migration.
+
+**Liste de contrôle avant la mise en ligne** (et à chaque déploiement touchant la bibliothèque) :
+
+1. `php artisan migrate --force` (sauvegarde de la base avant) — les permissions arrivent par migration additive ; **ne jamais relancer `RolePermissionSeeder` en prod**.
+2. `php artisan scout:sync-index-settings` avant la mise en ligne, puis après tout changement des réglages d'index (`config/scout.php`) ; `php artisan scout:import "App\Models\Document"` pour le premier remplissage.
+3. Worker de file actif (Redis) sous pm2, utilisateur `pssfp` : il traite l'indexation Scout (`SCOUT_QUEUE=true`) et `ProcessDocumentFile` (taille, MD5, couverture). `ProcessDocumentFile` s'arrête à 85 s, sous le `retry_after` Redis de 90 s : si on allonge l'un, allonger l'autre (`REDIS_QUEUE_RETRY_AFTER`).
+4. Cron `* * * * * php artisan schedule:run` pour l'utilisateur `pssfp` : réindexation hebdomadaire, contrôle `library:check-index`, purge `model:prune` quotidienne (§5.1).
+5. `poppler-utils` installé (`pdftoppm -v`) ; sans lui, pas de couverture (avertissement dans les journaux).
+6. Limites d'envoi alignées (ci-dessous).
 
 **Limites d'envoi (PDF jusqu'à 200 Mo)** : Livewire dépose les envois temporaires sur le disque local (`config/livewire.php`, règle `max:204800`, 15 minutes d'envoi au plus). Aligner sur le VPS : PHP-FPM `upload_max_filesize = 200M` et `post_max_size = 210M`, nginx `client_max_body_size 210m;` dans le vhost `api` (sinon erreur 413 avant Laravel).
 

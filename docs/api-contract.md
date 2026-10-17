@@ -742,7 +742,7 @@ Liste complète des partenaires (non paginée).
 
 ## 8. Domaine — Bibliothèque virtuelle
 
-> **V1 livrée (octobre 2026)** — cf. `docs/specs/module-3-bibliotheque-v1-2026-10.md` §5.3. Routes réellement exposées : `GET /v1/library/stats`, `/library/documents` (filtres `type`, `specialite`, `promotion`, `annee_min`, `annee_max`, `langue`, `acces`, `mot_cle`, `tri`), `/library/documents/{slug}` (avec `access` et `related`), `/library/documents/{uuid}/download`, `/library/search?q=`, `/library/mots-cles`, `/library/redirects?path=`. Lecture seule, sans authentification ; favoris, citations et capacité `library:read:restricted` arrivent avec le sous-projet 4.
+> **V1 livrée (octobre 2026)** — cf. `docs/specs/module-3-bibliotheque-v1-2026-10.md` §5.3. Routes réellement exposées : `GET /v1/library/stats`, `/library/documents` (filtres `type`, `specialite`, `promotion`, `annee_min`, `annee_max`, `langue`, `acces`, `mot_cle`, `tri`), `/library/documents/{slug}` (avec `access` et `related`), `/library/documents/{uuid}/download`, `/library/search?q=`, `/library/mots-cles`, `/library/redirects?path=`. Lecture seule, sans authentification ; favoris, citations et capacité `library:read:restricted` arrivent avec le sous-projet 4. Débit par client : 120 requêtes/min sur l'ensemble de `/library`, 60/min sur `search`, 30/min sur `download`.
 
 API consommée par `bibliotheque.pssfp.net`. Cf. CDC bibliothèque v2.0 et data-model.md §8.
 
@@ -752,34 +752,30 @@ Liste paginée des documents.
 
 **Auth** : public, lecture seule (V1).
 **Query** : `?type={type}&specialite={slug}&promotion={numero}&annee_min={annee}&annee_max={annee}&langue=fr|en&acces={mode}&mot_cle={slug}&tri={tri}&page=1`.
-**Response 200** : items :
+**Response 200** : enveloppe paginée (20 par défaut, `per_page` ≤ 50), items :
 
 ```json
 {
   "uuid": "...",
-  "slug": "these-fiscalite-2024-mballa",
+  "slug": "these-fiscalite-2024-exemple",
   "type": "these",
+  "type_label": "Thèse",
   "title": "La fiscalité pétrolière en zone CEMAC",
   "subtitle": null,
-  "abstract": "...",
   "year": 2024,
   "language": "fr",
-  "promotion": { "numero": 11, "annee_debut": 2023 },
-  "specialite": { "slug": "fiscalite", "nom_court": "Fiscalité" },
-  "authors": [
-    { "name": "MBALLA Jean", "type": "user", "user_uuid": "..." }
-  ],
-  "keywords": ["fiscalité pétrolière", "CEMAC", "douanes"],
-  "pages_count": 145,
-  "thumbnail": { "url": "...", "alt": "Couverture thèse" },
-  "access_level": "public",
-  "downloads_count": 28,
-  "is_favorited": false,
+  "specialite": "fiscalite",
+  "promotion": 11,
+  "authors": ["AUTEUR Fictif"],
+  "mots_cles": [{ "slug": "fiscalite-petroliere", "label": "Fiscalité pétrolière" }],
+  "cover_url": "https://.../library/covers/{uuid}.jpg",
+  "access_mode": "libre",
+  "price_xaf": null,
   "published_at": "2024-09-15T00:00:00+01:00"
 }
 ```
 
-`is_favorited` est `null` pour les utilisateurs non authentifiés, `true`/`false` pour les authentifiés.
+`access_mode` ∈ `libre`, `reserve`, `payant` (libellé dérivé, cf. spec V1 §4). Jamais d'`id` interne.
 
 ### `GET /v1/library/documents/{slug}`
 
@@ -790,11 +786,11 @@ Détail d'un document par slug.
 
 ### `GET /v1/library/documents/{uuid}/download`
 
-Téléchargement du PDF. Pour les documents publics, redirige (302) vers une URL signée MinIO/Scaleway temporaire (validité 30 min). Pour les documents restreints, vérifie l'auth + ability avant de signer. Trace dans `document_downloads`.
+Téléchargement contrôlé par `DocumentAccess` (spec V1 §4). Document libre : redirection (302) vers une URL signée MinIO de 30 min, tracée dans `document_downloads`. Lien externe : redirection vers ce lien (schémas `http`/`https` seulement). En V1, aucun compte lecteur : réservé et payant sont refusés.
 
-**Auth** : selon `access_level`.
-**Response 302** : redirection vers URL signée.
-**Errors** : 403, 404.
+**Auth** : public (V1).
+**Response 302** : redirection vers l'URL signée ou le lien externe.
+**Errors** : 403 `{ "message": "...", "reason": "reserved" | "paid" }` ; 404 (non publié, uuid inconnu, sans fichier, lien au schéma non autorisé) ; 429.
 
 ### `GET /v1/library/search`
 
@@ -807,27 +803,27 @@ Recherche full-text via Meilisearch.
 ```json
 {
   "data": [
-    {
-      "uuid": "...", "slug": "...", "type": "these", "title": "...",
-      "abstract": "...", "year": 2024,
-      "highlights": {
-        "title": "<mark>fiscalité</mark> pétrolière en zone CEMAC",
-        "abstract": "...la <mark>fiscalité</mark> indirecte..."
-      },
-      "score": 0.94
-    }
+    { "uuid": "3f0c…", "slug": "...", "type": "these", "title": "La fiscalité pétrolière en zone CEMAC", "access_mode": "libre", "...": "mêmes champs que la liste" }
   ],
+  "highlights": {
+    "3f0c…": "La <mark>fiscalité</mark> pétrolière en zone CEMAC"
+  },
   "meta": {
     "total": 42,
-    "search_time_ms": 12,
+    "page": 1,
+    "per_page": 20,
+    "last_page": 3,
     "facets": {
       "type": { "these": 18, "memoire": 12, "article_scientifique": 8, "cours": 4 },
-      "specialite": { "fiscalite": 28, "audit": 8, "marches-publics": 6 },
-      "year": { "2024": 5, "2023": 12, "2022": 10, "2021": 8, "2020": 7 }
+      "access_mode": { "libre": 36, "reserve": 4, "payant": 2 }
     }
   }
 }
 ```
+
+- `highlights` est une table **de premier niveau**, indexée par `uuid` : titre **échappé en HTML** où seules les balises `<mark>` sont posées par l'API (affichable tel quel). Seuls les documents présents dans `data` y figurent ; elle est vide (`{}`) quand la recherche se replie sur PostgreSQL.
+- Facettes : `type` et `access_mode` uniquement.
+- `q` : 2 à 200 caractères ; `page` ≤ 500. Chaque requête est journalisée dans `search_logs` sans adresse IP (spec V1 §5.1).
 
 ### `GET /v1/library/mots-cles`
 
@@ -1261,15 +1257,15 @@ Toute requête mutante (POST, PUT, PATCH, DELETE) sur les ressources sensibles (
 | 33 | GET | `/v1/evenements` | public | Calendrier |
 | 34 | GET | `/v1/evenements/{slug}` | public | Événement |
 | 35 | GET | `/v1/partenaires` | public | Partenaires |
-| 36 | GET | `/v1/library/documents` | public/sanctum | Liste docs biblio |
-| 37 | GET | `/v1/library/documents/{slug}` | public/sanctum | Détail doc |
-| 38 | GET | `/v1/library/documents/{uuid}/download` | public/sanctum | Téléchargement PDF |
+| 36 | GET | `/v1/library/documents` | public | Liste docs biblio |
+| 37 | GET | `/v1/library/documents/{slug}` | public | Détail doc |
+| 38 | GET | `/v1/library/documents/{uuid}/download` | public | Téléchargement PDF |
 | 39 | GET | `/v1/library/search` | public | Recherche Meilisearch |
 | 40 | GET | `/v1/library/mots-cles` | public | Thésaurus mots-clés |
-| 41 | GET | `/v1/library/citations/{uuid}` | public | Citation bibliographique |
-| 42 | GET | `/v1/library/favorites` | sanctum | Mes favoris |
-| 43 | POST | `/v1/library/favorites` | sanctum | Ajouter favori |
-| 44 | DELETE | `/v1/library/favorites/{uuid}` | sanctum | Retirer favori |
+| 41 | GET | `/v1/library/citations/{uuid}` | — | Citation bibliographique — Sous-projet 4 — non livré en V1 |
+| 42 | GET | `/v1/library/favorites` | — | Mes favoris — Sous-projet 4 — non livré en V1 |
+| 43 | POST | `/v1/library/favorites` | — | Ajouter favori — Sous-projet 4 — non livré en V1 |
+| 44 | DELETE | `/v1/library/favorites/{uuid}` | — | Retirer favori — Sous-projet 4 — non livré en V1 |
 | 45 | GET | `/v1/applications/campaigns` | public | Campagnes |
 | 46 | GET | `/v1/applications/campaigns/{slug}` | public | Campagne détail |
 | 47 | GET | `/v1/applications/profile` | sanctum | Mon profil candidat |
