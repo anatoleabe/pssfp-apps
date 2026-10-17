@@ -4,6 +4,7 @@ import { useId, useState } from 'react';
 import { Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { DocumentSummary } from '@/lib/api/types';
+import { citationAuthors, citationTitle } from '@/lib/citation';
 import { documentHref } from '@/lib/routes';
 import { siteUrl } from '@/lib/site';
 
@@ -19,15 +20,16 @@ export function CitationBox({ doc }: CitationBoxProps): JSX.Element {
   const headingId = useId();
   const [state, setState] = useState<CopyState>('idle');
 
+  const authors = citationAuthors(doc.authors);
   const values = {
-    authors: doc.authors.join(', '),
+    authors,
     year: doc.year !== null ? String(doc.year) : t('document.noDate'),
-    title: doc.title,
+    title: citationTitle(doc.title),
     type: t(`types.${doc.type}.one`),
     publisher: t('citation.publisher'),
     url: new URL(documentHref(doc.slug), siteUrl()).toString(),
   };
-  const citation = t(doc.authors.length > 0 ? 'citation.withAuthors' : 'citation.withoutAuthors', values);
+  const citation = t(authors ? 'citation.withAuthors' : 'citation.withoutAuthors', values);
 
   const copy = async (): Promise<void> => {
     setState('idle');

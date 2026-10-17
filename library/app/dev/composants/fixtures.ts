@@ -89,6 +89,18 @@ export const DEMO_ROW: DocumentSummary = {
   authors: ['H. Stagiaire'],
 };
 
+/** Citation : titre qui finit par un point, initiale en fin d'auteur (aucun « .. » attendu). */
+export const DEMO_CITATION_POINT: DocumentSummary = {
+  ...base,
+  uuid: '00000000-0000-4000-8000-000000000007',
+  slug: 'demo-citation-point',
+  type: 'article_scientifique',
+  type_label: 'Article scientifique',
+  title: 'Article fictif dont le titre finit par un point.',
+  year: 2019,
+  authors: ['Exemple A.', 'Fictif B.,'],
+};
+
 /** Une couverture typographique par type, pour contrôler couleurs et contrastes. */
 export const DEMO_COVERS: DocumentSummary[] = DOCUMENT_TYPES.map((type, i) => ({
   ...base,

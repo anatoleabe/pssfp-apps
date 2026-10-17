@@ -78,6 +78,16 @@ Playwright sur :
 - `tests/playwright/download-restricted.spec.ts` — téléchargement document restreint (auth requise).
 - `tests/playwright/favorites.spec.ts` — ajout/retrait favori.
 
+### Avec l'API locale (`cd backend && php artisan serve --port=8000`)
+
+L'API bibliothèque limite le débit par IP (120 requêtes/min par défaut) et tout le trafic local (workers Playwright et serveur Next) vient de 127.0.0.1 : la suite complète peut atteindre la limite (réponses 429, frontières d'erreur, tests de données ignorés ou en échec). Relever le plafond dans `backend/.env` (non commité), puis relancer `php artisan serve` :
+
+```
+LIBRARY_RATE_LIMIT=600
+```
+
+Les tests de la fiche échouent explicitement sur un 429 au lieu de passer à tort. Autres réglages (`LIBRARY_SEARCH_RATE_LIMIT`, `LIBRARY_DOWNLOAD_RATE_LIMIT`, `LIBRARY_VIEW_RATE_LIMIT`, `LIBRARY_RATE_LIMIT_EXEMPT_IPS`) : voir `.env.example` à la racine.
+
 ## Performance cible
 
 Lighthouse ≥ 85 sur les 4 dimensions. La biblio est plus interactive que le site institutionnel (formulaires, recherche avec sidebar lourde) — la cible est légèrement assouplie par le CDC v2.0 §K.2.

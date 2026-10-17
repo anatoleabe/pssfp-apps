@@ -11,6 +11,7 @@ import { DocumentCover } from '@/components/document/DocumentCover';
 import { ViewBeacon } from '@/components/document/ViewBeacon';
 import {
   DEMO_ACTIONS,
+  DEMO_CITATION_POINT,
   DEMO_COUVERTURE,
   DEMO_COVERS,
   DEMO_LIBRE,
@@ -95,6 +96,9 @@ function Demo(): JSX.Element {
       <section aria-labelledby="demo-citation" className="max-w-3xl space-y-6">
         <h2 id="demo-citation" className={SECTION_TITLE}>{t('citation')}</h2>
         <CitationBox doc={DEMO_LIBRE} />
+        <div data-testid="demo-citation-point">
+          <CitationBox doc={DEMO_CITATION_POINT} />
+        </div>
       </section>
 
       <section aria-labelledby="demo-pagination" className="space-y-6">

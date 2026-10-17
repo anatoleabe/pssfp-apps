@@ -2,7 +2,9 @@ import { test, expect, type APIRequestContext, type Page } from '@playwright/tes
 import AxeBuilder from '@axe-core/playwright';
 // Même base que l'app (playwright.config.ts charge .env.local comme `next dev`).
 import { API_BASE_URL as API } from '../../lib/api/client';
-import { abstractParagraphs, doiUrl, excerpt, isBookType, schemaType, shortTitle } from '../../lib/document';
+import type { DocumentDetail } from '../../lib/api/types';
+import { abstractParagraphs, doiUrl, documentJsonLd, excerpt, isBookType, schemaType, shortTitle } from '../../lib/document';
+import { serializeJsonLd } from '../../lib/json-ld';
 import { formatPrice } from '../../lib/format';
 import { collectionHref, documentHref, downloadHref } from '../../lib/routes';
 
@@ -14,6 +16,10 @@ interface Detail extends Summary {
 }
 interface DetailResponse { data: Detail; related: Summary[] }
 
+/** Réponse 429 : la limite de débit de l'API est atteinte (voir LIBRARY_RATE_LIMIT dans backend/.env). */
+const THROTTLED = 'throttled';
+const THROTTLED_MESSAGE = 'API limitée (429) : relever LIBRARY_RATE_LIMIT dans backend/.env ou attendre une minute';
+
 interface Fixtures {
   /** Premier document de la liste par défaut, avec sa fiche complète (résumé, liés, décision d'accès). */
   first: DetailResponse;
@@ -22,16 +28,18 @@ interface Fixtures {
 }
 
 /**
- * Deux appels seulement (liste + fiche du premier) : l'API limite la bibliothèque à 120 requêtes
- * par minute et par IP, et ce `beforeAll` tourne une fois par worker. Null si l'API est injoignable.
+ * Deux appels seulement (liste + fiche du premier) : ce `beforeAll` tourne une fois par worker.
+ * Null si l'API est injoignable ou vide ; `THROTTLED` si elle répond 429 (jamais confondu avec « pas d'API »).
  */
-async function loadFixtures(request: APIRequestContext): Promise<Fixtures | null> {
+async function loadFixtures(request: APIRequestContext): Promise<Fixtures | typeof THROTTLED | null> {
   try {
     const list = await request.get(`${API}/library/documents?per_page=50`, { timeout: 3000 });
+    if (list.status() === 429) return THROTTLED;
     if (!list.ok()) return null;
     const docs = ((await list.json()) as { data: Summary[] }).data;
     if (docs.length === 0) return null;
     const res = await request.get(`${API}/library/documents/${encodeURIComponent(docs[0].slug)}`, { timeout: 3000 });
+    if (res.status() === 429) return THROTTLED;
     if (!res.ok()) return null;
     const pick = (mode: Summary['access_mode']): Summary | null => docs.find((d) => d.access_mode === mode) ?? null;
     return { first: (await res.json()) as DetailResponse, byMode: { libre: pick('libre'), reserve: pick('reserve'), payant: pick('payant') } };
@@ -40,12 +48,14 @@ async function loadFixtures(request: APIRequestContext): Promise<Fixtures | null
   }
 }
 
-/** API joignable (un seul appel léger), sans exiger de données. */
-async function apiReachable(request: APIRequestContext): Promise<boolean> {
+/** État de l'API (un seul appel léger) : joignable, injoignable ou limitée. */
+async function apiStatus(request: APIRequestContext): Promise<'ok' | 'down' | typeof THROTTLED> {
   try {
-    return (await request.get(`${API}/library/stats`, { timeout: 3000 })).ok();
+    const res = await request.get(`${API}/library/stats`, { timeout: 3000 });
+    if (res.status() === 429) return THROTTLED;
+    return res.ok() ? 'ok' : 'down';
   } catch {
-    return false;
+    return 'down';
   }
 }
 
@@ -105,6 +115,22 @@ test.describe('Fiche — utilitaires', () => {
     expect(doiUrl(null)).toBeNull();
   });
 
+  test('JSON-LD : un titre contenant </script> ne ferme pas la balise', () => {
+    // Aucun document de la base de dev n'a ce titre : contrôle sur la sérialisation réelle de `JsonLd`.
+    const title = 'Piège </script><script>alert(1)</script>';
+    const doc = {
+      uuid: 'u', slug: 'piege', type: 'article_scientifique', type_label: '', title, subtitle: null, year: 2020, language: 'fr',
+      specialite: null, promotion: null, authors: ['A </script>'], mots_cles: [], cover_url: null, access_mode: 'libre', price_xaf: null,
+      published_at: null, abstract: null, journal: null, doi: null, isbn: null, pages_count: null, file_size_bytes: null,
+      external_url: null, views_count: 0, access: { allowed: true, reason: 'public' },
+    } satisfies DocumentDetail;
+    const html = serializeJsonLd(documentJsonLd(doc, { origin: 'https://exemple.org', publisherName: 'PSSFP', publisherUrl: 'https://pssfp.org/' }));
+    expect(html).not.toContain('<');
+    const parsed = JSON.parse(html) as { name: string; author: { name: string }[] };
+    expect(parsed.name).toBe(title);
+    expect(parsed.author[0].name).toBe('A </script>');
+  });
+
   test('schemaType et isBookType selon le type de document', () => {
     expect(schemaType('memoire')).toBe('Book');
     expect(schemaType('these')).toBe('Book');
@@ -116,10 +142,10 @@ test.describe('Fiche — utilitaires', () => {
 });
 
 test.describe('Fiche — toujours (avec ou sans API)', () => {
-  let reachable = false;
+  let status: Awaited<ReturnType<typeof apiStatus>> = 'down';
 
   test.beforeAll(async ({ request }) => {
-    reachable = await apiReachable(request);
+    status = await apiStatus(request);
   });
 
   test.beforeEach(async ({ page }) => {
@@ -127,9 +153,11 @@ test.describe('Fiche — toujours (avec ou sans API)', () => {
   });
 
   test('document inexistant : 404 avec l\'API, frontière d\'erreur sans', async ({ page }) => {
+    // Une API limitée rendrait la frontière d'erreur : le test passerait à tort.
+    expect(status, THROTTLED_MESSAGE).not.toBe(THROTTLED);
     const res = await page.goto('/documents/inexistant-xyz');
     await expect(page.locator('h1')).toHaveCount(1);
-    if (reachable) {
+    if (status === 'ok') {
       expect(res?.status()).toBe(404);
       await expect(page.getByRole('heading', { level: 1 })).toContainText('pas dans nos rayons');
     } else {
@@ -146,8 +174,12 @@ test.describe('Fiche — données de l\'API', () => {
   let payant: Summary | null = null;
   let reserve: Summary | null = null;
 
+  let throttled = false;
+
   test.beforeAll(async ({ request }) => {
-    const fixtures = await loadFixtures(request);
+    const loaded = await loadFixtures(request);
+    throttled = loaded === THROTTLED;
+    const fixtures = loaded === THROTTLED ? null : loaded;
     first = fixtures?.first ?? null;
     libre = fixtures?.byMode.libre ?? null;
     payant = fixtures?.byMode.payant ?? null;
@@ -155,6 +187,7 @@ test.describe('Fiche — données de l\'API', () => {
   });
 
   test.beforeEach(async ({ page }) => {
+    expect(throttled, THROTTLED_MESSAGE).toBe(false);
     test.skip(first === null, 'API injoignable : tests de données ignorés');
     await preparePage(page);
   });
@@ -269,6 +302,22 @@ test.describe('Fiche — données de l\'API', () => {
     await expect(action).toHaveAttribute('data-reason', 'reserved');
     await expect(action.getByRole('link')).toHaveCount(0);
     await expect(page.getByRole('main').locator('a[href*="/download"]')).toHaveCount(0);
+  });
+
+  test('≥ lg : la couverture reste collante sous l\'en-tête au défilement', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(documentHref(first!.data.slug));
+    const column = page.getByTestId('document-cover-column');
+    const stickyTop = await column.evaluate((el) => parseFloat(getComputedStyle(el).top));
+    const { coverTop, coverHeight, articleHeight } = await column.evaluate((el) => {
+      const article = el.parentElement!.querySelector('article')!;
+      return { coverTop: el.getBoundingClientRect().top + window.scrollY, coverHeight: el.getBoundingClientRect().height, articleHeight: article.getBoundingClientRect().height };
+    });
+    const travel = 150;
+    test.skip(articleHeight < coverHeight + travel, 'notice trop courte pour faire défiler la couverture');
+    // Sans `sticky`, la couverture remonterait à stickyTop - travel.
+    await page.evaluate((y) => window.scrollTo(0, y), coverTop - stickyTop + travel);
+    await expect.poll(() => column.evaluate((el) => el.getBoundingClientRect().top)).toBeCloseTo(stickyTop, 0);
   });
 
   test('aucun défilement horizontal à 320 px', async ({ page }) => {

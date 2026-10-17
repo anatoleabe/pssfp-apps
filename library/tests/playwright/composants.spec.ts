@@ -87,13 +87,20 @@ test.describe('Composants documentaires', () => {
   test('copie de la citation annoncée', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.goto(DEMO);
-    const box = page.getByTestId('citation-box');
+    const box = page.getByTestId('citation-box').first();
     await expect(box).toContainText('Bibliothèque PSSFP');
     await box.getByRole('button', { name: /Copier/ }).click();
     await expect(box.getByRole('status')).toHaveText('Citation copiée');
     const copied = await page.evaluate(() => navigator.clipboard.readText());
     expect(copied).toContain('Bibliothèque PSSFP');
     expect(copied).toContain('/documents/demo-memoire-libre');
+  });
+
+  test('citation : titre finissant par un point, sans « .. »', async ({ page }) => {
+    await page.goto(DEMO);
+    const box = page.getByTestId('demo-citation-point').getByTestId('citation-box');
+    await expect(box).toContainText('Exemple A., Fictif B. (2019). Article fictif dont le titre finit par un point. Article scientifique. Bibliothèque PSSFP.');
+    await expect(box).not.toContainText('..');
   });
 
   test('pagination : liens, ellipses et page courante', async ({ page }) => {

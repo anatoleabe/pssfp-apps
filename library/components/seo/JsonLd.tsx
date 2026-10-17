@@ -1,3 +1,5 @@
+import { serializeJsonLd } from '@/lib/json-ld';
+
 interface JsonLdProps {
   data: Record<string, unknown>;
 }
@@ -11,9 +13,9 @@ export function JsonLd({ data }: JsonLdProps): JSX.Element {
     <script
       type="application/ld+json"
       data-testid="json-ld"
-      // JSON.stringify + échappement de « < » : impossible d'injecter un </script>.
+      // Sérialisation échappée (`lib/json-ld.ts`) : impossible d'injecter un </script>.
       // eslint-disable-next-line react/no-danger
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, '\\u003c') }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(data) }}
     />
   );
 }

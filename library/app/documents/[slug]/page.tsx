@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { cache } from 'react';
 import { ArrowUpRight, Eye } from 'lucide-react';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { AccessAction } from '@/components/document/AccessAction';
@@ -38,10 +39,11 @@ interface DocumentPageProps {
   params: { slug: string };
 }
 
-/** 404 → `notFound()` ; autre échec → exception (l'ISR garde la dernière version valide, sinon `app/error.tsx`). */
-async function loadDocument(slug: string): Promise<{ data: DocumentDetail; related: DocumentSummary[] }> {
-  return unwrapOrThrow(await getDocument(slug));
-}
+/**
+ * 404 → `notFound()` ; autre échec → exception (l'ISR garde la dernière version valide, sinon `app/error.tsx`).
+ * `cache()` : `generateMetadata` et la page partagent un seul appel (et un seul 404 ou échec) par rendu.
+ */
+const loadDocument = cache(async (slug: string): Promise<{ data: DocumentDetail; related: DocumentSummary[] }> => unwrapOrThrow(await getDocument(slug)));
 
 async function metaDescription(doc: DocumentDetail): Promise<string> {
   if (doc.abstract && doc.abstract.trim()) return excerpt(doc.abstract, META_DESCRIPTION_MAX);
@@ -130,13 +132,17 @@ export default async function DocumentPage({ params }: DocumentPageProps): Promi
       <JsonLd data={jsonLd} />
       <ViewBeacon uuid={doc.uuid} />
 
-      <div className="relative isolate overflow-hidden">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-40 -top-48 -z-10 h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(closest-side,rgba(165,146,189,0.24),transparent)]" />
+      {/* Pas d'overflow-hidden ici : il deviendrait le conteneur de la couverture collante et la figerait.
+          Le halo décoratif est rogné par son propre calque absolu. */}
+      <div className="relative isolate">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute -right-40 -top-48 h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(closest-side,rgba(165,146,189,0.24),transparent)]" />
+        </div>
         <div className="mx-auto max-w-7xl px-4 pb-14 pt-8 sm:px-6 lg:pb-20 lg:pt-10">
           <Breadcrumbs items={[{ href: '/', label: tCrumbs('home') }, { href: collectionHref(doc.type), label: tTypes(`${doc.type}.other`) }, { label: shortTitle(doc.title) }]} />
 
           <div className="mt-8 grid gap-8 sm:gap-10 lg:mt-10 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-16 xl:grid-cols-[20rem_minmax(0,1fr)]">
-            <div className="lg:sticky lg:top-28 lg:self-start">
+            <div data-testid="document-cover-column" className="lg:sticky lg:top-28 lg:self-start">
               <div className="w-52 sm:w-56 lg:w-full [&>div]:max-w-none">
                 <DocumentCover doc={doc} size="lg" priority sizes="(min-width: 1280px) 320px, (min-width: 1024px) 288px, (min-width: 640px) 224px, 208px" />
               </div>
