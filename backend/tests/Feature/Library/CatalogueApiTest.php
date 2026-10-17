@@ -74,6 +74,23 @@ it('affiche une fiche avec la décision d\'accès et compte la consultation', fu
     expect($doc->fresh()->views_count)->toBe(1);
 });
 
+it('reserve les champs de détail à la fiche, pas aux documents liés ni à la liste', function (): void {
+    $doc = Document::factory()->published()->create(['slug' => 'fiche']);
+    Document::factory()->published()->create(['type' => $doc->type]);
+
+    $show = $this->getJson('/v1/library/documents/fiche')->assertOk();
+    expect($show->json('data'))->toHaveKeys(['access', 'abstract', 'views_count'])
+        ->and($show->json('related.0'))->not->toHaveKeys(['access', 'abstract', 'doi', 'external_url', 'views_count']);
+
+    $list = $this->getJson('/v1/library/documents')->assertOk();
+    expect($list->json('data.0'))->not->toHaveKey('access')->not->toHaveKey('abstract');
+});
+
+it('rejette un chemin de redirection invalide', function (): void {
+    $this->getJson('/v1/library/redirects?path[]=x')->assertUnprocessable();
+    $this->getJson('/v1/library/redirects')->assertUnprocessable();
+});
+
 it('renvoie 404 pour une fiche non publiée', function (): void {
     Document::factory()->create(['slug' => 'brouillon']);
 

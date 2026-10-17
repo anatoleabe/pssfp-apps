@@ -32,7 +32,7 @@ final class CatalogueController extends Controller
 
     public function motsCles(): JsonResponse
     {
-        $items = MotCle::query()->orderBy('slug')->get()->map(fn (MotCle $m): array => [
+        $items = MotCle::query()->with('parent')->orderBy('slug')->get()->map(fn (MotCle $m): array => [
             'slug' => $m->slug,
             'label' => $m->getTranslation('label', 'fr'),
             'parent_slug' => $m->parent?->slug,
@@ -43,7 +43,8 @@ final class CatalogueController extends Controller
 
     public function redirect(Request $request): JsonResponse
     {
-        $path = '/'.ltrim((string) $request->query('path', ''), '/');
+        $validated = $request->validate(['path' => ['required', 'string', 'max:500']]);
+        $path = '/'.ltrim($validated['path'], '/');
         $redirect = LibraryRedirect::query()->where('from_path', $path)->first();
 
         if ($redirect === null) {

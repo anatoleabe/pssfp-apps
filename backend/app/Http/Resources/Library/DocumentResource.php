@@ -13,9 +13,19 @@ use Illuminate\Support\Facades\Storage;
 /** @mixin Document */
 final class DocumentResource extends JsonResource
 {
+    private bool $detailed = false;
+
+    /** Active les champs réservés à la fiche (opt-in explicite). */
+    public function detailed(): static
+    {
+        $this->detailed = true;
+
+        return $this;
+    }
+
     public function toArray(Request $request): array
     {
-        $detail = $request->routeIs('library.documents.show');
+        $detail = $this->detailed;
 
         return [
             'uuid' => $this->uuid,

@@ -58,7 +58,7 @@ final class DocumentController extends Controller
         DB::table('documents')->where('id', $document->id)->increment('views_count');
         $document->views_count++;
 
-        return DocumentResource::make($document)
+        return DocumentResource::make($document)->detailed()
             ->additional(['related' => DocumentResource::collection($this->related($document))])
             ->response();
     }
