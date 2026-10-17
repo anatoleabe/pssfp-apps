@@ -8,7 +8,10 @@ use App\Services\Library\Files\CoverRenderer;
 use App\Services\Library\Files\PdftoppmCoverRenderer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
+use Symfony\Component\Process\Process as SymfonyProcess;
 
 uses()->group('module-3', 'library');
 
@@ -75,3 +78,75 @@ it('rend la première page d\'un vrai PDF avec pdftoppm', function (): void {
     expect($jpeg)->not->toBeNull()->and(substr((string) $jpeg, 0, 3))->toBe("\xFF\xD8\xFF");
     unlink($pdf);
 })->skip(fn () => trim((string) shell_exec('command -v pdftoppm')) === '', 'pdftoppm absent');
+
+it('n\'écrit ni taille ni MD5 quand le PDF est illisible', function (): void {
+    $doc = Document::factory()->create();
+    Document::withoutEvents(fn () => $doc->update(['file_path' => 'documents/absent.pdf']));
+
+    (new ProcessDocumentFile($doc->id))->handle(app(CoverRenderer::class));
+
+    expect($doc->fresh()->file_checksum_md5)->toBeNull()->and($doc->fresh()->file_size_bytes)->toBeNull();
+});
+
+it('déclenche une seule fois à la création avec un fichier', function (): void {
+    Bus::fake([ProcessDocumentFile::class]);
+
+    Document::factory()->create(['file_path' => 'documents/d.pdf']);
+
+    Bus::assertDispatchedTimes(ProcessDocumentFile::class, 1);
+});
+
+it('ne redéclenche pas pour une édition étrangère au fichier après création', function (): void {
+    Bus::fake([ProcessDocumentFile::class]);
+    $doc = Document::factory()->create(['file_path' => 'documents/e.pdf']);
+
+    $doc->update(['abstract' => ['fr' => 'autre résumé']]);
+
+    Bus::assertDispatchedTimes(ProcessDocumentFile::class, 1);
+});
+
+it('stocke taille et MD5 et vide la couverture quand le rendu expire', function (): void {
+    Storage::disk('minio_documents')->put('documents/f.pdf', 'contenu f');
+    $doc = Document::factory()->create();
+    Document::withoutEvents(fn () => $doc->update(['file_path' => 'documents/f.pdf', 'cover_path' => 'library/covers/ancienne.jpg']));
+    Process::fake(['*' => fn () => throw new ProcessTimedOutException(new SymfonyProcess(['pdftoppm']), 1)]);
+
+    (new ProcessDocumentFile($doc->id))->handle(new PdftoppmCoverRenderer);
+
+    $doc->refresh();
+    expect($doc->file_checksum_md5)->toBe(md5('contenu f'))->and($doc->cover_path)->toBeNull();
+});
+
+it('supprime le fichier temporaire après le traitement', function (): void {
+    Storage::disk('minio_documents')->put('documents/g.pdf', 'contenu g');
+    $doc = Document::factory()->create();
+    Document::withoutEvents(fn () => $doc->update(['file_path' => 'documents/g.pdf']));
+    $avant = glob(sys_get_temp_dir().'/doc*') ?: [];
+
+    (new ProcessDocumentFile($doc->id))->handle(new class implements CoverRenderer
+    {
+        public function render(string $pdfPath): ?string
+        {
+            return null;
+        }
+    });
+
+    expect(array_diff(glob(sys_get_temp_dir().'/doc*') ?: [], $avant))->toBe([]);
+});
+
+it('supprime le fichier temporaire même si le rendu lève une exception', function (): void {
+    Storage::disk('minio_documents')->put('documents/h.pdf', 'contenu h');
+    $doc = Document::factory()->create();
+    Document::withoutEvents(fn () => $doc->update(['file_path' => 'documents/h.pdf']));
+    $avant = glob(sys_get_temp_dir().'/doc*') ?: [];
+
+    expect(fn () => (new ProcessDocumentFile($doc->id))->handle(new class implements CoverRenderer
+    {
+        public function render(string $pdfPath): ?string
+        {
+            throw new RuntimeException('boom');
+        }
+    }))->toThrow(RuntimeException::class);
+
+    expect(array_diff(glob(sys_get_temp_dir().'/doc*') ?: [], $avant))->toBe([]);
+});

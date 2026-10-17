@@ -13,6 +13,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 /**
  * Après dépôt ou import d'un PDF : taille, MD5 et couverture.
@@ -40,33 +41,57 @@ final class ProcessDocumentFile implements ShouldQueue
         }
 
         $local = tempnam(sys_get_temp_dir(), 'doc');
-        $stream = Storage::disk((string) config('library.documents_disk'))->readStream($document->file_path);
-        if ($stream === null) {
-            // Disque configuré avec throw=false : fichier absent ou MinIO injoignable.
-            // On journalise sans faire échouer la file (l'import le signalera dans son rapport).
+        if ($local === false) {
+            throw new RuntimeException('Impossible de créer le fichier temporaire.');
+        }
+
+        $stream = null;
+        $out = null;
+
+        try {
+            $stream = Storage::disk((string) config('library.documents_disk'))->readStream($document->file_path);
+            if ($stream === null || $stream === false) {
+                // Disque configuré avec throw=false : fichier absent ou MinIO injoignable.
+                // On journalise sans faire échouer la file (l'import le signalera dans son rapport).
+                Log::warning('Bibliothèque : PDF illisible', ['document' => $document->uuid, 'path' => $document->file_path]);
+
+                return;
+            }
+
+            $out = fopen($local, 'wb');
+            if ($out === false) {
+                throw new RuntimeException('Impossible d\'ouvrir le fichier temporaire en écriture.');
+            }
+            if (stream_copy_to_stream($stream, $out) === false) {
+                throw new RuntimeException('Copie du PDF interrompue.');
+            }
+            if (! fclose($out)) {
+                $out = null;
+                throw new RuntimeException('Écriture du fichier temporaire incomplète.');
+            }
+            $out = null;
+
+            $attributes = [
+                'file_size_bytes' => filesize($local),
+                'file_checksum_md5' => md5_file($local),
+                'cover_path' => null,
+            ];
+
+            $jpeg = $renderer->render($local);
+            if ($jpeg !== null) {
+                $coverPath = (string) config('library.covers_directory')."/{$document->uuid}.jpg";
+                Storage::disk((string) config('library.covers_disk'))->put($coverPath, $jpeg, ['visibility' => 'public']);
+                $attributes['cover_path'] = $coverPath;
+            }
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+            if (is_resource($out)) {
+                fclose($out);
+            }
             @unlink($local);
-            Log::warning('Bibliothèque : PDF illisible', ['document' => $document->uuid, 'path' => $document->file_path]);
-
-            return;
         }
-        $out = fopen($local, 'wb');
-        stream_copy_to_stream($stream, $out);
-        fclose($out);
-        fclose($stream);
-
-        $attributes = [
-            'file_size_bytes' => filesize($local),
-            'file_checksum_md5' => md5_file($local),
-        ];
-
-        $jpeg = $renderer->render($local);
-        if ($jpeg !== null) {
-            $coverPath = config('library.covers_directory')."/{$document->uuid}.jpg";
-            Storage::disk((string) config('library.covers_disk'))->put($coverPath, $jpeg, ['visibility' => 'public']);
-            $attributes['cover_path'] = $coverPath;
-        }
-
-        @unlink($local);
 
         Document::withoutEvents(fn () => $document->forceFill($attributes)->save());
         $document->searchable();

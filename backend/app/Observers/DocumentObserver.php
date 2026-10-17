@@ -10,11 +10,16 @@ use App\Models\Document;
 /** Relance le traitement du PDF à chaque nouveau fichier. */
 final class DocumentObserver
 {
-    public function saved(Document $document): void
+    public function created(Document $document): void
     {
-        $nouveauFichier = $document->wasRecentlyCreated || $document->wasChanged('file_path');
+        if ($document->file_path !== null) {
+            ProcessDocumentFile::dispatch($document->id)->afterCommit();
+        }
+    }
 
-        if ($document->file_path !== null && $nouveauFichier) {
+    public function updated(Document $document): void
+    {
+        if ($document->file_path !== null && $document->wasChanged('file_path')) {
             ProcessDocumentFile::dispatch($document->id)->afterCommit();
         }
     }
