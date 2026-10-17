@@ -22,13 +22,13 @@ use Spatie\Permission\PermissionRegistrar;
  *
  * L'administrateur ne manipule jamais de permissions à l'unité : il choisit,
  * module par module, un niveau d'accès (aucun / lecture / gestion), puis coche
- * les actions sensibles du module Admissions. La traduction en permissions
+ * les actions sensibles de chaque module ouvert. La traduction en permissions
  * Spatie est faite par ModulePermissionMap, seule source de vérité — partagée
  * avec le RolePermissionSeeder.
  *
- * Les champs `modules.*` et `sensitive_actions` ne sont pas des colonnes : ils
- * sont calculés à l'ouverture du formulaire et retraduits à l'enregistrement
- * (cf. Pages\CreateRole / Pages\EditRole).
+ * Les champs `modules.*` et `sensitive_actions.*` (une liste par module) ne
+ * sont pas des colonnes : ils sont calculés à l'ouverture du formulaire et
+ * retraduits à l'enregistrement (cf. Pages\CreateRole / Pages\EditRole).
  */
 class RoleResource extends Resource
 {
@@ -100,19 +100,66 @@ class RoleResource extends Resource
                         ->all(),
                 ),
 
-            Forms\Components\Section::make('Actions sensibles — Admissions')
-                ->description('À cocher explicitement : gérer les dossiers n\'emporte pas le droit de décider d\'une admission.')
-                ->schema([
-                    Forms\Components\CheckboxList::make('sensitive_actions')
-                        ->hiddenLabel()
-                        ->options(ModulePermissionMap::sensitiveActions())
-                        ->columns(2)
-                        ->bulkToggleable(),
-                ])
-                // Sans accès aux admissions, ces actions n'auraient aucune
-                // prise : l'agent ne verrait aucun dossier.
-                ->visible(fn (Forms\Get $get): bool => $get('modules.admissions') !== ModulePermissionMap::LEVEL_NONE),
+            ...static::sensitiveActionSections(),
         ]);
+    }
+
+    /**
+     * Une section d'actions sensibles par module qui en a.
+     *
+     * Visible seulement si le module a un niveau d'accès : sans accès, ces
+     * actions n'auraient aucune prise. Filament n'enregistre pas une section
+     * masquée ; chaque module ayant sa propre liste, masquer l'une ne vide
+     * jamais les autres (cf. mergeSensitiveActions()).
+     *
+     * @return list<Forms\Components\Section>
+     */
+    private static function sensitiveActionSections(): array
+    {
+        return collect(ModulePermissionMap::modules())
+            ->filter(fn (array $module): bool => $module['sensitive'] !== [])
+            ->map(fn (array $module, string $key): Forms\Components\Section => Forms\Components\Section::make('Actions sensibles — '.(Str::after($module['label'], '— ') ?: $module['label']))
+                ->description($module['sensitive_description'] ?? null)
+                ->schema([
+                    Forms\Components\CheckboxList::make("sensitive_actions.{$key}")
+                        ->hiddenLabel()
+                        ->options($module['sensitive'])
+                        ->columns(2)
+                        ->bulkToggleable(count($module['sensitive']) > 1),
+                ])
+                ->visible(fn (Forms\Get $get): bool => $get("modules.{$key}") !== ModulePermissionMap::LEVEL_NONE))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Réunit les listes d'actions sensibles par module en une seule liste.
+     *
+     * @param  mixed  $byModule  module => list de permissions (sections visibles)
+     * @return list<string>
+     */
+    public static function mergeSensitiveActions(mixed $byModule): array
+    {
+        return collect(is_array($byModule) ? $byModule : [])
+            ->flatten()
+            ->filter(fn (mixed $permission): bool => is_string($permission))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Opération inverse, pour pré-remplir le formulaire : module => actions cochées.
+     *
+     * @param  list<string>  $permissions
+     * @return array<string, list<string>>
+     */
+    public static function sensitiveActionsByModule(array $permissions): array
+    {
+        return collect(ModulePermissionMap::modules())
+            ->filter(fn (array $module): bool => $module['sensitive'] !== [])
+            ->map(fn (array $module): array => array_values(array_intersect(array_keys($module['sensitive']), $permissions)))
+            ->all();
     }
 
     public static function table(Table $table): Table

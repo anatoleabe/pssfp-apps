@@ -10,6 +10,7 @@ use App\Models\Document;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -54,7 +55,7 @@ it('crée un document en brouillon avec ses auteurs', function (): void {
 });
 
 it('publie un document et trace le validateur', function (): void {
-    $doc = Document::factory()->create(['status' => Document::STATUS_IN_REVIEW]);
+    $doc = Document::factory()->withFile()->create(['status' => Document::STATUS_IN_REVIEW]);
     $this->actingAs($this->librarian);
 
     $this->livewire(ListDocuments::class)->callTableAction('publier', $doc);
@@ -66,7 +67,7 @@ it('publie un document et trace le validateur', function (): void {
 });
 
 it('publie une sélection en lot', function (): void {
-    $docs = Document::factory()->count(3)->create(['status' => Document::STATUS_IN_REVIEW]);
+    $docs = Document::factory()->count(3)->withFile()->create(['status' => Document::STATUS_IN_REVIEW]);
     $this->actingAs($this->librarian);
 
     $this->livewire(ListDocuments::class)->callTableBulkAction('publierLot', $docs);
@@ -155,7 +156,7 @@ it('ne publie pas un brouillon directement', function (): void {
 });
 
 it('republie un document archivé', function (): void {
-    $doc = Document::factory()->create(['status' => Document::STATUS_ARCHIVED]);
+    $doc = Document::factory()->withFile()->create(['status' => Document::STATUS_ARCHIVED]);
     $this->actingAs($this->librarian);
 
     $this->livewire(ListDocuments::class)->callTableAction('publier', $doc);
@@ -165,7 +166,7 @@ it('republie un document archivé', function (): void {
 
 it('publie en lot seulement les documents en revue ou archivés', function (): void {
     $other = User::factory()->create();
-    $review = Document::factory()->create(['status' => Document::STATUS_IN_REVIEW]);
+    $review = Document::factory()->withFile()->create(['status' => Document::STATUS_IN_REVIEW]);
     $published = Document::factory()->create([
         'status' => Document::STATUS_PUBLISHED,
         'approved_by' => $other->id,
@@ -211,3 +212,94 @@ it('refuse archiver sans permission de publication', function (): void {
 
     expect($doc->fresh()->status)->toBe(Document::STATUS_PUBLISHED);
 });
+
+it('refuse de modifier ou supprimer un document publié sans le droit de publier', function (): void {
+    revokePublish($this);
+    $librarian = $this->librarian->fresh();
+    $published = Document::factory()->published()->withFile()->create();
+    $draft = Document::factory()->create();
+
+    expect($librarian->can('update', $published))->toBeFalse()
+        ->and($librarian->can('delete', $published))->toBeFalse()
+        ->and($librarian->can('update', $draft))->toBeTrue()
+        ->and($librarian->can('delete', $draft))->toBeTrue();
+
+    $this->actingAs($librarian)->get(DocumentResource::getUrl('edit', ['record' => $published]))->assertForbidden();
+});
+
+it('laisse modifier un document publié à qui peut publier', function (): void {
+    $published = Document::factory()->published()->withFile()->create();
+
+    expect($this->librarian->can('update', $published))->toBeTrue()
+        ->and($this->librarian->can('delete', $published))->toBeTrue();
+});
+
+function documentForm(array $overrides = []): array
+{
+    return [
+        'type' => 'memoire',
+        'title.fr' => 'Notice de contrôle',
+        'slug' => 'notice-de-controle',
+        'language' => 'fr',
+        'access_level' => 'public',
+        ...$overrides,
+    ];
+}
+
+it('interdit un lien externe avec un prix ou un accès réservé', function (array $overrides): void {
+    $this->actingAs($this->librarian);
+
+    $this->livewire(CreateDocument::class)
+        ->fillForm(documentForm(['external_url' => 'https://exemple.org/ouvrage', ...$overrides]))
+        ->call('create')
+        ->assertHasFormErrors(['external_url']);
+
+    expect(Document::query()->count())->toBe(0);
+})->with([
+    'prix' => [['price_xaf' => 2000]],
+    'réservé' => [['access_level' => 'auditor']],
+]);
+
+it('interdit un lien externe à côté d\'un PDF déjà enregistré', function (): void {
+    Storage::fake('minio_documents');
+    $doc = Document::factory()->withFile()->create();
+    $this->actingAs($this->librarian);
+
+    $this->livewire(DocumentResource\Pages\EditDocument::class, ['record' => $doc->getRouteKey()])
+        ->fillForm(['external_url' => 'https://exemple.org/ouvrage'])
+        ->call('save')
+        ->assertHasFormErrors(['external_url']);
+});
+
+it('refuse de publier un document sans fichier ni lien', function (): void {
+    $doc = Document::factory()->create(['status' => Document::STATUS_IN_REVIEW]);
+    $this->actingAs($this->librarian);
+
+    try {
+        DocumentResource::publish($doc);
+        $this->fail('publish() aurait dû refuser.');
+    } catch (HttpException $e) {
+        expect($e->getStatusCode())->toBe(422);
+    }
+
+    $this->livewire(ListDocuments::class)->callTableAction('publier', $doc);
+    expect($doc->fresh()->status)->toBe(Document::STATUS_IN_REVIEW);
+});
+
+it('valide slug, lien et champs entiers de la notice', function (array $overrides, string $field): void {
+    $this->actingAs($this->librarian);
+
+    $this->livewire(CreateDocument::class)
+        ->fillForm(documentForm($overrides))
+        ->call('create')
+        ->assertHasFormErrors([$field]);
+})->with([
+    'slug avec majuscules' => [['slug' => 'Notice De Controle'], 'slug'],
+    'slug avec tiret final' => [['slug' => 'notice-'], 'slug'],
+    'lien javascript' => [['external_url' => 'javascript:alert(1)'], 'external_url'],
+    'lien ftp' => [['external_url' => 'ftp://exemple.org/a.pdf'], 'external_url'],
+    'année décimale' => [['year' => '2024.5'], 'year'],
+    'promotion décimale' => [['promotion' => '3.5'], 'promotion'],
+    'pages décimales' => [['pages_count' => '12.5'], 'pages_count'],
+    'prix décimal' => [['price_xaf' => '1500.5'], 'price_xaf'],
+]);

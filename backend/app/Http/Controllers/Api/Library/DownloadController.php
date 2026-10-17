@@ -43,7 +43,12 @@ final class DownloadController extends Controller
         }
 
         if ($decision->reason === AccessDecision::EXTERNAL) {
-            return redirect()->away((string) $document->external_url);
+            // Jamais de redirection vers javascript:, data:, ftp:…
+            $scheme = strtolower((string) parse_url((string) $document->external_url, PHP_URL_SCHEME));
+
+            return in_array($scheme, ['http', 'https'], true)
+                ? redirect()->away((string) $document->external_url)
+                : $this->notFound();
         }
 
         if ($document->file_path === null) {

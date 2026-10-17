@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\DocumentResource\Pages;
 use App\Models\Document;
+use Closure;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -42,6 +43,9 @@ class DocumentResource extends Resource
         return (string) ($record->getTranslation('title', 'fr', false) ?: $record->slug);
     }
 
+    /** Minuscules, chiffres et tirets simples (aussi pour le thésaurus). */
+    public const SLUG_RULE = 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
+
     /** Un brouillon doit d'abord être soumis en revue. */
     public const PUBLISHABLE_STATUSES = [Document::STATUS_IN_REVIEW, Document::STATUS_ARCHIVED];
 
@@ -60,14 +64,15 @@ class DocumentResource extends Resource
                 Forms\Components\Select::make('language')->label('Langue')->options(Document::LANGUAGES)->default('fr')->required(),
                 Forms\Components\TextInput::make('title.fr')->label('Titre')->required()->maxLength(300)->columnSpanFull()
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Forms\Set $set, Forms\Get $get, ?string $state) => $get('slug') ? null : $set('slug', Str::limit(Str::slug((string) $state), 150, ''))),
-                Forms\Components\TextInput::make('slug')->required()->unique(ignoreRecord: true)->maxLength(160)->columnSpanFull(),
+                    ->afterStateUpdated(fn (Forms\Set $set, Forms\Get $get, ?string $state) => $get('slug') ? null : $set('slug', rtrim(Str::limit(Str::slug((string) $state), 150, ''), '-'))),
+                Forms\Components\TextInput::make('slug')->required()->unique(ignoreRecord: true)->maxLength(160)->columnSpanFull()
+                    ->rule(self::SLUG_RULE)->validationMessages(['regex' => 'Minuscules, chiffres et tirets simples uniquement (ex. : budget-programme-2024).']),
                 Forms\Components\TextInput::make('subtitle.fr')->label('Sous-titre')->maxLength(300)->columnSpanFull(),
                 Forms\Components\Textarea::make('abstract.fr')->label('Résumé')->rows(5)->columnSpanFull(),
-                Forms\Components\TextInput::make('year')->label('Année')->numeric()->minValue(1900)->maxValue(2100),
+                Forms\Components\TextInput::make('year')->label('Année')->integer()->minValue(1900)->maxValue(2100),
                 Forms\Components\Select::make('specialite')->label('Spécialité')->options((array) config('specialites', []))->searchable(),
-                Forms\Components\TextInput::make('promotion')->label('Promotion')->numeric()->minValue(1)->maxValue(99),
-                Forms\Components\TextInput::make('pages_count')->label('Pages')->numeric()->minValue(1),
+                Forms\Components\TextInput::make('promotion')->label('Promotion')->integer()->minValue(1)->maxValue(99),
+                Forms\Components\TextInput::make('pages_count')->label('Pages')->integer()->minValue(1),
                 Forms\Components\TextInput::make('journal')->label('Revue')->maxLength(200),
                 Forms\Components\TextInput::make('doi')->label('DOI')->maxLength(120),
                 Forms\Components\TextInput::make('isbn')->label('ISBN')->maxLength(30),
@@ -90,12 +95,37 @@ class DocumentResource extends Resource
                     // Pas de HeadObject en prod : sans ce réglage, Filament croit le
                     // PDF absent à l'ouverture et l'efface à l'enregistrement.
                     ->fetchFileInformation(false),
-                Forms\Components\TextInput::make('external_url')->label('Ou lien externe')->url()->maxLength(500)->columnSpanFull(),
+                Forms\Components\TextInput::make('external_url')->label('Ou lien externe')->url()->rule('url:http,https')->maxLength(500)->columnSpanFull()
+                    ->helperText('Sans PDF, sans prix et en accès public : le bouton du site ouvre ce lien.')
+                    ->rule(fn (Forms\Get $get): Closure => self::externalUrlIsExclusive($get)),
                 Forms\Components\Select::make('access_level')->label('Niveau d\'accès')->options(Document::ACCESS_LEVELS)->default('public')->required(),
-                Forms\Components\TextInput::make('price_xaf')->label('Prix (FCFA)')->numeric()->minValue(1)
+                Forms\Components\TextInput::make('price_xaf')->label('Prix (FCFA)')->integer()->minValue(1)
                     ->helperText('Non vendu tant que le paiement en ligne n\'est pas actif : le document s\'affiche « Payant — bientôt disponible ».'),
             ]),
         ]);
+    }
+
+    /**
+     * Fichier ou lien, exclusifs (contrainte reprise en base) : un lien externe
+     * n'a ni PDF chez nous, ni prix, ni accès réservé.
+     */
+    private static function externalUrlIsExclusive(Forms\Get $get): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) use ($get): void {
+            if (blank($value)) {
+                return;
+            }
+
+            if (filled($get('file_path')) || filled($get('price_xaf')) || $get('access_level') !== 'public') {
+                $fail('Un lien externe exclut le PDF, le prix et l\'accès réservé : retirez-les ou videz le lien.');
+            }
+        };
+    }
+
+    /** Un document se publie avec un PDF ou un lien externe, jamais sans. */
+    public static function hasContent(Document $document): bool
+    {
+        return $document->file_path !== null || $document->external_url !== null;
     }
 
     public static function table(Table $table): Table
@@ -132,7 +162,14 @@ class DocumentResource extends Resource
                     ->authorize(fn (Document $record) => (bool) auth()->user()?->can('publish', $record))
                     ->visible(fn (Document $record) => in_array($record->status, self::PUBLISHABLE_STATUSES, true))
                     ->requiresConfirmation()
-                    ->action(fn (Document $record) => self::publish($record)),
+                    ->action(function (Document $record): void {
+                        if (! self::hasContent($record)) {
+                            Notification::make()->title('Ajoutez un PDF ou un lien externe avant de publier.')->danger()->send();
+
+                            return;
+                        }
+                        self::publish($record);
+                    }),
                 Tables\Actions\Action::make('archiver')->label('Archiver')->icon('heroicon-o-archive-box')->color('gray')
                     ->authorize(fn (Document $record) => (bool) auth()->user()?->can('publish', $record))
                     ->visible(fn (Document $record) => $record->status === Document::STATUS_PUBLISHED)
@@ -146,7 +183,7 @@ class DocumentResource extends Resource
                     ->requiresConfirmation()
                     ->action(function (Collection $records): void {
                         $published = $records
-                            ->filter(fn (Document $d) => in_array($d->status, self::PUBLISHABLE_STATUSES, true))
+                            ->filter(fn (Document $d) => in_array($d->status, self::PUBLISHABLE_STATUSES, true) && self::hasContent($d))
                             ->each(fn (Document $d) => self::publish($d))
                             ->count();
                         $skipped = $records->count() - $published;
@@ -165,6 +202,7 @@ class DocumentResource extends Resource
     {
         abort_unless(auth()->user()?->can('document.publish'), 403);
         abort_unless(in_array($document->status, self::PUBLISHABLE_STATUSES, true), 403);
+        abort_unless(self::hasContent($document), 422, 'Ajoutez un PDF ou un lien externe avant de publier.');
 
         $document->update([
             'status' => Document::STATUS_PUBLISHED,

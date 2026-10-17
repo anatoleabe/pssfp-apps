@@ -63,3 +63,9 @@ it('limite les téléchargements à 30 par minute et par client', function (): v
 
     $this->getJson("/v1/library/documents/{$doc->uuid}/download")->assertStatus(429);
 });
+
+it('renvoie 404 pour un lien externe dont le schéma n\'est pas http(s)', function (string $url): void {
+    $doc = Document::factory()->published()->external($url)->create();
+
+    $this->getJson("/v1/library/documents/{$doc->uuid}/download")->assertNotFound();
+})->with(['javascript:alert(1)', 'ftp://exemple.org/livre.pdf', 'data:text/html,bonjour']);

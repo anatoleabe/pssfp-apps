@@ -46,3 +46,15 @@ it('ne retient que les documents publiés à date passée', function (): void {
 
     expect(Document::query()->published()->count())->toBe(1);
 });
+
+it('refuse en base un lien externe combiné à un fichier, un prix ou un accès réservé', function (array $attrs): void {
+    Document::factory()->create(['external_url' => 'https://exemple.org/ouvrage', ...$attrs]);
+})->with([
+    'fichier' => [['file_path' => 'documents/x.pdf']],
+    'prix' => [['price_xaf' => 2000]],
+    'réservé' => [['access_level' => 'auditor']],
+])->throws(QueryException::class);
+
+it('accepte un lien externe seul', function (): void {
+    expect(Document::factory()->external()->create()->exists)->toBeTrue();
+});

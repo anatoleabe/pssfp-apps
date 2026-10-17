@@ -48,7 +48,7 @@ it('creates a role from module levels and translates them into permissions', fun
                 'admissions' => ModulePermissionMap::LEVEL_READ,
                 'administration' => ModulePermissionMap::LEVEL_NONE,
             ],
-            'sensitive_actions' => ['candidature.export_csv'],
+            'sensitive_actions' => ['admissions' => ['candidature.export_csv']],
         ])
         ->call('create')
         ->assertHasNoFormErrors();
@@ -90,7 +90,7 @@ it('revokes the permissions dropped from a role', function (): void {
                 'admissions' => ModulePermissionMap::LEVEL_READ,
                 'administration' => ModulePermissionMap::LEVEL_NONE,
             ],
-            'sensitive_actions' => [],
+            'sensitive_actions' => ['admissions' => []],
         ])
         ->call('save')
         ->assertHasNoFormErrors();
@@ -160,4 +160,74 @@ it('round-trips levels through permissions without drift', function (): void {
     $permissions = ModulePermissionMap::toPermissions($levels, ['candidature.accept']);
 
     expect(ModulePermissionMap::toLevels($permissions))->toBe($levels);
+});
+
+it('garde document.publish sur un rôle bibliothèque sans accès aux admissions', function (): void {
+    $this->actingAs(roleUser('super_admin'));
+
+    $this->livewire(RoleResource\Pages\CreateRole::class)
+        ->fillForm([
+            'label' => 'Documentaliste',
+            'name' => 'documentaliste',
+            'modules' => [
+                'site' => ModulePermissionMap::LEVEL_NONE,
+                'admissions' => ModulePermissionMap::LEVEL_NONE,
+                'bibliotheque' => ModulePermissionMap::LEVEL_MANAGE,
+                'administration' => ModulePermissionMap::LEVEL_NONE,
+            ],
+            'sensitive_actions' => ['bibliotheque' => ['document.publish']],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $role = Role::query()->where('name', 'documentaliste')->firstOrFail();
+    expect($role->permissions->pluck('name'))->toContain('document.publish')->toContain('update_document');
+
+    // Aller-retour : rouvrir puis enregistrer sans rien changer ne perd rien.
+    $this->livewire(RoleResource\Pages\EditRole::class, ['record' => $role->getKey()])
+        ->assertFormSet([
+            'modules.admissions' => ModulePermissionMap::LEVEL_NONE,
+            'sensitive_actions.bibliotheque' => ['document.publish'],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($role->fresh()->permissions->pluck('name'))->toContain('document.publish')->toContain('update_document');
+});
+
+it('garde les actions sensibles de chaque module à l\'enregistrement', function (): void {
+    $committee = Role::query()->where('name', 'admission_committee')->firstOrFail();
+    $librarian = Role::query()->where('name', 'librarian')->firstOrFail();
+    $before = [
+        'committee' => $committee->permissions->pluck('name')->sort()->values()->all(),
+        'librarian' => $librarian->permissions->pluck('name')->sort()->values()->all(),
+    ];
+
+    $this->actingAs(roleUser('super_admin'));
+
+    $this->livewire(RoleResource\Pages\EditRole::class, ['record' => $committee->getKey()])
+        ->call('save')->assertHasNoFormErrors();
+    $this->livewire(RoleResource\Pages\EditRole::class, ['record' => $librarian->getKey()])
+        ->assertFormSet([
+            'sensitive_actions.admissions' => ['candidature.mark_paid'],
+            'sensitive_actions.bibliotheque' => ['document.publish'],
+        ])
+        ->call('save')->assertHasNoFormErrors();
+
+    expect($committee->fresh()->permissions->pluck('name')->sort()->values()->all())->toBe($before['committee'])
+        ->and($before['committee'])->toContain('candidature.accept')
+        ->and($librarian->fresh()->permissions->pluck('name')->sort()->values()->all())->toBe($before['librarian']);
+});
+
+it('retire les actions sensibles d\'un module passé à « aucun accès »', function (): void {
+    $librarian = Role::query()->where('name', 'librarian')->firstOrFail();
+    $this->actingAs(roleUser('super_admin'));
+
+    $this->livewire(RoleResource\Pages\EditRole::class, ['record' => $librarian->getKey()])
+        ->fillForm(['modules.admissions' => ModulePermissionMap::LEVEL_NONE])
+        ->call('save')->assertHasNoFormErrors();
+
+    expect($librarian->fresh()->permissions->pluck('name'))
+        ->not->toContain('candidature.mark_paid')
+        ->toContain('document.publish');
 });

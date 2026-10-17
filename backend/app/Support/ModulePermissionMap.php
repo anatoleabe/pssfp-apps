@@ -10,8 +10,8 @@ namespace App\Support;
  * Source unique de vérité pour l'écran de gestion des rôles (RoleResource) et
  * pour le RolePermissionSeeder. L'administrateur ne manipule jamais de
  * permissions à l'unité : il choisit, module par module, un niveau
- * (aucun / lecture / gestion), plus quelques actions sensibles à cocher
- * explicitement pour le module Admissions.
+ * (aucun / lecture / gestion), plus les actions sensibles du module, à
+ * cocher une à une (décisions d'admission, publication d'un document…).
  *
  * Les permissions restent des permissions Spatie classiques : tout le code
  * existant (`$user->can('candidature.accept')`, policies, Resources Filament)
@@ -46,9 +46,11 @@ final class ModulePermissionMap
      * Définition des modules.
      *
      * `read` liste les permissions du niveau lecture ; `manage` liste celles
-     * qui s'y **ajoutent** au niveau gestion.
+     * qui s'y **ajoutent** au niveau gestion ; `sensitive` les actions
+     * sensibles du module (permission => libellé), volontairement hors des
+     * niveaux : « gestion » n'emporte jamais le droit de décider ou de publier.
      *
-     * @return array<string, array{label: string, description: string, read: list<string>, manage: list<string>}>
+     * @return array<string, array{label: string, description: string, read: list<string>, manage: list<string>, sensitive: array<string, string>, sensitive_description?: string}>
      */
     public static function modules(): array
     {
@@ -66,6 +68,7 @@ final class ModulePermissionMap
                     'create_article', 'update_article', 'delete_article',
                     'create_asset', 'update_asset', 'delete_asset',
                 ],
+                'sensitive' => [],
             ],
             'admissions' => [
                 'label' => 'Module 5 — Admissions',
@@ -78,6 +81,21 @@ final class ModulePermissionMap
                     'update_candidature',
                     'create_campagne::candidature', 'update_campagne::candidature',
                 ],
+                'sensitive_description' => 'À cocher explicitement : gérer les dossiers n\'emporte pas le droit de décider d\'une admission.',
+                'sensitive' => [
+                    'candidature.mark_depot_physique' => 'Pointer la réception des dossiers papier au guichet',
+                    'candidature.export_csv' => 'Exporter les candidatures en CSV',
+                    'candidature.mark_paid' => 'Marquer les frais de dossier comme payés',
+                    'candidature.update_status' => 'Basculer un dossier entre postulant et candidat',
+                    'candidature.accept' => 'Accepter un dossier',
+                    'candidature.refuse' => 'Refuser un dossier',
+                    'candidature.bulk_decision' => 'Accepter ou refuser en lot',
+                    'candidature.regenerate_recipisse' => 'Régénérer le récépissé PDF d\'un dossier',
+                    'candidature.withdraw' => 'Retirer administrativement un dossier',
+                    'candidature.delete_test' => 'Supprimer définitivement un compte de test',
+                    'candidature.notify' => 'Notifier un groupe de candidats par SMS ou e-mail',
+                    'campagne.download_resultats' => 'Télécharger le communiqué des résultats et le PV du jury (listes nominatives)',
+                ],
             ],
             'bibliotheque' => [
                 'label' => 'Module 3 — Bibliothèque',
@@ -89,6 +107,10 @@ final class ModulePermissionMap
                 'manage' => [
                     'create_document', 'update_document', 'delete_document',
                     'create_mot::cle', 'update_mot::cle', 'delete_mot::cle',
+                ],
+                'sensitive_description' => 'À cocher explicitement : gérer les documents n\'emporte pas le droit de les mettre en ligne.',
+                'sensitive' => [
+                    'document.publish' => 'Publier ou dépublier un document de la bibliothèque',
                 ],
             ],
             'administration' => [
@@ -103,35 +125,22 @@ final class ModulePermissionMap
                     'create_role', 'update_role', 'delete_role',
                     'settings.manage',
                 ],
+                'sensitive' => [],
             ],
         ];
     }
 
     /**
-     * Actions sensibles du module Admissions, cochées une à une.
-     *
-     * Volontairement hors des niveaux : « gestion des admissions » ne doit pas
-     * emporter automatiquement le droit de décider d'une admission.
+     * Actions sensibles de tous les modules, à plat.
      *
      * @return array<string, string> permission => libellé
      */
     public static function sensitiveActions(): array
     {
-        return [
-            'document.publish' => 'Publier ou dépublier un document de la bibliothèque',
-            'candidature.mark_depot_physique' => 'Pointer la réception des dossiers papier au guichet',
-            'candidature.export_csv' => 'Exporter les candidatures en CSV',
-            'candidature.mark_paid' => 'Marquer les frais de dossier comme payés',
-            'candidature.update_status' => 'Basculer un dossier entre postulant et candidat',
-            'candidature.accept' => 'Accepter un dossier',
-            'candidature.refuse' => 'Refuser un dossier',
-            'candidature.bulk_decision' => 'Accepter ou refuser en lot',
-            'candidature.regenerate_recipisse' => 'Régénérer le récépissé PDF d\'un dossier',
-            'candidature.withdraw' => 'Retirer administrativement un dossier',
-            'candidature.delete_test' => 'Supprimer définitivement un compte de test',
-            'candidature.notify' => 'Notifier un groupe de candidats par SMS ou e-mail',
-            'campagne.download_resultats' => 'Télécharger le communiqué des résultats et le PV du jury (listes nominatives)',
-        ];
+        return array_merge(...array_values(array_map(
+            fn (array $module): array => $module['sensitive'],
+            self::modules(),
+        )));
     }
 
     /**
@@ -179,10 +188,9 @@ final class ModulePermissionMap
             }
         }
 
-        // Une action sensible sans accès en lecture aux admissions serait
-        // inopérante (l'agent ne verrait aucun dossier) : on ne retient que
-        // celles qui existent réellement, la cohérence est assurée en amont
-        // par l'écran des rôles.
+        // On ne retient que les actions sensibles connues. Une action sensible
+        // sans accès à son module serait inopérante : l'écran des rôles ne
+        // l'affiche (et ne l'enregistre) que si le module a un niveau d'accès.
         $known = array_keys(self::sensitiveActions());
         $permissions = [...$permissions, ...array_values(array_intersect($sensitiveActions, $known))];
 

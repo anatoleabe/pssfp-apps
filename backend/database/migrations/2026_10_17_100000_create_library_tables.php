@@ -79,6 +79,8 @@ return new class extends Migration
         DB::statement("ALTER TABLE documents ADD CONSTRAINT documents_language_check CHECK (language IN ('fr','en','ar','autre'))");
         DB::statement("ALTER TABLE documents ADD CONSTRAINT documents_legacy_source_check CHECK (legacy_source IS NULL OR legacy_source IN ('docman','alexandria'))");
         DB::statement('ALTER TABLE documents ADD CONSTRAINT documents_price_check CHECK (price_xaf IS NULL OR price_xaf > 0)');
+        // Fichier ou lien, exclusifs : un lien externe est toujours libre (spec V1 §4).
+        DB::statement("ALTER TABLE documents ADD CONSTRAINT documents_external_url_check CHECK (NOT (external_url IS NOT NULL AND (file_path IS NOT NULL OR price_xaf IS NOT NULL OR access_level <> 'public')))");
 
         Schema::create('document_authors', function (Blueprint $table): void {
             $table->id();
