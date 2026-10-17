@@ -5,8 +5,10 @@ import { Eyebrow } from '@/components/home/Eyebrow';
 import { SearchForm } from '@/components/home/SearchForm';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { SearchExperience } from '@/components/search/SearchExperience';
+import { SearchScope } from '@/components/search/SearchScope';
 import { SearchSkeleton } from '@/components/search/SearchStates';
-import { searchParamsToFilters } from '@/lib/routes';
+import { getMotsCles } from '@/lib/api/library';
+import { filtersToSearchParams, searchParamsToFilters } from '@/lib/routes';
 import { MAX_QUERY_LENGTH } from '@/lib/search';
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -16,8 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t('metaTitle'),
     description: t('metaDescription'),
-    alternates: { canonical: '/recherche' },
-    // Pages de résultats : jamais indexées (contenu dérivé de la requête), liens suivis.
+    // Pages de résultats : jamais indexées (contenu dérivé de la requête), liens suivis ; pas de canonique.
     robots: { index: false, follow: true },
   };
 }
@@ -31,8 +32,11 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   const tCrumbs = await getTranslations('breadcrumbs');
   const raw = Array.isArray(searchParams.q) ? searchParams.q[0] : searchParams.q;
   const q = (raw ?? '').trim().slice(0, MAX_QUERY_LENGTH);
-  // Recherche lancée depuis une collection : la nouvelle requête reste dans ce type (facette visible et retirable).
-  const { type } = searchParamsToFilters(searchParams);
+  // Tous les filtres appliqués sont reportés sur une nouvelle requête (page 1), et affichés en puces retirables.
+  const { tri: _sort, ...filters } = searchParamsToFilters(searchParams);
+  // Intitulés des mots-clés, seulement si un mot-clé est filtré (facultatifs : le slug sert de repli).
+  const motsClesResult = filters.mot_cle ? await getMotsCles() : null;
+  const motsCles = motsClesResult?.ok ? motsClesResult.data.data : [];
 
   return (
     <>
@@ -47,8 +51,11 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
                 {t('title')}
               </h1>
             </div>
-            {/* `key` : remonté à chaque nouvelle requête, le champ reflète toujours `q`. */}
-            <SearchForm key={`${q}|${type ?? ''}`} size="hero" id="search-page-q" defaultQuery={q} type={type} />
+            <div className="min-w-0">
+              {/* `key` : remonté à chaque changement d'URL, le champ et les champs cachés reflètent toujours l'URL. */}
+              <SearchForm key={`${q}|${filtersToSearchParams(filters).toString()}`} size="hero" id="search-page-q" defaultQuery={q} filters={filters} />
+              <SearchScope q={q} filters={filters} motsCles={motsCles} />
+            </div>
           </div>
         </div>
       </section>

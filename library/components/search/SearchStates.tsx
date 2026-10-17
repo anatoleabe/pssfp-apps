@@ -81,15 +81,3 @@ export function SearchSkeleton(): JSX.Element {
     </ul>
   );
 }
-
-/** Squelette des facettes, à la place de la colonne pendant la requête. */
-export function FacetSkeleton(): JSX.Element {
-  return (
-    <div aria-hidden="true" className="flex flex-col gap-3">
-      <span className="h-3 w-28 rounded bg-pssfp-lavande/30 motion-safe:animate-pulse" />
-      {[0, 1, 2, 3].map((i) => (
-        <span key={i} className="h-5 w-full rounded bg-pssfp-lavande/20 motion-safe:animate-pulse" />
-      ))}
-    </div>
-  );
-}

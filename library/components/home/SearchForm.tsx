@@ -1,6 +1,7 @@
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { DocumentType } from '@/lib/api/types';
+import type { CatalogueFilters, DocumentType } from '@/lib/api/types';
+import { filtersToSearchParams } from '@/lib/routes';
 
 interface SearchFormProps {
   defaultQuery?: string;
@@ -11,6 +12,8 @@ interface SearchFormProps {
   type?: DocumentType;
   /** Texte indicatif ; celui du catalogue par défaut. */
   placeholder?: string;
+  /** Filtres reportés sur la nouvelle requête (champs cachés, sans tri ni page) ; prime sur `type`. */
+  filters?: CatalogueFilters;
 }
 
 const STYLES = {
@@ -34,9 +37,10 @@ const STYLES = {
  * Formulaire GET vers /recherche (aucun JS client) : champ `q`, deux caractères au moins.
  * Réutilisé par l'accueil, la recherche et les pages de collection.
  */
-export function SearchForm({ defaultQuery, size = 'compact', id = `search-q-${size}`, type, placeholder }: SearchFormProps): JSX.Element {
+export function SearchForm({ defaultQuery, size = 'compact', id = `search-q-${size}`, type, placeholder, filters }: SearchFormProps): JSX.Element {
   const t = useTranslations('search');
   const s = STYLES[size];
+  const hidden = [...filtersToSearchParams(filters ? { ...filters, tri: undefined } : { type })];
   return (
     <form
       role="search"
@@ -46,7 +50,9 @@ export function SearchForm({ defaultQuery, size = 'compact', id = `search-q-${si
       data-testid={`search-form-${size}`}
       className={`flex w-full items-stretch gap-1.5 border border-pssfp-lavande/50 bg-white transition-shadow focus-within:border-pssfp-prune/60 focus-within:shadow-pssfp-glow-prune ${s.shell}`}
     >
-      {type && <input type="hidden" name="type" value={type} />}
+      {hidden.map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
       <label htmlFor={id} className="sr-only">
         {t('label')}
       </label>

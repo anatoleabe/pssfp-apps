@@ -174,8 +174,9 @@
     "inviteTitle": "Saisissez au moins deux caractères.",
     "inviteBody": "Titre, auteur, mot-clé ou promotion : la recherche porte sur l'ensemble du catalogue, fautes de frappe comprises.",
     "inviteCollections": "Ou parcourez une collection :",
-    "resultsTitle": "Résultats de la recherche",
+    "resultsTitle": "Résultats",
     "resultsCount": "{count, plural, =0 {Aucun résultat pour « {q} »} one {# résultat pour « {q} »} other {# résultats pour « {q} »}}",
+    "resultsCountPage": "{count, plural, =0 {Aucun résultat pour « {q} »} one {# résultat pour « {q} »} other {# résultats pour « {q} »}}, page {page} sur {last}",
     "loading": "Recherche en cours…",
     "emptyTitle": "Aucun résultat pour « {q} »",
     "emptyBody": "Vérifiez l'orthographe, essayez un terme plus général ou un synonyme.",
@@ -185,13 +186,16 @@
     "errorTitle": "La recherche n'a pas abouti.",
     "errorBody": "Le catalogue ne répond pas pour l'instant. Réessayez dans quelques instants.",
     "throttledBody": "Trop de recherches en peu de temps. Patientez une minute, puis réessayez.",
+    "scope": {
+      "label": "Portée de la recherche",
+      "type": "Dans : {value}"
+    },
     "facets": {
       "title": "Affiner",
       "toggle": "Filtrer",
       "activeCount": "{count, plural, one {# filtre actif} other {# filtres actifs}}",
       "type": "Type de document",
       "acces": "Accès",
-      "label": "Affiner la recherche",
       "link": "{label}, {count, plural, one {# document} other {# documents}}",
       "linkActive": "{label}, {count, plural, one {# document} other {# documents}}, filtre appliqué : activer pour le retirer"
     }

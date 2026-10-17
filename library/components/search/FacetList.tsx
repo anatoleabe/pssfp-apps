@@ -10,6 +10,10 @@ interface FacetListProps {
   q: string;
   filters: CatalogueFilters;
   facets: Facets;
+  /** Préfixe des identifiants : la liste est rendue deux fois (tiroir mobile, colonne ≥ lg). */
+  idPrefix: string;
+  /** `h3` sous le titre h2 « Affiner » de la colonne ; `p` dans le tiroir mobile (aucun h2 au-dessus). */
+  titleAs: 'h3' | 'p';
 }
 
 interface FacetItem {
@@ -43,7 +47,13 @@ function facetItems(order: readonly string[], counts: Partial<Record<string, num
  * Facettes type et accès : des liens (et non des cases à cocher) qui ajoutent ou retirent le filtre.
  * Aucun changement de contexte « à la saisie » ; l'URL reste partageable et le bouton Retour la restaure.
  */
-export function FacetList({ q, filters, facets }: FacetListProps): JSX.Element | null {
+/** Vrai si au moins une facette a une valeur à afficher (comptée ou appliquée). */
+export function hasFacetValues(facets: Facets, filters: CatalogueFilters): boolean {
+  const counted = (c: Partial<Record<string, number>> | undefined): boolean => Object.values(c ?? {}).some((n) => (n ?? 0) > 0);
+  return counted(facets.type) || counted(facets.access_mode) || filters.type !== undefined || filters.acces !== undefined;
+}
+
+export function FacetList({ q, filters, facets, idPrefix, titleAs: Title }: FacetListProps): JSX.Element | null {
   const t = useTranslations('search.facets');
   const tTypes = useTranslations('types');
   const tAccess = useTranslations('access');
@@ -59,13 +69,17 @@ export function FacetList({ q, filters, facets }: FacetListProps): JSX.Element |
   return (
     <div className="flex flex-col gap-7">
       {groups.map((group) => (
-        <div key={group.key}>
-          <h3 className={LEGEND}>{group.title}</h3>
+        <div key={group.key} role="group" aria-labelledby={`${idPrefix}-facet-${group.key}`}>
+          <Title id={`${idPrefix}-facet-${group.key}`} className={LEGEND}>
+            {group.title}
+          </Title>
           <ul className="-mx-2 mt-3 flex flex-col gap-0.5">
             {group.items.map((item) => (
               <li key={item.value}>
                 <Link
                   href={facetHref(q, filters, group.key, item.value)}
+                  // Pas de remontée en haut de page : le focus reste sur la facette activée.
+                  scroll={false}
                   aria-current={item.active ? 'true' : undefined}
                   aria-label={t(item.active ? 'linkActive' : 'link', { label: item.label, count: item.count })}
                   className={`${ITEM} ${item.active ? 'font-semibold text-pssfp-prune-dark' : 'text-pssfp-graphite'}`}

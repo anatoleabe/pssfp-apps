@@ -119,6 +119,8 @@ test.describe('Recherche — toujours (avec ou sans API)', () => {
     await expect(page.getByTestId('search-invite')).toContainText('Saisissez au moins deux caractères');
     await expect(page.getByTestId('search-invite').getByRole('link', { name: 'TVA' })).toHaveAttribute('href', '/recherche?q=TVA');
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+    // Page jamais indexée : pas de canonique.
+    await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
     await page.waitForTimeout(300);
     expect(searches).toEqual([]);
   });
@@ -188,7 +190,7 @@ test.describe('Recherche — toujours (avec ou sans API)', () => {
     page.on('requestfailed', (r) => { if (isSearchRequest(r.url())) failed.push(r.url()); });
     await page.route(SEARCH_ROUTE, fulfillMock);
     await page.goto('/recherche?q=budget&page=2');
-    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget », page 2 sur 3');
 
     const facets = page.getByTestId('facets-desktop');
     const memoires = facets.getByRole('link', { name: /^Mémoires/ });
@@ -250,6 +252,163 @@ test.describe('Recherche — toujours (avec ou sans API)', () => {
     await page.getByTestId('facets-mobile').locator('summary').click();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
+  });
+});
+
+/** Où se trouve le focus : jamais sur body ; dans les facettes, la pagination ou sur le titre des résultats. */
+async function focusPlace(page: Page): Promise<{ body: boolean; facets: boolean; pagination: boolean; heading: boolean }> {
+  return page.evaluate(() => {
+    const a = document.activeElement;
+    return {
+      body: a === null || a === document.body,
+      facets: !!a?.closest('[data-testid="facets-desktop"]'),
+      pagination: !!a?.closest('nav[aria-label="Pagination"]'),
+      heading: a?.id === 'results-title',
+    };
+  });
+}
+
+test.describe('Recherche — navigation dans les résultats (réponses simulées)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+  });
+
+  test('facette au clavier : résultats précédents gardés pendant une réponse lente, focus conservé', async ({ page }) => {
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    await page.route(SEARCH_ROUTE, async (route) => {
+      if (new URL(route.request().url()).searchParams.get('type') === 'memoire') await held;
+      await fulfillMock(route);
+    });
+    await page.goto('/recherche?q=budget');
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
+
+    await page.getByTestId('facets-desktop').getByRole('link', { name: /^Mémoires/ }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/recherche\?type=memoire&q=budget$/);
+    // Réponse retenue : facettes et cartes restent affichées, la région est occupée, aucun squelette.
+    const region = page.getByTestId('search-results');
+    await expect(region).toHaveAttribute('aria-busy', 'true');
+    await expect(page.getByTestId('facets-desktop')).toBeVisible();
+    await expect(page.getByTestId('document-card-doc-simule-3')).toBeVisible();
+    await expect(page.getByTestId('search-skeleton')).toHaveCount(0);
+    expect((await focusPlace(page)).facets).toBe(true);
+
+    release();
+    await expect(page.getByTestId('results-count')).toHaveText('2 résultats pour « budget »');
+    await expect(region).toHaveAttribute('aria-busy', 'false');
+    const where = await focusPlace(page);
+    expect(where.body).toBe(false);
+    expect(where.facets || where.heading).toBe(true);
+  });
+
+  test('pagination au clavier : focus conservé, ou sur le titre si le lien disparaît ; page annoncée', async ({ page }) => {
+    await page.route(SEARCH_ROUTE, fulfillMock);
+    await page.goto('/recherche?q=budget');
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
+    const pagination = page.getByRole('navigation', { name: 'Pagination' });
+
+    await pagination.getByRole('link', { name: 'Page 2', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/recherche\?q=budget&page=2$/);
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget », page 2 sur 3');
+    let where = await focusPlace(page);
+    expect(where.body).toBe(false);
+    expect(where.pagination || where.heading).toBe(true);
+
+    // « Page suivante » n'existe plus sur la dernière page : le focus passe au titre « Résultats ».
+    await pagination.getByRole('link', { name: 'Page suivante' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/page=3$/);
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget », page 3 sur 3');
+    await expect(page.getByTestId('results-title')).toBeFocused();
+    where = await focusPlace(page);
+    expect(where.heading).toBe(true);
+  });
+
+  test('réponses dans le désordre : seule la dernière recherche est affichée', async ({ page }) => {
+    let releaseFirst: () => void = () => undefined;
+    const firstHeld = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    let firstDone: () => void = () => undefined;
+    const firstSettled = new Promise<void>((resolve) => { firstDone = resolve; });
+    await page.route(SEARCH_ROUTE, async (route) => {
+      const type = new URL(route.request().url()).searchParams.get('type');
+      if (type === 'memoire') {
+        await firstHeld;
+        // La requête a pu être annulée entre-temps : la réponse tardive n'a alors plus de destinataire.
+        await fulfillMock(route).catch(() => undefined);
+        firstDone();
+        return;
+      }
+      await fulfillMock(route);
+      if (type === 'these') releaseFirst();
+    });
+    await page.goto('/recherche?q=budget');
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
+
+    const facets = page.getByTestId('facets-desktop');
+    await facets.getByRole('link', { name: /^Mémoires/ }).click();
+    await expect(page).toHaveURL(/type=memoire/);
+    await expect(page.getByTestId('search-results')).toHaveAttribute('aria-busy', 'true');
+    // Seconde recherche lancée avant la réponse de la première (facettes encore affichées).
+    await facets.getByRole('link', { name: /^Thèses/ }).click();
+    await expect(page).toHaveURL(/type=these/);
+    await firstSettled;
+    await page.waitForTimeout(200);
+    await expect(page.getByTestId('results-count')).toHaveText('1 résultat pour « budget »');
+    await expect(page.getByTestId('document-card-doc-simule-3')).toBeVisible();
+    await expect(page.getByTestId('document-card-doc-simule-1')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/recherche\?type=these&q=budget$/);
+  });
+
+  test('portée visible : puces retirables ; une nouvelle requête garde les filtres et repart en page 1', async ({ page }) => {
+    await page.route(SEARCH_ROUTE, fulfillMock);
+    await page.goto('/recherche?q=budget&type=memoire&acces=libre&page=2');
+    const scope = page.getByRole('list', { name: 'Portée de la recherche' });
+    await expect(scope.getByRole('link', { name: 'Retirer le filtre Dans : Mémoires' })).toHaveAttribute('href', '/recherche?acces=libre&q=budget');
+    await expect(scope.getByRole('link', { name: 'Retirer le filtre Accès : Libre' })).toHaveAttribute('href', '/recherche?type=memoire&q=budget');
+    await expect(scope).toContainText('Dans : Mémoires');
+
+    const box = page.getByRole('searchbox', { name: 'Rechercher dans le catalogue' });
+    await box.fill('tva');
+    await box.press('Enter');
+    await expect(page).toHaveURL(/q=tva/);
+    const url = new URL(page.url());
+    expect(Object.fromEntries(url.searchParams)).toEqual({ type: 'memoire', acces: 'libre', q: 'tva' });
+    await expect(page.getByRole('list', { name: 'Portée de la recherche' }).getByRole('link')).toHaveCount(2);
+
+    await page.getByRole('link', { name: 'Retirer le filtre Dans : Mémoires' }).click();
+    await expect(page).toHaveURL(/\/recherche\?acces=libre&q=tva$/);
+    await expect(page.getByRole('list', { name: 'Portée de la recherche' }).getByRole('link')).toHaveCount(1);
+  });
+
+  test('tiroir mobile : groupes nommés sans saut de niveau de titre ; ouverture conservée', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    await page.route(SEARCH_ROUTE, async (route) => {
+      if (new URL(route.request().url()).searchParams.get('type') === 'memoire') await held;
+      await fulfillMock(route);
+    });
+    await page.goto('/recherche?q=budget');
+    const drawer = page.getByTestId('facets-mobile');
+    await drawer.locator('summary').click();
+    await expect(drawer.locator('h3')).toHaveCount(0);
+    await expect(drawer.getByRole('group', { name: 'Type de document' })).toBeVisible();
+    await drawer.getByRole('link', { name: /^Mémoires/ }).click();
+    await expect(page).toHaveURL(/type=memoire/);
+    await expect(drawer).toHaveAttribute('open', '');
+    release();
+    await expect(page.getByTestId('results-count')).toHaveText('2 résultats pour « budget »');
+    await expect(drawer).toHaveAttribute('open', '');
+  });
+
+  test('sans facette : pas de colonne de filtres', async ({ page }) => {
+    await page.route(SEARCH_ROUTE, fulfillMock);
+    await page.goto('/recherche?q=introuvable');
+    await expect(page.getByTestId('state-empty')).toBeVisible();
+    await expect(page.getByTestId('facets-desktop')).toHaveCount(0);
+    await expect(page.getByTestId('facets-mobile')).toHaveCount(0);
   });
 });
 
