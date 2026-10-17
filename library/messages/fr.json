@@ -36,8 +36,7 @@
     "linksLabel": "Liens du pied de page"
   },
   "breadcrumbs": {
-    "label": "Fil d'Ariane",
-    "home": "Accueil"
+    "label": "Fil d'Ariane"
   },
   "notFound": {
     "metaTitle": "Page introuvable",

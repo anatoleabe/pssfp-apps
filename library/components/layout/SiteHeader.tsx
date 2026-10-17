@@ -24,6 +24,8 @@ export function SiteHeader(): JSX.Element {
     setOpen(false);
   }, [pathname]);
 
+  const closeOnNavigate = useCallback((): void => setOpen(false), []);
+
   const closeAndRestoreFocus = useCallback((): void => {
     setOpen(false);
     window.requestAnimationFrame(() => burgerRef.current?.focus());
@@ -119,7 +121,7 @@ export function SiteHeader(): JSX.Element {
           </button>
         </div>
       </header>
-      {open && <MobileDrawer pathname={pathname} onClose={closeAndRestoreFocus} />}
+      {open && <MobileDrawer pathname={pathname} onClose={closeAndRestoreFocus} onNavigate={closeOnNavigate} />}
     </>
   );
 }

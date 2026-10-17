@@ -9,13 +9,16 @@ import { MAIN_SITE_URL, NAV_ITEMS, isNavActive } from './nav-config';
 
 interface MobileDrawerProps {
   pathname: string;
+  /** Échap, bouton Fermer, clic sur le fond : ferme et rend le focus au bouton du menu. */
   onClose: () => void;
+  /** Clic sur un lien : ferme sans déplacer le focus (la navigation s'en charge). */
+  onNavigate: () => void;
 }
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** Tiroir modal : focus piégé, Échap et clic sur le fond ferment, défilement de la page verrouillé. */
-export function MobileDrawer({ pathname, onClose }: MobileDrawerProps): JSX.Element {
+export function MobileDrawer({ pathname, onClose, onNavigate }: MobileDrawerProps): JSX.Element {
   const t = useTranslations('nav');
   const panelRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -110,7 +113,7 @@ export function MobileDrawer({ pathname, onClose }: MobileDrawerProps): JSX.Elem
                 <li key={item.key}>
                   <Link
                     href={item.href}
-                    onClick={onClose}
+                    onClick={onNavigate}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
                       'flex items-center border-l-2 px-4 py-3 font-heading text-2xl font-semibold transition-colors',
@@ -131,7 +134,7 @@ export function MobileDrawer({ pathname, onClose }: MobileDrawerProps): JSX.Elem
         <div className="border-t border-pssfp-lavande/40 px-5 py-5">
           <a
             href={MAIN_SITE_URL}
-            onClick={onClose}
+            onClick={onNavigate}
             className="flex items-center justify-between rounded-pssfp-button bg-pssfp-prune px-4 py-3 font-ui text-sm font-medium text-white transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2"
           >
             {t('mainSite')}

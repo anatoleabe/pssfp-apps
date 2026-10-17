@@ -8,6 +8,15 @@ const SECURITY_HEADERS = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
 ];
 
+/** MinIO local : autorisé hors production uniquement. */
+const LOCAL_MEDIA_PATTERNS =
+  process.env.NODE_ENV === 'production'
+    ? []
+    : [
+        { protocol: 'http', hostname: '127.0.0.1', port: '9000' },
+        { protocol: 'http', hostname: 'localhost', port: '9000' },
+      ];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -18,8 +27,7 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: 'media.pssfp.org' },
       { protocol: 'https', hostname: '*.pssfp.org' },
-      { protocol: 'http', hostname: '127.0.0.1', port: '9000' },
-      { protocol: 'http', hostname: 'localhost', port: '9000' },
+      ...LOCAL_MEDIA_PATTERNS,
     ],
   },
   async headers() {

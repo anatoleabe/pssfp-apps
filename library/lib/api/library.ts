@@ -4,8 +4,16 @@ import { filtersToSearchParams } from '../routes';
 
 const ISR = 300;
 
-export function getStats(): Promise<ApiResult<{ data: LibraryStats }>> {
-  return apiGet('/library/stats', { revalidate: ISR });
+/** PHP sérialise un tableau associatif vide en `[]` : on le ramène à `{}`. */
+export function asRecord<V>(value: unknown): Partial<Record<string, V>> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as Partial<Record<string, V>>) : {};
+}
+
+export async function getStats(): Promise<ApiResult<{ data: LibraryStats }>> {
+  const r = await apiGet<{ data: LibraryStats }>('/library/stats', { revalidate: ISR });
+  if (!r.ok) return r;
+  const stats = r.data.data;
+  return { ok: true, data: { data: { ...stats, by_type: asRecord<number>(stats.by_type) } } };
 }
 
 export function listDocuments(filters: CatalogueFilters, page = 1, perPage?: number): Promise<ApiResult<Paginated<DocumentSummary>>> {
@@ -29,11 +37,21 @@ export function resolveLegacyPath(path: string): Promise<ApiResult<{ data: { to_
 }
 
 /** Navigateur uniquement : la recherche part du client (débit par IP, journaux justes). */
-export function searchDocuments(q: string, filters: CatalogueFilters, page: number, signal?: AbortSignal): Promise<ApiResult<SearchResponse>> {
+export async function searchDocuments(q: string, filters: CatalogueFilters, page: number, signal?: AbortSignal): Promise<ApiResult<SearchResponse>> {
   const qs = filtersToSearchParams({ ...filters, tri: undefined });
   qs.set('q', q);
   if (page > 1) qs.set('page', String(page));
-  return apiGet(`/library/search?${qs.toString()}`, { signal, timeoutMs: 8000 });
+  const r = await apiGet<SearchResponse>(`/library/search?${qs.toString()}`, { signal, timeoutMs: 8000 });
+  if (!r.ok) return r;
+  const { meta } = r.data;
+  return {
+    ok: true,
+    data: {
+      ...r.data,
+      highlights: asRecord<string>(r.data.highlights) as Record<string, string>,
+      meta: { ...meta, facets: { type: asRecord<number>(meta.facets?.type), access_mode: asRecord<number>(meta.facets?.access_mode) } },
+    },
+  };
 }
 
 /** Navigateur uniquement : compte une consultation (sans bloquer la page). */

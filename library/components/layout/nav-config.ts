@@ -10,7 +10,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { key: 'about', href: '/a-propos' },
 ];
 
-export const MAIN_SITE_URL = process.env.NEXT_PUBLIC_MAIN_SITE_URL ?? 'https://pssfp.org';
+/** URL du site principal, sans barre oblique finale (les chemins s'y ajoutent). */
+export const MAIN_SITE_URL = (process.env.NEXT_PUBLIC_MAIN_SITE_URL || 'https://pssfp.org').replace(/\/+$/, '');
 export const FOAD_URL = process.env.NEXT_PUBLIC_FOAD_URL;
 
 /** Un lien d'ancre (`/#…`) n'est jamais « page courante ». */

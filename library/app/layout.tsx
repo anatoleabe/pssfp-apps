@@ -4,18 +4,18 @@ import { getLocale, getMessages, getTranslations } from 'next-intl/server';
 import { Cormorant_Garamond, Source_Sans_3, DM_Sans } from 'next/font/google';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { SiteFooter } from '@/components/layout/SiteFooter';
+import { siteUrl } from '@/lib/site';
 import './globals.css';
 
 const cormorant = Cormorant_Garamond({ subsets: ['latin'], display: 'swap', variable: '--font-heading', weight: ['500', '600', '700'] });
 const sourceSans = Source_Sans_3({ subsets: ['latin'], display: 'swap', variable: '--font-body', weight: ['400', '500', '600', '700'] });
 const dmSans = DM_Sans({ subsets: ['latin'], display: 'swap', variable: '--font-ui', weight: ['400', '500', '600'] });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bibliotheque.pssfp.org';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('meta');
   return {
-    metadataBase: new URL(SITE_URL),
+    metadataBase: siteUrl(),
     title: { default: t('titleDefault'), template: t('titleTemplate') },
     description: t('description'),
     applicationName: t('siteName'),
