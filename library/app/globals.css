@@ -16,11 +16,32 @@
   }
   body {
     color: var(--pssfp-graphite);
-    background: #FFFFFF;
+    background: var(--pssfp-ivoire);
   }
 
   *:focus-visible {
     outline: 2px solid var(--pssfp-or);
     outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Carrousels horizontaux : défilement conservé, barre masquée. */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }

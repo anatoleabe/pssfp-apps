@@ -1,20 +1,131 @@
 {
-  "common": {
-    "appName": "Bibliothèque PSSFP"
-  },
-  "home": {
-    "title": "Bibliothèque virtuelle PSSFP",
-    "intro": "Recherchez parmi les thèses, articles, législation, cours et conférences.",
-    "searchPlaceholder": "Rechercher dans le catalogue…",
-    "apiHealthLabel": "État de l'API",
-    "apiHealthOk": "Connectée",
-    "apiHealthError": "Indisponible"
+  "meta": {
+    "siteName": "Bibliothèque du PSSFP",
+    "titleDefault": "Bibliothèque virtuelle du PSSFP",
+    "titleTemplate": "%s — Bibliothèque du PSSFP",
+    "description": "Mémoires, thèses, textes de loi, ouvrages et cours en finances publiques : le fonds documentaire du PSSFP, consultable en ligne.",
+    "logoTitle": "PSSFP — Programme Supérieur de Spécialisation en Finances Publiques"
   },
   "nav": {
-    "home": "Accueil",
-    "theses": "Thèses",
-    "articles": "Articles",
-    "courses": "Cours",
-    "myAccount": "Mon espace"
+    "skip": "Aller au contenu principal",
+    "brandEyebrow": "PSSFP",
+    "brandName": "Bibliothèque",
+    "brandHomeSuffix": "— accueil",
+    "mainLabel": "Navigation principale",
+    "mobileLabel": "Navigation mobile",
+    "collections": "Collections",
+    "search": "Recherche",
+    "about": "À propos",
+    "mainSite": "Site du PSSFP",
+    "menuOpen": "Ouvrir le menu",
+    "menuClose": "Fermer le menu",
+    "menuTitle": "Menu"
+  },
+  "footer": {
+    "aboutTitle": "Bibliothèque du PSSFP",
+    "aboutBody": "Le fonds documentaire du Programme Supérieur de Spécialisation en Finances Publiques : travaux des promotions, textes de référence et ressources d'enseignement, réunis en un seul catalogue.",
+    "collectionsTitle": "Collections",
+    "browseTitle": "Parcourir",
+    "contactTitle": "Contact",
+    "contactBody": "Une question sur un document ou un accès ? Écrivez au service de la bibliothèque.",
+    "contactAddress": "Campus de Messa, Yaoundé, Cameroun",
+    "contactEmail": "contact@pssfp.org",
+    "contactPage": "Page contact du PSSFP",
+    "foad": "Plateforme FOAD",
+    "copyright": "© {year} PSSFP — Programme Supérieur de Spécialisation en Finances Publiques",
+    "linksLabel": "Liens du pied de page"
+  },
+  "breadcrumbs": {
+    "label": "Fil d'Ariane",
+    "home": "Accueil"
+  },
+  "notFound": {
+    "metaTitle": "Page introuvable",
+    "eyebrow": "Erreur 404",
+    "title": "Cette page n'est pas dans nos rayons.",
+    "body": "Le lien est peut-être ancien ou le document a été déplacé. Reprenez depuis l'accueil ou lancez une recherche dans le catalogue.",
+    "home": "Retour à l'accueil",
+    "search": "Rechercher un document"
+  },
+  "home": {
+    "title": "Bibliothèque virtuelle du PSSFP",
+    "intro": "Mémoires, thèses, textes de loi, ouvrages et cours en finances publiques, réunis dans un catalogue ouvert à tous."
+  },
+  "catalogue": {
+    "resultsCount": "{count, plural, =0 {Aucun document} one {# document} other {# documents}}",
+    "filtersTitle": "Affiner",
+    "resetFilters": "Retirer les filtres"
+  },
+  "document": {
+    "authors": "Auteurs",
+    "year": "Année",
+    "promotion": "Promotion {n}",
+    "abstract": "Résumé",
+    "keywords": "Mots-clés",
+    "related": "Documents proches",
+    "views": "{count, plural, =0 {Aucune consultation} one {# consultation} other {# consultations}}",
+    "coverAlt": "Couverture : {title}"
+  },
+  "search": {
+    "label": "Rechercher dans le catalogue",
+    "placeholder": "Titre, auteur, mot-clé, promotion…",
+    "submit": "Rechercher",
+    "minLength": "Saisissez au moins deux caractères."
+  },
+  "about": {
+    "title": "À propos de la bibliothèque"
+  },
+  "access": {
+    "libre": "Libre",
+    "reserve": "Réservé",
+    "payant": "Payant",
+    "payantPrice": "Payant · {price} FCFA"
+  },
+  "types": {
+    "memoire": { "one": "Mémoire", "other": "Mémoires" },
+    "these": { "one": "Thèse", "other": "Thèses" },
+    "ouvrage_numerique": { "one": "Ouvrage numérique", "other": "Ouvrages numériques" },
+    "texte_loi": { "one": "Texte de loi", "other": "Législation" },
+    "article_scientifique": { "one": "Article scientifique", "other": "Articles scientifiques" },
+    "cours": { "one": "Cours", "other": "Cours" },
+    "acte_conference": { "one": "Acte de conférence", "other": "Actes de conférence" },
+    "rapport_stage": { "one": "Rapport de stage", "other": "Rapports de stage" },
+    "bulletin": { "one": "Bulletin", "other": "Bulletins" },
+    "ressource_pedagogique": { "one": "Ressource pédagogique", "other": "Ressources pédagogiques" }
+  },
+  "sort": {
+    "label": "Trier par",
+    "recent": "Plus récents",
+    "ancien": "Plus anciens",
+    "titre": "Titre (A → Z)",
+    "populaire": "Plus consultés"
+  },
+  "filters": {
+    "type": "Type de document",
+    "acces": "Accès",
+    "specialite": "Spécialité",
+    "promotion": "Promotion",
+    "annee": "Année",
+    "anneeMin": "De",
+    "anneeMax": "À",
+    "langue": "Langue",
+    "motCle": "Mot-clé",
+    "all": "Tous",
+    "apply": "Appliquer"
+  },
+  "pagination": {
+    "label": "Pagination",
+    "previous": "Page précédente",
+    "next": "Page suivante",
+    "page": "Page {page}",
+    "current": "Page {page} sur {total}"
+  },
+  "states": {
+    "loading": "Chargement…",
+    "errorTitle": "Le catalogue est momentanément indisponible.",
+    "errorBody": "Réessayez dans quelques instants.",
+    "retry": "Réessayer",
+    "emptyTitle": "Aucun document ne correspond.",
+    "emptyBody": "Élargissez vos critères ou parcourez une autre collection."
   }
 }

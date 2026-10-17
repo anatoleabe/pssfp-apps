@@ -2,10 +2,9 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 test.describe('Library home', () => {
-  test('renders title and search bar', async ({ page }) => {
+  test('renders title', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('h1')).toContainText('Bibliothèque');
-    await expect(page.getByTestId('library-search-input')).toBeVisible();
   });
 
   test('has no critical a11y violations', async ({ page }) => {

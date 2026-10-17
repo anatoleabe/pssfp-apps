@@ -1,35 +1,24 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/v1';
+import type { ApiResult } from './types';
 
-export interface ApiHealth {
-  status: 'ok' | 'degraded' | 'down';
-  timestamp: string;
-}
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/v1';
 
-export type ApiResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: { message: string; status: number } };
+interface GetOptions { revalidate?: number; signal?: AbortSignal; timeoutMs?: number }
 
-export async function getApiHealth(): Promise<ApiResult<ApiHealth>> {
+/** GET JSON sur l'API ; ne lève jamais : renvoie un ApiResult (status 0 = réseau). */
+export async function apiGet<T>(path: string, options: GetOptions = {}): Promise<ApiResult<T>> {
+  const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+  const timeout = AbortSignal.timeout(options.timeoutMs ?? 5000);
+  const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
   try {
-    const response = await fetch(`${API_BASE_URL}/health`, {
+    const res = await fetch(url, {
       headers: { Accept: 'application/json', 'Accept-Language': 'fr' },
-      next: { revalidate: 30 },
+      next: options.revalidate !== undefined ? { revalidate: options.revalidate } : undefined,
+      signal,
     });
-    if (!response.ok) {
-      return {
-        ok: false,
-        error: { message: `API ${response.status}`, status: response.status },
-      };
-    }
-    const data = (await response.json()) as ApiHealth;
-    return { ok: true, data };
-  } catch (error) {
-    return {
-      ok: false,
-      error: {
-        message: error instanceof Error ? error.message : 'Network error',
-        status: 0,
-      },
-    };
+    if (!res.ok) return { ok: false, error: { message: `API ${res.status}`, status: res.status } };
+    return { ok: true, data: (await res.json()) as T };
+  } catch (e) {
+    if (options.signal?.aborted) throw e;
+    return { ok: false, error: { message: e instanceof Error ? e.message : 'network', status: 0 } };
   }
 }
