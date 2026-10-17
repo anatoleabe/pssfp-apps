@@ -61,11 +61,12 @@ export function FilterPanel({ type, filters, motsCles, idPrefix }: FilterPanelPr
                 key={inputId}
                 htmlFor={inputId}
                 data-testid="access-pill"
-                className="relative inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-pssfp-lavande/60 bg-white px-3.5 font-ui text-sm text-pssfp-graphite transition-colors hover:border-pssfp-prune/60 has-[:checked]:border-pssfp-prune has-[:checked]:bg-pssfp-prune has-[:checked]:font-semibold has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-pssfp-prune has-[:focus-visible]:ring-offset-2 forced-colors:has-[:checked]:border-[3px] forced-colors:has-[:focus-visible]:outline forced-colors:has-[:focus-visible]:outline-2 forced-colors:has-[:focus-visible]:outline-offset-2"
+                className="relative inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-pssfp-prune/60 bg-white px-3.5 font-ui text-sm text-pssfp-graphite transition-colors hover:border-pssfp-prune has-[:checked]:border-pssfp-prune has-[:checked]:bg-pssfp-prune has-[:checked]:font-semibold has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-pssfp-prune has-[:focus-visible]:ring-offset-2 forced-colors:has-[:checked]:border-[3px] forced-colors:has-[:focus-visible]:outline forced-colors:has-[:focus-visible]:outline-2 forced-colors:has-[:focus-visible]:outline-offset-2"
               >
                 {/*
                  * Bouton radio natif invisible posé sur toute la pastille : clavier, clic et lecteurs d'écran natifs.
                  * Sélection signalée autrement que par la couleur : coche, graisse, et bordure épaissie en couleurs forcées.
+                 * Contour au repos prune 60 % (≥ 3:1 sur blanc et ivoire, WCAG 1.4.11), comme les autres champs.
                  */}
                 <input
                   id={inputId}

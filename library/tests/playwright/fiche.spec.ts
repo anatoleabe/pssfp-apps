@@ -8,6 +8,21 @@ import { serializeJsonLd } from '../../lib/json-ld';
 import { PRICE_FORMAT } from '../../lib/format';
 import { collectionHref, documentHref, downloadHref } from '../../lib/routes';
 
+/** Contraste WCAG d'une bordure CSS `rgb()`/`rgba()`, composée sur blanc, contre le fond ivoire de la page (cas le plus défavorable). */
+function borderContrast(css: string): number {
+  const [r = 0, g = 0, b = 0, a = 1] = (css.match(/[\d.]+/g) ?? []).map(Number);
+  const lum = (rgb: number[]): number => {
+    const [lr = 0, lg = 0, lb = 0] = rgb.map((c) => {
+      const v = c / 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+  };
+  const border = lum([r, g, b].map((c) => c * a + 255 * (1 - a)));
+  const ivoire = lum([250, 247, 242]);
+  return (Math.max(border, ivoire) + 0.05) / (Math.min(border, ivoire) + 0.05);
+}
+
 interface Summary { uuid: string; slug: string; type: string; title: string; access_mode: 'libre' | 'reserve' | 'payant'; price_xaf: number | null }
 interface Detail extends Summary {
   abstract: string | null;
@@ -254,6 +269,10 @@ test.describe('Fiche — données de l\'API', () => {
       if (doc.mots_cles.length === 0) await expect(keywords).toHaveCount(0);
       for (const mc of doc.mots_cles) {
         await expect(keywords.getByRole('link', { name: mc.label, exact: true })).toHaveAttribute('href', collectionHref(doc.type as never, { mot_cle: mc.slug }));
+      }
+      // Puces de mots-clés : contour au repos ≥ 3:1 contre l'ivoire de la page (WCAG 1.4.11).
+      for (const border of await keywords.getByRole('link').evaluateAll((els) => els.map((el) => getComputedStyle(el).borderTopColor))) {
+        expect(borderContrast(border), border).toBeGreaterThanOrEqual(3);
       }
       await expect(page.getByTestId('citation-box')).toBeVisible();
       const relatedSection = page.getByTestId('document-related');

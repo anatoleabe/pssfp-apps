@@ -221,7 +221,7 @@ export default async function DocumentPage({ params }: DocumentPageProps): Promi
                       <li key={mc.slug}>
                         <Link
                           href={collectionHref(doc.type, { mot_cle: mc.slug })}
-                          className="inline-flex min-h-9 items-center rounded-full border border-pssfp-lavande/60 bg-white px-3.5 py-1.5 font-ui text-sm text-pssfp-prune transition-colors hover:border-pssfp-prune hover:bg-pssfp-prune hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 motion-reduce:transition-none"
+                          className="inline-flex min-h-9 items-center rounded-full border border-pssfp-prune/60 bg-white px-3.5 py-1.5 font-ui text-sm text-pssfp-prune transition-colors hover:border-pssfp-prune hover:bg-pssfp-prune hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 motion-reduce:transition-none"
                         >
                           {mc.label}
                         </Link>

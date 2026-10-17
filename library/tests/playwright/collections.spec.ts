@@ -29,6 +29,21 @@ function contrastOnWhite(css: string): number {
   return 1.05 / (l + 0.05);
 }
 
+/** Contraste WCAG d'une bordure CSS `rgb()`/`rgba()`, composée sur blanc, contre le fond ivoire de la page (cas le plus défavorable). */
+function borderContrast(css: string): number {
+  const [r = 0, g = 0, b = 0, a = 1] = (css.match(/[\d.]+/g) ?? []).map(Number);
+  const lum = (rgb: number[]): number => {
+    const [lr = 0, lg = 0, lb = 0] = rgb.map((c) => {
+      const v = c / 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+  };
+  const border = lum([r, g, b].map((c) => c * a + 255 * (1 - a)));
+  const ivoire = lum([250, 247, 242]);
+  return (Math.max(border, ivoire) + 0.05) / (Math.min(border, ivoire) + 0.05);
+}
+
 /** Le focus est-il sur le titre (masqué) des résultats ? Jamais sur body. */
 async function focusOnResultsTitle(page: Page): Promise<{ body: boolean; title: boolean }> {
   return page.evaluate(() => ({ body: document.activeElement === null || document.activeElement === document.body, title: document.activeElement?.id === 'results-title' }));
@@ -288,6 +303,23 @@ test.describe('Collections — données de l\'API', () => {
     const sort = page.getByRole('combobox', { name: 'Trier par' });
     await sort.focus();
     expect(await sort.evaluate((el) => getComputedStyle(el).boxShadow)).toContain('rgb(74, 46, 103)');
+  });
+
+  test('pastilles d\'accès non cochées et puces de filtre : contour au repos ≥ 3:1, coche conservée', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`${URL_MEMOIRES}?acces=libre&langue=fr`);
+    const pills = page.getByTestId('filter-form-desktop').getByTestId('access-pill');
+    await expect(pills).toHaveCount(4);
+    for (const name of ['Tous', 'Réservé', 'Payant']) {
+      const border = await pills.filter({ hasText: name }).evaluate((el) => getComputedStyle(el).borderTopColor);
+      expect(borderContrast(border), `${name} : ${border}`).toBeGreaterThanOrEqual(3);
+    }
+    await expect(pills.filter({ hasText: 'Libre' }).getByTestId('access-pill-check')).toBeVisible();
+    const chips = page.getByTestId('active-filters').getByRole('link', { name: /^Retirer le filtre/ });
+    await expect(chips).toHaveCount(2);
+    for (const border of await chips.evaluateAll((els) => els.map((el) => getComputedStyle(el).borderTopColor))) {
+      expect(borderContrast(border), border).toBeGreaterThanOrEqual(3);
+    }
   });
 
   test('puce retirée au clavier : focus sur le titre des résultats, jamais perdu sur body', async ({ page }) => {

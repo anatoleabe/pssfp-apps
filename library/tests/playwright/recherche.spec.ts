@@ -70,6 +70,21 @@ async function fulfillMock(route: Route): Promise<void> {
   await route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(mockBody(new URL(route.request().url()))) });
 }
 
+/** Contraste WCAG d'une bordure CSS `rgb()`/`rgba()`, composée sur blanc, contre le fond ivoire de la page (cas le plus défavorable). */
+function borderContrast(css: string): number {
+  const [r = 0, g = 0, b = 0, a = 1] = (css.match(/[\d.]+/g) ?? []).map(Number);
+  const lum = (rgb: number[]): number => {
+    const [lr = 0, lg = 0, lb = 0] = rgb.map((c) => {
+      const v = c / 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+  };
+  const border = lum([r, g, b].map((c) => c * a + 255 * (1 - a)));
+  const ivoire = lum([250, 247, 242]);
+  return (Math.max(border, ivoire) + 0.05) / (Math.min(border, ivoire) + 0.05);
+}
+
 /** Contraste WCAG d'une couleur CSS `rgb()`/`rgba()` posée sur du blanc. */
 async function contrastOnWhite(css: string): Promise<number> {
   const [r = 0, g = 0, b = 0, a = 1] = (css.match(/[\d.]+/g) ?? []).map(Number);
@@ -506,6 +521,16 @@ test.describe('Recherche — navigation dans les résultats (réponses simulées
     await expect(link).toBeVisible();
     const box = link.locator('span[aria-hidden="true"]').first();
     expect(await box.evaluate((el) => getComputedStyle(el).borderTopColor).then(contrastOnWhite)).toBeGreaterThanOrEqual(3);
+  });
+
+  test('puces de portée : contour au repos ≥ 3:1', async ({ page }) => {
+    await page.route(SEARCH_ROUTE, fulfillMock);
+    await page.goto('/recherche?q=budget&type=memoire&acces=libre');
+    const chips = page.getByTestId('search-scope').getByRole('link');
+    await expect(chips).toHaveCount(2);
+    for (const border of await chips.evaluateAll((els) => els.map((el) => getComputedStyle(el).borderTopColor))) {
+      expect(borderContrast(border), border).toBeGreaterThanOrEqual(3);
+    }
   });
 
   test('sans facette : pas de colonne de filtres', async ({ page }) => {

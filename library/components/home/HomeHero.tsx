@@ -69,7 +69,7 @@ export async function HomeHero({ stats, latest }: HomeHeroProps): Promise<JSX.El
                   <li key={type}>
                     <Link
                       href={collectionHref(type)}
-                      className={`inline-flex h-10 items-center rounded-full border border-pssfp-lavande/70 bg-white/70 px-4 font-ui text-sm text-pssfp-graphite transition-colors duration-200 hover:border-pssfp-prune hover:bg-pssfp-prune hover:text-white active:bg-pssfp-prune-dark ${FOCUS}`}
+                      className={`inline-flex h-10 items-center rounded-full border border-pssfp-prune/60 bg-white/70 px-4 font-ui text-sm text-pssfp-graphite transition-colors duration-200 hover:border-pssfp-prune hover:bg-pssfp-prune hover:text-white active:bg-pssfp-prune-dark ${FOCUS}`}
                     >
                       {tTypes(`${type}.other`)}
                     </Link>

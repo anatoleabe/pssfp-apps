@@ -23,6 +23,21 @@ async function fetchStats(request: APIRequestContext): Promise<Stats | null> {
  */
 const BYPASS_DATA_CACHE = { 'cache-control': 'no-cache' };
 
+/** Contraste WCAG d'une bordure CSS `rgb()`/`rgba()`, composée sur blanc, contre le fond ivoire de la page (cas le plus défavorable). */
+function borderContrast(css: string): number {
+  const [r = 0, g = 0, b = 0, a = 1] = (css.match(/[\d.]+/g) ?? []).map(Number);
+  const lum = (rgb: number[]): number => {
+    const [lr = 0, lg = 0, lb = 0] = rgb.map((c) => {
+      const v = c / 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+  };
+  const border = lum([r, g, b].map((c) => c * a + 255 * (1 - a)));
+  const ivoire = lum([250, 247, 242]);
+  return (Math.max(border, ivoire) + 0.05) / (Math.min(border, ivoire) + 0.05);
+}
+
 test.describe('Accueil — toujours (avec ou sans API)', () => {
   test.beforeEach(async ({ page }) => {
     await page.setExtraHTTPHeaders(BYPASS_DATA_CACHE);
@@ -184,6 +199,15 @@ test.describe('Accueil — données de l\'API', () => {
     expect(await list.locator('li').count()).toBeGreaterThanOrEqual(1);
     for (const name of [/suivants/i, /précédents/i]) {
       await expect(page.getByRole('button', { name })).toHaveAttribute('aria-controls', 'most-read-list');
+    }
+  });
+
+  test('puces « Parcourir par type » : contour au repos ≥ 3:1', async ({ page }) => {
+    await page.goto('/');
+    const chips = page.getByRole('navigation', { name: 'Parcourir par type' }).getByRole('link');
+    expect(await chips.count()).toBeGreaterThan(0);
+    for (const border of await chips.evaluateAll((els) => els.map((el) => getComputedStyle(el).borderTopColor))) {
+      expect(borderContrast(border), border).toBeGreaterThanOrEqual(3);
     }
   });
 
