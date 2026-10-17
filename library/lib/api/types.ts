@@ -8,6 +8,9 @@ export type AccessReason = 'public' | 'reserved' | 'paid' | 'unpublished' | 'ext
 export const DOCUMENT_TYPES: readonly DocumentType[] = ['memoire', 'these', 'ouvrage_numerique', 'texte_loi', 'article_scientifique', 'cours', 'acte_conference', 'rapport_stage', 'bulletin', 'ressource_pedagogique'];
 export const SORT_KEYS: readonly SortKey[] = ['recent', 'ancien', 'titre', 'populaire'];
 export const ACCESS_MODES: readonly AccessMode[] = ['libre', 'reserve', 'payant'];
+/** Langues acceptées par l'API (Document::LANGUAGES) ; toute autre valeur y provoque une 422. */
+export const LANGUAGES = ['fr', 'en', 'ar', 'autre'] as const;
+export type Language = (typeof LANGUAGES)[number];
 
 export interface MotCleRef { slug: string; label: string }
 

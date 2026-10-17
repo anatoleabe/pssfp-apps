@@ -1,11 +1,16 @@
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { DocumentType } from '@/lib/api/types';
 
 interface SearchFormProps {
   defaultQuery?: string;
   size?: 'hero' | 'compact';
   /** Identifiant du champ ; à changer si deux formulaires cohabitent sur une page. */
   id?: string;
+  /** Limite la recherche à un type (champ caché `type`, lu par /recherche). */
+  type?: DocumentType;
+  /** Texte indicatif ; celui du catalogue par défaut. */
+  placeholder?: string;
 }
 
 const STYLES = {
@@ -29,7 +34,7 @@ const STYLES = {
  * Formulaire GET vers /recherche (aucun JS client) : champ `q`, deux caractères au moins.
  * Réutilisé par l'accueil, la recherche et les pages de collection.
  */
-export function SearchForm({ defaultQuery, size = 'compact', id = `search-q-${size}` }: SearchFormProps): JSX.Element {
+export function SearchForm({ defaultQuery, size = 'compact', id = `search-q-${size}`, type, placeholder }: SearchFormProps): JSX.Element {
   const t = useTranslations('search');
   const s = STYLES[size];
   return (
@@ -41,6 +46,7 @@ export function SearchForm({ defaultQuery, size = 'compact', id = `search-q-${si
       data-testid={`search-form-${size}`}
       className={`flex w-full items-stretch gap-1.5 border border-pssfp-lavande/50 bg-white transition-shadow focus-within:border-pssfp-prune/60 focus-within:shadow-pssfp-glow-prune ${s.shell}`}
     >
+      {type && <input type="hidden" name="type" value={type} />}
       <label htmlFor={id} className="sr-only">
         {t('label')}
       </label>
@@ -58,7 +64,7 @@ export function SearchForm({ defaultQuery, size = 'compact', id = `search-q-${si
           minLength={2}
           maxLength={200}
           defaultValue={defaultQuery}
-          placeholder={t('placeholder')}
+          placeholder={placeholder ?? t('placeholder')}
           enterKeyHint="search"
           autoComplete="off"
           className={`w-full min-w-0 rounded-lg bg-transparent pr-2 text-pssfp-graphite placeholder:text-pssfp-graphite-light focus:outline-none ${s.input}`}

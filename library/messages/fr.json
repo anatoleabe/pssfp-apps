@@ -36,7 +36,8 @@
     "linksLabel": "Liens du pied de page"
   },
   "breadcrumbs": {
-    "label": "Fil d'Ariane"
+    "label": "Fil d'Ariane",
+    "home": "Accueil"
   },
   "notFound": {
     "metaTitle": "Page introuvable",
@@ -98,6 +99,29 @@
     "filtersTitle": "Affiner",
     "resetFilters": "Retirer les filtres"
   },
+  "collection": {
+    "eyebrow": "Collection",
+    "totalUnit": "{count, plural, one {document} other {documents}}",
+    "metaDescription": "{type} du fonds documentaire du PSSFP : catalogue à filtrer par accès, année, langue et mot-clé.",
+    "searchPlaceholder": "Rechercher dans cette collection…",
+    "resultsTitle": "Documents de la collection",
+    "filterToggle": "Filtrer",
+    "filterCount": "{count, plural, one {# filtre actif} other {# filtres actifs}}",
+    "emptyTitle": "Cette collection ne contient pas encore de document.",
+    "emptyBody": "Parcourez une autre collection ou lancez une recherche dans tout le catalogue.",
+    "backHome": "Retour à l'accueil"
+  },
+  "activeFilters": {
+    "label": "Filtres actifs",
+    "remove": "Retirer le filtre {label}",
+    "acces": "Accès : {value}",
+    "annee_min": "Depuis {value}",
+    "annee_max": "Jusqu'à {value}",
+    "langue": "Langue : {value}",
+    "promotion": "Promotion {value}",
+    "mot_cle": "Mot-clé : {value}",
+    "specialite": "Spécialité : {value}"
+  },
   "document": {
     "authors": "Auteurs",
     "year": "Année",
@@ -158,7 +182,8 @@
     "recent": "Plus récents",
     "ancien": "Plus anciens",
     "titre": "Titre (A → Z)",
-    "populaire": "Plus consultés"
+    "populaire": "Plus consultés",
+    "submit": "Trier"
   },
   "filters": {
     "type": "Type de document",
@@ -171,7 +196,11 @@
     "langue": "Langue",
     "motCle": "Mot-clé",
     "all": "Tous",
-    "apply": "Appliquer"
+    "apply": "Appliquer",
+    "reset": "Réinitialiser",
+    "allLanguages": "Toutes",
+    "languages": { "fr": "Français", "en": "Anglais", "ar": "Arabe", "autre": "Autre" },
+    "motCleChild": "— {label}"
   },
   "pagination": {
     "label": "Pagination",

@@ -1,4 +1,4 @@
-import { ACCESS_MODES, DOCUMENT_TYPES, SORT_KEYS, type CatalogueFilters, type DocumentType } from './api/types';
+import { ACCESS_MODES, DOCUMENT_TYPES, LANGUAGES, SORT_KEYS, type CatalogueFilters, type DocumentType } from './api/types';
 import { API_BASE_URL } from './api/client';
 
 /** Bornes acceptées pour les filtres numériques (valeurs hors bornes ignorées). */
@@ -30,7 +30,8 @@ export function searchParamsToFilters(sp: URLSearchParams | Record<string, strin
     const [min, max] = INT_BOUNDS[k];
     if (Number.isInteger(n) && n >= min && n <= max) f[k] = n;
   }
-  for (const k of ['specialite', 'langue', 'mot_cle'] as const) { const v = get(k); if (v && /^[a-z0-9-]{1,120}$/.test(v)) f[k] = v; }
+  const langue = get('langue'); if (langue && (LANGUAGES as readonly string[]).includes(langue)) f.langue = langue;
+  for (const k of ['specialite', 'mot_cle'] as const) { const v = get(k); if (v && /^[a-z0-9-]{1,120}$/.test(v)) f[k] = v; }
   return f;
 }
 

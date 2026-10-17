@@ -29,6 +29,11 @@ test.describe('searchParamsToFilters', () => {
     }
   });
 
+  test('ignore les langues inconnues de l\'API (sinon 422)', () => {
+    expect(searchParamsToFilters({ langue: 'xx' })).toEqual({});
+    for (const v of ['fr', 'en', 'ar', 'autre']) expect(searchParamsToFilters({ langue: v })).toEqual({ langue: v });
+  });
+
   test('prend la première valeur d\'un tableau', () => {
     expect(searchParamsToFilters({ type: ['these', 'memoire'], promotion: ['7', '8'], mot_cle: ['tva', 'budget'] })).toEqual({ type: 'these', promotion: 7, mot_cle: 'tva' });
     expect(searchParamsToFilters(new URLSearchParams('type=these&type=memoire'))).toEqual({ type: 'these' });
