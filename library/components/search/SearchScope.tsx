@@ -9,7 +9,7 @@ import { searchPageHref } from '@/lib/search';
 interface SearchScopeProps {
   q: string;
   filters: CatalogueFilters;
-  /** Intitulés des mots-clés (liste vide si indisponible : le slug est alors affiché). */
+  /** Intitulés des mots-clés (liste vide si indisponible : aucune puce de mot-clé). */
   motsCles: MotCle[];
 }
 
@@ -19,7 +19,7 @@ const CHIP =
 /**
  * Portée reportée sur une nouvelle requête : une puce par filtre appliqué, placée sous le champ.
  * Chaque puce est un lien qui retire ce filtre, garde `q` et revient en page 1. Même règle que
- * `ActiveFilters` : une spécialité sans intitulé connu n'a pas de puce (jamais de slug brut).
+ * `ActiveFilters` : jamais de slug brut. La page ne reporte d'ailleurs ni spécialité ni mot-clé sans intitulé.
  */
 export function SearchScope({ q, filters, motsCles }: SearchScopeProps): JSX.Element | null {
   const t = useTranslations('search.scope');
@@ -32,7 +32,7 @@ export function SearchScope({ q, filters, motsCles }: SearchScopeProps): JSX.Ele
   const valueOf = (key: FilterKey): string | null => {
     if (key === 'acces' && filters.acces) return tAccess(filters.acces);
     if (key === 'langue' && filters.langue) return tFilters(`languages.${filters.langue}`);
-    if (key === 'mot_cle') return motsCles.find((m) => m.slug === filters.mot_cle)?.label ?? String(filters.mot_cle);
+    if (key === 'mot_cle') return motsCles.find((m) => m.slug === filters.mot_cle)?.label ?? null;
     if (key === 'specialite') return filters.specialite && tSpecialites.has(filters.specialite) ? tSpecialites(filters.specialite) : null;
     return String(filters[key]);
   };

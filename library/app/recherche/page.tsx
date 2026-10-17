@@ -8,6 +8,7 @@ import { SearchExperience } from '@/components/search/SearchExperience';
 import { SearchScope } from '@/components/search/SearchScope';
 import { SearchSkeleton } from '@/components/search/SearchStates';
 import { getMotsCles } from '@/lib/api/library';
+import type { CatalogueFilters } from '@/lib/api/types';
 import { filtersToSearchParams, searchParamsToFilters } from '@/lib/routes';
 import { MAX_QUERY_LENGTH } from '@/lib/search';
 
@@ -24,19 +25,28 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Coquille serveur de la recherche : en-tête et formulaire prérempli. Les résultats sont demandés
- * par le navigateur (`SearchExperience`) : aucun appel à l'API ici, donc pas d'ISR ni de frontière d'erreur.
+ * Coquille serveur de la recherche : en-tête, formulaire prérempli et portée (puces des filtres reportés).
+ * Les résultats sont demandés par le navigateur (`SearchExperience`), jamais ici : pas d'ISR ni de
+ * frontière d'erreur. Seul appel serveur, facultatif : les intitulés des mots-clés (`getMotsCles`, mis en
+ * cache), uniquement si `mot_cle` est filtré ; en cas d'échec, ce filtre n'est simplement pas reporté.
  */
 export default async function SearchPage({ searchParams }: { searchParams: SearchParams }): Promise<JSX.Element> {
   const t = await getTranslations('search');
   const tCrumbs = await getTranslations('breadcrumbs');
   const raw = Array.isArray(searchParams.q) ? searchParams.q[0] : searchParams.q;
   const q = (raw ?? '').trim().slice(0, MAX_QUERY_LENGTH);
-  // Tous les filtres appliqués sont reportés sur une nouvelle requête (page 1), et affichés en puces retirables.
   const { tri: _sort, ...filters } = searchParamsToFilters(searchParams);
-  // Intitulés des mots-clés, seulement si un mot-clé est filtré (facultatifs : le slug sert de repli).
   const motsClesResult = filters.mot_cle ? await getMotsCles() : null;
   const motsCles = motsClesResult?.ok ? motsClesResult.data.data : [];
+  const tSpecialites = await getTranslations('specialites');
+  // Filtres reportés sur une nouvelle requête (page 1) : seulement ceux qu'une puce rend visibles et retirables.
+  // Spécialité ou mot-clé sans intitulé connu : ni puce ni report (aucun filtre invisible).
+  const { specialite, mot_cle: motCle, ...rest } = filters;
+  const carried: CatalogueFilters = {
+    ...rest,
+    ...(specialite && tSpecialites.has(specialite) ? { specialite } : {}),
+    ...(motCle && motsCles.some((m) => m.slug === motCle) ? { mot_cle: motCle } : {}),
+  };
 
   return (
     <>
@@ -53,8 +63,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
             </div>
             <div className="min-w-0">
               {/* `key` : remonté à chaque changement d'URL, le champ et les champs cachés reflètent toujours l'URL. */}
-              <SearchForm key={`${q}|${filtersToSearchParams(filters).toString()}`} size="hero" id="search-page-q" defaultQuery={q} filters={filters} />
-              <SearchScope q={q} filters={filters} motsCles={motsCles} />
+              <SearchForm key={`${q}|${filtersToSearchParams(carried).toString()}`} size="hero" id="search-page-q" defaultQuery={q} filters={carried} />
+              <SearchScope q={q} filters={carried} motsCles={motsCles} />
             </div>
           </div>
         </div>

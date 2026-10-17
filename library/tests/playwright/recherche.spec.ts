@@ -292,7 +292,6 @@ test.describe('Recherche — navigation dans les résultats (réponses simulées
     await expect(page.getByTestId('facets-desktop')).toBeVisible();
     await expect(page.getByTestId('document-card-doc-simule-3')).toBeVisible();
     await expect(page.getByTestId('search-skeleton')).toHaveCount(0);
-    expect((await focusPlace(page)).facets).toBe(true);
 
     release();
     await expect(page.getByTestId('results-count')).toHaveText('2 résultats pour « budget »');
@@ -327,13 +326,14 @@ test.describe('Recherche — navigation dans les résultats (réponses simulées
   });
 
   test('réponses dans le désordre : seule la dernière recherche est affichée', async ({ page }) => {
+    let holdUnfiltered = false;
     let releaseFirst: () => void = () => undefined;
     const firstHeld = new Promise<void>((resolve) => { releaseFirst = resolve; });
     let firstDone: () => void = () => undefined;
     const firstSettled = new Promise<void>((resolve) => { firstDone = resolve; });
     await page.route(SEARCH_ROUTE, async (route) => {
       const type = new URL(route.request().url()).searchParams.get('type');
-      if (type === 'memoire') {
+      if (type === null && holdUnfiltered) {
         await firstHeld;
         // La requête a pu être annulée entre-temps : la réponse tardive n'a alors plus de destinataire.
         await fulfillMock(route).catch(() => undefined);
@@ -341,24 +341,98 @@ test.describe('Recherche — navigation dans les résultats (réponses simulées
         return;
       }
       await fulfillMock(route);
-      if (type === 'these') releaseFirst();
+      if (type === 'memoire' && holdUnfiltered) releaseFirst();
     });
     await page.goto('/recherche?q=budget');
     await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
+    await page.getByTestId('facets-desktop').getByRole('link', { name: /^Mémoires/ }).click();
+    await expect(page.getByTestId('results-count')).toHaveText('2 résultats pour « budget »');
 
+    // Première recherche (Retour : q=budget) retenue, seconde (Suivant : type=memoire) servie avant elle.
+    holdUnfiltered = true;
+    await page.goBack();
+    await expect(page).toHaveURL(/\/recherche\?q=budget$/);
+    await expect(page.getByTestId('search-results')).toHaveAttribute('aria-busy', 'true');
+    await page.goForward();
+    await expect(page).toHaveURL(/type=memoire/);
+    await firstSettled;
+    await page.waitForTimeout(200);
+    await expect(page.getByTestId('results-count')).toHaveText('2 résultats pour « budget »');
+    await expect(page.getByTestId('document-card-doc-simule-1')).toBeVisible();
+    await expect(page.getByTestId('document-card-doc-simule-3')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/recherche\?type=memoire&q=budget$/);
+  });
+
+  test('liens périmés inertes : une facette de l\'ancienne réponse ne navigue pas', async ({ page }) => {
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    await page.route(SEARCH_ROUTE, async (route) => {
+      if (new URL(route.request().url()).searchParams.get('type') === 'memoire') await held;
+      await fulfillMock(route);
+    });
+    await page.goto('/recherche?q=budget');
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
     const facets = page.getByTestId('facets-desktop');
     await facets.getByRole('link', { name: /^Mémoires/ }).click();
     await expect(page).toHaveURL(/type=memoire/);
-    await expect(page.getByTestId('search-results')).toHaveAttribute('aria-busy', 'true');
-    // Seconde recherche lancée avant la réponse de la première (facettes encore affichées).
-    await facets.getByRole('link', { name: /^Thèses/ }).click();
-    await expect(page).toHaveURL(/type=these/);
-    await firstSettled;
-    await page.waitForTimeout(200);
-    await expect(page.getByTestId('results-count')).toHaveText('1 résultat pour « budget »');
-    await expect(page.getByTestId('document-card-doc-simule-3')).toBeVisible();
+    await expect(facets.locator('[inert]')).toHaveCount(1);
+    await expect(page.locator('[inert]:has(nav[aria-label="Pagination"])')).toHaveCount(1);
+    // Clic forcé (l'élément inerte n'est pas actionnable) : aucune navigation.
+    await facets.getByRole('link', { name: /^Thèses/ }).click({ force: true });
+    await page.waitForTimeout(300);
+    await expect(page).toHaveURL(/\/recherche\?type=memoire&q=budget$/);
+    release();
+    await expect(page.getByTestId('results-count')).toHaveText('2 résultats pour « budget »');
+    await expect(facets.locator('[inert]')).toHaveCount(0);
+  });
+
+  test('retour à l\'invite : les anciens résultats ne réapparaissent pas sous une nouvelle requête', async ({ page }) => {
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    await page.route(SEARCH_ROUTE, async (route) => {
+      if (new URL(route.request().url()).searchParams.get('q') === 'TVA') await held;
+      await fulfillMock(route);
+    });
+    await page.goto('/recherche?q=budget');
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
+    await page.getByRole('banner').getByRole('link', { name: 'Recherche', exact: true }).click();
+    await expect(page.getByTestId('search-invite')).toBeVisible();
+    await page.getByTestId('search-invite').getByRole('link', { name: 'TVA' }).click();
+    await expect(page).toHaveURL(/q=TVA/);
+    await expect(page.getByTestId('search-skeleton')).toBeVisible();
     await expect(page.getByTestId('document-card-doc-simule-1')).toHaveCount(0);
-    await expect(page).toHaveURL(/\/recherche\?type=these&q=budget$/);
+    release();
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « TVA »');
+  });
+
+  test('focus : rien au premier chargement ; Retour ne fait pas défiler la page vers le titre', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 300 });
+    await page.route(SEARCH_ROUTE, fulfillMock);
+    await page.goto('/recherche?q=budget');
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
+    expect((await focusPlace(page)).body).toBe(true);
+
+    // Clic programmatique en haut de page : l'entrée d'historique quittée garde scrollY = 0,
+    // position où le titre « Résultats » est hors de la fenêtre (300 px de haut).
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.getByTestId('facets-desktop').getByRole('link', { name: /^Mémoires/ }).evaluate((a: HTMLElement) => a.click());
+    await expect(page.getByTestId('results-count')).toHaveText('2 résultats pour « budget »');
+    // Focus perdu : au retour, le repli le rendra au titre. On note la position de défilement à ce moment.
+    await page.evaluate(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+      window.scrollTo(0, 0);
+      const w = window as unknown as { focusScroll: number | null };
+      w.focusScroll = null;
+      document.addEventListener('focusin', () => { w.focusScroll = window.scrollY; });
+    });
+    await page.goBack();
+    await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
+    await page.waitForTimeout(300);
+    const where = await focusPlace(page);
+    expect(where.body || where.heading).toBe(true);
+    // Le navigateur restaure lui-même la position de l'entrée d'historique ; le focus ne la modifie pas.
+    const { focusScroll, scrollY } = await page.evaluate(() => ({ focusScroll: (window as unknown as { focusScroll: number | null }).focusScroll, scrollY: window.scrollY }));
+    expect({ focusScroll, scrollY }).toEqual({ focusScroll: where.heading ? 0 : null, scrollY: 0 });
   });
 
   test('portée visible : puces retirables ; une nouvelle requête garde les filtres et repart en page 1', async ({ page }) => {
@@ -380,6 +454,17 @@ test.describe('Recherche — navigation dans les résultats (réponses simulées
     await page.getByRole('link', { name: 'Retirer le filtre Dans : Mémoires' }).click();
     await expect(page).toHaveURL(/\/recherche\?acces=libre&q=tva$/);
     await expect(page.getByRole('list', { name: 'Portée de la recherche' }).getByRole('link')).toHaveCount(1);
+  });
+
+  test('spécialité ou mot-clé sans intitulé : ni puce ni report sur une nouvelle requête', async ({ page }) => {
+    await page.route(SEARCH_ROUTE, fulfillMock);
+    await page.goto('/recherche?q=budget&type=memoire&specialite=inconnue&mot_cle=slug-inconnu');
+    const form = page.getByTestId('search-form-hero');
+    await expect(form.locator('input[type="hidden"]')).toHaveCount(1);
+    await expect(form.locator('input[type="hidden"][name="type"]')).toHaveValue('memoire');
+    await expect(page.getByRole('list', { name: 'Portée de la recherche' }).getByRole('link')).toHaveCount(1);
+    await expect(page.getByText('inconnue')).toHaveCount(0);
+    await expect(page.getByText('slug-inconnu')).toHaveCount(0);
   });
 
   test('tiroir mobile : groupes nommés sans saut de niveau de titre ; ouverture conservée', async ({ page }) => {

@@ -47,7 +47,11 @@ function useSearch(key: string | null): { view: View; lastGood: Shown | null; re
 
   useEffect(() => {
     const request = key === null ? null : readSearchRequest(new URLSearchParams(key));
-    if (key === null || request === null) return;
+    if (key === null || request === null) {
+      // Invite : d'anciens résultats ne doivent jamais réapparaître (atténués) sous une autre requête.
+      setLastGood(null);
+      return;
+    }
     const controller = new AbortController();
     const settle = (view: View): void => {
       if (controller.signal.aborted) return;
@@ -66,23 +70,47 @@ function useSearch(key: string | null): { view: View; lastGood: Shown | null; re
 
 /**
  * Après une navigation dans la page (facette, pagination, Retour), le focus reste sur l'élément
- * activé s'il est toujours monté ; sinon il passe au titre « Résultats » (jamais perdu sur `body`).
+ * activé s'il est toujours monté et actif ; sinon il passe au titre « Résultats » (jamais perdu sur
+ * `body`). Au premier chargement, rien n'est déplacé. Après Précédent/Suivant, le focus est posé sans
+ * défilement : la position restaurée par le navigateur est respectée.
  */
 function useFocusFallback(key: string | null, view: View, target: RefObject<HTMLElement>): void {
   const previousKey = useRef<string | null | undefined>(undefined);
   const navigated = useRef(false);
+  const fromHistory = useRef(false);
 
   useEffect(() => {
-    if (previousKey.current !== undefined && previousKey.current !== key) navigated.current = true;
+    const onPopState = (): void => {
+      fromHistory.current = true;
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  useEffect(() => {
+    const changed = previousKey.current !== undefined && previousKey.current !== key;
     previousKey.current = key;
+    // Invite : rien à restaurer ; on oublie la navigation en cours.
+    navigated.current = key !== null && changed;
+    if (key === null) fromHistory.current = false;
   }, [key]);
 
   useEffect(() => {
     if (view.status === 'loading' || !navigated.current) return;
     navigated.current = false;
+    const preventScroll = fromHistory.current;
+    fromHistory.current = false;
     const active = document.activeElement;
-    if (active === null || active === document.body) target.current?.focus();
+    if (active === null || active === document.body || active.closest('[inert]')) target.current?.focus({ preventScroll });
   }, [view, target]);
+}
+
+/** `inert` posé hors rendu (React 18 ne connaît pas l'attribut) : liens périmés ni cliquables ni focalisables. */
+function useInert(ref: RefObject<HTMLElement>, inert: boolean): void {
+  // À chaque rendu : les conteneurs peuvent être (re)montés sans que `inert` change.
+  useEffect(() => {
+    ref.current?.toggleAttribute('inert', inert);
+  });
 }
 
 export function SearchExperience(): JSX.Element {
@@ -93,6 +121,9 @@ export function SearchExperience(): JSX.Element {
   const request = key === null ? null : readSearchRequest(new URLSearchParams(key));
   const { view, lastGood, retry } = useSearch(key);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const facetsRef = useRef<HTMLDivElement>(null);
+  const mobileFacetsRef = useRef<HTMLDivElement>(null);
+  const paginationRef = useRef<HTMLDivElement>(null);
   useFocusFallback(key, view, headingRef);
 
   const busy = request !== null && view.status === 'loading';
@@ -100,6 +131,10 @@ export function SearchExperience(): JSX.Element {
   const current: Shown | null = request && view.status === 'success' ? { request, data: view.data } : null;
   const shown = current ?? (busy ? lastGood : null);
   const stale = shown !== null && current === null;
+  // Liens périmés (facettes, pagination de l'ancienne réponse) : inertes jusqu'à la nouvelle réponse.
+  useInert(facetsRef, stale);
+  useInert(mobileFacetsRef, stale);
+  useInert(paginationRef, stale);
   const withFacets = shown !== null && hasFacetValues(shown.data.meta.facets, shown.request.filters);
   const activeCount = request ? countFilters(request.filters) : 0;
   const shownCount = shown ? countFilters(shown.request.filters) : 0;
@@ -127,7 +162,7 @@ export function SearchExperience(): JSX.Element {
             <h2 id="facets-title" className="font-heading text-2xl font-semibold text-pssfp-prune">
               {t('facets.title')}
             </h2>
-            <div className="mt-5">
+            <div ref={facetsRef} className="mt-5">
               <FacetList q={shown.request.q} filters={shown.request.filters} facets={shown.data.meta.facets} idPrefix="desktop" titleAs="h3" />
             </div>
           </div>
@@ -142,7 +177,7 @@ export function SearchExperience(): JSX.Element {
             {shownCount > 0 && <span className="rounded-full bg-pssfp-prune px-2 py-0.5 text-xs text-white">{t('facets.activeCount', { count: shownCount })}</span>}
             <ChevronDown size={16} aria-hidden="true" className="ml-auto transition-transform group-open:rotate-180 motion-reduce:transition-none" />
           </summary>
-          <div className="border-t border-pssfp-lavande/30 px-4 pb-5 pt-5">
+          <div ref={mobileFacetsRef} className="border-t border-pssfp-lavande/30 px-4 pb-5 pt-5">
             <FacetList q={shown.request.q} filters={shown.request.filters} facets={shown.data.meta.facets} idPrefix="mobile" titleAs="p" />
           </div>
         </details>
@@ -189,7 +224,9 @@ export function SearchExperience(): JSX.Element {
         </div>
 
         {view.status !== 'error' && shown && shown.data.data.length > 0 && (
-          <Pagination page={shown.request.page} lastPage={Math.min(shown.data.meta.last_page, MAX_SEARCH_PAGE)} hrefFor={(p) => searchPageHref(shown.request.q, shown.request.filters, p)} />
+          <div ref={paginationRef}>
+            <Pagination page={shown.request.page} lastPage={Math.min(shown.data.meta.last_page, MAX_SEARCH_PAGE)} hrefFor={(p) => searchPageHref(shown.request.q, shown.request.filters, p)} />
+          </div>
         )}
       </section>
     </div>
