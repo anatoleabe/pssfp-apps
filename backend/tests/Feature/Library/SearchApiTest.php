@@ -8,6 +8,7 @@ use App\Services\Library\Search\DatabaseDocumentSearch;
 use App\Services\Library\Search\DocumentSearch;
 use App\Services\Library\Search\FallbackDocumentSearch;
 use App\Services\Library\Search\SearchResult;
+use Meilisearch\Exceptions\CommunicationException;
 
 uses()->group('module-3', 'library');
 
@@ -42,10 +43,23 @@ it('se replie sur la base si Meilisearch est injoignable', function (): void {
     {
         public function search(string $q, array $filters, int $page, int $perPage): SearchResult
         {
-            throw new RuntimeException('Meilisearch injoignable');
+            throw new CommunicationException('Meilisearch injoignable');
         }
     };
     app()->instance(DocumentSearch::class, new FallbackDocumentSearch($enPanne, new DatabaseDocumentSearch));
 
     $this->getJson('/v1/library/search?q=marches')->assertOk()->assertJsonPath('meta.total', 1);
+});
+
+it('ne masque pas une erreur applicative derrière le repli', function (): void {
+    $buggy = new class implements DocumentSearch
+    {
+        public function search(string $q, array $filters, int $page, int $perPage): SearchResult
+        {
+            throw new RuntimeException('bug applicatif');
+        }
+    };
+    app()->instance(DocumentSearch::class, new FallbackDocumentSearch($buggy, new DatabaseDocumentSearch));
+
+    $this->getJson('/v1/library/search?q=marches')->assertStatus(500);
 });

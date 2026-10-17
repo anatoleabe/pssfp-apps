@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Services\Library\Search;
 
 use Illuminate\Support\Facades\Log;
-use Throwable;
+use Meilisearch\Exceptions\ApiException;
+use Meilisearch\Exceptions\CommunicationException;
+use Psr\Http\Client\ClientExceptionInterface;
 
 /** Essaie la recherche principale, bascule sur la base en cas de panne (ADR-0003). */
 final readonly class FallbackDocumentSearch implements DocumentSearch
@@ -16,8 +18,8 @@ final readonly class FallbackDocumentSearch implements DocumentSearch
     {
         try {
             return $this->primary->search($q, $filters, $page, $perPage);
-        } catch (Throwable $e) {
-            Log::warning('Recherche bibliothèque : repli sur PostgreSQL', ['error' => $e->getMessage()]);
+        } catch (CommunicationException|ApiException|ClientExceptionInterface $e) {
+            Log::warning('Recherche bibliothèque : repli sur PostgreSQL', ['exception' => $e::class, 'error' => $e->getMessage()]);
 
             return $this->fallback->search($q, $filters, $page, $perPage);
         }
