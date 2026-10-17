@@ -53,3 +53,13 @@ it('renvoie 404 pour un brouillon, un uuid inconnu ou un document sans fichier',
     $this->getJson("/v1/library/documents/{$sansFichier->uuid}/download")->assertNotFound();
     $this->getJson('/v1/library/documents/7f1c0e9a-0000-4000-8000-000000000000/download')->assertNotFound();
 });
+
+it('limite les téléchargements à 30 par minute et par client', function (): void {
+    $doc = Document::factory()->published()->withFile()->create();
+
+    foreach (range(1, 30) as $i) {
+        $this->get("/v1/library/documents/{$doc->uuid}/download")->assertRedirect();
+    }
+
+    $this->getJson("/v1/library/documents/{$doc->uuid}/download")->assertStatus(429);
+});

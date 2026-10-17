@@ -50,28 +50,30 @@ final class DownloadController extends Controller
             return $this->notFound();
         }
 
-        $this->record($request, $document);
-
         $url = Storage::disk((string) config('library.documents_disk'))->temporaryUrl(
             $document->file_path,
             now()->addMinutes((int) config('library.signed_url_minutes')),
             ['ResponseContentDisposition' => 'inline; filename="'.$document->slug.'.pdf"'],
         );
 
+        $this->record($request, $document);
+
         return redirect()->away($url);
     }
 
     private function record(Request $request, Document $document): void
     {
-        DocumentDownload::create([
-            'document_id' => $document->id,
-            'user_id' => $request->user()?->id,
-            'ip' => $request->ip(),
-            'user_agent' => Str::limit((string) $request->userAgent(), 250, ''),
-            'downloaded_at' => now(),
-        ]);
+        DB::transaction(function () use ($request, $document): void {
+            DocumentDownload::create([
+                'document_id' => $document->id,
+                'user_id' => $request->user()?->id,
+                'ip' => $request->ip(),
+                'user_agent' => Str::limit((string) $request->userAgent(), 250, ''),
+                'downloaded_at' => now(),
+            ]);
 
-        DB::table('documents')->where('id', $document->id)->increment('downloads_count');
+            DB::table('documents')->where('id', $document->id)->increment('downloads_count');
+        });
     }
 
     private function notFound(): JsonResponse
