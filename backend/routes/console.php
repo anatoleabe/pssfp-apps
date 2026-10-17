@@ -16,3 +16,9 @@ Schedule::command('scout:import', ['App\\Models\\Document'])
     ->weeklyOn(0, '03:30')
     ->when(fn (): bool => config('scout.driver') === 'meilisearch')
     ->withoutOverlapping();
+
+// Contrôle de cohérence base/index, une heure après la réindexation hebdomadaire.
+Schedule::command('library:check-index')
+    ->weeklyOn(0, '04:30')
+    ->when(fn (): bool => config('scout.driver') === 'meilisearch')
+    ->withoutOverlapping();
