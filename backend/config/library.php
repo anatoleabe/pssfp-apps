@@ -15,6 +15,25 @@ return [
 
     'signed_url_minutes' => 30,
 
+    /*
+     * Débit par IP et par minute (limiteurs nommés, cf. AppServiceProvider::boot()).
+     * Chaque limiteur a son propre compteur : une recherche compte dans `library`
+     * et dans `search`, jamais deux fois dans le même.
+     */
+    'rate_limits' => [
+        'library' => (int) env('LIBRARY_RATE_LIMIT', 120),
+        'search' => (int) env('LIBRARY_SEARCH_RATE_LIMIT', 60),
+        'download' => (int) env('LIBRARY_DOWNLOAD_RATE_LIMIT', 30),
+        'view' => (int) env('LIBRARY_VIEW_RATE_LIMIT', 20),
+    ],
+
+    // IP jamais limitées (liste séparée par des virgules) : en prod, l'IP publique du VPS,
+    // d'où partent les appels SSR/ISR du serveur Next.js pour tous les visiteurs.
+    'rate_limit_exempt_ips' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('LIBRARY_RATE_LIMIT_EXEMPT_IPS', '')),
+    ))),
+
     'per_page' => 20,
     'max_per_page' => 50,
 

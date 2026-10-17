@@ -20,6 +20,7 @@ use App\Services\Sms\FakeSmsProvider;
 use App\Services\Sms\SmsServiceInterface;
 use App\Services\Sms\TechSoftProvider;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -62,11 +63,40 @@ class AppServiceProvider extends ServiceProvider
             Limit::perDay(1200),
         ]);
 
+        $this->configureLibraryRateLimits();
+
         Candidature::observe(CandidatureObserver::class);
 
         // Listeners email candidature (soumission + décisions) : enregistrés
         // par l'auto-découverte Laravel 11 (app/Listeners, méthodes handle*).
         // Ne PAS les ré-enregistrer ici — un Event::listen manuel les ferait
         // tourner deux fois (double email candidat, cf. event:list).
+    }
+
+    /**
+     * Limiteurs de la bibliothèque (`throttle:library`, `library-search`, `library-download`,
+     * `library-view`) : plafonds par IP et par minute lus dans `config/library.php`, sauf pour
+     * les IP exemptées (serveur Next.js en prod).
+     */
+    private function configureLibraryRateLimits(): void
+    {
+        $limiters = [
+            'library' => 'library',
+            'library-search' => 'search',
+            'library-download' => 'download',
+            'library-view' => 'view',
+        ];
+
+        foreach ($limiters as $name => $configKey) {
+            RateLimiter::for($name, function (Request $request) use ($configKey): Limit {
+                $ip = (string) $request->ip();
+
+                if (in_array($ip, (array) config('library.rate_limit_exempt_ips', []), true)) {
+                    return Limit::none();
+                }
+
+                return Limit::perMinute((int) config("library.rate_limits.{$configKey}"))->by($ip);
+            });
+        }
     }
 }

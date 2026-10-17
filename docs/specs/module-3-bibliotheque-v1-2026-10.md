@@ -94,7 +94,7 @@ Purge quotidienne à 02:00 par `model:prune` (modèles `Prunable`, `routes/conso
 | GET | `/library/mots-cles` | Thésaurus pour les filtres |
 | GET | `/library/redirects?path=` | Résolution d'une ancienne URL (utilisée par le middleware du front) |
 
-Identifiants publics : `uuid` et `slug` uniquement, jamais l'`id` interne. Limitation de débit par client : 120/min sur tout le groupe, 60/min sur `search`, 30/min sur `download`.
+Identifiants publics : `uuid` et `slug` uniquement, jamais l'`id` interne. Limitation de débit par IP (limiteurs nommés `library`, `library-search`, `library-download`, `library-view`) : 120/min sur tout le groupe, 60/min sur `search`, 30/min sur `download`, 20/min sur `view` ; plafonds réglables (`LIBRARY_RATE_LIMIT`, `LIBRARY_SEARCH_RATE_LIMIT`, `LIBRARY_DOWNLOAD_RATE_LIMIT`, `LIBRARY_VIEW_RATE_LIMIT`) et IP exemptées (`LIBRARY_RATE_LIMIT_EXEMPT_IPS`, séparées par des virgules).
 
 ### 5.4 Indexation
 
@@ -159,6 +159,7 @@ Nouveau processus pm2 `pssfp-library` (port 6002, à ajouter dans la copie local
 4. Cron `* * * * * php artisan schedule:run` pour l'utilisateur `pssfp` : réindexation hebdomadaire, contrôle `library:check-index`, purge `model:prune` quotidienne (§5.1).
 5. `poppler-utils` installé (`pdftoppm -v`) ; sans lui, pas de couverture (avertissement dans les journaux).
 6. Limites d'envoi alignées (ci-dessous).
+7. `LIBRARY_RATE_LIMIT_EXEMPT_IPS` = IP publique du VPS (les appels SSR/ISR du serveur Next.js partent tous de cette IP ; sans exemption, ils épuiseraient la limite de 120/min).
 
 **Limites d'envoi (PDF jusqu'à 200 Mo)** : Livewire dépose les envois temporaires sur le disque local (`config/livewire.php`, règle `max:204800`, 15 minutes d'envoi au plus). Aligner sur le VPS : PHP-FPM `upload_max_filesize = 200M` et `post_max_size = 210M`, nginx `client_max_body_size 210m;` dans le vhost `api` (sinon erreur 413 avant Laravel).
 

@@ -164,21 +164,21 @@ Route::prefix('articles')->name('articles.')->group(function (): void {
  * Bibliothèque virtuelle (Module 3 V1 — docs/specs/module-3-bibliotheque-v1-2026-10.md §5.3).
  * Lecture seule et sans authentification en V1.
  *
- * Débit par client : 120/min sur tout le groupe, plus serré sur la recherche
- * (60) et le téléchargement (30). Chaque limiteur a son préfixe : sans lui,
- * ils partageraient le même compteur et chaque requête compterait deux fois.
+ * Débit par IP (limiteurs nommés, AppServiceProvider) : 120/min sur tout le groupe,
+ * plus serré sur la recherche (60), le téléchargement (30) et les consultations (20).
+ * Plafonds et IP exemptées dans config/library.php (LIBRARY_RATE_LIMIT*, …_EXEMPT_IPS).
  */
-Route::prefix('library')->name('library.')->middleware('throttle:120,1,library')->group(function (): void {
+Route::prefix('library')->name('library.')->middleware('throttle:library')->group(function (): void {
     Route::get('/stats', [CatalogueController::class, 'stats'])->name('stats');
     Route::get('/mots-cles', [CatalogueController::class, 'motsCles'])->name('mots-cles');
     Route::get('/redirects', [CatalogueController::class, 'redirect'])->name('redirects');
-    Route::get('/search', SearchController::class)->middleware('throttle:60,1,library-search')->name('search');
+    Route::get('/search', SearchController::class)->middleware('throttle:library-search')->name('search');
     Route::get('/documents', [LibraryDocumentController::class, 'index'])->name('documents.index');
     Route::get('/documents/{uuid}/download', DownloadController::class)
-        ->middleware('throttle:30,1,library-download')
+        ->middleware('throttle:library-download')
         ->name('documents.download');
     Route::post('/documents/{uuid}/view', ViewController::class)
-        ->middleware('throttle:20,1,library-view')
+        ->middleware('throttle:library-view')
         ->name('documents.view');
     Route::get('/documents/{slug}', [LibraryDocumentController::class, 'show'])->name('documents.show');
 });
