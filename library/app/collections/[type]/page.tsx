@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { ActiveFilters } from '@/components/catalogue/ActiveFilters';
 import { FilterPanel } from '@/components/catalogue/FilterPanel';
 import { Pagination } from '@/components/catalogue/Pagination';
+import { ResultsFocus } from '@/components/catalogue/ResultsFocus';
 import { SortSelect } from '@/components/catalogue/SortSelect';
 import { StateMessage } from '@/components/catalogue/StateMessage';
 import { DocumentCard } from '@/components/document/DocumentCard';
@@ -116,7 +118,7 @@ export default async function CollectionPage(props: CollectionPageProps): Promis
         </aside>
 
         <details data-testid="filters-mobile" className="group rounded-pssfp-card border border-pssfp-lavande/40 bg-white shadow-pssfp-soft lg:hidden">
-          <summary className="flex cursor-pointer list-none items-center gap-3 rounded-pssfp-card px-4 py-3 font-ui text-sm font-medium text-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center gap-3 rounded-pssfp-card px-4 py-3 font-ui text-sm font-medium text-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
             <SlidersHorizontal size={16} aria-hidden="true" />
             <span>{t('filterToggle')}</span>
             {activeCount > 0 && (
@@ -130,9 +132,13 @@ export default async function CollectionPage(props: CollectionPageProps): Promis
         </details>
 
         <section aria-labelledby="results-title" className="min-w-0">
-          <h2 id="results-title" className="sr-only">
+          {/* Cible du focus après une navigation dans la page (voir ResultsFocus). */}
+          <h2 id="results-title" tabIndex={-1} className="sr-only">
             {t('resultsTitle')}
           </h2>
+          <Suspense fallback={null}>
+            <ResultsFocus targetId="results-title" />
+          </Suspense>
           <div className="flex flex-col gap-4 border-b border-pssfp-lavande/30 pb-4 sm:flex-row sm:items-center sm:justify-between">
             {/* Seule région vivante de la page : annonce le nouveau total après un retrait de filtre ou un changement de page (navigation client). */}
             <p role="status" data-testid="results-count" className="font-ui text-sm text-pssfp-graphite-light">
@@ -156,7 +162,9 @@ export default async function CollectionPage(props: CollectionPageProps): Promis
                 action={
                   <Link
                     href={activeCount > 0 || page > 1 ? resetHref : '/'}
-                    className="inline-flex h-10 items-center rounded-pssfp-button bg-pssfp-prune px-4 font-ui text-sm font-medium text-white transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2"
+                    // Réinitialisation dans la page : pas de remontée, le focus passe aux résultats.
+                    scroll={!(activeCount > 0 || page > 1)}
+                    className="inline-flex h-10 items-center rounded-pssfp-button bg-pssfp-prune px-4 font-ui text-sm font-medium text-white transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2"
                   >
                     {activeCount > 0 || page > 1 ? tCatalogue('resetFilters') : t('backHome')}
                   </Link>
@@ -173,7 +181,7 @@ export default async function CollectionPage(props: CollectionPageProps): Promis
             )}
           </div>
 
-          <Pagination page={meta.current_page} lastPage={meta.last_page} hrefFor={(p) => collectionPageHref(type, filters, p)} />
+          <Pagination page={meta.current_page} lastPage={meta.last_page} hrefFor={(p) => collectionPageHref(type, filters, p)} scroll={false} />
         </section>
       </div>
     </>

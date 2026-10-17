@@ -24,7 +24,7 @@ const CARD =
 
 /** Lien étiré sur toute la carte ; l'anneau de focus suit le contour de la carte. */
 const TITLE_LINK =
-  'after:absolute after:inset-0 after:rounded-pssfp-card after:content-[""] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-pssfp-or focus-visible:after:ring-offset-2 [&_mark]:rounded-sm [&_mark]:bg-pssfp-or/35 [&_mark]:px-0.5 [&_mark]:text-inherit';
+  'after:absolute after:inset-0 after:rounded-pssfp-card after:content-[""] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-pssfp-prune focus-visible:after:ring-offset-2 [&_mark]:rounded-sm [&_mark]:bg-pssfp-or/35 [&_mark]:px-0.5 [&_mark]:text-inherit';
 
 export function DocumentCard({ doc, highlight, layout = 'grid', headingLevel = 'h3', priority = false, coverSizes }: DocumentCardProps): JSX.Element {
   const t = useTranslations();

@@ -104,6 +104,12 @@ function Demo(): JSX.Element {
       <section aria-labelledby="demo-pagination" className="space-y-6">
         <h2 id="demo-pagination" className={SECTION_TITLE}>{t('pagination')}</h2>
         <Pagination page={5} lastPage={12} hrefFor={(p) => `/dev/composants?page=${p}`} />
+        <div data-testid="demo-pagination-first">
+          <Pagination page={1} lastPage={3} hrefFor={(p) => `/dev/composants?page=${p}`} />
+        </div>
+        <div data-testid="demo-pagination-last">
+          <Pagination page={3} lastPage={3} hrefFor={(p) => `/dev/composants?page=${p}`} />
+        </div>
       </section>
 
       <section aria-labelledby="demo-states" className="max-w-3xl space-y-6">

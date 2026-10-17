@@ -45,10 +45,12 @@ interface DocumentCoverProps {
   priority?: boolean;
   /** Remplace l'attribut `sizes` par défaut de la taille quand la mise en page le connaît mieux. */
   sizes?: string;
+  /** Vrai quand la couverture est dans un lien qui porte déjà le titre : `alt=""` (pas de doublon vocal). */
+  decorative?: boolean;
 }
 
 /** Couverture 3:4 : image si l'API en fournit une, sinon couverture typographique décorative. */
-export function DocumentCover({ doc, size = 'md', priority = false, sizes }: DocumentCoverProps): JSX.Element {
+export function DocumentCover({ doc, size = 'md', priority = false, sizes, decorative = false }: DocumentCoverProps): JSX.Element {
   const t = useTranslations();
   const s = SIZES[size];
   const frame = `relative aspect-[3/4] shrink-0 overflow-hidden rounded-md shadow-pssfp-soft ${s.box}`;
@@ -58,7 +60,7 @@ export function DocumentCover({ doc, size = 'md', priority = false, sizes }: Doc
       <div className={`${frame} bg-pssfp-lavande/20`}>
         <Image
           src={doc.cover_url}
-          alt={t('document.coverAlt', { title: doc.title })}
+          alt={decorative ? '' : t('document.coverAlt', { title: doc.title })}
           fill
           sizes={sizes ?? s.sizes}
           priority={priority}

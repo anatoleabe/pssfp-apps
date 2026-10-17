@@ -187,6 +187,37 @@ test.describe('Accueil — données de l\'API', () => {
     }
   });
 
+  test('couvertures dans un lien qui porte déjà le titre : alt vide (pas de doublon vocal)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/');
+    for (const scope of ['home-most-read', 'home-hero']) {
+      const alts = await page.getByTestId(scope).locator('a img').evaluateAll((imgs) => imgs.map((img) => img.getAttribute('alt')));
+      for (const alt of alts) expect(alt, scope).toBe('');
+    }
+  });
+
+  test('« Les plus lus » : l\'anneau de focus du premier lien n\'est pas rogné par le carrousel', async ({ page }) => {
+    for (const width of [375, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+      const list = page.getByTestId('most-read-list');
+      await expect(list).toBeVisible();
+      const link = list.getByRole('link').first();
+      await page.keyboard.press('Tab');
+      await link.focus();
+      const { gapLeft, gapTop, ring } = await link.evaluate((el) => {
+        const box = el.getBoundingClientRect();
+        const clip = (el.closest('ol') as HTMLElement).getBoundingClientRect();
+        const style = getComputedStyle(el);
+        return { gapLeft: box.left - clip.left, gapTop: box.top - clip.top, ring: style.boxShadow };
+      });
+      expect(ring, `${width} px`).toContain('rgb(74, 46, 103)');
+      // ring-2 + ring-offset-4 : 6 px hors du lien, qui doivent rester dans la zone visible de la liste.
+      expect(gapLeft, `${width} px`).toBeGreaterThanOrEqual(6);
+      expect(gapTop, `${width} px`).toBeGreaterThanOrEqual(6);
+    }
+  });
+
   test('« Les plus lus » : défilement d\'une carte, boutons aria-disabled aux bords', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' }); // saut immédiat, pas d'attente d'animation
     await page.setViewportSize({ width: 375, height: 800 });

@@ -14,7 +14,7 @@ interface SearchScopeProps {
 }
 
 const CHIP =
-  'inline-flex min-h-8 items-center gap-1.5 rounded-full border border-pssfp-prune/25 bg-pssfp-lavande/15 py-1 pl-3 pr-2 font-ui text-sm text-pssfp-prune-dark transition-colors hover:border-pssfp-prune hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2';
+  'inline-flex min-h-8 items-center gap-1.5 rounded-full border border-pssfp-prune/25 bg-pssfp-lavande/15 py-1 pl-3 pr-2 font-ui text-sm text-pssfp-prune-dark transition-colors hover:border-pssfp-prune hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2';
 
 /**
  * Portée reportée sur une nouvelle requête : une puce par filtre appliqué, placée sous le champ.

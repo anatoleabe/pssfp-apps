@@ -14,7 +14,7 @@ export const dynamic = 'force-static';
 const HOLDINGS = ['travaux', 'textes', 'ouvrages', 'cours'] as const;
 
 const PRIMARY_LINK =
-  'inline-flex h-11 items-center justify-center gap-2 rounded-pssfp-button bg-pssfp-prune px-5 font-ui text-sm font-medium text-white shadow-pssfp-soft transition-colors hover:bg-pssfp-prune-dark active:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2';
+  'inline-flex h-11 items-center justify-center gap-2 rounded-pssfp-button bg-pssfp-prune px-5 font-ui text-sm font-medium text-white shadow-pssfp-soft transition-colors hover:bg-pssfp-prune-dark active:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2';
 const TEXT_LINK =
   'inline-flex items-center gap-1.5 rounded-sm font-ui text-sm font-medium text-pssfp-prune underline-offset-4 transition-colors hover:text-pssfp-prune-dark hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2';
 

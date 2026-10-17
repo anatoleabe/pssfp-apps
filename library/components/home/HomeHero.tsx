@@ -7,7 +7,7 @@ import { collectionHref, documentHref, searchHref } from '@/lib/routes';
 import { Eyebrow } from './Eyebrow';
 import { SearchForm } from './SearchForm';
 
-const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2 focus-visible:ring-offset-pssfp-ivoire';
+const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 focus-visible:ring-offset-pssfp-ivoire';
 
 interface HomeHeroProps {
   stats: LibraryStats;
@@ -92,7 +92,7 @@ export async function HomeHero({ stats, latest }: HomeHeroProps): Promise<JSX.El
                     href={documentHref(doc.slug)}
                     className={`group -mx-3 flex items-start gap-4 rounded-xl p-3 transition duration-300 ease-pssfp-out-expo hover:bg-white hover:shadow-pssfp-elevated ${FOCUS}`}
                   >
-                    <DocumentCover doc={doc} size="sm" sizes="80px" />
+                    <DocumentCover doc={doc} size="sm" sizes="80px" decorative />
                     <span className="flex min-w-0 flex-col gap-1.5 pt-0.5">
                       <span className="font-heading text-xl font-semibold leading-snug text-pssfp-graphite [overflow-wrap:anywhere] group-hover:text-pssfp-prune">
                         {doc.title}

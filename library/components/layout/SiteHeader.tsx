@@ -9,6 +9,9 @@ import { cn, Logo } from '@pssfp/ui';
 import { MobileDrawer } from './MobileDrawer';
 import { MAIN_SITE_URL, NAV_ITEMS, isNavActive } from './nav-config';
 
+/** Point de rupture `md` de Tailwind : navigation principale visible, tiroir masqué. */
+const DESKTOP_QUERY = '(min-width: 768px)';
+
 const FOCUS_RING =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2';
 
@@ -23,6 +26,19 @@ export function SiteHeader(): JSX.Element {
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  // Passage en affichage large (rotation, fenêtre élargie) : le tiroir, masqué en md, ne doit plus
+  // piéger le focus ni bloquer le défilement. Fermé sans rendre le focus au bouton, masqué lui aussi.
+  useEffect(() => {
+    if (!open) return;
+    const wide = window.matchMedia(DESKTOP_QUERY);
+    const closeIfWide = (): void => {
+      if (wide.matches) setOpen(false);
+    };
+    closeIfWide();
+    wide.addEventListener('change', closeIfWide);
+    return () => wide.removeEventListener('change', closeIfWide);
+  }, [open]);
 
   const closeOnNavigate = useCallback((): void => setOpen(false), []);
 
@@ -110,7 +126,8 @@ export function SiteHeader(): JSX.Element {
             onClick={() => setOpen(true)}
             aria-label={t('menuOpen')}
             aria-expanded={open}
-            aria-controls="mobile-menu"
+            // Référence valide seulement quand le dialogue existe dans le DOM.
+            aria-controls={open ? 'mobile-menu' : undefined}
             data-testid="nav-toggle"
             className={cn(
               'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-pssfp-button border border-pssfp-prune/25 text-pssfp-prune transition-colors hover:border-pssfp-prune md:hidden',

@@ -37,16 +37,17 @@ export async function MostRead({ docs }: { docs: DocumentSummary[] }): Promise<J
               id={LIST_ID}
               data-testid={LIST_ID}
               aria-labelledby="most-read-title"
-              className="scrollbar-none -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-6 pt-2 sm:mx-0 sm:scroll-px-0 sm:gap-6 sm:px-0"
+              // Marges intérieures ≥ 6 px (anneau 2 px + décalage 4 px) : l'anneau de focus n'est pas rogné par le défilement.
+              className="scrollbar-none -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-6 pt-2 sm:-mx-2 sm:scroll-px-2 sm:gap-6 sm:px-2"
             >
               {docs.map((doc, i) => (
                 <li key={doc.uuid} className="w-36 shrink-0 snap-start sm:w-40">
                   <Link
                     href={documentHref(doc.slug)}
-                    className="group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-4 focus-visible:ring-offset-pssfp-ivoire"
+                    className="group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-4 focus-visible:ring-offset-pssfp-ivoire"
                   >
                     <span className="block rounded-md transition duration-300 ease-pssfp-out-expo group-hover:shadow-pssfp-floating motion-safe:group-hover:-translate-y-1 motion-reduce:transition-none">
-                      <DocumentCover doc={doc} size="md" sizes={COVER_SIZES} />
+                      <DocumentCover doc={doc} size="md" sizes={COVER_SIZES} decorative />
                     </span>
                     <span className="mt-3 flex gap-2.5">
                       <span aria-hidden="true" className="font-heading text-2xl font-semibold leading-none tabular-nums text-pssfp-or-dark">

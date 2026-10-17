@@ -31,7 +31,7 @@ interface FacetGroup {
 
 const LEGEND = 'font-ui text-xs font-semibold uppercase tracking-[0.16em] text-pssfp-prune';
 const ITEM =
-  'group flex min-h-10 items-center gap-3 rounded-pssfp-button px-2 py-1.5 font-ui text-sm transition-colors hover:bg-pssfp-lavande/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2';
+  'group flex min-h-10 items-center gap-3 rounded-pssfp-button px-2 py-1.5 font-ui text-sm transition-colors hover:bg-pssfp-lavande/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2';
 
 /**
  * Valeurs d'une facette : celles que l'API compte (> 0), dans l'ordre canonique, plus la valeur
@@ -88,7 +88,7 @@ export function FacetList({ q, filters, facets, idPrefix, titleAs: Title }: Face
                   <span
                     aria-hidden="true"
                     className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-[0.25rem] border transition-colors forced-colors:border-[CanvasText] ${
-                      item.active ? 'border-pssfp-prune bg-pssfp-prune text-white' : 'border-pssfp-lavande bg-white group-hover:border-pssfp-prune/60'
+                      item.active ? 'border-pssfp-prune bg-pssfp-prune text-white' : 'border-pssfp-prune/60 bg-white group-hover:border-pssfp-prune'
                     }`}
                   >
                     {item.active && <Check size={12} strokeWidth={3} />}

@@ -7,7 +7,7 @@ import type { SearchResponse } from '@/lib/api/types';
 import { searchPageHref, searchResetHref, type SearchRequest } from '@/lib/search';
 import { CollectionLinks } from './SearchStates';
 
-export const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2';
+export const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2';
 export const PRIMARY = `inline-flex h-10 items-center gap-2 rounded-pssfp-button bg-pssfp-prune px-4 font-ui text-sm font-medium text-white transition-colors hover:bg-pssfp-prune-dark active:bg-pssfp-prune-dark ${FOCUS}`;
 const RESULTS_GRID = 'grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2';
 

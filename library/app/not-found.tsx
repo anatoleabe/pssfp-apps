@@ -18,7 +18,7 @@ export default async function NotFound(): Promise<JSX.Element> {
       <div className="mt-10 flex flex-col gap-3 sm:flex-row">
         <Link
           href="/"
-          className="inline-flex items-center justify-center gap-2 rounded-pssfp-button bg-pssfp-prune px-5 py-3 font-ui text-sm font-medium text-white shadow-pssfp-soft transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2"
+          className="inline-flex items-center justify-center gap-2 rounded-pssfp-button bg-pssfp-prune px-5 py-3 font-ui text-sm font-medium text-white shadow-pssfp-soft transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2"
         >
           <ArrowLeft size={16} aria-hidden="true" />
           {t('home')}

@@ -18,6 +18,22 @@ async function fetchListing(request: APIRequestContext, qs: string): Promise<Lis
   }
 }
 
+/** Contraste WCAG d'une couleur CSS `rgb()`/`rgba()` posée sur du blanc. */
+function contrastOnWhite(css: string): number {
+  const [r = 0, g = 0, b = 0, a = 1] = (css.match(/[\d.]+/g) ?? []).map(Number);
+  const lin = (c: number): number => {
+    const v = (c * a + 255 * (1 - a)) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const l = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  return 1.05 / (l + 0.05);
+}
+
+/** Le focus est-il sur le titre (masqué) des résultats ? Jamais sur body. */
+async function focusOnResultsTitle(page: Page): Promise<{ body: boolean; title: boolean }> {
+  return page.evaluate(() => ({ body: document.activeElement === null || document.activeElement === document.body, title: document.activeElement?.id === 'results-title' }));
+}
+
 /** Contourne le cache de données de Next en dev : la page reflète l'état réel de l'API. */
 const BYPASS_DATA_CACHE = { 'cache-control': 'no-cache' };
 
@@ -240,6 +256,68 @@ test.describe('Collections — données de l\'API', () => {
     await expect(page.getByRole('main').locator('[role="status"]')).toHaveCount(1);
     await expect(empty.getByRole('link', { name: 'Retirer les filtres' })).toHaveAttribute('href', `${URL_MEMOIRES}?tri=titre`);
     await expect(page.getByRole('form', { name: 'Affiner' }).getByRole('link', { name: 'Réinitialiser' })).toHaveAttribute('href', `${URL_MEMOIRES}?tri=titre`);
+  });
+
+  test('champs de filtre et de tri : bordure au repos ≥ 3:1, anneau de focus prune opaque', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(URL_MEMOIRES);
+    const form = page.getByTestId('filter-form-desktop');
+    const fields = [form.getByLabel('De', { exact: true }), form.getByRole('combobox', { name: 'Langue' }), page.getByRole('combobox', { name: 'Trier par' })];
+    for (const field of fields) {
+      await expect(field).toBeVisible();
+      const border = await field.evaluate((el) => getComputedStyle(el).borderTopColor);
+      expect(contrastOnWhite(border), border).toBeGreaterThanOrEqual(3);
+    }
+    await page.keyboard.press('Tab');
+    const sort = page.getByRole('combobox', { name: 'Trier par' });
+    await sort.focus();
+    expect(await sort.evaluate((el) => getComputedStyle(el).boxShadow)).toContain('rgb(74, 46, 103)');
+  });
+
+  test('puce retirée au clavier : focus sur le titre des résultats, jamais perdu sur body', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`${URL_MEMOIRES}?acces=libre&langue=fr`);
+    const chip = page.getByTestId('active-filters').getByRole('link', { name: 'Retirer le filtre Accès : Libre' });
+    await chip.focus();
+    await page.keyboard.press('Enter');
+    await expect(page).not.toHaveURL(/acces=/);
+    await expect(page.locator('#results-title')).toBeFocused();
+
+    // « Retirer les filtres » (lien qui disparaît avec le dernier filtre) : même repli.
+    await page.goto(`${URL_MEMOIRES}?acces=libre&langue=fr`);
+    await page.getByTestId('active-filters').getByRole('link', { name: 'Retirer les filtres' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(new RegExp(`${URL_MEMOIRES}$`));
+    await expect(page.locator('#results-title')).toBeFocused();
+  });
+
+  test('état vide : la réinitialisation au clavier rend le focus au titre des résultats', async ({ page }) => {
+    await page.goto(`${URL_MEMOIRES}?annee_min=2100`);
+    await page.getByTestId('state-empty').getByRole('link', { name: 'Retirer les filtres' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(new RegExp(`${URL_MEMOIRES}$`));
+    await expect(page.getByTestId('state-empty')).toHaveCount(0);
+    expect(await focusOnResultsTitle(page)).toEqual({ body: false, title: true });
+  });
+
+  test('pagination au clavier : pas de saut en haut de page, focus sur le titre des résultats', async ({ page }) => {
+    test.skip(memoires!.meta.last_page < 2, 'une seule page de mémoires');
+    await page.setViewportSize({ width: 1280, height: 700 });
+    await page.goto(URL_MEMOIRES);
+    const pagination = page.getByRole('navigation', { name: 'Pagination' });
+    await pagination.getByRole('link', { name: 'Page 2', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/page=2$/);
+    await expect(page.locator('#results-title')).toBeFocused();
+    // Le titre des résultats est amené dans la fenêtre, sous l'en-tête collant (pas de retour tout en haut).
+    const { top, header, scrollY } = await page.evaluate(() => ({
+      top: document.getElementById('results-title')?.getBoundingClientRect().top ?? -1,
+      header: document.querySelector('[data-testid="site-header"]')?.getBoundingClientRect().height ?? 0,
+      scrollY: window.scrollY,
+    }));
+    expect(scrollY).toBeGreaterThan(0);
+    expect(top).toBeGreaterThanOrEqual(header - 1);
+    expect(top).toBeLessThan(700);
   });
 
   test('métadonnées : canonique sans filtres, noindex dès qu\'un filtre', async ({ page }) => {

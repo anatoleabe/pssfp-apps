@@ -58,7 +58,7 @@ export function CitationBox({ doc }: CitationBoxProps): JSX.Element {
         <button
           type="button"
           onClick={() => void copy()}
-          className="inline-flex items-center gap-2 rounded-pssfp-button border border-pssfp-prune/30 bg-white px-4 py-2 font-ui text-sm font-medium text-pssfp-prune transition-colors hover:border-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2"
+          className="inline-flex items-center gap-2 rounded-pssfp-button border border-pssfp-prune/30 bg-white px-4 py-2 font-ui text-sm font-medium text-pssfp-prune transition-colors hover:border-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2"
         >
           <Copy size={16} aria-hidden="true" />
           {t('citation.copy')}

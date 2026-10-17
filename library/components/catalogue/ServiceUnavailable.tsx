@@ -5,7 +5,7 @@ import { SearchForm } from '@/components/home/SearchForm';
 import { MAIN_SITE_URL } from '@/components/layout/nav-config';
 
 const SECONDARY_LINK =
-  'inline-flex h-11 items-center justify-center gap-1.5 rounded-pssfp-button border border-pssfp-prune/30 bg-white px-5 font-ui text-sm font-medium text-pssfp-prune transition-colors hover:border-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2';
+  'inline-flex h-11 items-center justify-center gap-1.5 rounded-pssfp-button border border-pssfp-prune/30 bg-white px-5 font-ui text-sm font-medium text-pssfp-prune transition-colors hover:border-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2';
 
 interface ServiceUnavailableProps {
   /** Action principale (bouton « Réessayer » de la frontière d'erreur, lien de rechargement sinon). */
@@ -51,4 +51,4 @@ export function ServiceUnavailable({ action }: ServiceUnavailableProps): JSX.Ele
 
 /** Classes du bouton principal, partagées par le bouton « Réessayer » et le lien de repli. */
 export const PRIMARY_ACTION =
-  'inline-flex h-11 items-center justify-center gap-2 rounded-pssfp-button bg-pssfp-prune px-5 font-ui text-sm font-medium text-white shadow-pssfp-soft transition-colors hover:bg-pssfp-prune-dark active:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2';
+  'inline-flex h-11 items-center justify-center gap-2 rounded-pssfp-button bg-pssfp-prune px-5 font-ui text-sm font-medium text-white shadow-pssfp-soft transition-colors hover:bg-pssfp-prune-dark active:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2';

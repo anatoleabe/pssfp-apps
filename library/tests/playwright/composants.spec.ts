@@ -105,7 +105,7 @@ test.describe('Composants documentaires', () => {
 
   test('pagination : liens, ellipses et page courante', async ({ page }) => {
     await page.goto(DEMO);
-    const nav = page.getByRole('navigation', { name: 'Pagination' });
+    const nav = page.getByRole('navigation', { name: 'Pagination' }).first();
     const current = nav.locator('[aria-current="page"]');
     await expect(current).toHaveCount(1);
     await expect(current).toHaveText('5');
@@ -133,6 +133,40 @@ test.describe('Composants documentaires', () => {
     await page.goto(DEMO);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
+  });
+
+  test('focus clavier : anneau prune (jamais or) sur le lien de carte et contour global prune', async ({ page }) => {
+    await page.goto(DEMO);
+    // Modalité clavier : le focus programmatique qui suit déclenche :focus-visible.
+    await page.keyboard.press('Tab');
+    const link = page.getByTestId('document-card-demo-memoire-libre').getByRole('link').first();
+    await link.focus();
+    await expect(link).toBeFocused();
+    const ring = await link.evaluate((el) => getComputedStyle(el, '::after').boxShadow);
+    expect(ring).toContain('rgb(74, 46, 103)');
+    expect(ring).not.toContain('rgb(212, 175, 106)');
+    // Élément sans classe de focus : contour global `*:focus-visible`.
+    const outline = await page.evaluate(() => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = 'x';
+      document.getElementById('main')?.append(button);
+      button.focus();
+      const style = getComputedStyle(button);
+      return { color: style.outlineColor, style: style.outlineStyle };
+    });
+    expect(outline).toEqual({ color: 'rgb(74, 46, 103)', style: 'solid' });
+  });
+
+  test('pagination : aucun <li> vide en première ou dernière page', async ({ page }) => {
+    await page.goto(DEMO);
+    const empty = await page.locator('nav[aria-label="Pagination"] li').evaluateAll((items) => items.filter((li) => li.childElementCount === 0).length);
+    expect(empty).toBe(0);
+    for (const which of ['first', 'last']) {
+      const nav = page.getByTestId(`demo-pagination-${which}`).getByRole('navigation', { name: 'Pagination' });
+      await expect(nav).toBeVisible();
+      expect(await nav.locator('li').evaluateAll((items) => items.filter((li) => li.childElementCount === 0).length), which).toBe(0);
+    }
   });
 
   test('axe : aucune violation grave', async ({ page }) => {

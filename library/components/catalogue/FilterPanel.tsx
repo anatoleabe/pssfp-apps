@@ -14,8 +14,9 @@ interface FilterPanelProps {
 }
 
 const LEGEND = 'font-ui text-xs font-semibold uppercase tracking-[0.16em] text-pssfp-prune';
+/** Bordure au repos prune 60 % : 3,5:1 sur blanc (WCAG 1.4.11, ≥ 3:1) ; anneau de focus prune opaque. */
 const FIELD =
-  'h-10 w-full min-w-0 rounded-pssfp-button border border-pssfp-lavande/60 bg-white px-3 text-sm text-pssfp-graphite transition-colors hover:border-pssfp-prune/50 focus-visible:border-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune/30';
+  'h-10 w-full min-w-0 rounded-pssfp-button border border-pssfp-prune/60 bg-white px-3 text-sm text-pssfp-graphite transition-colors hover:border-pssfp-prune focus-visible:border-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2';
 const SMALL_LABEL = 'mb-1 block font-ui text-xs text-pssfp-graphite-light';
 
 /** Ordre d'affichage : chaque mot-clé parent suivi de ses enfants. */
@@ -60,7 +61,7 @@ export function FilterPanel({ type, filters, motsCles, idPrefix }: FilterPanelPr
                 key={inputId}
                 htmlFor={inputId}
                 data-testid="access-pill"
-                className="relative inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-pssfp-lavande/60 bg-white px-3.5 font-ui text-sm text-pssfp-graphite transition-colors hover:border-pssfp-prune/60 has-[:checked]:border-pssfp-prune has-[:checked]:bg-pssfp-prune has-[:checked]:font-semibold has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-pssfp-or has-[:focus-visible]:ring-offset-2 forced-colors:has-[:checked]:border-[3px] forced-colors:has-[:focus-visible]:outline forced-colors:has-[:focus-visible]:outline-2 forced-colors:has-[:focus-visible]:outline-offset-2"
+                className="relative inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-pssfp-lavande/60 bg-white px-3.5 font-ui text-sm text-pssfp-graphite transition-colors hover:border-pssfp-prune/60 has-[:checked]:border-pssfp-prune has-[:checked]:bg-pssfp-prune has-[:checked]:font-semibold has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-pssfp-prune has-[:focus-visible]:ring-offset-2 forced-colors:has-[:checked]:border-[3px] forced-colors:has-[:focus-visible]:outline forced-colors:has-[:focus-visible]:outline-2 forced-colors:has-[:focus-visible]:outline-offset-2"
               >
                 {/*
                  * Bouton radio natif invisible posé sur toute la pastille : clavier, clic et lecteurs d'écran natifs.
@@ -142,7 +143,7 @@ export function FilterPanel({ type, filters, motsCles, idPrefix }: FilterPanelPr
       <div className="flex flex-wrap items-center gap-3 border-t border-pssfp-lavande/30 pt-5">
         <button
           type="submit"
-          className="inline-flex h-10 items-center justify-center rounded-pssfp-button bg-pssfp-prune px-5 font-ui text-sm font-medium text-white shadow-pssfp-soft transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2 active:bg-pssfp-prune-dark"
+          className="inline-flex h-10 items-center justify-center rounded-pssfp-button bg-pssfp-prune px-5 font-ui text-sm font-medium text-white shadow-pssfp-soft transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 active:bg-pssfp-prune-dark"
         >
           {t('apply')}
         </button>

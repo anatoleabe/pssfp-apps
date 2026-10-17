@@ -28,7 +28,7 @@ const TILES: readonly TileSpec[] = [
 ];
 
 const TILE =
-  'group relative flex h-full flex-col justify-between gap-6 overflow-hidden rounded-pssfp-card p-6 transition duration-300 ease-pssfp-out-expo motion-safe:hover:-translate-y-1 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2 focus-visible:ring-offset-pssfp-ivoire';
+  'group relative flex h-full flex-col justify-between gap-6 overflow-hidden rounded-pssfp-card p-6 transition duration-300 ease-pssfp-out-expo motion-safe:hover:-translate-y-1 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 focus-visible:ring-offset-pssfp-ivoire';
 
 function TileArrow(): JSX.Element {
   return (

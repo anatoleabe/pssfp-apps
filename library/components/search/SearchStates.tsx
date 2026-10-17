@@ -7,7 +7,7 @@ import { collectionHref, searchHref } from '@/lib/routes';
 /** Collections proposées quand la recherche ne donne rien (ou pas encore). */
 const SUGGESTED_COLLECTIONS: readonly DocumentType[] = ['memoire', 'these', 'texte_loi', 'ouvrage_numerique', 'article_scientifique', 'cours'];
 
-const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2';
+const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2';
 const CHIP = `inline-flex h-9 items-center rounded-full border border-pssfp-lavande/60 bg-white px-3.5 font-ui text-sm text-pssfp-prune transition-colors hover:border-pssfp-prune ${FOCUS}`;
 const TEXT_LINK = `rounded-sm font-medium text-pssfp-prune underline decoration-pssfp-lavande decoration-1 underline-offset-4 transition-colors hover:decoration-pssfp-prune ${FOCUS}`;
 

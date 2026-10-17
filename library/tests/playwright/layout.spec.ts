@@ -69,6 +69,65 @@ test.describe('Socle', () => {
     await expect(burger).not.toBeFocused();
   });
 
+  test('bouton du menu : aria-controls seulement quand le tiroir est ouvert', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.goto('/a-propos');
+    const burger = page.getByTestId('nav-toggle');
+    await expect(burger).not.toHaveAttribute('aria-controls', /.*/);
+    await burger.click();
+    await expect(burger).toHaveAttribute('aria-controls', 'mobile-menu');
+    await expect(page.locator('#mobile-menu')).toBeVisible();
+  });
+
+  test('tiroir ouvert puis fenêtre élargie : fermé, défilement rétabli, Tab non piégé', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.goto('/a-propos');
+    const burger = page.getByTestId('nav-toggle');
+    await burger.click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe('hidden');
+
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await expect(page.getByTestId('mobile-menu')).toHaveCount(0);
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe('');
+    // Le bouton du menu est masqué (md:hidden) : le focus ne lui est pas rendu.
+    await expect(burger).not.toBeFocused();
+    // Tab et Maj+Tab parcourent la page : focus visible, hors de tout dialogue ; l'en-tête est atteignable.
+    const where = (): Promise<{ inDialog: boolean; visible: boolean; inNav: boolean }> =>
+      page.evaluate(() => {
+        const a = document.activeElement as HTMLElement | null;
+        return {
+          inDialog: !!a?.closest('[role="dialog"]'),
+          visible: !!a && a !== document.body && a.getClientRects().length > 0,
+          inNav: !!a?.closest('nav[aria-label="Navigation principale"]'),
+        };
+      });
+    await page.keyboard.press('Tab');
+    expect(await where()).toMatchObject({ inDialog: false, visible: true });
+    let reachedNav = false;
+    for (let i = 0; i < 20 && !reachedNav; i += 1) {
+      await page.keyboard.press('Shift+Tab');
+      const w = await where();
+      expect(w.inDialog).toBe(false);
+      reachedNav = w.inNav;
+    }
+    expect(reachedNav).toBe(true);
+  });
+
+  test('scroll-padding-top couvre l\'en-tête collant (cible d\'ancre non masquée)', async ({ page }) => {
+    for (const width of [360, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto('/a-propos');
+      const { padding, header } = await page.evaluate(() => ({
+        padding: parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop),
+        header: document.querySelector('[data-testid="site-header"]')?.getBoundingClientRect().height ?? 0,
+      }));
+      expect(header, `${width} px`).toBeGreaterThan(0);
+      expect(padding, `${width} px`).toBeGreaterThanOrEqual(header);
+      expect(padding - header, `${width} px`).toBeLessThan(16);
+    }
+  });
+
   test('aucun défilement horizontal à 320 px', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 });
     await page.goto('/');

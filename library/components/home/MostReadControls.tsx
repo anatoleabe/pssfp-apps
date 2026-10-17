@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 const BUTTON =
-  'inline-flex h-11 w-11 items-center justify-center rounded-full border border-pssfp-prune/25 bg-white text-pssfp-prune shadow-pssfp-soft transition-colors hover:border-pssfp-prune hover:bg-pssfp-prune hover:text-white active:bg-pssfp-prune-dark aria-disabled:cursor-not-allowed aria-disabled:opacity-40 aria-disabled:hover:border-pssfp-prune/25 aria-disabled:hover:bg-white aria-disabled:hover:text-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2';
+  'inline-flex h-11 w-11 items-center justify-center rounded-full border border-pssfp-prune/25 bg-white text-pssfp-prune shadow-pssfp-soft transition-colors hover:border-pssfp-prune hover:bg-pssfp-prune hover:text-white active:bg-pssfp-prune-dark aria-disabled:cursor-not-allowed aria-disabled:opacity-40 aria-disabled:hover:border-pssfp-prune/25 aria-disabled:hover:bg-white aria-disabled:hover:text-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2';
 
 interface Edges {
   start: boolean;

@@ -32,7 +32,7 @@ export function SortSelect({ action, value, hidden }: SortSelectProps): JSX.Elem
         id="sort-select"
         name="tri"
         defaultValue={value ?? DEFAULT_SORT}
-        className="h-10 min-w-0 rounded-pssfp-button border border-pssfp-lavande/60 bg-white pl-3 pr-8 font-ui text-sm font-medium text-pssfp-prune transition-colors hover:border-pssfp-prune/50 focus-visible:border-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune/30"
+        className="h-10 min-w-0 rounded-pssfp-button border border-pssfp-prune/60 bg-white pl-3 pr-8 font-ui text-sm font-medium text-pssfp-prune transition-colors hover:border-pssfp-prune focus-visible:border-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2"
       >
         {SORT_KEYS.map((key) => (
           <option key={key} value={key}>
@@ -42,7 +42,7 @@ export function SortSelect({ action, value, hidden }: SortSelectProps): JSX.Elem
       </select>
       <button
         type="submit"
-        className="h-10 shrink-0 rounded-pssfp-button border border-pssfp-prune/30 bg-white px-4 font-ui text-sm font-medium text-pssfp-prune transition-colors hover:border-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2 active:bg-pssfp-ivoire"
+        className="h-10 shrink-0 rounded-pssfp-button border border-pssfp-prune/30 bg-white px-4 font-ui text-sm font-medium text-pssfp-prune transition-colors hover:border-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 active:bg-pssfp-ivoire"
       >
         {t('submit')}
       </button>

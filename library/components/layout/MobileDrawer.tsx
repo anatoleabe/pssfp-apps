@@ -99,7 +99,7 @@ export function MobileDrawer({ pathname, onClose, onNavigate }: MobileDrawerProp
             type="button"
             onClick={onClose}
             aria-label={t('menuClose')}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-pssfp-button text-pssfp-prune transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-pssfp-button text-pssfp-prune transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 focus-visible:ring-offset-pssfp-ivoire"
           >
             <X size={20} aria-hidden="true" />
           </button>
@@ -117,7 +117,7 @@ export function MobileDrawer({ pathname, onClose, onNavigate }: MobileDrawerProp
                     aria-current={active ? 'page' : undefined}
                     className={cn(
                       'flex items-center border-l-2 px-4 py-3 font-heading text-2xl font-semibold transition-colors',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 focus-visible:ring-offset-pssfp-ivoire',
                       active
                         ? 'border-pssfp-or text-pssfp-prune'
                         : 'border-transparent text-pssfp-graphite hover:border-pssfp-lavande hover:text-pssfp-prune',
@@ -135,7 +135,7 @@ export function MobileDrawer({ pathname, onClose, onNavigate }: MobileDrawerProp
           <a
             href={MAIN_SITE_URL}
             onClick={onNavigate}
-            className="flex items-center justify-between rounded-pssfp-button bg-pssfp-prune px-4 py-3 font-ui text-sm font-medium text-white transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2"
+            className="flex items-center justify-between rounded-pssfp-button bg-pssfp-prune px-4 py-3 font-ui text-sm font-medium text-white transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 focus-visible:ring-offset-pssfp-ivoire"
           >
             {t('mainSite')}
             <ArrowUpRight size={16} aria-hidden="true" />

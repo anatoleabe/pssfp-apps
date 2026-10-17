@@ -94,7 +94,7 @@ async function metadataItems(doc: DocumentDetail): Promise<MetaItem[]> {
           key: 'doi',
           label: t('fields.doi'),
           value: doi ? (
-            <a href={doi} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 break-all rounded-sm text-pssfp-prune underline decoration-pssfp-or/70 underline-offset-4 hover:decoration-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2">
+            <a href={doi} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 break-all rounded-sm text-pssfp-prune underline decoration-pssfp-or/70 underline-offset-4 hover:decoration-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2">
               {doc.doi}
               <ArrowUpRight size={14} aria-hidden="true" className="shrink-0" />
               <span className="sr-only"> {tAction('newWindow')}</span>
@@ -221,7 +221,7 @@ export default async function DocumentPage({ params }: DocumentPageProps): Promi
                       <li key={mc.slug}>
                         <Link
                           href={collectionHref(doc.type, { mot_cle: mc.slug })}
-                          className="inline-flex min-h-9 items-center rounded-full border border-pssfp-lavande/60 bg-white px-3.5 py-1.5 font-ui text-sm text-pssfp-prune transition-colors hover:border-pssfp-prune hover:bg-pssfp-prune hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2 motion-reduce:transition-none"
+                          className="inline-flex min-h-9 items-center rounded-full border border-pssfp-lavande/60 bg-white px-3.5 py-1.5 font-ui text-sm text-pssfp-prune transition-colors hover:border-pssfp-prune hover:bg-pssfp-prune hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 motion-reduce:transition-none"
                         >
                           {mc.label}
                         </Link>

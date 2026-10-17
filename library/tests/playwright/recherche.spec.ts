@@ -70,6 +70,17 @@ async function fulfillMock(route: Route): Promise<void> {
   await route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(mockBody(new URL(route.request().url()))) });
 }
 
+/** Contraste WCAG d'une couleur CSS `rgb()`/`rgba()` posée sur du blanc. */
+async function contrastOnWhite(css: string): Promise<number> {
+  const [r = 0, g = 0, b = 0, a = 1] = (css.match(/[\d.]+/g) ?? []).map(Number);
+  const lin = (c: number): number => {
+    const v = (c * a + 255 * (1 - a)) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const l = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  return 1.05 / (l + 0.05);
+}
+
 async function axeSerious(page: Page): Promise<string[]> {
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   return results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious').map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`);
@@ -486,6 +497,15 @@ test.describe('Recherche — navigation dans les résultats (réponses simulées
     release();
     await expect(page.getByTestId('results-count')).toHaveText('2 résultats pour « budget »');
     await expect(drawer).toHaveAttribute('open', '');
+  });
+
+  test('case de facette non cochée : bordure ≥ 3:1 sur blanc', async ({ page }) => {
+    await page.route(SEARCH_ROUTE, fulfillMock);
+    await page.goto('/recherche?q=budget');
+    const link = page.getByTestId('facets-desktop').getByRole('link', { name: /^Mémoires/ });
+    await expect(link).toBeVisible();
+    const box = link.locator('span[aria-hidden="true"]').first();
+    expect(await box.evaluate((el) => getComputedStyle(el).borderTopColor).then(contrastOnWhite)).toBeGreaterThanOrEqual(3);
   });
 
   test('sans facette : pas de colonne de filtres', async ({ page }) => {

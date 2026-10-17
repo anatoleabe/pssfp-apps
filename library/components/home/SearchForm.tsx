@@ -78,7 +78,7 @@ export function SearchForm({ defaultQuery, size = 'compact', id = `search-q-${si
       </div>
       <button
         type="submit"
-        className={`shrink-0 rounded-lg bg-pssfp-prune font-ui font-medium text-white transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2 active:bg-pssfp-prune-dark ${s.button}`}
+        className={`shrink-0 rounded-lg bg-pssfp-prune font-ui font-medium text-white transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 active:bg-pssfp-prune-dark ${s.button}`}
       >
         {t('submit')}
       </button>
