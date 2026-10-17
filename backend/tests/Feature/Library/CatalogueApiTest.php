@@ -22,6 +22,24 @@ it('compte les documents publiés par type et signale la présence de payants', 
         ->assertJsonMissingPath('data.by_type.these');
 });
 
+it('compte les promotions distinctes des mémoires publiés', function (): void {
+    Document::factory()->published()->count(2)->create(['type' => 'memoire', 'promotion' => 3]);
+    Document::factory()->published()->create(['type' => 'memoire', 'promotion' => 7]);
+    Document::factory()->published()->create(['type' => 'memoire', 'promotion' => null]);
+    Document::factory()->published()->create(['type' => 'rapport_stage', 'promotion' => 11]);
+    Document::factory()->create(['type' => 'memoire', 'promotion' => 9]);
+
+    $this->getJson('/v1/library/stats')
+        ->assertOk()
+        ->assertJsonPath('data.promotions_count', 2);
+});
+
+it('renvoie zéro promotion sans mémoire publié', function (): void {
+    $this->getJson('/v1/library/stats')
+        ->assertOk()
+        ->assertJsonPath('data.promotions_count', 0);
+});
+
 it('liste les documents publiés, 20 par page, sans identifiant interne', function (): void {
     Document::factory()->published()->count(25)->create();
     Document::factory()->count(3)->create();

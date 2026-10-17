@@ -27,6 +27,11 @@ final class CatalogueController extends Controller
             'total' => $byType->sum(),
             'by_type' => $byType,
             'paid_count' => Document::query()->published()->whereNotNull('price_xaf')->count(),
+            'promotions_count' => Document::query()->published()
+                ->where('type', 'memoire')
+                ->whereNotNull('promotion')
+                ->distinct()
+                ->count('promotion'),
         ]]);
     }
 
