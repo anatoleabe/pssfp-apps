@@ -2,7 +2,7 @@ import { test, expect, type APIRequestContext, type Page } from '@playwright/tes
 import AxeBuilder from '@axe-core/playwright';
 // Même base que l'app (playwright.config.ts charge .env.local comme `next dev`).
 import { API_BASE_URL as API } from '../../lib/api/client';
-import { COLLECTION_PER_PAGE, activeFilterKeys, collectionPageHref, isIndexable, parsePage, withoutFilter } from '../../lib/collections';
+import { COLLECTION_PER_PAGE, activeFilterKeys, collectionPageHref, collectionResetHref, isIndexable, parsePage, withoutFilter } from '../../lib/collections';
 
 interface Doc { slug: string; type: string }
 interface Listing { data: Doc[]; meta: { total: number; last_page: number } }
@@ -51,6 +51,11 @@ test.describe('Collections — utilitaires', () => {
   test('collectionPageHref conserve les filtres, sans page 1 ni type', () => {
     expect(collectionPageHref('memoire', { type: 'these', acces: 'libre' }, 1)).toBe('/collections/memoire?acces=libre');
     expect(collectionPageHref('memoire', { acces: 'libre', tri: 'titre' }, 2)).toBe('/collections/memoire?acces=libre&tri=titre&page=2');
+  });
+
+  test('collectionResetHref retire tous les filtres mais garde le tri', () => {
+    expect(collectionResetHref('memoire', { acces: 'libre', langue: 'fr', tri: 'titre' })).toBe('/collections/memoire?tri=titre');
+    expect(collectionResetHref('memoire', { acces: 'libre' })).toBe('/collections/memoire');
   });
 
   test('isIndexable : faux dès qu\'un filtre, un tri ou une page > 1', () => {
@@ -152,7 +157,7 @@ test.describe('Collections — données de l\'API', () => {
     await expect(page.getByTestId('active-filters')).toHaveCount(0);
   });
 
-  test('tri : « Plus consultés » soumis au changement, ordre de l\'API', async ({ page, request }) => {
+  test('tri : choisir une option ne recharge rien, « Trier » applique l\'ordre de l\'API', async ({ page, request }) => {
     const recent = await fetchListing(request, 'type=memoire&tri=recent');
     const populaire = await fetchListing(request, 'type=memoire&tri=populaire');
     test.skip(!recent || !populaire || recent.data.length < 2, 'moins de deux mémoires');
@@ -162,6 +167,12 @@ test.describe('Collections — données de l\'API', () => {
     const select = page.getByRole('combobox', { name: 'Trier par' });
     await expect(select).toHaveValue('recent');
     await select.selectOption('populaire');
+    // WCAG 3.2.2 : aucun changement de contexte au simple choix d'une option.
+    await page.waitForTimeout(300);
+    await expect(page).toHaveURL(new RegExp(`${URL_MEMOIRES}$`));
+    const trier = page.getByRole('button', { name: 'Trier' });
+    await expect(trier).toBeVisible();
+    await trier.click();
     await expect(page).toHaveURL(/[?&]tri=populaire/);
     await expect.poll(() => cardSlugs(page)).toEqual(populaire!.data.map((d) => d.slug));
     await expect(select).toHaveValue('populaire');
@@ -181,8 +192,13 @@ test.describe('Collections — données de l\'API', () => {
     await expect(pagination.getByRole('link', { name: /précédente/i })).toHaveAttribute('href', '/collections/memoire?acces=libre');
   });
 
-  test('ActiveFilters : une puce par filtre, qui le retire', async ({ page }) => {
+  test('ActiveFilters : une puce par filtre, qui le retire ; le total est annoncé', async ({ page, request }) => {
+    const libres = await fetchListing(request, 'type=memoire&acces=libre&langue=fr');
     await page.goto(`${URL_MEMOIRES}?acces=libre&langue=fr&tri=titre`);
+    const count = page.getByTestId('results-count');
+    await expect(count).toHaveAttribute('role', 'status');
+    await expect(page.getByRole('main').locator('[role="status"]')).toHaveCount(1);
+    await expect(count).toContainText(String(libres!.meta.total));
     const active = page.getByTestId('active-filters');
     await expect(active.getByRole('link', { name: /^Retirer le filtre/ })).toHaveCount(2);
     await active.getByRole('link', { name: 'Retirer le filtre Accès : Libre' }).click();
@@ -191,14 +207,39 @@ test.describe('Collections — données de l\'API', () => {
     expect(url.pathname).toBe(URL_MEMOIRES);
     expect(Object.fromEntries(url.searchParams)).toEqual({ langue: 'fr', tri: 'titre' });
     await expect(page.getByTestId('active-filters').getByRole('link', { name: /^Retirer le filtre/ })).toHaveCount(1);
+    // Même région vivante, nouveau total (navigation client).
+    await expect(count).toContainText(new Intl.NumberFormat('fr-FR').format(memoires!.meta.total));
+    await expect(page.getByRole('main').locator('[role="status"]')).toHaveCount(1);
   });
 
-  test('état vide avec lien de réinitialisation', async ({ page }) => {
-    await page.goto(`${URL_MEMOIRES}?annee_min=2100`);
+  test('spécialité : puce avec l\'intitulé connu, aucune puce pour un slug inconnu', async ({ page }) => {
+    await page.goto(`${URL_MEMOIRES}?specialite=marches-publics-partenariats-public-prive`);
+    await expect(page.getByTestId('active-filters').getByRole('link', { name: 'Retirer le filtre Spécialité : Marchés Publics et Partenariats Public-Privés' })).toBeVisible();
+    await page.goto(`${URL_MEMOIRES}?specialite=inconnue`);
+    await expect(page.getByTestId('active-filters')).toHaveCount(0);
+    await expect(page.getByText('inconnue')).toHaveCount(0);
+  });
+
+  test('pastille d\'accès cochée : coche visible et bordure épaissie en couleurs forcées', async ({ page }) => {
+    await page.goto(`${URL_MEMOIRES}?acces=libre`);
+    const form = page.getByRole('form', { name: 'Affiner' });
+    const pills = form.getByTestId('access-pill');
+    await expect(pills.filter({ hasText: 'Libre' }).getByTestId('access-pill-check')).toBeVisible();
+    await expect(pills.filter({ hasText: 'Tous' }).getByTestId('access-pill-check')).toBeHidden();
+    await page.emulateMedia({ forcedColors: 'active' });
+    const width = (name: string): Promise<string> => pills.filter({ hasText: name }).evaluate((el) => getComputedStyle(el).borderTopWidth);
+    expect(await width('Libre')).toBe('3px');
+    expect(await width('Tous')).toBe('1px');
+  });
+
+  test('état vide : total annoncé, une seule région vivante, réinitialisation qui garde le tri', async ({ page }) => {
+    await page.goto(`${URL_MEMOIRES}?annee_min=2100&tri=titre`);
     const empty = page.getByTestId('state-empty');
     await expect(empty).toBeVisible();
-    await expect(empty).toHaveAttribute('role', 'status');
-    await expect(empty.getByRole('link', { name: 'Retirer les filtres' })).toHaveAttribute('href', URL_MEMOIRES);
+    await expect(page.getByTestId('results-count')).toHaveText('Aucun document');
+    await expect(page.getByRole('main').locator('[role="status"]')).toHaveCount(1);
+    await expect(empty.getByRole('link', { name: 'Retirer les filtres' })).toHaveAttribute('href', `${URL_MEMOIRES}?tri=titre`);
+    await expect(page.getByRole('form', { name: 'Affiner' }).getByRole('link', { name: 'Réinitialiser' })).toHaveAttribute('href', `${URL_MEMOIRES}?tri=titre`);
   });
 
   test('métadonnées : canonique sans filtres, noindex dès qu\'un filtre', async ({ page }) => {

@@ -15,7 +15,7 @@ import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { getMotsCles, listDocuments } from '@/lib/api/library';
 import type { CatalogueFilters, DocumentType } from '@/lib/api/types';
 import { unwrapOrThrow } from '@/lib/api/unwrap';
-import { COLLECTION_PER_PAGE, activeFilterKeys, collectionPageHref, isDocumentType, isIndexable, parsePage } from '@/lib/collections';
+import { COLLECTION_PER_PAGE, activeFilterKeys, collectionPageHref, collectionResetHref, isDocumentType, isIndexable, parsePage } from '@/lib/collections';
 import { filtersToSearchParams, searchParamsToFilters } from '@/lib/routes';
 
 export const revalidate = 300;
@@ -55,14 +55,17 @@ const RESULTS_GRID = 'grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-
 
 /**
  * Collection filtrable (maquette B) : filtres GET à gauche (tiroir `<details>` sur mobile),
- * résultats paginés à droite. Les deux appels sont indispensables : `unwrapOrThrow` lève une
+ * résultats paginés à droite. La liste des documents est indispensable : `unwrapOrThrow` lève une
  * exception en cas d'échec (l'ISR conserve alors la dernière version valide, sinon `app/error.tsx`).
+ * Les mots-clés, eux, sont facultatifs (voir plus bas).
  */
 export default async function CollectionPage(props: CollectionPageProps): Promise<JSX.Element> {
   const { type, filters, page } = readRequest(props);
   const [listResult, motsClesResult] = await Promise.all([listDocuments(filters, page, COLLECTION_PER_PAGE), getMotsCles()]);
   const { data: docs, meta } = unwrapOrThrow(listResult);
-  const motsCles = unwrapOrThrow(motsClesResult).data;
+  // Exception assumée à la règle `unwrapOrThrow` : les mots-clés ne servent qu'au filtre facultatif
+  // « Mot-clé ». Sans eux, la page reste servie sans ce champ plutôt que de basculer en erreur.
+  const motsCles = motsClesResult.ok ? motsClesResult.data.data : [];
 
   const t = await getTranslations('collection');
   const tTypes = await getTranslations('types');
@@ -73,7 +76,7 @@ export default async function CollectionPage(props: CollectionPageProps): Promis
 
   const title = tTypes(`${type}.other`);
   const activeCount = activeFilterKeys(filters).length;
-  const resetHref = collectionPageHref(type, {});
+  const resetHref = collectionResetHref(type, filters);
   // Le tri renvoie les filtres courants (sans type ni tri) ; la page repart de 1.
   const sortHidden = Object.fromEntries(filtersToSearchParams({ ...filters, type: undefined, tri: undefined }));
 
@@ -131,7 +134,10 @@ export default async function CollectionPage(props: CollectionPageProps): Promis
             {t('resultsTitle')}
           </h2>
           <div className="flex flex-col gap-4 border-b border-pssfp-lavande/30 pb-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="font-ui text-sm text-pssfp-graphite-light">{tCatalogue('resultsCount', { count: meta.total })}</p>
+            {/* Seule région vivante de la page : annonce le nouveau total après un retrait de filtre ou un changement de page (navigation client). */}
+            <p role="status" data-testid="results-count" className="font-ui text-sm text-pssfp-graphite-light">
+              {tCatalogue('resultsCount', { count: meta.total })}
+            </p>
             <SortSelect action={`/collections/${type}`} value={filters.tri} hidden={sortHidden} />
           </div>
           {activeCount > 0 && (
@@ -144,6 +150,7 @@ export default async function CollectionPage(props: CollectionPageProps): Promis
             {docs.length === 0 ? (
               <StateMessage
                 kind="empty"
+                live={false}
                 title={activeCount > 0 || page > 1 ? tStates('emptyTitle') : t('emptyTitle')}
                 body={activeCount > 0 || page > 1 ? tStates('emptyBody') : t('emptyBody')}
                 action={

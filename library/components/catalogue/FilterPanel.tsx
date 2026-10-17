@@ -1,10 +1,13 @@
 import Link from 'next/link';
+import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ACCESS_MODES, LANGUAGES, type CatalogueFilters, type DocumentType, type MotCle } from '@/lib/api/types';
+import { collectionResetHref } from '@/lib/collections';
 
 interface FilterPanelProps {
   type: DocumentType;
   filters: CatalogueFilters;
+  /** Vide si la liste des mots-clés est indisponible : le champ n'est alors pas affiché. */
   motsCles: MotCle[];
   /** Préfixe des identifiants : le panneau est rendu deux fois (tiroir mobile, colonne ≥ lg). */
   idPrefix: string;
@@ -56,17 +59,22 @@ export function FilterPanel({ type, filters, motsCles, idPrefix }: FilterPanelPr
               <label
                 key={inputId}
                 htmlFor={inputId}
-                className="relative inline-flex h-9 cursor-pointer items-center rounded-full border border-pssfp-lavande/60 bg-white px-3.5 font-ui text-sm text-pssfp-graphite transition-colors hover:border-pssfp-prune/60 has-[:checked]:border-pssfp-prune has-[:checked]:bg-pssfp-prune has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-pssfp-or has-[:focus-visible]:ring-offset-2"
+                data-testid="access-pill"
+                className="relative inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-pssfp-lavande/60 bg-white px-3.5 font-ui text-sm text-pssfp-graphite transition-colors hover:border-pssfp-prune/60 has-[:checked]:border-pssfp-prune has-[:checked]:bg-pssfp-prune has-[:checked]:font-semibold has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-pssfp-or has-[:focus-visible]:ring-offset-2 forced-colors:has-[:checked]:border-[3px] forced-colors:has-[:focus-visible]:outline forced-colors:has-[:focus-visible]:outline-2 forced-colors:has-[:focus-visible]:outline-offset-2"
               >
-                {/* Bouton radio natif invisible posé sur toute la pastille : clavier, clic et lecteurs d'écran natifs. */}
+                {/*
+                 * Bouton radio natif invisible posé sur toute la pastille : clavier, clic et lecteurs d'écran natifs.
+                 * Sélection signalée autrement que par la couleur : coche, graisse, et bordure épaissie en couleurs forcées.
+                 */}
                 <input
                   id={inputId}
                   type="radio"
                   name="acces"
                   value={mode}
                   defaultChecked={(filters.acces ?? '') === mode}
-                  className="absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-full opacity-0"
+                  className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-full opacity-0"
                 />
+                <Check size={14} strokeWidth={2.5} aria-hidden="true" data-testid="access-pill-check" className="-ml-0.5 hidden shrink-0 peer-checked:block" />
                 {mode === '' ? t('all') : tAccess(mode)}
               </label>
             );
@@ -139,7 +147,7 @@ export function FilterPanel({ type, filters, motsCles, idPrefix }: FilterPanelPr
           {t('apply')}
         </button>
         <Link
-          href={action}
+          href={collectionResetHref(type, filters)}
           className="rounded-sm font-ui text-sm font-medium text-pssfp-prune underline decoration-pssfp-lavande underline-offset-4 transition-colors hover:decoration-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2"
         >
           {t('reset')}

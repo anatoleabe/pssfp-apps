@@ -111,6 +111,13 @@
     "emptyBody": "Parcourez une autre collection ou lancez une recherche dans tout le catalogue.",
     "backHome": "Retour à l'accueil"
   },
+  "specialites": {
+    "economie-publique-gestion-publique": "Économie Publique et Gestion Publique",
+    "fiscalite-finance-comptabilite-publique": "Fiscalité, Finance et Comptabilité Publique",
+    "gouvernance-territoriale-finances-publiques-locales": "Gouvernance Territoriale et Finances Publiques locales",
+    "marches-publics-partenariats-public-prive": "Marchés Publics et Partenariats Public-Privés",
+    "audit-controle-finances-publiques": "Audit et contrôle des Finances Publiques"
+  },
   "activeFilters": {
     "label": "Filtres actifs",
     "remove": "Retirer le filtre {label}",

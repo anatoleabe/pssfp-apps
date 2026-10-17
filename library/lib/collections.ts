@@ -40,6 +40,11 @@ export function collectionPageHref(type: DocumentType, filters: CatalogueFilters
   return `/collections/${type}${s ? `?${s}` : ''}`;
 }
 
+/** Réinitialisation : tous les filtres retirés, tri conservé, page 1. */
+export function collectionResetHref(type: DocumentType, filters: CatalogueFilters): string {
+  return collectionPageHref(type, { tri: filters.tri });
+}
+
 /** Seule la première page sans filtre ni tri est indexée (les autres variantes renvoient à la canonique). */
 export function isIndexable(filters: CatalogueFilters, page: number): boolean {
   return page === 1 && activeFilterKeys(filters).length === 0 && filters.tri === undefined;
