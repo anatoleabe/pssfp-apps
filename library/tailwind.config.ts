@@ -9,11 +9,15 @@ import sharedTheme from '../packages/ui/tailwind.config';
  * --font-heading / --font-body / --font-ui (app/layout.tsx). Le preset partagé nomme
  * les familles en clair (« Cormorant Garamond »…), qui ne correspondent à aucune
  * @font-face chargée : sans la variable en tête, les titres retombent sur Georgia.
+ * Les noms composés sont entre guillemets : Tailwind les recopie tels quels et
+ * `Source Sans 3` non guillemeté invalide toute la déclaration.
+ * (Le même correctif arrive dans le preset partagé par la PR #44 ; cette
+ * surcharge pourra alors être retirée.)
  */
 const fontFamily = {
-  heading: ['var(--font-heading)', 'Cormorant Garamond', 'Georgia', 'serif'],
-  body: ['var(--font-body)', 'Source Sans 3', 'system-ui', 'sans-serif'],
-  ui: ['var(--font-ui)', 'DM Sans', 'system-ui', 'sans-serif'],
+  heading: ['var(--font-heading)', '"Cormorant Garamond"', 'Georgia', 'serif'],
+  body: ['var(--font-body)', '"Source Sans 3"', 'system-ui', 'sans-serif'],
+  ui: ['var(--font-ui)', '"DM Sans"', 'system-ui', 'sans-serif'],
 };
 
 /*
