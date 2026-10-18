@@ -133,6 +133,18 @@ test.describe('Composants documentaires', () => {
     await expect(page.getByTestId('state-error')).toHaveAttribute('role', 'alert');
   });
 
+  test('accueil : catalogue vide, message à la place de la mosaïque', async ({ page }) => {
+    await page.goto(DEMO);
+    const zone = page.getByTestId('demo-empty-catalogue');
+    const message = zone.getByTestId('collections-empty');
+    await expect(message).toContainText('Le catalogue est en cours de constitution');
+    // Pas de région vivante supplémentaire, ni de grille ou de tuile vide.
+    await expect(message).not.toHaveAttribute('role', /.+/);
+    await expect(zone.getByRole('list')).toHaveCount(0);
+    await expect(zone.getByTestId('collection-count')).toHaveCount(0);
+    await expect(zone.locator('[data-testid^="collection-tile-"]')).toHaveCount(0);
+  });
+
   test('ViewBeacon signale une consultation', async ({ page }) => {
     const beacon = page.waitForRequest((req) => /\/library\/documents\/[^/]+\/view$/.test(req.url()) && req.method() === 'POST');
     await page.goto(DEMO);

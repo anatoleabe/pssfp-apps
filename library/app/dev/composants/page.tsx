@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
+import { CollectionsMosaic } from '@/components/home/CollectionsMosaic';
 import { Pagination } from '@/components/catalogue/Pagination';
 import { StateMessage } from '@/components/catalogue/StateMessage';
 import { AccessAction } from '@/components/document/AccessAction';
@@ -14,6 +15,7 @@ import {
   DEMO_CITATION_POINT,
   DEMO_COUVERTURE,
   DEMO_COVERS,
+  DEMO_EMPTY_STATS,
   DEMO_LIBRE,
   DEMO_PAYANT,
   DEMO_RESERVE,
@@ -116,6 +118,13 @@ function Demo(): JSX.Element {
         <h2 id="demo-states" className={SECTION_TITLE}>{t('states')}</h2>
         <StateMessage kind="empty" title={tStates('emptyTitle')} body={tStates('emptyBody')} />
         <StateMessage kind="error" title={tStates('errorTitle')} body={tStates('errorBody')} />
+      </section>
+
+      <section aria-labelledby="demo-empty-catalogue">
+        <h2 id="demo-empty-catalogue" className={`mx-auto max-w-7xl px-4 sm:px-6 ${SECTION_TITLE}`}>{t('emptyCatalogue')}</h2>
+        <div data-testid="demo-empty-catalogue">
+          <CollectionsMosaic stats={DEMO_EMPTY_STATS} />
+        </div>
       </section>
     </div>
   );

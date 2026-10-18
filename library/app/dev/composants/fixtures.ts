@@ -1,4 +1,4 @@
-import { DOCUMENT_TYPES, type AccessReason, type DocumentDetail, type DocumentSummary } from '@/lib/api/types';
+import { DOCUMENT_TYPES, type AccessReason, type DocumentDetail, type DocumentSummary, type LibraryStats } from '@/lib/api/types';
 
 /*
  * Données entièrement fictives (titres, auteurs, identifiants) pour la page
@@ -134,3 +134,6 @@ export const DEMO_ACTIONS: DocumentDetail[] = [
   detail(DEMO_RESERVE, 'reserved'),
   detail(DEMO_PAYANT, 'paid'),
 ];
+
+/** Statistiques d'un catalogue vide (avant l'import de l'ancienne bibliothèque). */
+export const DEMO_EMPTY_STATS: LibraryStats = { total: 0, by_type: {}, paid_count: 0, promotions_count: 0 };

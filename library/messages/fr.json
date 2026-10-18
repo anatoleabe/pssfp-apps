@@ -63,6 +63,8 @@
       "title": "Explorer le fonds",
       "intro": "Travaux des promotions, textes de référence et ressources d'enseignement : chaque collection s'ouvre sur son catalogue complet.",
       "collection": "Collection",
+      "emptyTitle": "Le catalogue est en cours de constitution",
+      "emptyBody": "Les premiers documents seront publiés prochainement. Revenez bientôt pour parcourir les collections.",
       "memoireMeta": "{count, plural, one {travail} other {travaux}}",
       "memoireMetaPromotions": "{count, plural, one {travail} other {travaux}} · {promotions, plural, one {# promotion} other {# promotions}}",
       "documents": "{count, plural, one {document} other {documents}}",
@@ -323,6 +325,7 @@
     },
     "citation": "Citation",
     "pagination": "Pagination",
-    "states": "États vide et erreur"
+    "states": "États vide et erreur",
+    "emptyCatalogue": "Accueil — catalogue vide"
   }
 }

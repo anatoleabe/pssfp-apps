@@ -57,8 +57,12 @@ test.describe('Anciennes URL — validation (fonctions pures)', () => {
   test('/index.php à query string : la query string fait partie du chemin cherché', () => {
     expect(legacyLookupPath({ pathname: '/index.php', search: '?option=com_docman&view=list' })).toBe('/index.php?option=com_docman&view=list');
     expect(legacyLookupPath({ pathname: '/index.php', search: '' })).toBe('/index.php');
-    // Ailleurs, la query string (pistage, pagination Joomla) est ignorée.
-    expect(legacyLookupPath({ pathname: '/index.php/textes-et-lois', search: '?utm_source=x' })).toBe('/index.php/textes-et-lois');
+    // Forme canonique des fiches Joomla : /index.php/component/…?id=N.
+    expect(legacyLookupPath({ pathname: '/index.php/component/abook/book', search: '?id=12' })).toBe('/index.php/component/abook/book?id=12');
+    expect(legacyLookupPath({ pathname: '/index.php/textes-et-lois', search: '' })).toBe('/index.php/textes-et-lois');
+    // Hors /index.php, la query string (pistage, pagination) est ignorée.
+    expect(legacyLookupPath({ pathname: '/anciens/page.html', search: '?utm_source=x' })).toBe('/anciens/page.html');
+    expect(legacyLookupPath({ pathname: '/collections/memoire', search: '?page=2' })).toBe('/collections/memoire');
   });
 });
 

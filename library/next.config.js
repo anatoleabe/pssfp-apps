@@ -34,6 +34,7 @@ const nextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
+      { protocol: 'https', hostname: 'media.pssfp.org', pathname: '/pssfp-media/**' },
       { protocol: 'https', hostname: 'media.pssfp.org' },
       { protocol: 'https', hostname: '*.pssfp.org' },
       ...LOCAL_MEDIA_PATTERNS,

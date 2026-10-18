@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { getFormatter, getTranslations } from 'next-intl/server';
+import { StateMessage } from '@/components/catalogue/StateMessage';
 import { AccessBadge } from '@/components/document/AccessBadge';
 import type { DocumentType, LibraryStats } from '@/lib/api/types';
 import { collectionHref } from '@/lib/routes';
@@ -63,6 +64,11 @@ export async function CollectionsMosaic({ stats }: { stats: LibraryStats }): Pro
           <p className="max-w-xl text-pssfp-body text-pssfp-graphite lg:justify-self-end">{t('intro')}</p>
         </div>
 
+        {stats.total === 0 ? (
+          <div className="mt-10">
+            <StateMessage kind="empty" live={false} testId="collections-empty" title={t('emptyTitle')} body={t('emptyBody')} />
+          </div>
+        ) : (
         <ul className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-rows-[repeat(2,minmax(11rem,auto))] lg:grid-cols-4 lg:gap-5">
           {memoires > 0 && (
             <li className="sm:col-span-2 lg:row-span-2">
@@ -132,6 +138,7 @@ export async function CollectionsMosaic({ stats }: { stats: LibraryStats }): Pro
             </li>
           )}
         </ul>
+        )}
       </div>
     </section>
   );
