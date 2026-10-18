@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CampagneCandidatureResource\Pages;
 use App\Filament\Resources\CampagneCandidatureResource\ResultatsSelectionActions;
+use App\Filament\Tables\TranslatedColumn;
 use App\Models\CampagneCandidature;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -70,6 +71,9 @@ class CampagneCandidatureResource extends Resource
                     Forms\Components\FileUpload::make('communique_pdf_path')
                         ->label('PDF du communiqué signé — version française')
                         ->disk(CampagneCandidature::COMMUNIQUE_DISK)
+                        // Pas de HeadObject à l'ouverture du formulaire : la clé MinIO de prod
+                        // le refuse et Filament retirerait alors le PDF déjà déposé.
+                        ->fetchFileInformation(false)
                         ->directory('communiques')
                         ->visibility('public')
                         ->acceptedFileTypes(['application/pdf'])
@@ -85,6 +89,9 @@ class CampagneCandidatureResource extends Resource
                     Forms\Components\FileUpload::make('communique_pdf_path_en')
                         ->label('PDF du communiqué signé — version anglaise')
                         ->disk(CampagneCandidature::COMMUNIQUE_DISK)
+                        // Pas de HeadObject à l'ouverture du formulaire : la clé MinIO de prod
+                        // le refuse et Filament retirerait alors le PDF déjà déposé.
+                        ->fetchFileInformation(false)
                         ->directory('communiques')
                         ->visibility('public')
                         ->acceptedFileTypes(['application/pdf'])
@@ -115,7 +122,7 @@ class CampagneCandidatureResource extends Resource
             ->defaultSort('opens_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('slug')->searchable(),
-                Tables\Columns\TextColumn::make('nom.fr')->label('Nom (FR)')->searchable()->limit(45),
+                TranslatedColumn::make('nom')->label('Nom (FR)')->searchable()->limit(45),
                 Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $state) => match ($state) {
                     'draft' => 'gray', 'open' => 'success', 'closed' => 'warning', 'archived' => 'danger',
                     default => 'gray',
