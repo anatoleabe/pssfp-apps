@@ -55,7 +55,11 @@ export function AccessAction({ doc }: AccessActionProps): JSX.Element {
     switch (reason) {
       case 'public': {
         const size = doc.file_size_bytes ? fileSizeFormat(doc.file_size_bytes) : null;
-        const label = size ? t('downloadWithSize', { size: format.number(size.value, size.format) }) : t('download');
+        // Format réel (PDF par défaut) : des documents importés sont des présentations ou des textes Word.
+        const fileFormat = doc.file_format ?? 'PDF';
+        const label = size
+          ? t('downloadWithSize', { format: fileFormat, size: format.number(size.value, size.format) })
+          : t('download', { format: fileFormat });
         return (
           <a href={downloadHref(doc.uuid)} className={BUTTON}>
             <Download size={16} aria-hidden="true" />

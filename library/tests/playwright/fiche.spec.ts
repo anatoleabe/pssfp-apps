@@ -136,7 +136,7 @@ test.describe('Fiche — utilitaires', () => {
     const doc = {
       uuid: 'u', slug: 'piege', type: 'article_scientifique', type_label: '', title, subtitle: null, year: 2020, language: 'fr',
       specialite: null, promotion: null, authors: ['A </script>'], mots_cles: [], cover_url: null, access_mode: 'libre', price_xaf: null,
-      published_at: null, abstract: null, journal: null, doi: null, isbn: null, pages_count: null, file_size_bytes: null,
+      published_at: null, abstract: null, journal: null, doi: null, isbn: null, pages_count: null, file_size_bytes: null, file_format: null,
       external_url: null, views_count: 0, access: { allowed: true, reason: 'public' },
     } satisfies DocumentDetail;
     const html = serializeJsonLd(documentJsonLd(doc, { origin: 'https://exemple.org', publisherName: 'PSSFP', publisherUrl: 'https://pssfp.org/' }));

@@ -92,6 +92,17 @@ it('affiche une fiche avec la décision d\'accès', function (): void {
     expect($doc->fresh()->views_count)->toBe(0);
 });
 
+it('expose le format du fichier sur la fiche', function (?string $path, ?string $format): void {
+    Document::factory()->published()->create(['slug' => 'fiche-format', 'file_path' => $path]);
+
+    $this->getJson('/v1/library/documents/fiche-format')->assertOk()->assertJsonPath('data.file_format', $format);
+})->with([
+    'pdf' => ['documents/a.pdf', 'PDF'],
+    'pptx' => ['documents/b.PPTX', 'PPTX'],
+    'sans extension' => ['documents/c', 'PDF'],
+    'sans fichier' => [null, null],
+]);
+
 it('reserve les champs de détail à la fiche, pas aux documents liés ni à la liste', function (): void {
     $doc = Document::factory()->published()->create(['slug' => 'fiche']);
     Document::factory()->published()->create(['type' => $doc->type]);

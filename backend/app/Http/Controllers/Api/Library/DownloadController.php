@@ -55,10 +55,13 @@ final class DownloadController extends Controller
             return $this->notFound();
         }
 
+        // PDF affiché dans le navigateur ; présentations et textes Word téléchargés.
+        $extension = (string) $document->fileExtension();
+        $disposition = ($extension === 'pdf' ? 'inline' : 'attachment').'; filename="'.$document->slug.'.'.$extension.'"';
         $url = Storage::disk((string) config('library.documents_disk'))->temporaryUrl(
             $document->file_path,
             now()->addMinutes((int) config('library.signed_url_minutes')),
-            ['ResponseContentDisposition' => 'inline; filename="'.$document->slug.'.pdf"'],
+            ['ResponseContentDisposition' => $disposition],
         );
 
         $this->record($request, $document);

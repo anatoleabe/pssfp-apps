@@ -62,12 +62,14 @@ test.describe('Composants documentaires', () => {
   test('AccessAction : quatre raisons, liens seulement quand l\'accès est ouvert', async ({ page }) => {
     await page.goto(DEMO);
     const actions = page.getByTestId('access-action');
-    await expect(actions).toHaveCount(4);
+    await expect(actions).toHaveCount(5);
 
-    const publicAction = page.locator('[data-testid="access-action"][data-reason="public"]');
-    const download = publicAction.getByRole('link', { name: /Télécharger le PDF/ });
+    const publicActions = page.locator('[data-testid="access-action"][data-reason="public"]');
+    const download = publicActions.first().getByRole('link', { name: /Télécharger \(PDF/ });
     await expect(download).toHaveAttribute('href', /\/library\/documents\/[^/]+\/download$/);
-    await expect(download).toContainText(/\((\d+|\d+,\d)\u202f(ko|Mo)\)$/);
+    await expect(download).toContainText(/\(PDF, (\d+|\d+,\d)\u202f(ko|Mo)\)$/);
+    // Format réel du fichier (présentation importée de l'ancienne bibliothèque), sans taille connue.
+    await expect(publicActions.nth(1).getByRole('link')).toHaveText('Télécharger (PPTX)');
 
     const external = page.locator('[data-testid="access-action"][data-reason="external"]').getByRole('link');
     await expect(external).toHaveAccessibleName(/Consulter en ligne.*nouvelle fenêtre/);

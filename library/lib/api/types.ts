@@ -26,7 +26,7 @@ export interface AccessDecision { allowed: boolean; reason: AccessReason }
 
 export interface DocumentDetail extends DocumentSummary {
   abstract: string | null; journal: string | null; doi: string | null; isbn: string | null;
-  pages_count: number | null; file_size_bytes: number | null; external_url: string | null;
+  pages_count: number | null; file_size_bytes: number | null; file_format: string | null; external_url: string | null;
   views_count: number; access: AccessDecision;
 }
 

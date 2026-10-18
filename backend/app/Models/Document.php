@@ -137,6 +137,20 @@ class Document extends Model
             && ($this->published_at === null || $this->published_at->lte(now()));
     }
 
+    /**
+     * Extension du fichier stocké (minuscules), « pdf » à défaut ; null sans fichier.
+     * Des documents importés de Joomla sont des présentations ou des textes Word.
+     */
+    public function fileExtension(): ?string
+    {
+        if ($this->file_path === null) {
+            return null;
+        }
+        $extension = strtolower(pathinfo($this->file_path, PATHINFO_EXTENSION));
+
+        return preg_match('/^[a-z0-9]{1,5}$/', $extension) === 1 ? $extension : 'pdf';
+    }
+
     /** Libellé d'accès : payant prime sur réservé, réservé sur libre. */
     protected function accessMode(): Attribute
     {

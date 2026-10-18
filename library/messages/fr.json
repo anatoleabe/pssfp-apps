@@ -233,8 +233,8 @@
     "payant": "Payant",
     "payantPrice": "Payant · {price}",
     "action": {
-      "download": "Télécharger le PDF",
-      "downloadWithSize": "Télécharger le PDF ({size})",
+      "download": "Télécharger ({format})",
+      "downloadWithSize": "Télécharger ({format}, {size})",
       "external": "Consulter en ligne",
       "newWindow": "(s'ouvre dans une nouvelle fenêtre)",
       "reservedTitle": "Réservé aux auditeurs — bientôt disponible",
