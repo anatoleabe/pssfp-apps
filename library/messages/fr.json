@@ -256,7 +256,8 @@
     "acte_conference": { "one": "Acte de conférence", "other": "Actes de conférence" },
     "rapport_stage": { "one": "Rapport de stage", "other": "Rapports de stage" },
     "bulletin": { "one": "Bulletin", "other": "Bulletins" },
-    "ressource_pedagogique": { "one": "Ressource pédagogique", "other": "Ressources pédagogiques" }
+    "ressource_pedagogique": { "one": "Ressource pédagogique", "other": "Ressources pédagogiques" },
+    "rapport": { "one": "Rapport et publication", "other": "Rapports et publications" }
   },
   "sort": {
     "label": "Trier par",

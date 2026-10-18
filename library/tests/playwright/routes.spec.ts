@@ -7,6 +7,10 @@ test.describe('searchParamsToFilters', () => {
     expect(f).toEqual({ type: 'memoire', acces: 'libre', tri: 'populaire', promotion: 12, annee_min: 2010, annee_max: 2024, specialite: 'fiscalite', langue: 'fr', mot_cle: 'tva' });
   });
 
+  test('reconnaît le type rapport', () => {
+    expect(searchParamsToFilters(new URLSearchParams('type=rapport'))).toEqual({ type: 'rapport' });
+  });
+
   test('ignore les type, acces et tri inconnus', () => {
     expect(searchParamsToFilters(new URLSearchParams('type=roman&acces=gratuit&tri=hasard'))).toEqual({});
     expect(searchParamsToFilters({ type: 'MEMOIRE', acces: '', tri: undefined })).toEqual({});

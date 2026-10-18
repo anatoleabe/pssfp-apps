@@ -56,6 +56,7 @@ class Document extends Model
         'rapport_stage' => 'Rapport de stage',
         'bulletin' => 'Bulletin',
         'ressource_pedagogique' => 'Ressource pédagogique',
+        'rapport' => 'Rapport et publication',
     ];
 
     public const ACCESS_LEVELS = [

@@ -50,6 +50,15 @@ test.describe('Composants documentaires', () => {
     await expect(img).toHaveAttribute('alt', /Couverture : /);
   });
 
+  test('couverture du type rapport : libellé « Rapport et publication », texte lisible', async ({ page }) => {
+    await page.goto(DEMO);
+    const cover = page.getByTestId('document-cover-typo').filter({ hasText: 'Rapport et publication' });
+    await expect(cover).toHaveCount(1);
+    await expect(cover).toBeVisible();
+    // Texte blanc sur fond pétrole clair (contraste calculé ≥ 4,5:1 : 8,1:1 au plus clair du dégradé).
+    await expect(cover).toHaveCSS('color', 'rgb(255, 255, 255)');
+  });
+
   test('AccessAction : quatre raisons, liens seulement quand l\'accès est ouvert', async ({ page }) => {
     await page.goto(DEMO);
     const actions = page.getByTestId('access-action');

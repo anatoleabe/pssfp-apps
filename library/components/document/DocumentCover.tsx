@@ -14,7 +14,8 @@ interface CoverTheme {
  * Contrastes du texte (WCAG, teinte de départ = cas le plus défavorable) :
  * blanc / prune #4A2E67 11,18:1 · blanc / pétrole #0F3A4A 12,18:1 ·
  * blanc / graphite #3C3C3C 11,03:1 · prune foncé #3A2452 / or #D4AF6A 6,52:1 ·
- * prune foncé / lavande #A592BD 4,79:1 · blanc / prune clair #5C3A7E 8,89:1.
+ * prune foncé / lavande #A592BD 4,79:1 · blanc / prune clair #5C3A7E 8,89:1 ·
+ * blanc / pétrole clair #1D5A70 (départ du dégradé rapport) 7,64:1.
  */
 const PRUNE: CoverTheme = { surface: 'from-pssfp-prune to-pssfp-prune-dark', text: 'text-white' };
 const PRUNE_LIGHT: CoverTheme = { surface: 'from-pssfp-prune-light to-pssfp-prune', text: 'text-white' };
@@ -31,6 +32,7 @@ export const COVER_THEMES: Record<DocumentType, CoverTheme> = {
   article_scientifique: PRUNE_LIGHT,
   acte_conference: PRUNE_LIGHT,
   bulletin: PRUNE_LIGHT,
+  rapport: { surface: 'from-[#1D5A70] to-pssfp-bleu-petrole', text: 'text-white' },
 };
 
 const SIZES: Record<CoverSize, { box: string; sizes: string; pad: string; title: string; type: string }> = {
