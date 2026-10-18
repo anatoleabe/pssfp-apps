@@ -84,8 +84,13 @@ final class ProcessDocumentFile implements ShouldQueue
             $jpeg = $renderer->render($local);
             if ($jpeg !== null) {
                 $coverPath = (string) config('library.covers_directory')."/{$document->uuid}.jpg";
-                Storage::disk((string) config('library.covers_disk'))->put($coverPath, $jpeg, ['visibility' => 'public']);
-                $attributes['cover_path'] = $coverPath;
+                // Disque en throw=false : sans écriture confirmée, la couverture précédente reste.
+                if (Storage::disk((string) config('library.covers_disk'))->put($coverPath, $jpeg, ['visibility' => 'public']) === true) {
+                    $attributes['cover_path'] = $coverPath;
+                } else {
+                    unset($attributes['cover_path']);
+                    Log::warning('Bibliothèque : envoi de la couverture impossible', ['document' => $document->uuid, 'path' => $coverPath]);
+                }
             }
         } finally {
             if (is_resource($stream)) {
