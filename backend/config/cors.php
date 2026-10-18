@@ -22,6 +22,8 @@ return [
         env('APP_ENV') !== 'production' ? 'http://127.0.0.1:6003' : null,
         'https://pssfp.org',
         'https://www.pssfp.org',
+        'https://library.pssfp.org',
+        // Ancien nom, redirigé en 301 vers library.pssfp.org (conservé par prudence).
         'https://bibliotheque.pssfp.org',
         'https://apply.pssfp.org',
     ]),

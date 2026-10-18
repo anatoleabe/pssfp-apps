@@ -1,4 +1,4 @@
-const DEFAULT_SITE_URL = 'https://bibliotheque.pssfp.org';
+const DEFAULT_SITE_URL = 'https://library.pssfp.org';
 
 /** URL canonique de la bibliothèque ; valeur par défaut si la variable est absente ou invalide. */
 export function siteUrl(): URL {
