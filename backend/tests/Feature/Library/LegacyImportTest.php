@@ -419,6 +419,36 @@ it('publie le brouillon importé dont un élément publié partage le fichier', 
     expect($dry['merged_into_draft'])->toBe([]);
 });
 
+it('ne republie pas à la relance un brouillon remis en brouillon par l\'administration', function (): void {
+    putImportFile($this->files, 'livres/manuel-imaginaire.pdf', $this->pdf['Documentations/CIRCULAIRES/c-fictive.pdf']);
+    runLegacyImport($this);
+    expect(importedDocument('docman', 102)->status)->toBe(Document::STATUS_PUBLISHED);
+
+    importedDocument('docman', 102)->update(['status' => Document::STATUS_DRAFT]);
+    $report = runLegacyImport($this);
+
+    expect(importedDocument('docman', 102)->status)->toBe(Document::STATUS_DRAFT)
+        ->and($report['merged_into_draft'])->toBe([]);
+});
+
+it('refuse de démarrer quand un autre import tient le verrou', function (): void {
+    $handle = fopen(storage_path('logs/biblio-import.lock'), 'c');
+    flock($handle, LOCK_EX | LOCK_NB);
+
+    try {
+        $this->artisan('biblio:import', ['export' => writeExport($this), '--files' => $this->files])
+            ->expectsOutputToContain('déjà en cours')
+            ->assertExitCode(1);
+    } finally {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+    }
+
+    expect(Document::count())->toBe(0);
+    runLegacyImport($this);
+    expect(Document::count())->toBe(4);
+});
+
 it('ne publie pas un brouillon déposé à la main qui partage le fichier', function (): void {
     $manuel = Document::factory()->create(['slug' => 'brouillon-manuel', 'file_checksum_md5' => md5($this->pdf['livres/manuel-imaginaire.pdf'])]);
 

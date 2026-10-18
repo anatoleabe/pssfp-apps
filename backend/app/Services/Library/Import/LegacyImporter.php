@@ -536,13 +536,16 @@ final class LegacyImporter
 
         $paths = $this->legacyPaths($item);
         $created = $this->redirects->ensure($paths, '/documents/'.$target['slug']);
+        // Fusion nouvelle dans ce lancement : l'URL à query string de l'élément vient d'être créée.
+        // Vues cumulées et brouillon publié une seule fois (une relance ne republie pas un document
+        // remis en brouillon depuis l'administration).
+        $marker = collect($paths)->first(fn (LegacyPath $p): bool => str_ends_with($p->form, '.requete'))?->path;
+        $isNewMerge = $marker !== null && ($created[$marker] ?? false);
         // Publié dans Joomla sous une autre fiche : le brouillon créé par l'import est publié.
-        $publish = $item->isPublished() && $target['draft'] && $target['imported'];
+        $publish = $isNewMerge && $item->isPublished() && $target['draft'] && $target['imported'];
 
         if (! $this->options->dryRun && $target['id'] !== null) {
-            // Vues cumulées une seule fois : quand l'URL à query string de l'élément vient d'être créée.
-            $marker = collect($paths)->first(fn (LegacyPath $p): bool => str_ends_with($p->form, '.requete'))?->path;
-            if ($marker !== null && ($created[$marker] ?? false) && $item->hits > 0) {
+            if ($isNewMerge && $item->hits > 0) {
                 Document::withTrashed()->whereKey($target['id'])->increment('views_count', $item->hits);
             }
             $document = Document::query()->find($target['id']);

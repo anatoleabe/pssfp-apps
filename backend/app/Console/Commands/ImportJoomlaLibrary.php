@@ -30,6 +30,24 @@ final class ImportJoomlaLibrary extends Command
 
     public function handle(LegacyImporter $importer): int
     {
+        // Verrou exclusif non bloquant : deux imports simultanés se disputeraient slugs et fichiers.
+        $lock = fopen(storage_path('logs/biblio-import.lock'), 'c');
+        if ($lock === false || ! flock($lock, LOCK_EX | LOCK_NB)) {
+            $this->error('Un import de la bibliothèque est déjà en cours (verrou storage/logs/biblio-import.lock) : attendez sa fin.');
+
+            return self::FAILURE;
+        }
+
+        try {
+            return $this->runImport($importer);
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    private function runImport(LegacyImporter $importer): int
+    {
         try {
             $options = $this->importOptions();
             $export = $this->readExport((string) $this->argument('export'));
