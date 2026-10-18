@@ -1,10 +1,10 @@
-# /library — bibliothèque virtuelle bibliotheque.pssfp.org
+# /library — bibliothèque virtuelle library.pssfp.org
 
 > Lu automatiquement par Claude Code à chaque session ouverte dans ce dossier.
 
 ## Mission
 
-App Next.js 14 servant la bibliothèque virtuelle sur `bibliotheque.pssfp.org` (domaine canonique, `NEXT_PUBLIC_SITE_URL`). V1 : catalogue public en lecture seule (sans compte), recherche Meilisearch via l'API Laravel, fiches avec accès différencié par mode (`libre` / `reserve` / `payant`). Spec de référence : `docs/specs/module-3-bibliotheque-v1-2026-10.md` (§6 pour ce dossier). Comptes, cours filigranés et paiement : sous-projets 4 et 5 (hors V1).
+App Next.js 14 servant la bibliothèque virtuelle sur `library.pssfp.org` (domaine canonique, `NEXT_PUBLIC_SITE_URL`). V1 : catalogue public en lecture seule (sans compte), recherche Meilisearch via l'API Laravel, fiches avec accès différencié par mode (`libre` / `reserve` / `payant`). Spec de référence : `docs/specs/module-3-bibliotheque-v1-2026-10.md` (§6 pour ce dossier). Comptes, cours filigranés et paiement : sous-projets 4 et 5 (hors V1).
 
 ## Principes spécifiques biblio
 
@@ -64,7 +64,7 @@ Lighthouse ≥ 85 sur les 4 dimensions (CDC v2.0 §K.2), mesuré en local sur `p
 
 ```
 NEXT_PUBLIC_API_URL=http://localhost:8000/v1   # obligatoire en production pour `next build` (hors CI) et `next start`
-NEXT_PUBLIC_SITE_URL=https://bibliotheque.pssfp.org
+NEXT_PUBLIC_SITE_URL=https://library.pssfp.org
 NEXT_PUBLIC_MAIN_SITE_URL=http://localhost:6001
 NEXT_PUBLIC_FOAD_URL=https://foad.pssfp.net
 ```

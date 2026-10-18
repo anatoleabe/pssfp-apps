@@ -27,18 +27,18 @@ async function seededRedirect(request: APIRequestContext): Promise<boolean | typ
 }
 
 test.describe('Anciennes URL — validation (fonctions pures)', () => {
-  const BASE = new URL('https://bibliotheque.pssfp.org/index.php/ancien');
+  const BASE = new URL('https://library.pssfp.org/index.php/ancien');
 
   test('seul un chemin interne du même site est accepté', () => {
-    expect(safeRedirectTarget('/ok', BASE)?.href).toBe('https://bibliotheque.pssfp.org/ok');
-    expect(safeRedirectTarget('/collections/texte_loi', BASE)?.href).toBe('https://bibliotheque.pssfp.org/collections/texte_loi');
-    expect(safeRedirectTarget('/documents/x?y=1', BASE)?.href).toBe('https://bibliotheque.pssfp.org/documents/x?y=1');
-    expect(safeRedirectTarget('/collections/memoire?acces=libre', BASE)?.href).toBe('https://bibliotheque.pssfp.org/collections/memoire?acces=libre');
+    expect(safeRedirectTarget('/ok', BASE)?.href).toBe('https://library.pssfp.org/ok');
+    expect(safeRedirectTarget('/collections/texte_loi', BASE)?.href).toBe('https://library.pssfp.org/collections/texte_loi');
+    expect(safeRedirectTarget('/documents/x?y=1', BASE)?.href).toBe('https://library.pssfp.org/documents/x?y=1');
+    expect(safeRedirectTarget('/collections/memoire?acces=libre', BASE)?.href).toBe('https://library.pssfp.org/collections/memoire?acces=libre');
     // Points non isolés : pas des segments de chemin.
     expect(safeRedirectTarget('/documents/rapport-v1.2', BASE)?.pathname).toBe('/documents/rapport-v1.2');
     expect(safeRedirectTarget('/documents/a...b', BASE)?.pathname).toBe('/documents/a...b');
     // Cible reconstruite (chemin + query) : jamais la chaîne brute, jamais de fragment.
-    expect(safeRedirectTarget('/documents/x?y=1#z', BASE)?.href).toBe('https://bibliotheque.pssfp.org/documents/x?y=1');
+    expect(safeRedirectTarget('/documents/x?y=1#z', BASE)?.href).toBe('https://library.pssfp.org/documents/x?y=1');
   });
 
   test('cibles piégées refusées (contrôle, barre inverse, //, segments . et .. même encodés)', () => {
