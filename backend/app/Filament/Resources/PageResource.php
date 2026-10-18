@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PageResource\Pages;
+use App\Filament\Tables\TranslatedColumn;
 use App\Models\Page;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -127,7 +128,7 @@ class PageResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('slug')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('title.fr')->label('Titre (FR)')->searchable()->limit(40),
+                TranslatedColumn::make('title')->label('Titre (FR)')->searchable()->limit(40),
                 Tables\Columns\BadgeColumn::make('status')->colors([
                     'gray' => Page::STATUS_DRAFT,
                     'warning' => Page::STATUS_IN_REVIEW,

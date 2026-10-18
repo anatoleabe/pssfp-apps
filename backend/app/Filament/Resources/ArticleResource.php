@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ArticleResource\Pages;
+use App\Filament\Tables\TranslatedColumn;
 use App\Models\Article;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -90,7 +91,7 @@ class ArticleResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('slug')->searchable()->sortable()->limit(40),
-                Tables\Columns\TextColumn::make('title.fr')->label('Titre (FR)')->searchable()->limit(40),
+                TranslatedColumn::make('title')->label('Titre (FR)')->searchable()->limit(40),
                 Tables\Columns\BadgeColumn::make('category')->colors([
                     'primary' => 'evenement',
                     'success' => 'cooperation',

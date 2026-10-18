@@ -1,6 +1,14 @@
 import type { Config } from 'tailwindcss';
 import { colors, fonts, fontSizes, spacing, breakpoints, radius } from './src/tokens';
 
+/** Pile CSS d'une famille : noms composés entre guillemets, mots-clés génériques laissés nus. */
+function fontStack(list: string): string[] {
+  return list
+    .split(',')
+    .map((s) => s.trim())
+    .map((name) => (/[\s\d]/.test(name) ? `"${name}"` : name));
+}
+
 /**
  * Charte 2026 PSSFP — ADR-0008.
  * Tokens prune institutionnelle / bleu pétrole / or champagne / Cormorant Garamond / Source Sans 3.
@@ -48,10 +56,17 @@ const config: Pick<Config, 'darkMode' | 'theme' | 'plugins'> = {
         error: colors.error,
         info: colors.info,
       },
+      // next/font enregistre chaque police sous un nom haché, exposé par les
+      // variables --font-heading / --font-body / --font-ui posées dans le layout
+      // de chaque app. Sans la variable en tête, le navigateur cherche
+      // « Cormorant Garamond » par son nom, ne charge aucune police web et
+      // retombe sur Georgia / la police système.
+      // Les noms composés sont mis entre guillemets : Tailwind les recopie tels
+      // quels, et `Source Sans 3` non guillemeté invalide toute la déclaration.
       fontFamily: {
-        heading: fonts.heading.split(',').map((s) => s.trim()),
-        body: fonts.body.split(',').map((s) => s.trim()),
-        ui: fonts.ui.split(',').map((s) => s.trim()),
+        heading: ['var(--font-heading)', ...fontStack(fonts.heading)],
+        body: ['var(--font-body)', ...fontStack(fonts.body)],
+        ui: ['var(--font-ui)', ...fontStack(fonts.ui)],
       },
       fontSize: {
         ...fontSizes,
