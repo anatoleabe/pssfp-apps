@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Services\Library\Import\LegacyText;
+use App\Services\Library\Import\TitleLexicon;
 
 uses()->group('module-3', 'library', 'biblio-import');
 
@@ -46,8 +47,20 @@ describe('title', function (): void {
         'anglais' => ['A BASIC MODEL OF THE BUDGET FOR CAMEROON', 'A basic model of the budget for Cameroon'],
         'sigle seul' => ['MINFI', 'MINFI'],
         'cote après un nombre' => ['ARRETE N 00999 A MINATD DU 24 AOUT 2009', 'Arrêté n° 00999 A MINATD du 24 août 2009'],
+        'romain seul après titre' => ['TITRE V DU CODE GENERAL', 'Titre V du code général'],
+        'romain seul après livre' => ['LIVRE I', 'Livre I'],
+        'romain seul après un numéro' => ['TOME 2 PARTIE X ANNEXE I', 'Tome 2 partie X annexe I'],
+        'sigles à voyelles' => ['RAPPORT UNESCO UNICEF FAO OMS SUR LES PME ET ONG', 'Rapport UNESCO UNICEF FAO OMS sur les PME et ONG'],
+        'monnaies et sigles' => ['TAUX USD EUR XAF ET IRPP CIMA', 'Taux USD EUR XAF et IRPP CIMA'],
+        'IS dans un titre français' => ['REGIME DE L IS ET DE LA TVA', "Régime de l'IS et de la TVA"],
+        'is dans un titre anglais' => ['WHAT IS PUBLIC DEBT', 'What is public debt'],
+        'démission sans élision' => ['DEMISSION DU COMPTABLE', 'Démission du comptable'],
         'apostrophe devenue espace' => ['BUDGETISATION DE L AIDE ET D ALLOCATION', "Budgétisation de l'aide et d'allocation"],
     ]);
+
+    it('ne lit jamais une élision dans les mots exclus', function (string $word): void {
+        expect(LegacyText::title('NOTE '.mb_strtoupper($word)))->not->toContain("'");
+    })->with(TitleLexicon::ELISION_EXCEPTIONS);
 
     it('ne touche pas un titre déjà en casse mixte', function (): void {
         expect(LegacyText::title('The State of Public Finance in Central Africa'))
@@ -83,6 +96,13 @@ describe('year', function (): void {
         'avant 1900' => ['Traité de 1884', null],
         'aucune' => ['Guide didactique', null],
         'numéro de texte' => ['Décret n° 2011/0976/PM fixant la dotation', 2011],
+        'montant en FCFA écarté' => ['Budget de 2500 FCFA par habitant en 2014', 2014],
+        'montant en F CFA' => ['Seuil de 2000 F CFA', null],
+        'montant en francs' => ['Prime de 1000 francs', null],
+        'montant en F' => ['Timbre de 1500 F', null],
+        'milliards' => ['Budget 2019 de 1900 milliards', 2019],
+        'millions et mds' => ['Dette de 2010 millions et 2020 mds', null],
+        'année suivie d\'un mot en F' => ['Loi de finances 2015 Fiscalité', 2015],
     ]);
 });
 
@@ -92,13 +112,18 @@ describe('language', function (): void {
     })->with([
         'anglais' => ['The State of Public Finance in Central Africa', 'en'],
         'anglais en majuscules' => ['PUBLIC FINANCIAL MANAGEMENT IN AFRICA', 'en'],
-        'un mot courant ne suffit pas' => ['Budgeting for results', 'fr'],
+        'mots métier anglais' => ['Budgeting for results', 'en'],
         'deux mots courants' => ['Taxation and revenue of the State', 'en'],
         'un seul mot anglais' => ['Budget of Cameroon', 'fr'],
         'mélange' => ['Public Financial Management : le cas du Cameroun', 'fr'],
         'français' => ['Ordonnance n° 99 OF livre premier dispositions diverses', 'fr'],
         'vide' => ['', 'fr'],
         'mot répété compté une fois' => ['Service public secteur public', 'fr'],
+        'marqueurs faibles seuls' => ['Management public', 'fr'],
+        'trois marqueurs faibles' => ['Public management control', 'fr'],
+        'un fort et deux faibles' => ['Public management in Africa', 'en'],
+        'un fort et un faible' => ['State of Africa', 'fr'],
+        'deux forts dont un mot métier' => ['Fraud risk management', 'en'],
     ]);
 });
 
@@ -148,5 +173,35 @@ describe('slug', function (): void {
 
     it('coupe un mot unique trop long', function (): void {
         expect(LegacyText::slug(str_repeat('a', 200), 'x'))->toBe(str_repeat('a', 160));
+    });
+});
+
+describe('lowercasedUppercaseWords', function (): void {
+    it('liste les mots criés remis en minuscules dans au moins 3 titres', function (): void {
+        $titles = [
+            'RAPPORT DU ZOBAN', 'NOTE ZOBAN 2019', 'AVIS DU ZOBAN', 'NOTE DE SERVICE',
+            'Guide de la note', 'KADU UN', 'KADU DEUX', 'ZOBAN MINFI', 'MINFI ET TVA', 'TVA ET MINFI',
+        ];
+
+        expect(LegacyText::lowercasedUppercaseWords($titles))->toBe(['ZOBAN' => 4]);
+    });
+
+    it('accepte un autre seuil', function (): void {
+        expect(LegacyText::lowercasedUppercaseWords(['KADU UN', 'KADU DEUX'], 2))->toBe(['KADU' => 2]);
+    });
+});
+
+describe('TitleLexicon', function (): void {
+    it('déclare FRENCH_WORDS trié, sans clé en double', function (): void {
+        $source = (string) file_get_contents((string) (new ReflectionClass(TitleLexicon::class))->getFileName());
+        preg_match('/const FRENCH_WORDS = \[(.*?)\n    \];/s', $source, $block);
+        preg_match_all("/'([^']+)'\s*=>/", $block[1] ?? '', $keys);
+        $sorted = $keys[1];
+        sort($sorted, SORT_STRING);
+
+        expect($keys[1])->not->toBeEmpty()
+            ->and(count($keys[1]))->toBe(count(array_unique($keys[1])))
+            ->and($keys[1])->toBe($sorted)
+            ->and(count($keys[1]))->toBe(count(TitleLexicon::FRENCH_WORDS));
     });
 });

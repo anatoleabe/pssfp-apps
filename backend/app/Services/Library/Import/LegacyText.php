@@ -27,6 +27,12 @@ final class LegacyText
 
     private const VOWELS = 'aeiouyàâäéèêëîïôöùûüÿœæ';
 
+    /** Montant plutôt qu'année : « 2500 FCFA », « 1500 milliards ». */
+    private const AMOUNT_UNITS = 'f\\s*cfa|fcfa|francs?|f|milliards?|millions?|mds?';
+
+    /** Mots après lesquels I, V ou X seul est un chiffre romain (« TITRE V », « LIVRE I »). */
+    private const ROMAN_CONTEXT = ['titre', 'livre', 'annexe', 'chapitre', 'tome', 'partie', 'section', 'volume', 'article'];
+
     private const BLOCK_TAGS = 'p|div|h[1-6]|ul|ol|blockquote|table|tr|section|article|header|footer|pre';
 
     public static function title(string $raw): string
@@ -76,7 +82,8 @@ final class LegacyText
      * Année déclarée si plausible (1900–2100) ; sinon année d'une date complète du titre
      * (« du 14 avril 2008 », la date de signature d'un texte) ; sinon dernière année à
      * 4 chiffres plausible du titre ; sinon null — jamais la date d'import. Une année du
-     * titre au-delà de l'an prochain est un horizon (« Vision 2035 »), pas une date.
+     * titre au-delà de l'an prochain est un horizon (« Vision 2035 »), pas une date ; un
+     * nombre suivi d'une unité monétaire (« 2500 FCFA », « 1500 milliards ») non plus.
      */
     public static function year(?int $declared, string $title, ?int $currentYear = null): ?int
     {
@@ -94,7 +101,7 @@ final class LegacyText
             }
         }
 
-        preg_match_all('/(?<!\d)\d{4}(?!\d)/', $title, $years);
+        preg_match_all('/(?<!\d)\d{4}(?!\d)(?!\s*(?:'.self::AMOUNT_UNITS.')(?!\p{L}))/iu', $title, $years);
         foreach (array_reverse($years[0]) as $year) {
             if ($plausible((int) $year)) {
                 return (int) $year;
@@ -104,14 +111,75 @@ final class LegacyText
         return null;
     }
 
-    /** `en` si le titre a au moins 2 mots anglais courants distincts et aucun mot français courant ; sinon `fr`. */
+    /**
+     * `en` si le titre a, en mots distincts, au moins 2 marqueurs anglais forts ou 1 fort et
+     * 2 faibles (public, state, control, management : aussi en usage en français), et aucun
+     * mot français courant ; sinon `fr`.
+     */
     public static function language(string $title): string
     {
         $words = array_unique(preg_split('/[^\p{L}]+/u', mb_strtolower($title), -1, PREG_SPLIT_NO_EMPTY) ?: []);
-        $english = count(array_intersect($words, TitleLexicon::ENGLISH_MARKERS));
+        $strong = count(array_intersect($words, TitleLexicon::ENGLISH_MARKERS));
+        $weak = count(array_intersect($words, TitleLexicon::WEAK_ENGLISH_MARKERS));
         $french = count(array_intersect($words, TitleLexicon::FRENCH_MARKERS));
 
-        return $english >= 2 && $french === 0 ? 'en' : 'fr';
+        return ($strong >= 2 || ($strong >= 1 && $weak >= 2)) && $french === 0 ? 'en' : 'fr';
+    }
+
+    /**
+     * Mots de 2 à 7 lettres écrits en majuscules dans des titres « criés » et remis en
+     * minuscules par title(), présents dans au moins $minTitles titres et jamais vus en
+     * minuscules dans un titre en casse mixte ni connus du lexique (mots outils, mots
+     * d'élision) : candidats sigles absents du lexique, à relire (beaucoup de mots ordinaires)
+     * (affichés par le dry-run de l'import). Clés en majuscules, triées par fréquence.
+     *
+     * @param  iterable<string>  $titles  titres bruts
+     * @return array<string, int>
+     */
+    public static function lowercasedUppercaseWords(iterable $titles, int $minTitles = 3): array
+    {
+        $counts = [];
+        $ordinary = [];
+        foreach ($titles as $raw) {
+            $clean = self::decodeEntities(strip_tags($raw));
+            preg_match_all('/\p{L}+/u', $clean, $source);
+            if (! self::isShouting($clean)) {
+                foreach ($source[0] as $word) {
+                    if (mb_strtolower($word) === $word) {
+                        $ordinary[mb_strtoupper($word)] = true;
+                    }
+                }
+
+                continue;
+            }
+
+            preg_match_all('/\p{L}+/u', self::title($raw), $normalised);
+            $uppercase = array_flip(array_filter($source[0], fn (string $w): bool => mb_strtoupper($w) === $w));
+            $found = [];
+            foreach ($normalised[0] as $word) {
+                $upper = mb_strtoupper($word);
+                $length = mb_strlen($word);
+                if ($length >= 2 && $length <= 7 && isset($uppercase[$upper]) && self::wasLowercased($word)) {
+                    $found[$upper] = true;
+                }
+            }
+            foreach (array_keys($found) as $word) {
+                $counts[$word] = ($counts[$word] ?? 0) + 1;
+            }
+        }
+
+        $known = array_flip(array_map('mb_strtoupper', array_merge(
+            TitleLexicon::FRENCH_MARKERS, TitleLexicon::ENGLISH_MARKERS, TitleLexicon::WEAK_ENGLISH_MARKERS,
+            TitleLexicon::ELISION_WORDS, TitleLexicon::ELISION_EXCEPTIONS,
+        )));
+        $counts = array_filter(
+            $counts,
+            fn (int $count, string $word): bool => $count >= $minTitles && ! isset($ordinary[$word]) && ! isset($known[$word]),
+            ARRAY_FILTER_USE_BOTH,
+        );
+        arsort($counts);
+
+        return $counts;
     }
 
     /**
@@ -183,6 +251,7 @@ final class LegacyText
                 $m[0][0],
                 $m[0][1] > 0 && ctype_digit($text[$m[0][1] - 1]),
                 preg_match('/\d\s$/', substr($text, max(0, $m[0][1] - 2), 2)) === 1,
+                self::previousWord(substr($text, 0, $m[0][1])),
                 $french,
             ),
             $text,
@@ -190,16 +259,39 @@ final class LegacyText
         );
     }
 
+    /** Remis en minuscules par title() (la majuscule initiale du titre ne compte pas, un nom propre si). */
+    private static function wasLowercased(string $word): bool
+    {
+        $lower = mb_strtolower($word);
+        if ($word !== $lower && $word !== mb_strtoupper(mb_substr($word, 0, 1)).mb_substr($lower, 1)) {
+            return false;
+        }
+
+        return ! in_array($word, TitleLexicon::PROPER_NOUNS, true);
+    }
+
+    /** Mot (ou nombre, « N° ») qui précède, en minuscules ; null en début de titre. */
+    private static function previousWord(string $before): ?string
+    {
+        return preg_match('/([\p{L}\d°º]+)[^\p{L}\d]*$/u', $before, $m) === 1 ? mb_strtolower($m[1]) : null;
+    }
+
     /**
      * @param  bool  $afterDigit  collé à un chiffre (« 1ER », « 2ND ») : jamais un sigle
      * @param  bool  $afterNumber  suit un nombre : une lettre seule est une cote (« 00136 A MINATD »)
      */
-    private static function recase(string $word, bool $afterDigit, bool $afterNumber, bool $french): string
+    private static function recase(string $word, bool $afterDigit, bool $afterNumber, ?string $previous, bool $french): string
     {
         $upper = mb_strtoupper($word);
         $lower = mb_strtolower($word);
 
         if (in_array($upper, TitleLexicon::ACRONYMS, true) || self::isRomanNumeral($upper)) {
+            return $upper;
+        }
+        if ($french && in_array($upper, TitleLexicon::FRENCH_ONLY_ACRONYMS, true)) {
+            return $upper;
+        }
+        if (in_array($upper, ['I', 'V', 'X'], true) && $previous !== null && self::announcesRomanNumeral($previous)) {
             return $upper;
         }
         if ($afterNumber && mb_strlen($word) === 1) {
@@ -221,7 +313,8 @@ final class LegacyText
     /** « lexecution » → « l'exécution », « detat » → « d'État », « locde » → « l'OCDE ». */
     private static function restoreElision(string $word): ?string
     {
-        if (preg_match('/^([ld])([aeiouyhé].{2,})$/u', $word, $m) !== 1) {
+        if (in_array($word, TitleLexicon::ELISION_EXCEPTIONS, true)
+            || preg_match('/^([ld])([aeiouyhé].{2,})$/u', $word, $m) !== 1) {
             return null;
         }
         [, $article, $rest] = $m;
@@ -231,6 +324,12 @@ final class LegacyText
             ?? (in_array($rest, TitleLexicon::ELISION_WORDS, true) ? $rest : null);
 
         return $restored === null ? null : $article."'".$restored;
+    }
+
+    private static function announcesRomanNumeral(string $previous): bool
+    {
+        return in_array($previous, self::ROMAN_CONTEXT, true)
+            || preg_match('/^(?:\d+|n[°º]?|no|numero|numéro)$/u', $previous) === 1;
     }
 
     private static function isRomanNumeral(string $word): bool
