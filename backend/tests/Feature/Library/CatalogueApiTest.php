@@ -22,6 +22,24 @@ it('compte les documents publiés par type et signale la présence de payants', 
         ->assertJsonMissingPath('data.by_type.these');
 });
 
+it('compte les promotions distinctes des mémoires publiés', function (): void {
+    Document::factory()->published()->count(2)->create(['type' => 'memoire', 'promotion' => 3]);
+    Document::factory()->published()->create(['type' => 'memoire', 'promotion' => 7]);
+    Document::factory()->published()->create(['type' => 'memoire', 'promotion' => null]);
+    Document::factory()->published()->create(['type' => 'rapport_stage', 'promotion' => 11]);
+    Document::factory()->create(['type' => 'memoire', 'promotion' => 9]);
+
+    $this->getJson('/v1/library/stats')
+        ->assertOk()
+        ->assertJsonPath('data.promotions_count', 2);
+});
+
+it('renvoie zéro promotion sans mémoire publié', function (): void {
+    $this->getJson('/v1/library/stats')
+        ->assertOk()
+        ->assertJsonPath('data.promotions_count', 0);
+});
+
 it('liste les documents publiés, 20 par page, sans identifiant interne', function (): void {
     Document::factory()->published()->count(25)->create();
     Document::factory()->count(3)->create();
@@ -59,7 +77,7 @@ it('rejette un tri inconnu', function (): void {
     $this->getJson('/v1/library/documents?tri=hasard')->assertUnprocessable();
 });
 
-it('affiche une fiche avec la décision d\'accès et compte la consultation', function (): void {
+it('affiche une fiche avec la décision d\'accès', function (): void {
     $doc = Document::factory()->published()->withFile()->reserved()->create(['slug' => 'support-ue4']);
     $doc->authors()->create(['author_name' => 'Auteur Test', 'order' => 1]);
     Document::factory()->published()->create(['type' => $doc->type]);
@@ -71,7 +89,7 @@ it('affiche une fiche avec la décision d\'accès et compte la consultation', fu
         ->assertJsonPath('data.authors.0', 'Auteur Test')
         ->assertJsonCount(1, 'related');
 
-    expect($doc->fresh()->views_count)->toBe(1);
+    expect($doc->fresh()->views_count)->toBe(0);
 });
 
 it('reserve les champs de détail à la fiche, pas aux documents liés ni à la liste', function (): void {

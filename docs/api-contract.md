@@ -746,6 +746,26 @@ Liste complète des partenaires (non paginée).
 
 API consommée par `bibliotheque.pssfp.net`. Cf. CDC bibliothèque v2.0 et data-model.md §8.
 
+### `GET /v1/library/stats`
+
+Compteurs de l'accueil, sur les documents publiés uniquement.
+
+**Auth** : public, lecture seule (V1).
+**Response 200** :
+
+```json
+{
+  "data": {
+    "total": 36,
+    "by_type": { "memoire": 13, "these": 4 },
+    "paid_count": 1,
+    "promotions_count": 12
+  }
+}
+```
+
+`by_type` ne contient que les types présents (PHP le sérialise en `[]` s'il est vide) ; `paid_count` = documents avec un prix ; `promotions_count` = nombre de valeurs distinctes non nulles de `promotion` parmi les mémoires publiés.
+
 ### `GET /v1/library/documents`
 
 Liste paginée des documents.

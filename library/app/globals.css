@@ -13,14 +13,41 @@
     --pssfp-ivoire: #FAF7F2;
     --pssfp-graphite: #3C3C3C;
     --pssfp-border: rgba(165, 146, 189, 0.32);
+    /* Hauteur de l'en-tête collant (69 px en mobile, 65 px au-delà), arrondie au-dessus. */
+    --site-header-height: 4.5rem;
+  }
+  html {
+    /* Ancres et focus : la cible n'est jamais masquée par l'en-tête collant. */
+    scroll-padding-top: var(--site-header-height);
   }
   body {
     color: var(--pssfp-graphite);
-    background: #FFFFFF;
+    background: var(--pssfp-ivoire);
   }
 
   *:focus-visible {
-    outline: 2px solid var(--pssfp-or);
+    outline: 2px solid var(--pssfp-prune);
     outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Carrousels horizontaux : défilement conservé, barre masquée. */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }

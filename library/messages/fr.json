@@ -1,20 +1,327 @@
 {
-  "common": {
-    "appName": "Bibliothèque PSSFP"
-  },
-  "home": {
-    "title": "Bibliothèque virtuelle PSSFP",
-    "intro": "Recherchez parmi les thèses, articles, législation, cours et conférences.",
-    "searchPlaceholder": "Rechercher dans le catalogue…",
-    "apiHealthLabel": "État de l'API",
-    "apiHealthOk": "Connectée",
-    "apiHealthError": "Indisponible"
+  "meta": {
+    "siteName": "Bibliothèque du PSSFP",
+    "titleDefault": "Bibliothèque virtuelle du PSSFP",
+    "titleTemplate": "%s — Bibliothèque du PSSFP",
+    "description": "Mémoires, thèses, textes de loi, ouvrages et cours en finances publiques : le fonds documentaire du PSSFP, consultable en ligne.",
+    "logoTitle": "PSSFP — Programme Supérieur de Spécialisation en Finances Publiques"
   },
   "nav": {
-    "home": "Accueil",
-    "theses": "Thèses",
-    "articles": "Articles",
-    "courses": "Cours",
-    "myAccount": "Mon espace"
+    "skip": "Aller au contenu principal",
+    "brandEyebrow": "PSSFP",
+    "brandName": "Bibliothèque",
+    "brandHomeSuffix": "— accueil",
+    "mainLabel": "Navigation principale",
+    "mobileLabel": "Navigation mobile",
+    "collections": "Collections",
+    "search": "Recherche",
+    "about": "À propos",
+    "mainSite": "Site du PSSFP",
+    "menuOpen": "Ouvrir le menu",
+    "menuClose": "Fermer le menu",
+    "menuTitle": "Menu"
+  },
+  "footer": {
+    "aboutTitle": "Bibliothèque du PSSFP",
+    "aboutBody": "Le fonds documentaire du Programme Supérieur de Spécialisation en Finances Publiques : travaux des promotions, textes de référence et ressources d'enseignement, réunis en un seul catalogue.",
+    "collectionsTitle": "Collections",
+    "browseTitle": "Parcourir",
+    "contactTitle": "Contact",
+    "contactBody": "Une question sur un document ou un accès ? Écrivez au service de la bibliothèque.",
+    "contactAddress": "Campus de Messa, Yaoundé, Cameroun",
+    "contactEmail": "contact@pssfp.org",
+    "contactPage": "Page contact du PSSFP",
+    "foad": "Plateforme FOAD",
+    "copyright": "© {year} PSSFP — Programme Supérieur de Spécialisation en Finances Publiques",
+    "linksLabel": "Liens du pied de page"
+  },
+  "breadcrumbs": {
+    "label": "Fil d'Ariane",
+    "home": "Accueil"
+  },
+  "notFound": {
+    "metaTitle": "Page introuvable",
+    "eyebrow": "Erreur 404",
+    "title": "Cette page n'est pas dans nos rayons.",
+    "body": "Le lien est peut-être ancien ou le document a été déplacé. Reprenez depuis l'accueil ou lancez une recherche dans le catalogue.",
+    "home": "Retour à l'accueil",
+    "search": "Rechercher un document"
+  },
+  "home": {
+    "metaTitle": "Accueil",
+    "metaDescription": "Mémoires, thèses, textes de loi, ouvrages et cours en finances publiques : consultez librement le fonds documentaire du PSSFP.",
+    "hero": {
+      "eyebrow": "{count, plural, one {# document} other {# documents}} · finances publiques",
+      "title": "Le savoir des finances publiques, en libre consultation.",
+      "suggestionsLabel": "Suggestions :",
+      "suggestions": ["marchés publics", "TVA", "décentralisation", "audit interne", "loi de finances"],
+      "typesLabel": "Parcourir par type",
+      "latestTitle": "Derniers arrivés"
+    },
+    "collections": {
+      "eyebrow": "Collections",
+      "title": "Explorer le fonds",
+      "intro": "Travaux des promotions, textes de référence et ressources d'enseignement : chaque collection s'ouvre sur son catalogue complet.",
+      "collection": "Collection",
+      "memoireMeta": "{count, plural, one {travail} other {travaux}}",
+      "memoireMetaPromotions": "{count, plural, one {travail} other {travaux}} · {promotions, plural, one {# promotion} other {# promotions}}",
+      "documents": "{count, plural, one {document} other {documents}}",
+      "premiumTitle": "Ouvrages premium",
+      "premiumBody": "Bientôt disponibles",
+      "premiumCount": "{count, plural, one {# titre bientôt disponible à l'achat} other {# titres bientôt disponibles à l'achat}}"
+    },
+    "latest": {
+      "eyebrow": "Derniers ajouts au catalogue",
+      "title": "Nouveautés",
+      "empty": "Aucune nouveauté pour le moment."
+    },
+    "mostRead": {
+      "eyebrow": "Palmarès des consultations",
+      "title": "Les plus lus",
+      "previous": "Documents précédents",
+      "next": "Documents suivants",
+      "empty": "Aucune consultation enregistrée pour le moment."
+    }
+  },
+  "errorPage": {
+    "eyebrow": "Service momentanément interrompu",
+    "title": "La bibliothèque est momentanément indisponible.",
+    "body": "Le catalogue ne répond pas pour l'instant. Réessayez dans quelques instants : vos documents vous attendent.",
+    "searchHint": "Vous pouvez aussi lancer une recherche dès maintenant :",
+    "retry": "Réessayer",
+    "mainSite": "Site du PSSFP",
+    "contact": "Contacter le PSSFP"
+  },
+  "catalogue": {
+    "resultsCount": "{count, plural, =0 {Aucun document} one {# document} other {# documents}}",
+    "filtersTitle": "Affiner",
+    "resetFilters": "Retirer les filtres"
+  },
+  "collection": {
+    "eyebrow": "Collection",
+    "totalUnit": "{count, plural, one {document} other {documents}}",
+    "metaDescription": "{type} du fonds documentaire du PSSFP : catalogue à filtrer par accès, année, langue et mot-clé.",
+    "searchPlaceholder": "Rechercher dans cette collection…",
+    "resultsTitle": "Documents de la collection",
+    "filterToggle": "Filtrer",
+    "filterCount": "{count, plural, one {# filtre actif} other {# filtres actifs}}",
+    "emptyTitle": "Cette collection ne contient pas encore de document.",
+    "emptyBody": "Parcourez une autre collection ou lancez une recherche dans tout le catalogue.",
+    "backHome": "Retour à l'accueil",
+    "pageOutOfRangeTitle": "Cette page n'existe pas.",
+    "pageOutOfRangeBody": "{last, plural, one {La liste ne compte qu'une page.} other {La liste compte # pages.}} Revenez à la première page pour parcourir les documents.",
+    "firstPage": "Revenir à la première page"
+  },
+  "specialites": {
+    "economie-publique-gestion-publique": "Économie Publique et Gestion Publique",
+    "fiscalite-finance-comptabilite-publique": "Fiscalité, Finance et Comptabilité Publique",
+    "gouvernance-territoriale-finances-publiques-locales": "Gouvernance Territoriale et Finances Publiques locales",
+    "marches-publics-partenariats-public-prive": "Marchés Publics et Partenariats Public-Privés",
+    "audit-controle-finances-publiques": "Audit et contrôle des Finances Publiques"
+  },
+  "activeFilters": {
+    "label": "Filtres actifs",
+    "remove": "Retirer le filtre {label}",
+    "acces": "Accès : {value}",
+    "annee_min": "Depuis {value}",
+    "annee_max": "Jusqu'à {value}",
+    "langue": "Langue : {value}",
+    "promotion": "Promotion {value}",
+    "mot_cle": "Mot-clé : {value}",
+    "specialite": "Spécialité : {value}"
+  },
+  "document": {
+    "promotion": "Promotion {n}",
+    "abstract": "Résumé",
+    "keywords": "Mots-clés",
+    "related": "Documents liés",
+    "views": "{count, plural, =0 {Aucune consultation} one {# consultation} other {# consultations}}",
+    "coverAlt": "Couverture : {title}",
+    "authorsEtAl": "{list} et al.",
+    "noDate": "s.d."
+  },
+  "fiche": {
+    "metaDescriptionFallback": "{type} « {title} » : notice, conditions d'accès et citation, dans la bibliothèque virtuelle du PSSFP.",
+    "authorsLabel": "Auteurs :",
+    "detailsTitle": "Notice",
+    "fields": {
+      "year": "Année",
+      "promotion": "Promotion",
+      "specialite": "Spécialité",
+      "language": "Langue",
+      "pages": "Pages",
+      "journal": "Revue",
+      "doi": "DOI",
+      "isbn": "ISBN"
+    },
+    "promotionValue": "{n, selectordinal, one {#re} other {#e}}",
+    "accessTitle": "Accès au document",
+    "keywordsHint": "Chaque mot-clé ouvre la collection filtrée sur ce thème.",
+    "relatedEyebrow": "Pour prolonger la lecture",
+    "publisherName": "Programme Supérieur de Spécialisation en Finances Publiques (PSSFP)"
+  },
+  "search": {
+    "label": "Rechercher dans le catalogue",
+    "placeholder": "Titre, auteur, mot-clé, promotion…",
+    "submit": "Rechercher",
+    "formLabel": "Recherche dans le catalogue",
+    "metaTitle": "Recherche",
+    "metaDescription": "Recherchez dans tout le fonds documentaire du PSSFP : mémoires, thèses, textes de loi, ouvrages et cours en finances publiques.",
+    "eyebrow": "Tout le catalogue",
+    "title": "Recherche",
+    "inviteTitle": "Saisissez au moins deux caractères.",
+    "inviteBody": "Titre, auteur, mot-clé ou promotion : la recherche porte sur l'ensemble du catalogue, fautes de frappe comprises.",
+    "inviteCollections": "Ou parcourez une collection :",
+    "resultsTitle": "Résultats",
+    "resultsCount": "{count, plural, =0 {Aucun résultat pour « {q} »} one {# résultat pour « {q} »} other {# résultats pour « {q} »}}",
+    "resultsCountPage": "{count, plural, =0 {Aucun résultat pour « {q} »} one {# résultat pour « {q} »} other {# résultats pour « {q} »}}, page {page} sur {last}",
+    "loading": "Recherche en cours…",
+    "emptyTitle": "Aucun résultat pour « {q} »",
+    "emptyBody": "Vérifiez l'orthographe, essayez un terme plus général ou un synonyme.",
+    "emptyFiltersBody": "Des filtres limitent la recherche : retirez-les pour élargir les résultats.",
+    "emptyPageBody": "Cette page dépasse le nombre de résultats : revenez à la première page.",
+    "firstPage": "Première page",
+    "errorTitle": "La recherche n'a pas abouti.",
+    "errorBody": "Le catalogue ne répond pas pour l'instant. Réessayez dans quelques instants.",
+    "throttledBody": "Trop de recherches en peu de temps. Patientez une minute, puis réessayez.",
+    "scope": {
+      "label": "Portée de la recherche",
+      "type": "Dans : {value}"
+    },
+    "facets": {
+      "title": "Affiner",
+      "toggle": "Filtrer",
+      "activeCount": "{count, plural, one {# filtre actif} other {# filtres actifs}}",
+      "type": "Type de document",
+      "acces": "Accès",
+      "link": "{label}, {count, plural, one {# document} other {# documents}}",
+      "linkActive": "{label}, {count, plural, one {# document} other {# documents}}, filtre appliqué : activer pour le retirer"
+    }
+  },
+  "about": {
+    "title": "À propos de la bibliothèque",
+    "metaTitle": "À propos",
+    "metaDescription": "La bibliothèque virtuelle du PSSFP : son fonds documentaire en finances publiques, ses règles d'accès (libre, réservé, payant) et le contact du service de la bibliothèque.",
+    "eyebrow": "La bibliothèque",
+    "lead": "Un catalogue unique pour le fonds documentaire du Programme Supérieur de Spécialisation en Finances Publiques : les travaux des promotions, les textes de référence et les ressources d'enseignement.",
+    "presentationTitle": "Un fonds au service des finances publiques",
+    "presentationBody": "La bibliothèque réunit ce que le PSSFP produit et mobilise depuis sa création : mémoires et thèses soutenus par les auditeurs, textes de loi et de réglementation, ouvrages numériques, articles et actes de conférences, supports de cours et rapports de stage.",
+    "presentationBody2": "Chaque document dispose d'une notice publique — auteurs, année, résumé, mots-clés, citation — consultable par tous, quel que soit son mode d'accès.",
+    "holdingsTitle": "Dans le catalogue",
+    "holdings": {
+      "travaux": "Mémoires, thèses et rapports de stage des promotions",
+      "textes": "Textes de loi, décrets et instruments de réglementation",
+      "ouvrages": "Ouvrages numériques, articles scientifiques et actes de conférences",
+      "cours": "Cours, bulletins et ressources pédagogiques"
+    },
+    "browse": "Parcourir les collections",
+    "accessTitle": "Règles d'accès",
+    "accessIntro": "Le mode d'accès figure sur chaque notice. Il détermine qui peut ouvrir le document lui-même ; la notice, elle, reste toujours publique.",
+    "rules": {
+      "libre": "Téléchargement ou consultation en ligne pour tous, sans compte.",
+      "reserve": "Réservé aux auditeurs et aux enseignants du PSSFP. La consultation ouvrira avec l'espace personnel.",
+      "payant": "Disponible à l'achat, au prix indiqué sur la notice. Le paiement en ligne ouvrira prochainement.",
+      "soon": "Bientôt"
+    },
+    "contactTitle": "Une question, un document introuvable ?",
+    "contactBody": "Le service de la bibliothèque répond aux demandes de documents, d'accès ou de correction d'une notice.",
+    "contactPage": "Page contact du PSSFP"
+  },
+  "access": {
+    "libre": "Libre",
+    "reserve": "Réservé",
+    "payant": "Payant",
+    "payantPrice": "Payant · {price}",
+    "action": {
+      "download": "Télécharger le PDF",
+      "downloadWithSize": "Télécharger le PDF ({size})",
+      "external": "Consulter en ligne",
+      "newWindow": "(s'ouvre dans une nouvelle fenêtre)",
+      "reservedTitle": "Réservé aux auditeurs — bientôt disponible",
+      "reservedBody": "Ce document sera consultable par les auditeurs du PSSFP dès l'ouverture de l'espace personnel.",
+      "paidTitle": "Payant — bientôt disponible à l'achat",
+      "paidPrice": "Prix : {price}",
+      "paidBody": "Le paiement en ligne ouvrira prochainement. La notice reste consultable librement.",
+      "unpublishedTitle": "Document indisponible",
+      "unpublishedBody": "Ce document n'est pas encore publié dans le catalogue."
+    }
+  },
+  "types": {
+    "memoire": { "one": "Mémoire", "other": "Mémoires" },
+    "these": { "one": "Thèse", "other": "Thèses" },
+    "ouvrage_numerique": { "one": "Ouvrage numérique", "other": "Ouvrages numériques" },
+    "texte_loi": { "one": "Texte de loi", "other": "Législation" },
+    "article_scientifique": { "one": "Article scientifique", "other": "Articles scientifiques" },
+    "cours": { "one": "Cours", "other": "Cours" },
+    "acte_conference": { "one": "Acte de conférence", "other": "Actes de conférence" },
+    "rapport_stage": { "one": "Rapport de stage", "other": "Rapports de stage" },
+    "bulletin": { "one": "Bulletin", "other": "Bulletins" },
+    "ressource_pedagogique": { "one": "Ressource pédagogique", "other": "Ressources pédagogiques" }
+  },
+  "sort": {
+    "label": "Trier par",
+    "recent": "Plus récents",
+    "ancien": "Plus anciens",
+    "titre": "Titre (A → Z)",
+    "populaire": "Plus consultés",
+    "submit": "Trier"
+  },
+  "filters": {
+    "acces": "Accès",
+    "promotion": "Promotion",
+    "annee": "Année",
+    "anneeMin": "De",
+    "anneeMax": "À",
+    "langue": "Langue",
+    "motCle": "Mot-clé",
+    "all": "Tous",
+    "apply": "Appliquer",
+    "reset": "Réinitialiser",
+    "allLanguages": "Toutes",
+    "languages": { "fr": "Français", "en": "Anglais", "ar": "Arabe", "autre": "Autre" },
+    "motCleChild": "— {label}"
+  },
+  "pagination": {
+    "label": "Pagination",
+    "previous": "Page précédente",
+    "next": "Page suivante",
+    "page": "Page {page}",
+    "current": "Page {page} sur {total}"
+  },
+  "states": {
+    "errorTitle": "Le catalogue est momentanément indisponible.",
+    "errorBody": "Réessayez dans quelques instants.",
+    "retry": "Réessayer",
+    "emptyTitle": "Aucun document ne correspond.",
+    "emptyBody": "Élargissez vos critères ou parcourez une autre collection."
+  },
+  "citation": {
+    "title": "Citer ce document",
+    "format": "Norme APA",
+    "copy": "Copier la citation",
+    "copied": "Citation copiée",
+    "copyFailed": "Copie impossible : sélectionnez le texte de la citation.",
+    "publisher": "Bibliothèque PSSFP",
+    "withAuthors": "{authors} ({year}). {title}. {type}. {publisher}. {url}",
+    "withoutAuthors": "{title} ({year}). {type}. {publisher}. {url}"
+  },
+  "devComponents": {
+    "metaTitle": "Composants documentaires",
+    "eyebrow": "Démonstration — hors production",
+    "title": "Composants documentaires",
+    "intro": "Données fictives, pour vérifier les composants du catalogue sans l'API.",
+    "cardsGrid": "Cartes en grille",
+    "cardsRow": "Cartes en liste et surlignage",
+    "covers": "Couvertures par type",
+    "actions": "Actions d'accès",
+    "reason": {
+      "public": "Accès libre",
+      "external": "Lien externe",
+      "reserved": "Accès réservé",
+      "paid": "Accès payant"
+    },
+    "citation": "Citation",
+    "pagination": "Pagination",
+    "states": "États vide et erreur"
   }
 }

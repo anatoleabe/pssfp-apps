@@ -94,7 +94,7 @@ Purge quotidienne à 02:00 par `model:prune` (modèles `Prunable`, `routes/conso
 | GET | `/library/mots-cles` | Thésaurus pour les filtres |
 | GET | `/library/redirects?path=` | Résolution d'une ancienne URL (utilisée par le middleware du front) |
 
-Identifiants publics : `uuid` et `slug` uniquement, jamais l'`id` interne. Limitation de débit par client : 120/min sur tout le groupe, 60/min sur `search`, 30/min sur `download`.
+Identifiants publics : `uuid` et `slug` uniquement, jamais l'`id` interne. Limitation de débit par IP (limiteurs nommés `library`, `library-search`, `library-download`, `library-view`) : 120/min sur tout le groupe, 60/min sur `search`, 30/min sur `download`, 20/min sur `view` ; plafonds réglables (`LIBRARY_RATE_LIMIT`, `LIBRARY_SEARCH_RATE_LIMIT`, `LIBRARY_DOWNLOAD_RATE_LIMIT`, `LIBRARY_VIEW_RATE_LIMIT`) et IP exemptées (`LIBRARY_RATE_LIMIT_EXEMPT_IPS`, séparées par des virgules).
 
 ### 5.4 Indexation
 
@@ -123,17 +123,33 @@ Identifiants publics : `uuid` et `slug` uniquement, jamais l'`id` interne. Limit
 
 | Route | Rendu | Contenu |
 |---|---|---|
-| `/collections/[type]` | ISR 5 min | Mise en page B : filtres à gauche (tiroir sur mobile), résultats, pagination, tri |
-| `/recherche` | SSR | Mise en page B : état dans l'URL, facettes avec compteurs, extraits surlignés, message utile si zéro résultat |
-| `/documents/[slug]` | ISR 5 min | Couverture, métadonnées, auteurs, résumé, mots-clés cliquables, bouton d'accès selon `access` (Télécharger / Réservé / Payant bientôt / Consulter le lien), citation APA copiable, documents liés, JSON-LD |
-| `/a-propos` | SSG | Présentation, règles d'accès, contact bibliothécaire |
-| `sitemap.xml`, `robots.txt` | — | Toutes les fiches publiées |
+| `/collections/[type]` | Dynamique (lecture de `searchParams`), appels API dans le cache de données 5 min (mots-clés 1 h) — pas d'ISR de la page | Mise en page B : filtres à gauche (tiroir sur mobile), résultats, pagination, tri ; page au-delà de la dernière → état « page inexistante » avec lien vers la page 1 ; `page` > 500 → 404 |
+| `/recherche` | Coquille serveur + résultats côté navigateur | Mise en page B : état dans l'URL, facettes avec compteurs, extraits surlignés, message utile si zéro résultat ; `noindex, follow`, exclue du sitemap et interdite dans `robots.txt` |
+| `/documents/[slug]` | ISR 5 min (`generateStaticParams` → `[]`) | Couverture, métadonnées, auteurs, résumé, mots-clés cliquables, bouton d'accès selon `access` (Télécharger / Réservé / Payant bientôt / Consulter le lien), citation APA copiable, documents liés, JSON-LD |
+| `/a-propos` | Statique (`force-static`) | Présentation, règles d'accès (Libre / Réservé / Payant — bientôt), contact (page contact du site principal) |
+| `sitemap.xml` | ISR 1 h | Accueil, à propos, collections non vides, fiches publiées (`lastModified` = `published_at`, plafond 5 000) ; sitemap réduit si l'API ne répond pas (jamais d'échec du build) |
+| `robots.txt` | Statique | `Allow: /`, `Disallow: /dev/` et `/recherche`, lien du sitemap |
 
-**Anciennes URL** : le middleware Next.js interroge `/v1/library/redirects` pour tout chemin inconnu (y compris `/index.php/...` et `.../file`) et répond en 301 ; résultat mis en cache.
+**Décisions du 2026-10-17** :
+
+- **Recherche rendue côté navigateur** : `/recherche` est une coquille serveur (en-tête, formulaire, portée) ; les résultats sont demandés à `GET /v1/library/search` par le navigateur. La limite de débit par IP et les journaux de recherche portent ainsi sur le visiteur, pas sur le serveur Next. Pas d'ISR ni de frontière d'erreur sur cette page : l'échec de l'API s'affiche dans la page (`role="alert"`, Réessayer ; message dédié sur 429).
+- **Consultations par balise** : la fiche (ISR) ne compte rien côté serveur ; un composant client envoie `POST /v1/library/documents/{uuid}/view` (`navigator.sendBeacon`, repli `fetch keepalive`) à l'affichage.
+
+- **`/collections/[type]` n'est pas ISR** : la page lit `searchParams`, Next la rend donc à la demande (`ƒ` au build) ; un export `revalidate` y serait sans effet (retiré). La charge sur l'API est contenue par le cache de données de Next (`revalidate` 300 s sur la liste, 3600 s sur les mots-clés), par URL d'API.
+
+**Anciennes URL** : `library/middleware.ts` soumet à `/v1/library/redirects` tout chemin que l'app ne sert pas (y compris `/index.php/...`, `/index.php?…`, `.../file`, `....html`) — les routes de l'app et les fichiers statiques usuels en sont exclus — et répond en 301 (302 si demandé) vers un chemin interne du même site uniquement (`library/lib/redirects.ts` : commence par `/`, pas de `//`, aucune barre oblique inverse, aucun caractère de contrôle, aucun segment `.` ou `..` même encodé `%2e` ; puis même origine et chemin normalisé ne commençant pas par `//` ; la redirection part vers une cible reconstruite à partir du chemin et de la query normalisés. Mêmes règles côté backend à l'écriture (`LibraryRedirect::isSafeTarget`) et en base (contrainte CHECK sur `library_redirects.to_path`)). Réponses mémorisées 10 min par processus (introuvables compris) ; API en échec ou délai dépassé (2 s) → suite normale (404), jamais d'erreur.
+
+**Décision du 2026-10-17 — anciennes URL Joomla** :
+
+- Les anciennes URL de téléchargement (`…/file`) redirigent vers la fiche `/documents/{slug}`, **pas** vers l'API de téléchargement : le mode d'accès s'affiche sur la fiche, et aucune URL signée n'est figée dans une redirection.
+- Les URL à query string `/index.php?option=…` sont stockées dans `library_redirects.from_path` **avec leur query string**, sous la forme sérialisée WHATWG que voit le middleware (`URL.pathname + URL.search` : encodage du parseur d'URL, ordre et casse des paramètres conservés, pas de normalisation). Le middleware envoie cette forme pour `/index.php` seulement ; ailleurs la query string est ignorée. L'import du Plan 3 doit générer `from_path` en passant chaque ancienne URL par le même parseur (`new URL(…)` côté Node, ou équivalent), sinon une URL dont l'encodage diffère ne serait pas trouvée.
+- Cibles (`to_path`) : chemin interne sans `//`, barre oblique inverse, caractère de contrôle ni segment `.`/`..` (y compris `%2e`) — imposé par le modèle, par une contrainte CHECK de PostgreSQL (import en masse compris) et revérifié par le middleware, qui redirige vers le chemin normalisé reconstruit (jamais la chaîne brute).
 
 ### 6.3 Exigences
 
 Mobile d'abord (320 px sans défilement horizontal), charte ADR-0008, composants partagés `@pssfp/ui`, textes via `next-intl` (aucun texte en dur), WCAG 2.1 AA, Lighthouse ≥ 85 sur les quatre axes, liste < 800 ms et recherche < 500 ms côté API.
+
+- **Pages ISR et API indisponible** : une page ISR ne met jamais en cache un état d'erreur. Toute donnée indispensable passe par `unwrapOrThrow` (`library/lib/api/unwrap.ts`) : 404 → `notFound()`, tout autre échec → exception. Pendant une revalidation, Next conserve alors la dernière page valide ; au premier rendu, `app/error.tsx` affiche une page « bibliothèque momentanément indisponible » utile (recherche, Réessayer, liens vers le site principal). Seule exception : le prérendu de `next build` sans API (CI) rend une page de repli au lieu d'échouer, remplacée à la première revalidation réussie. Un état vide (`role="status"`) reste distinct d'une erreur.
 
 ## 7. Sous-projet 3 — Migration et bascule
 
@@ -157,6 +173,16 @@ Nouveau processus pm2 `pssfp-library` (port 6002, à ajouter dans la copie local
 4. Cron `* * * * * php artisan schedule:run` pour l'utilisateur `pssfp` : réindexation hebdomadaire, contrôle `library:check-index`, purge `model:prune` quotidienne (§5.1).
 5. `poppler-utils` installé (`pdftoppm -v`) ; sans lui, pas de couverture (avertissement dans les journaux).
 6. Limites d'envoi alignées (ci-dessous).
+7. `LIBRARY_RATE_LIMIT_EXEMPT_IPS=127.0.0.1` : les appels SSR/ISR du serveur Next.js partent tous du VPS et, sans exemption, épuiseraient la limite de 120/min. Voie recommandée : les faire passer en local par `/etc/hosts` (voir « Bibliothèque publique » ci-dessous), si bien qu'ils arrivent de `127.0.0.1`. N'exempter l'IP publique du VPS que si l'on renonce à `/etc/hosts`. Dans les deux cas, vérifier une fois en prod l'adresse réellement vue par PHP (journaliser `$request->ip()`) : un proxy local ou des `TrustProxies` mal réglés feraient voir une autre adresse (IP de nginx, `::1`).
+
+**Bibliothèque publique (`library/`, à faire au Plan 3)** :
+
+1. **Appels serveur → API (voie recommandée)** : `127.0.0.1 api.pssfp.org` dans `/etc/hosts` du VPS. Les rendus SSR/ISR de Next joignent alors l'API par le nginx local (même certificat, même vhost), et arrivent de `127.0.0.1` ; `LIBRARY_RATE_LIMIT_EXEMPT_IPS=127.0.0.1`. Vérifier IPv4 **et** IPv6 : si `api.pssfp.org` se résout aussi en AAAA (publique) ou si Node préfère `::1`, ajouter la ligne IPv6 correspondante (`::1 api.pssfp.org`) et exempter aussi `::1`, puis contrôler avec le journal de `$request->ip()`. Alternative non disponible en l'état : une variable serveur `API_INTERNAL_URL` (non `NEXT_PUBLIC_*`) demanderait une modification du code (`library/lib/api/client.ts` n'utilise aujourd'hui que `NEXT_PUBLIC_API_URL`, côté serveur comme côté navigateur).
+2. **`MINIO_MEDIA_PUBLIC_URL`** = `https://media.pssfp.org/pssfp-media` (adressage par chemin, `MINIO_USE_PATH_STYLE_ENDPOINT=true` : le bucket fait partie de l'URL, cf. `.env.example`). Cette variable change aussi les URL publiques des modèles `Asset` et `CampagneCandidature` (site principal, candidature) ; vérifier ces pages après le déploiement.
+3. **pm2** : entrée `pssfp-library` (port 6002, utilisateur `pssfp`) dans la copie locale de prod de `ecosystem.config.js` ; ajouter `library` à `deploy.sh` (installation, build, redémarrage).
+4. **nginx** : vhost `bibliotheque.pssfp.org` + certificat, avec une CSP adaptée — au minimum `connect-src 'self' https://api.pssfp.org` (recherche et balise de consultation depuis le navigateur), `img-src 'self' data: https://media.pssfp.org`, `form-action 'self'`, `frame-ancestors 'none'`.
+5. **DNS Cloudflare** : enregistrement `bibliotheque` vers le VPS.
+6. **Build et exécution** : `NEXT_PUBLIC_API_URL=https://api.pssfp.org/v1` obligatoire au build (figée dans le bundle client ; le build de production échoue sans elle, hors CI) **et à l'exécution** : `next start` charge aussi `next.config.js`, qui refuse de démarrer sans elle, et le serveur lit la variable pour ses propres appels. La fournir de façon durable : `env` de l'entrée pm2 `pssfp-library` ou `library/.env.production` sur le VPS (non versionné). Construire **avec l'API joignable**, puis vérifier l'absence de `page-error` dans `.next/server/app/index.html` (sinon l'accueil prérendu serait la page de repli jusqu'à la première revalidation).
 
 **Limites d'envoi (PDF jusqu'à 200 Mo)** : Livewire dépose les envois temporaires sur le disque local (`config/livewire.php`, règle `max:204800`, 15 minutes d'envoi au plus). Aligner sur le VPS : PHP-FPM `upload_max_filesize = 200M` et `post_max_size = 210M`, nginx `client_max_body_size 210m;` dans le vhost `api` (sinon erreur 413 avant Laravel).
 

@@ -11,11 +11,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
-/** Liste filtrable et fiche des documents publiés (spec V1 §5.3). */
+/**
+ * Liste filtrable et fiche des documents publiés (spec V1 §5.3).
+ * Les consultations sont comptées par ViewController, pas à la lecture.
+ */
 final class DocumentController extends Controller
 {
     public function index(Request $request): JsonResponse
@@ -53,10 +55,6 @@ final class DocumentController extends Controller
         if ($document === null) {
             return response()->json(['message' => 'Document introuvable.'], Response::HTTP_NOT_FOUND);
         }
-
-        // Compteur de consultations sans toucher updated_at ni réindexer.
-        DB::table('documents')->where('id', $document->id)->increment('views_count');
-        $document->views_count++;
 
         return DocumentResource::make($document)->detailed()
             ->additional(['related' => DocumentResource::collection($this->related($document))])
