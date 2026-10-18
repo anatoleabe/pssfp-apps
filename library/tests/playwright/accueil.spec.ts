@@ -51,9 +51,14 @@ test.describe('Accueil — toujours (avec ou sans API)', () => {
     const input = form.getByRole('searchbox', { name: /rechercher dans le catalogue/i });
     await expect(input).toHaveAttribute('name', 'q');
     await expect(input).toHaveAttribute('minlength', '2');
-    await input.fill('tva');
-    await form.getByRole('button', { name: 'Rechercher' }).click();
-    await expect(page).toHaveURL(/\/recherche\?q=tva$/);
+    // Serveur de dev à froid : la route /recherche se compile (plusieurs secondes) et, sans API, la
+    // frontière d'erreur de l'accueil s'hydrate puis re-rend, ce qui peut annuler une soumission
+    // lancée trop tôt (l'URL reste « / »). La soumission est donc rejouée jusqu'à aboutir.
+    await expect(async () => {
+      await input.fill('tva');
+      await form.getByRole('button', { name: 'Rechercher' }).click();
+      await expect(page).toHaveURL(/\/recherche\?q=tva$/, { timeout: 8_000 });
+    }).toPass({ timeout: 45_000 });
   });
 
   test('axe : aucune violation critique ou grave', async ({ page }) => {

@@ -1,7 +1,7 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
 // Même base que l'app (playwright.config.ts charge .env.local comme `next dev`).
 import { API_BASE_URL as API } from '../../lib/api/client';
-import { legacyLookupPath, safeRedirectTarget } from '../../lib/redirects';
+import { legacyLookupPath, lookupCandidates, safeRedirectTarget } from '../../lib/redirects';
 
 /** Redirection de démonstration créée par `LibraryDemoSeeder` (backend). */
 const LEGACY_PATH = '/index.php/textes-et-lois';
@@ -54,11 +54,22 @@ test.describe('Anciennes URL — validation (fonctions pures)', () => {
     expect(safeRedirectTarget(null, BASE)).toBeNull();
   });
 
+  test('lookupCandidates : avec query d\'abord, chemin seul en repli (paramètres de suivi)', () => {
+    expect(lookupCandidates({ pathname: '/index.php/textes-et-lois', search: '?utm_source=x' })).toEqual(['/index.php/textes-et-lois?utm_source=x', '/index.php/textes-et-lois']);
+    expect(lookupCandidates({ pathname: '/index.php', search: '?option=com_docman&fbclid=z' })).toEqual(['/index.php?option=com_docman&fbclid=z', '/index.php']);
+    expect(lookupCandidates({ pathname: '/index.php/textes-et-lois', search: '' })).toEqual(['/index.php/textes-et-lois']);
+    expect(lookupCandidates({ pathname: '/anciens/page.html', search: '?gclid=1' })).toEqual(['/anciens/page.html']);
+  });
+
   test('/index.php à query string : la query string fait partie du chemin cherché', () => {
     expect(legacyLookupPath({ pathname: '/index.php', search: '?option=com_docman&view=list' })).toBe('/index.php?option=com_docman&view=list');
     expect(legacyLookupPath({ pathname: '/index.php', search: '' })).toBe('/index.php');
-    // Ailleurs, la query string (pistage, pagination Joomla) est ignorée.
-    expect(legacyLookupPath({ pathname: '/index.php/textes-et-lois', search: '?utm_source=x' })).toBe('/index.php/textes-et-lois');
+    // Forme canonique des fiches Joomla : /index.php/component/…?id=N.
+    expect(legacyLookupPath({ pathname: '/index.php/component/abook/book', search: '?id=12' })).toBe('/index.php/component/abook/book?id=12');
+    expect(legacyLookupPath({ pathname: '/index.php/textes-et-lois', search: '' })).toBe('/index.php/textes-et-lois');
+    // Hors /index.php, la query string (pistage, pagination) est ignorée.
+    expect(legacyLookupPath({ pathname: '/anciens/page.html', search: '?utm_source=x' })).toBe('/anciens/page.html');
+    expect(legacyLookupPath({ pathname: '/collections/memoire', search: '?page=2' })).toBe('/collections/memoire');
   });
 });
 

@@ -94,6 +94,8 @@ wireframes/.cache/
 *.bak
 backups/
 !docs/**/*.sql
+# Mini-dumps FICTIFS des tests d'import (jamais de vraie donnée)
+!backend/tests/Fixtures/**/*.sql
 
 # Misc
 *.tar

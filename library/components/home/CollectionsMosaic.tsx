@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { getFormatter, getTranslations } from 'next-intl/server';
+import { StateMessage } from '@/components/catalogue/StateMessage';
 import { AccessBadge } from '@/components/document/AccessBadge';
 import type { DocumentType, LibraryStats } from '@/lib/api/types';
 import { collectionHref } from '@/lib/routes';
@@ -18,13 +19,14 @@ interface TileSpec {
 /*
  * Contrastes : blanc / prune 11,18:1 · blanc/85 % / prune ≥ 8:1 · blanc / pétrole 12,18:1 ·
  * prune / blanc 11,18:1 · graphite / blanc 11,03:1 · prune foncé / lavande 4,79:1 ·
- * prune foncé / or 6,52:1.
+ * prune foncé / or 6,52:1 · blanc / graphite 11,03:1 · blanc/85 % / graphite ≥ 7:1.
  */
 const TILES: readonly TileSpec[] = [
   { type: 'these', surface: 'bg-pssfp-bleu-petrole text-white hover:shadow-pssfp-glow-petrole', muted: 'text-white/85' },
   { type: 'texte_loi', surface: 'border border-pssfp-lavande/50 bg-white text-pssfp-prune hover:border-pssfp-prune/40 hover:shadow-pssfp-elevated', muted: 'text-pssfp-graphite' },
   { type: 'ouvrage_numerique', surface: 'border border-pssfp-lavande/50 bg-white text-pssfp-prune hover:border-pssfp-prune/40 hover:shadow-pssfp-elevated', muted: 'text-pssfp-graphite' },
   { type: 'cours', surface: 'bg-pssfp-lavande text-pssfp-prune-dark hover:shadow-pssfp-glow-prune', muted: 'text-pssfp-prune-dark', reserved: true },
+  { type: 'rapport', surface: 'bg-pssfp-graphite text-white hover:shadow-pssfp-elevated', muted: 'text-white/85' },
 ];
 
 const TILE =
@@ -62,6 +64,11 @@ export async function CollectionsMosaic({ stats }: { stats: LibraryStats }): Pro
           <p className="max-w-xl text-pssfp-body text-pssfp-graphite lg:justify-self-end">{t('intro')}</p>
         </div>
 
+        {stats.total === 0 ? (
+          <div className="mt-10">
+            <StateMessage kind="empty" live={false} testId="collections-empty" title={t('emptyTitle')} body={t('emptyBody')} />
+          </div>
+        ) : (
         <ul className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-rows-[repeat(2,minmax(11rem,auto))] lg:grid-cols-4 lg:gap-5">
           {memoires > 0 && (
             <li className="sm:col-span-2 lg:row-span-2">
@@ -131,6 +138,7 @@ export async function CollectionsMosaic({ stats }: { stats: LibraryStats }): Pro
             </li>
           )}
         </ul>
+        )}
       </div>
     </section>
   );

@@ -8,6 +8,7 @@ use App\Services\Library\Files\CoverRenderer;
 use App\Services\Library\Files\PdftoppmCoverRenderer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
@@ -179,4 +180,34 @@ it('journalise l\'échec du processus pdftoppm', function (): void {
 
 it('s\'arrête avant le délai de reprise de la file Redis', function (): void {
     expect((new ProcessDocumentFile(1))->timeout)->toBeLessThan((int) config('queue.connections.redis.retry_after'));
+});
+
+it('garde la couverture précédente et journalise si l\'envoi de la nouvelle échoue', function (): void {
+    Storage::disk('minio_documents')->put('documents/i.pdf', 'contenu i');
+    $doc = Document::factory()->create();
+    Document::withoutEvents(fn () => $doc->update(['file_path' => 'documents/i.pdf', 'cover_path' => 'library/covers/ancienne.jpg']));
+    // Disque des couvertures en lecture seule (throw=false) : put() renvoie false.
+    $root = sys_get_temp_dir().'/covers-ro-'.bin2hex(random_bytes(4));
+    mkdir($root.'/library/covers', 0777, true);
+    chmod($root.'/library/covers', 0500);
+    Storage::set('minio_media', Storage::build(['driver' => 'local', 'root' => $root, 'throw' => false]));
+    Log::spy();
+
+    try {
+        (new ProcessDocumentFile($doc->id))->handle(new class implements CoverRenderer
+        {
+            public function render(string $pdfPath): ?string
+            {
+                return 'JPEGDATA';
+            }
+        });
+    } finally {
+        chmod($root.'/library/covers', 0700);
+        File::deleteDirectory($root);
+    }
+
+    $doc->refresh();
+    expect($doc->cover_path)->toBe('library/covers/ancienne.jpg')
+        ->and($doc->file_checksum_md5)->toBe(md5('contenu i'));
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message): bool => str_contains($message, 'couverture'))->once();
 });

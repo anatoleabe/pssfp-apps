@@ -50,15 +50,26 @@ test.describe('Composants documentaires', () => {
     await expect(img).toHaveAttribute('alt', /Couverture : /);
   });
 
+  test('couverture du type rapport : libellé « Rapport et publication », texte lisible', async ({ page }) => {
+    await page.goto(DEMO);
+    const cover = page.getByTestId('document-cover-typo').filter({ hasText: 'Rapport et publication' });
+    await expect(cover).toHaveCount(1);
+    await expect(cover).toBeVisible();
+    // Texte blanc sur fond pétrole clair (contraste calculé ≥ 4,5:1 : 8,1:1 au plus clair du dégradé).
+    await expect(cover).toHaveCSS('color', 'rgb(255, 255, 255)');
+  });
+
   test('AccessAction : quatre raisons, liens seulement quand l\'accès est ouvert', async ({ page }) => {
     await page.goto(DEMO);
     const actions = page.getByTestId('access-action');
-    await expect(actions).toHaveCount(4);
+    await expect(actions).toHaveCount(5);
 
-    const publicAction = page.locator('[data-testid="access-action"][data-reason="public"]');
-    const download = publicAction.getByRole('link', { name: /Télécharger le PDF/ });
+    const publicActions = page.locator('[data-testid="access-action"][data-reason="public"]');
+    const download = publicActions.first().getByRole('link', { name: /Télécharger \(PDF/ });
     await expect(download).toHaveAttribute('href', /\/library\/documents\/[^/]+\/download$/);
-    await expect(download).toContainText(/\((\d+|\d+,\d)\u202f(ko|Mo)\)$/);
+    await expect(download).toContainText(/\(PDF, (\d+|\d+,\d)\u202f(ko|Mo)\)$/);
+    // Format réel du fichier (présentation importée de l'ancienne bibliothèque), sans taille connue.
+    await expect(publicActions.nth(1).getByRole('link')).toHaveText('Télécharger (PPTX)');
 
     const external = page.locator('[data-testid="access-action"][data-reason="external"]').getByRole('link');
     await expect(external).toHaveAccessibleName(/Consulter en ligne.*nouvelle fenêtre/);
@@ -120,6 +131,18 @@ test.describe('Composants documentaires', () => {
     await page.goto(DEMO);
     await expect(page.getByTestId('state-empty')).toHaveAttribute('role', 'status');
     await expect(page.getByTestId('state-error')).toHaveAttribute('role', 'alert');
+  });
+
+  test('accueil : catalogue vide, message à la place de la mosaïque', async ({ page }) => {
+    await page.goto(DEMO);
+    const zone = page.getByTestId('demo-empty-catalogue');
+    const message = zone.getByTestId('collections-empty');
+    await expect(message).toContainText('Le catalogue est en cours de constitution');
+    // Pas de région vivante supplémentaire, ni de grille ou de tuile vide.
+    await expect(message).not.toHaveAttribute('role', /.+/);
+    await expect(zone.getByRole('list')).toHaveCount(0);
+    await expect(zone.getByTestId('collection-count')).toHaveCount(0);
+    await expect(zone.locator('[data-testid^="collection-tile-"]')).toHaveCount(0);
   });
 
   test('ViewBeacon signale une consultation', async ({ page }) => {

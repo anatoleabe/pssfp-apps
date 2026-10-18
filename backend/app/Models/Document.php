@@ -56,6 +56,7 @@ class Document extends Model
         'rapport_stage' => 'Rapport de stage',
         'bulletin' => 'Bulletin',
         'ressource_pedagogique' => 'Ressource pédagogique',
+        'rapport' => 'Rapport et publication',
     ];
 
     public const ACCESS_LEVELS = [
@@ -134,6 +135,20 @@ class Document extends Model
     {
         return $this->status === self::STATUS_PUBLISHED
             && ($this->published_at === null || $this->published_at->lte(now()));
+    }
+
+    /**
+     * Extension du fichier stocké (minuscules), « pdf » à défaut ; null sans fichier.
+     * Des documents importés de Joomla sont des présentations ou des textes Word.
+     */
+    public function fileExtension(): ?string
+    {
+        if ($this->file_path === null) {
+            return null;
+        }
+        $extension = strtolower(pathinfo($this->file_path, PATHINFO_EXTENSION));
+
+        return preg_match('/^[a-z0-9]{1,5}$/', $extension) === 1 ? $extension : 'pdf';
     }
 
     /** Libellé d'accès : payant prime sur réservé, réservé sur libre. */

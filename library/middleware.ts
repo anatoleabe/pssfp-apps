@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { resolveLegacyPath } from './lib/api/library';
-import { legacyLookupPath, safeRedirectTarget } from './lib/redirects';
+import { lookupCandidates, safeRedirectTarget } from './lib/redirects';
 
 /**
  * Anciennes URL (Joomla : `/index.php/…`, `/index.php?option=…`, fiches DOCman, `…/file`, pages de
@@ -68,7 +68,11 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   if ((req.method !== 'GET' && req.method !== 'HEAD') || isAppPath(pathname)) return NextResponse.next();
 
   try {
-    const target = await resolve(legacyLookupPath(req.nextUrl));
+    let target: Resolution | undefined = null;
+    for (const key of lookupCandidates(req.nextUrl)) {
+      target = await resolve(key);
+      if (target !== null) break; // trouvé, ou API indisponible (undefined) : inutile d'insister
+    }
     const dest = target ? safeRedirectTarget(target.to, req.nextUrl.href) : null;
     if (target && dest) return NextResponse.redirect(dest, target.status);
   } catch {

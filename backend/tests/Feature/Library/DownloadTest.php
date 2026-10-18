@@ -69,3 +69,23 @@ it('renvoie 404 pour un lien externe dont le schéma n\'est pas http(s)', functi
 
     $this->getJson("/v1/library/documents/{$doc->uuid}/download")->assertNotFound();
 })->with(['javascript:alert(1)', 'ftp://exemple.org/livre.pdf', 'data:text/html,bonjour']);
+
+it('nomme le fichier d\'après son extension réelle : PDF en ligne, autres formats en pièce jointe', function (string $path, string $disposition): void {
+    $options = null;
+    Storage::disk('minio_documents')->buildTemporaryUrlsUsing(function (string $p, DateTimeInterface $e, array $o) use (&$options): string {
+        $options = $o;
+
+        return "https://signe.test/{$p}";
+    });
+    $doc = Document::factory()->published()->create(['slug' => 'support-de-cours', 'file_path' => $path]);
+
+    $this->get("/v1/library/documents/{$doc->uuid}/download")->assertRedirect("https://signe.test/{$path}");
+
+    expect($options)->toBe(['ResponseContentDisposition' => $disposition]);
+})->with([
+    'pdf' => ['documents/a.pdf', 'inline; filename="support-de-cours.pdf"'],
+    'PDF majuscules' => ['documents/b.PDF', 'inline; filename="support-de-cours.pdf"'],
+    'pptx' => ['documents/c.pptx', 'attachment; filename="support-de-cours.pptx"'],
+    'docx' => ['documents/d.docx', 'attachment; filename="support-de-cours.docx"'],
+    'sans extension' => ['documents/e', 'inline; filename="support-de-cours.pdf"'],
+]);

@@ -1,4 +1,4 @@
-import { DOCUMENT_TYPES, type AccessReason, type DocumentDetail, type DocumentSummary } from '@/lib/api/types';
+import { DOCUMENT_TYPES, type AccessReason, type DocumentDetail, type DocumentSummary, type LibraryStats } from '@/lib/api/types';
 
 /*
  * Données entièrement fictives (titres, auteurs, identifiants) pour la page
@@ -118,6 +118,7 @@ const detail = (doc: DocumentSummary, reason: AccessReason, extra: Partial<Docum
   isbn: null,
   pages_count: null,
   file_size_bytes: null,
+  file_format: 'PDF',
   external_url: null,
   views_count: 0,
   access: { allowed: reason === 'public' || reason === 'external', reason },
@@ -126,9 +127,13 @@ const detail = (doc: DocumentSummary, reason: AccessReason, extra: Partial<Docum
 
 export const DEMO_ACTIONS: DocumentDetail[] = [
   detail(DEMO_LIBRE, 'public', { file_size_bytes: Math.round(2.4 * 1024 * 1024) }),
+  detail({ ...DEMO_LIBRE, uuid: '00000000-0000-4000-8000-000000000008', slug: 'demo-presentation' }, 'public', { file_format: 'PPTX' }),
   detail({ ...DEMO_LIBRE, uuid: '00000000-0000-4000-8000-000000000007', slug: 'demo-lien-externe' }, 'external', {
     external_url: 'https://example.org/document-fictif',
   }),
   detail(DEMO_RESERVE, 'reserved'),
   detail(DEMO_PAYANT, 'paid'),
 ];
+
+/** Statistiques d'un catalogue vide (avant l'import de l'ancienne bibliothèque). */
+export const DEMO_EMPTY_STATS: LibraryStats = { total: 0, by_type: {}, paid_count: 0, promotions_count: 0 };

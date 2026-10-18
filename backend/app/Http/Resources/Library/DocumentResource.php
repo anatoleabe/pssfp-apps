@@ -54,6 +54,7 @@ final class DocumentResource extends JsonResource
                 'isbn' => $this->isbn,
                 'pages_count' => $this->pages_count,
                 'file_size_bytes' => $this->file_size_bytes,
+                'file_format' => $this->fileExtension() === null ? null : strtoupper((string) $this->fileExtension()),
                 'external_url' => $this->external_url,
                 'views_count' => $this->views_count,
                 'access' => app(DocumentAccess::class)->decide($request->user(), $this->resource)->toArray(),

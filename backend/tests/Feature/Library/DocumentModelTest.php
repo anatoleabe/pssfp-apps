@@ -26,6 +26,13 @@ it('refuse un type inconnu', function (): void {
     Document::factory()->create(['type' => 'roman']);
 })->throws(QueryException::class);
 
+it('accepte le type rapport et publication', function (): void {
+    $doc = Document::factory()->published()->create(['type' => 'rapport']);
+
+    expect($doc->fresh()->type)->toBe('rapport')
+        ->and(Document::TYPES['rapport'])->toBe('Rapport et publication');
+});
+
 it('refuse deux documents issus du même identifiant Joomla', function (): void {
     Document::factory()->create(['legacy_source' => 'docman', 'legacy_id' => 42]);
     Document::factory()->create(['legacy_source' => 'docman', 'legacy_id' => 42]);

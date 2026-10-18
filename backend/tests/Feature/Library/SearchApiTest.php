@@ -36,6 +36,17 @@ it('applique les filtres du catalogue', function (): void {
     $this->getJson('/v1/library/search?q=audit&type=these')->assertJsonPath('meta.total', 1);
 });
 
+it('filtre le catalogue sur le type rapport', function (): void {
+    Document::factory()->published()->create(['title' => ['fr' => 'Audit des comptes'], 'type' => 'rapport']);
+    Document::factory()->published()->create(['title' => ['fr' => 'Audit interne'], 'type' => 'these']);
+
+    $this->getJson('/v1/library/search?q=audit&type=rapport')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.type', 'rapport')
+        ->assertJsonPath('data.0.type_label', 'Rapport et publication');
+});
+
 it('exige un terme de recherche', function (): void {
     $this->getJson('/v1/library/search')->assertUnprocessable();
 });
