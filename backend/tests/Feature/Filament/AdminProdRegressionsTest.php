@@ -51,6 +51,21 @@ it('affiche le titre français des pages et le nom des campagnes dans les listes
 });
 
 /*
+ * En prod, le disque par défaut est MinIO (sans HeadObject). Les fichiers
+ * temporaires de Livewire y transitaient : Filament ne pouvait pas vérifier
+ * leur existence et enregistrait `null` — un fichier orphelin est resté dans
+ * `livewire-tmp` sur MinIO (constaté le 2026-10-18), aucune campagne n'avait
+ * de communiqué. Le harnais de test Livewire ne passe pas par ce disque :
+ * on vérifie donc la configuration elle-même.
+ */
+it('fait transiter les envois Livewire par le disque local, jamais par MinIO', function (): void {
+    config()->set('filesystems.default', 'minio');
+
+    expect(config('livewire.temporary_file_upload.disk'))->toBe('local')
+        ->and(config('filesystems.disks.local.driver'))->toBe('local');
+});
+
+/*
  * En prod, la clé MinIO n'a pas HeadObject : `exists()` échoue toujours.
  * Le communiqué déjà déposé ne doit pas disparaître quand on enregistre
  * la campagne pour une autre raison.
