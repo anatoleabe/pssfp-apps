@@ -46,3 +46,13 @@ export function safeRedirectTarget(to: unknown, base: URL | string): URL | null 
 export function legacyLookupPath({ pathname, search }: { pathname: string; search: string }): string {
   return (pathname === '/index.php' || pathname.startsWith('/index.php/')) && search.length > 1 ? `${pathname}${search}` : pathname;
 }
+
+/**
+ * Clés de recherche d'une ancienne URL, par ordre d'essai : chemin + query string d'abord (forme
+ * stockée des URL Joomla), puis le chemin seul (paramètres de suivi `utm_*`, `fbclid`, `gclid`…
+ * qui ne doivent pas casser une redirection). Un seul élément quand il n'y a rien à retomber.
+ */
+export function lookupCandidates(url: { pathname: string; search: string }): string[] {
+  const full = legacyLookupPath(url);
+  return full === url.pathname ? [full] : [full, url.pathname];
+}

@@ -1,7 +1,7 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
 // Même base que l'app (playwright.config.ts charge .env.local comme `next dev`).
 import { API_BASE_URL as API } from '../../lib/api/client';
-import { legacyLookupPath, safeRedirectTarget } from '../../lib/redirects';
+import { legacyLookupPath, lookupCandidates, safeRedirectTarget } from '../../lib/redirects';
 
 /** Redirection de démonstration créée par `LibraryDemoSeeder` (backend). */
 const LEGACY_PATH = '/index.php/textes-et-lois';
@@ -52,6 +52,13 @@ test.describe('Anciennes URL — validation (fonctions pures)', () => {
     for (const to of traps) expect(safeRedirectTarget(to, BASE), JSON.stringify(to)).toBeNull();
     expect(safeRedirectTarget(42, BASE)).toBeNull();
     expect(safeRedirectTarget(null, BASE)).toBeNull();
+  });
+
+  test('lookupCandidates : avec query d\'abord, chemin seul en repli (paramètres de suivi)', () => {
+    expect(lookupCandidates({ pathname: '/index.php/textes-et-lois', search: '?utm_source=x' })).toEqual(['/index.php/textes-et-lois?utm_source=x', '/index.php/textes-et-lois']);
+    expect(lookupCandidates({ pathname: '/index.php', search: '?option=com_docman&fbclid=z' })).toEqual(['/index.php?option=com_docman&fbclid=z', '/index.php']);
+    expect(lookupCandidates({ pathname: '/index.php/textes-et-lois', search: '' })).toEqual(['/index.php/textes-et-lois']);
+    expect(lookupCandidates({ pathname: '/anciens/page.html', search: '?gclid=1' })).toEqual(['/anciens/page.html']);
   });
 
   test('/index.php à query string : la query string fait partie du chemin cherché', () => {
