@@ -153,7 +153,8 @@ it('lit un dump de ~20 Mo en flux sans le charger en mémoire', function (): voi
         expect(filesize($path))->toBeGreaterThan(20 * 1024 * 1024)
             ->and($count)->toBe($rowsWritten)
             ->and($lastId)->toBe($rowsWritten)
-            ->and($peak)->toBeLessThan(64 * 1024 * 1024)
+            // Seul l'écart compte : dans la suite complète, la mémoire de base
+            // du processus dépasse déjà largement un seuil absolu.
             ->and($peak - $before)->toBeLessThan(8 * 1024 * 1024);
     } finally {
         unlink($path);
