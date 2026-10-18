@@ -64,8 +64,8 @@ final class TitleLexicon
         'decrets' => 'décrets', 'deficit' => 'déficit', 'deficits' => 'déficits', 'definition' => 'définition',
         'deja' => 'déjà', 'delai' => 'délai', 'delais' => 'délais', 'delegation' => 'délégation',
         'deliberation' => 'délibération', 'deliberations' => 'délibérations', 'demarche' => 'démarche',
-        'demarches' => 'démarches', 'dematerialisation' => 'dématérialisation', 'demission' => 'démission',
-        'demissions' => 'démissions', 'deontologie' => 'déontologie', 'depense' => 'dépense',
+        'demarches' => 'démarches', 'dematerialisation' => 'dématérialisation',
+        'deontologie' => 'déontologie', 'depense' => 'dépense',
         'depenses' => 'dépenses', 'deplacement' => 'déplacement', 'deplacements' => 'déplacements',
         'depositaire' => 'dépositaire', 'depot' => 'dépôt', 'desequilibres' => 'déséquilibres',
         'detection' => 'détection', 'deuxieme' => 'deuxième', 'developpement' => 'développement',
@@ -174,10 +174,10 @@ final class TitleLexicon
 
     /**
      * Mots en l/d + voyelle à ne jamais lire comme une élision perdue, même si la suite est
-     * un mot du lexique (« DEMISSION » n'est pas « d'émission »).
+     * un mot du lexique (« DEUX » n'est pas « d'eux »).
      */
     public const ELISION_EXCEPTIONS = [
-        'dans', 'demission', 'demissions', 'depuis', 'des', 'dessous', 'dessus', 'dette', 'dettes', 'deux',
+        'dans', 'depuis', 'des', 'dessous', 'dessus', 'dette', 'dettes', 'deux',
         'devant', 'doit', 'doivent', 'donc', 'dont', 'duquel', 'durant', 'laquelle', 'lecteur', 'lecture',
         'lequel', 'lesquelles', 'lesquels', 'leur', 'leurs', 'lieu', 'loin', 'long', 'longue', 'lors', 'lorsque',
         'loyer', 'loyers', 'lui',

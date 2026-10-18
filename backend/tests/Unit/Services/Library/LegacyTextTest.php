@@ -54,7 +54,8 @@ describe('title', function (): void {
         'monnaies et sigles' => ['TAUX USD EUR XAF ET IRPP CIMA', 'Taux USD EUR XAF et IRPP CIMA'],
         'IS dans un titre français' => ['REGIME DE L IS ET DE LA TVA', "Régime de l'IS et de la TVA"],
         'is dans un titre anglais' => ['WHAT IS PUBLIC DEBT', 'What is public debt'],
-        'démission sans élision' => ['DEMISSION DU COMPTABLE', 'Démission du comptable'],
+        'émission élidée' => ['MODALITES DEMISSION DE RECOUVREMENT', "Modalités d'émission de recouvrement"],
+        'évaluation élidée' => ['CRITERES DEVALUATION DES POLITIQUES', "Critères d'évaluation des politiques"],
         'apostrophe devenue espace' => ['BUDGETISATION DE L AIDE ET D ALLOCATION', "Budgétisation de l'aide et d'allocation"],
     ]);
 
