@@ -7,6 +7,10 @@ use App\Http\Controllers\Api\Applications\QrCandidatureController;
 use App\Http\Controllers\Api\Articles\ArticleController;
 use App\Http\Controllers\Api\Auth\AuthCandidatController;
 use App\Http\Controllers\Api\Contact\ContactController;
+use App\Http\Controllers\Api\Library\CatalogueController;
+use App\Http\Controllers\Api\Library\DocumentController as LibraryDocumentController;
+use App\Http\Controllers\Api\Library\DownloadController;
+use App\Http\Controllers\Api\Library\SearchController;
 use App\Http\Controllers\Api\Pages\PageController;
 use App\Http\Controllers\Api\Reference\ReferenceController;
 use App\Http\Controllers\HealthController;
@@ -153,6 +157,26 @@ Route::get('/menu', [PageController::class, 'menu'])->name('menu');
 Route::prefix('articles')->name('articles.')->group(function (): void {
     Route::get('/', [ArticleController::class, 'index'])->name('index');
     Route::get('/{slug}', [ArticleController::class, 'show'])->name('show');
+});
+
+/*
+ * Bibliothèque virtuelle (Module 3 V1 — docs/specs/module-3-bibliotheque-v1-2026-10.md §5.3).
+ * Lecture seule et sans authentification en V1.
+ *
+ * Débit par client : 120/min sur tout le groupe, plus serré sur la recherche
+ * (60) et le téléchargement (30). Chaque limiteur a son préfixe : sans lui,
+ * ils partageraient le même compteur et chaque requête compterait deux fois.
+ */
+Route::prefix('library')->name('library.')->middleware('throttle:120,1,library')->group(function (): void {
+    Route::get('/stats', [CatalogueController::class, 'stats'])->name('stats');
+    Route::get('/mots-cles', [CatalogueController::class, 'motsCles'])->name('mots-cles');
+    Route::get('/redirects', [CatalogueController::class, 'redirect'])->name('redirects');
+    Route::get('/search', SearchController::class)->middleware('throttle:60,1,library-search')->name('search');
+    Route::get('/documents', [LibraryDocumentController::class, 'index'])->name('documents.index');
+    Route::get('/documents/{uuid}/download', DownloadController::class)
+        ->middleware('throttle:30,1,library-download')
+        ->name('documents.download');
+    Route::get('/documents/{slug}', [LibraryDocumentController::class, 'show'])->name('documents.show');
 });
 
 /*
