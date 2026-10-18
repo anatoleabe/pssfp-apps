@@ -15,6 +15,8 @@ use Throwable;
  * (ancêtres compris) et en accès public ; sinon brouillon, avec la raison. La colonne Alexandria
  * `approved` n'est pas lue : elle vaut 0 pour les 1 270 livres de l'ancienne bibliothèque, y
  * compris les 1 256 publiés (relevé du 2026-10-18). Ignorés : fichier distant ou absent, corbeille.
+ * Accès restreint dans Joomla : brouillon ET accès réservé (`restricted`), pour qu'une publication
+ * ultérieure depuis l'administration ne l'expose pas au public.
  */
 final readonly class LegacyItem
 {
@@ -48,6 +50,7 @@ final readonly class LegacyItem
         public ?CarbonImmutable $publishedAt,
         public ?string $draftReason,
         public ?string $skipReason,
+        public bool $restricted,
         public array $authors,
         public ?string $isbn,
         public ?int $pages,
@@ -92,6 +95,7 @@ final readonly class LegacyItem
             publishedAt: $publishOn ?? self::date($row['created_on'] ?? null),
             draftReason: $draft,
             skipReason: $skip,
+            restricted: ! self::isPublicAccess($access),
             authors: [],
             isbn: null,
             pages: null,
@@ -116,9 +120,10 @@ final readonly class LegacyItem
             $file === null => 'aucun fichier déclaré',
             default => null,
         };
+        $access = (int) ($row['access'] ?? 1);
         $draft = $state !== 1
             ? 'dépublié dans Joomla'
-            : self::categoryAndAccessReason($categories, $source, $categoryId, (int) ($row['access'] ?? 1));
+            : self::categoryAndAccessReason($categories, $source, $categoryId, $access);
 
         return new self(
             source: $source,
@@ -135,6 +140,7 @@ final readonly class LegacyItem
             publishedAt: self::date($row['dateinsert'] ?? null),
             draftReason: $draft,
             skipReason: $skip,
+            restricted: ! self::isPublicAccess($access),
             authors: self::authors((array) ($row['authors'] ?? [])),
             isbn: $isbn !== null && mb_strlen($isbn) <= self::ISBN_MAX_LENGTH ? $isbn : null,
             pages: $pages > 0 ? $pages : null,
@@ -163,7 +169,12 @@ final readonly class LegacyItem
             return 'catégorie dépubliée dans Joomla';
         }
 
-        return in_array($access, self::PUBLIC_ACCESS_LEVELS, true) ? null : 'accès restreint dans Joomla';
+        return self::isPublicAccess($access) ? null : 'accès restreint dans Joomla';
+    }
+
+    private static function isPublicAccess(int $access): bool
+    {
+        return in_array($access, self::PUBLIC_ACCESS_LEVELS, true);
     }
 
     /** Titre normalisé ; vide → nom du fichier (sans extension). */

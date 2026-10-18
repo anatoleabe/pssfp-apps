@@ -13,6 +13,7 @@ use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 use JsonException;
 use Symfony\Component\Console\Helper\ProgressBar;
+use Throwable;
 
 /** Importe l'ancienne bibliothèque Joomla dans la bibliothèque V1 (plan 3, tasks 4 et 5). */
 final class ImportJoomlaLibrary extends Command
@@ -22,7 +23,8 @@ final class ImportJoomlaLibrary extends Command
         {--files= : Dossier des fichiers copiés du FTP (Documentations/, livres/, images/)}
         {--dry-run : Simulation : aucune écriture en base ni sur MinIO, même rapport}
         {--limit= : Nombre maximal d\'éléments à traiter}
-        {--only= : Une seule source : docman ou alexandria}';
+        {--only= : Une seule source : docman ou alexandria}
+        {--clean-orphans : Supprime de MinIO les objets d\'un import interrompu qu\'aucun document ne référence}';
 
     protected $description = 'Importe documents, livres, fichiers, couvertures et anciennes URL de la bibliothèque Joomla (idempotent).';
 
@@ -47,6 +49,17 @@ final class ImportJoomlaLibrary extends Command
             $this->error($e->getMessage());
 
             return self::FAILURE;
+        } catch (Throwable $e) {
+            // Incident imprévu (préalable, base, MinIO…) : rapport partiel écrit malgré tout.
+            $this->newLine();
+            $this->error('Import interrompu : '.$e->getMessage());
+            $report = $importer->partialReport();
+            if ($report !== null) {
+                $report->fatal($e->getMessage());
+                $this->summary($report, $this->writeReport($report));
+            }
+
+            return self::FAILURE;
         }
 
         $path = $this->writeReport($report);
@@ -67,6 +80,8 @@ final class ImportJoomlaLibrary extends Command
             dryRun: (bool) $this->option('dry-run'),
             limit: $limit === null ? null : (int) $limit,
             only: $only === null ? null : (string) $only,
+            journalDirectory: storage_path('logs'),
+            cleanOrphans: (bool) $this->option('clean-orphans'),
         );
     }
 
@@ -125,6 +140,9 @@ final class ImportJoomlaLibrary extends Command
             $redirects['created'], $redirects['existing'], $redirects['conflicts'], $redirects['discarded'],
             $data['covers']['copied'], $data['covers']['generated'], $data['keywords_created'],
         ));
+        if ($data['orphans'] !== []) {
+            $this->warn(sprintf('%d objet(s) MinIO orphelin(s) d\'un import interrompu (%d supprimé(s)) — voir « orphans » dans le rapport ; --clean-orphans pour les supprimer.', count($data['orphans']), $data['orphans_cleaned']));
+        }
         foreach (array_slice($data['errors'], 0, 10) as $error) {
             $this->error("{$error['source']} n° {$error['id']} : {$error['message']}");
         }

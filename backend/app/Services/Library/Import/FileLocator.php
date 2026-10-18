@@ -160,7 +160,8 @@ final class FileLocator
             );
             /** @var SplFileInfo $file */
             foreach ($iterator as $file) {
-                if ($file->isFile()) {
+                // Liens symboliques ignorés : ils peuvent pointer hors de --files.
+                if ($file->isFile() && ! $file->isLink()) {
                     $entries[substr($file->getPathname(), strlen($this->root) + 1)] = $file->getPathname();
                 }
             }

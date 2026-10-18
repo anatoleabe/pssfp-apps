@@ -55,6 +55,15 @@ it('met en brouillon un document DOCman désactivé, programmé, en catégorie d
     'accès enregistré' => [['access' => 2], 'accès restreint dans Joomla'],
 ]);
 
+it('signale un accès restreint dans Joomla, document ou livre', function (): void {
+    expect(docmanItem($this->export, $this->categories, 101, ['access' => 2])->restricted)->toBeTrue()
+        ->and(docmanItem($this->export, $this->categories, 101)->restricted)->toBeFalse()
+        // Accès 0 : hérité de la catégorie (catégorie 3 : accès 2).
+        ->and(docmanItem($this->export, $this->categories, 101, ['category_id' => 3, 'access' => 0])->restricted)->toBeTrue()
+        ->and(bookItem($this->export, $this->categories, 10, ['access' => 3])->restricted)->toBeTrue()
+        ->and(bookItem($this->export, $this->categories, 10, ['access' => 5])->restricted)->toBeFalse();
+});
+
 it('date la publication DOCman à la création à défaut de date de publication', function (): void {
     $item = docmanItem($this->export, $this->categories, 102);
 

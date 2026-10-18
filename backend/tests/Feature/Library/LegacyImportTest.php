@@ -68,13 +68,13 @@ beforeEach(function (): void {
         putImportFile($this->files, $relative, $bytes);
     }
     putImportFile($this->files, 'images/couvertures/manuel-imaginaire.jpg', $this->cover = fakeJpeg());
-    $this->logsBefore = glob(storage_path('logs/biblio-import-*.json')) ?: [];
+    $this->logsBefore = glob(storage_path('logs/biblio-import-*.{json,journal}'), GLOB_BRACE) ?: [];
 });
 
 afterEach(function (): void {
     Carbon::setTestNow();
     File::deleteDirectory($this->dir);
-    foreach (array_diff(glob(storage_path('logs/biblio-import-*.json')) ?: [], $this->logsBefore) as $report) {
+    foreach (array_diff(glob(storage_path('logs/biblio-import-*.{json,journal}'), GLOB_BRACE) ?: [], $this->logsBefore) as $report) {
         @unlink($report);
     }
 });
@@ -99,11 +99,18 @@ function putImportFile(string $root, string $relative, string $bytes): void
     file_put_contents($root.'/'.$relative, $bytes);
 }
 
-/** Lance biblio:import sur $this->export (écrit en JSON) et renvoie le rapport du dernier lancement. */
-function runLegacyImport(object $test, array $options = [], int $exitCode = 0): array
+function writeExport(object $test): string
 {
     $path = $test->dir.'/export.json';
     file_put_contents($path, json_encode($test->export, JSON_THROW_ON_ERROR));
+
+    return $path;
+}
+
+/** Lance biblio:import sur $this->export (écrit en JSON) et renvoie le rapport du dernier lancement. */
+function runLegacyImport(object $test, array $options = [], int $exitCode = 0): array
+{
+    $path = writeExport($test);
 
     $test->artisan('biblio:import', ['export' => $path, '--files' => $test->files] + $options)->assertExitCode($exitCode);
 
@@ -221,6 +228,11 @@ it('relance sans écraser statut, accès, slug ni vues posés depuis l\'administ
     $arrete = importedDocument('docman', 101);
     $arrete->update(['status' => Document::STATUS_ARCHIVED, 'access_level' => 'auditor', 'slug' => 'arrete-renomme', 'views_count' => 500]);
     importedDocument('alexandria', 11)->delete();
+    $manuel = importedDocument('alexandria', 10);
+    $manuel->update(['title' => ['fr' => 'Titre corrigé'], 'year' => 1999, 'isbn' => '978-9-99-999999-9', 'type' => 'rapport']);
+    $ajoute = MotCle::query()->where('slug', 'fiscalite')->sole();
+    $manuel->motsCles()->attach($ajoute);
+    $manuel->motsCles()->detach(MotCle::query()->where('slug', 'finances-publiques')->sole());
 
     $report = runLegacyImport($this);
 
@@ -228,6 +240,10 @@ it('relance sans écraser statut, accès, slug ni vues posés depuis l\'administ
         ->access_level->toBe('auditor')
         ->slug->toBe('arrete-renomme')
         ->views_count->toBe(500)
+        ->and($manuel->fresh())->getTranslation('title', 'fr')->toBe('Titre corrigé')
+        ->and($manuel->fresh())->year->toBe(1999)->isbn->toBe('978-9-99-999999-9')->type->toBe('rapport')
+        // Mots-clés : ceux de l'import manquants sont rajoutés, aucun n'est retiré.
+        ->and($manuel->fresh()->motsCles->pluck('slug')->sort()->values()->all())->toBe(['finances-publiques', 'fiscalite'])
         ->and(importedDocument('alexandria', 11)->trashed())->toBeTrue()
         ->and($report['skipped'])->toContain(['source' => 'alexandria', 'id' => 11, 'reason' => 'supprimé dans la nouvelle bibliothèque'])
         ->and(LibraryRedirect::query()->where('from_path', '/index.php?option=com_docman&view=document&slug=arrete-001')->value('to_path'))->toBe('/documents/arrete-001');
@@ -371,7 +387,10 @@ it('n\'enregistre pas le document si l\'envoi sur MinIO échoue', function (): v
     expect(Document::count())->toBe(0)
         ->and(LibraryRedirect::query()->where('to_path', 'like', '/documents/%')->count())->toBe(0)
         ->and($report['totals'])->toMatchArray(['created' => 0, 'errors' => 2])
-        ->and($report['errors'][0]['message'])->toContain('Envoi impossible');
+        ->and($report['errors'][0]['message'])->toContain('Envoi impossible')
+        // Compteurs de l'élément annulés avec lui.
+        ->and($report['files']['exact'])->toBe(0)
+        ->and($report['redirects']['created'])->toBe(LibraryRedirect::count());
 });
 
 it('consigne une catégorie sans correspondance sans créer le document', function (): void {
@@ -382,6 +401,118 @@ it('consigne une catégorie sans correspondance sans créer le document', functi
     expect(Document::count())->toBe(0)
         ->and($report['totals']['errors'])->toBe(2)
         ->and($report['errors'][0]['message'])->toContain('sans correspondance');
+});
+
+it('publie le brouillon importé dont un élément publié partage le fichier', function (): void {
+    putImportFile($this->files, 'livres/manuel-imaginaire.pdf', $this->pdf['Documentations/CIRCULAIRES/c-fictive.pdf']);
+
+    $report = runLegacyImport($this);
+
+    $circulaire = importedDocument('docman', 102);
+    expect($circulaire->status)->toBe(Document::STATUS_PUBLISHED)
+        ->and($circulaire->approved_by)->toBe(User::query()->where('email', LegacyImporter::SYSTEM_USER_EMAIL)->value('id'))
+        ->and($circulaire->approved_at)->not->toBeNull()
+        ->and($circulaire->published_at?->toIso8601String())->toBe('2016-03-01T10:00:00+00:00')
+        ->and($report['merged_into_draft'])->toBe([['source' => 'alexandria', 'id' => 10, 'into' => 'circulaire-fictive']]);
+
+    $dry = runLegacyImport($this, ['--dry-run' => true]);
+    expect($dry['merged_into_draft'])->toBe([]);
+});
+
+it('ne publie pas un brouillon déposé à la main qui partage le fichier', function (): void {
+    $manuel = Document::factory()->create(['slug' => 'brouillon-manuel', 'file_checksum_md5' => md5($this->pdf['livres/manuel-imaginaire.pdf'])]);
+
+    $report = runLegacyImport($this, ['--only' => 'alexandria']);
+
+    expect($manuel->fresh()->status)->toBe(Document::STATUS_DRAFT)
+        ->and($report['merged_into_draft'])->toBe([]);
+});
+
+it('importe en brouillon réservé un document à accès restreint dans Joomla', function (): void {
+    $this->export['docman']['documents'][0]['access'] = 2;
+
+    $report = runLegacyImport($this);
+
+    expect(importedDocument('docman', 101))->status->toBe(Document::STATUS_DRAFT)->access_level->toBe('auditor')
+        ->and($report['drafts'])->toContain(['source' => 'docman', 'id' => 101, 'reason' => 'accès restreint dans Joomla']);
+});
+
+it('liste brouillons, fichiers non PDF et couvertures en échec', function (): void {
+    $this->export['docman']['documents'][0]['storage_path'] = 'ARRETES FICTIFS/support.pptx';
+    putImportFile($this->files, 'Documentations/ARRETES FICTIFS/support.pptx', 'présentation fictive');
+    unlink($this->files.'/images/couvertures/manuel-imaginaire.jpg');
+
+    $report = runLegacyImport($this);
+
+    expect(importedDocument('docman', 101)->file_path)->toEndWith('.pptx')
+        ->and($report['non_pdf_files'])->toBe([['source' => 'docman', 'id' => 101, 'file' => 'ARRETES FICTIFS/support.pptx', 'extension' => 'pptx']])
+        ->and($report['drafts'])->toContain(['source' => 'docman', 'id' => 102, 'reason' => 'dépublié dans Joomla'])
+        ->and($report['cover_failures'])->toContain(['source' => 'alexandria', 'id' => 10, 'reason' => 'image de couverture introuvable']);
+});
+
+it('journalise chaque objet envoyé puis sa validation', function (): void {
+    runLegacyImport($this);
+
+    $journals = array_values(array_diff(glob(storage_path('logs/biblio-import-*.journal')) ?: [], $this->logsBefore));
+    expect($journals)->toHaveCount(1)->and(fileperms($journals[0]) & 0777)->toBe(0600);
+
+    $lines = file($journals[0], FILE_IGNORE_NEW_LINES);
+    $arrete = importedDocument('docman', 101);
+    expect($lines)->toContain("envoi\tminio_documents\t{$arrete->file_path}\tdocman\t101")
+        ->toContain("valide\tminio_documents\t{$arrete->file_path}\tdocman\t101")
+        ->toContain("envoi\tminio_media\t{$arrete->cover_path}\tdocman\t101");
+});
+
+it('signale puis supprime sur demande les objets orphelins d\'un import interrompu', function (): void {
+    $journal = storage_path('logs/biblio-import-20261017-000000.journal');
+    file_put_contents($journal, "envoi\tminio_documents\tdocuments/orphelin.pdf\tdocman\t999\n");
+    Storage::disk('minio_documents')->put('documents/orphelin.pdf', 'reste');
+
+    $first = runLegacyImport($this, ['--dry-run' => true]);
+    expect($first['orphans'])->toBe([['disk' => 'minio_documents', 'key' => 'documents/orphelin.pdf', 'source' => 'docman', 'id' => 999]])
+        ->and(Storage::disk('minio_documents')->exists('documents/orphelin.pdf'))->toBeTrue();
+
+    $second = runLegacyImport($this, ['--clean-orphans' => true]);
+    expect($second['orphans_cleaned'])->toBe(1)
+        ->and(Storage::disk('minio_documents')->exists('documents/orphelin.pdf'))->toBeFalse();
+
+    expect(runLegacyImport($this)['orphans'])->toBe([]);
+    @unlink($journal);
+});
+
+it('ne démarre pas sans la migration du type « rapport »', function (): void {
+    DB::table('migrations')->where('migration', 'like', '%add_rapport_to_documents_type_check')->delete();
+
+    $this->artisan('biblio:import', ['export' => writeExport($this), '--files' => $this->files])
+        ->expectsOutputToContain('rapport')
+        ->assertExitCode(1);
+
+    expect(Document::count())->toBe(0);
+});
+
+it('ne démarre pas si un disque MinIO refuse l\'objet témoin', function (): void {
+    $readOnly = $this->dir.'/media-lecture-seule';
+    File::ensureDirectoryExists($readOnly);
+    chmod($readOnly, 0500);
+    Storage::set('minio_media', Storage::build(['driver' => 'local', 'root' => $readOnly, 'throw' => false]));
+
+    try {
+        $this->artisan('biblio:import', ['export' => writeExport($this), '--files' => $this->files])
+            ->expectsOutputToContain('minio_media')
+            ->assertExitCode(1);
+    } finally {
+        chmod($readOnly, 0700);
+    }
+
+    expect(Document::count())->toBe(0);
+});
+
+it('écrit un rapport partiel et sort en erreur sur un incident imprévu', function (): void {
+    User::creating(fn () => throw new RuntimeException('base indisponible'));
+
+    $report = runLegacyImport($this, exitCode: 1);
+
+    expect($report['fatal'])->toContain('base indisponible')->and(Document::count())->toBe(0);
 });
 
 describe('redirections des anciennes URL', function (): void {
@@ -423,6 +554,21 @@ describe('redirections des anciennes URL', function (): void {
 
         expect(LibraryRedirect::query()->where('from_path', 'like', '%103-note-double%')->exists())->toBeFalse()
             ->and(LibraryRedirect::query()->where('from_path', '/index.php?option=com_abook&view=book&id=11')->exists())->toBeFalse();
+    });
+
+    it('isole l\'échec d\'une page de catégorie', function (): void {
+        LibraryRedirect::creating(function (LibraryRedirect $redirect): void {
+            if ($redirect->from_path === '/index.php/textes/arretes-fictifs') {
+                throw new RuntimeException('incident sur une catégorie');
+            }
+        });
+
+        $report = runLegacyImport($this, exitCode: 1);
+
+        expect(LibraryRedirect::query()->where('from_path', '/index.php/e-books/finances-imaginaires')->exists())->toBeTrue()
+            ->and(LibraryRedirect::query()->where('from_path', '/textes/arretes-fictifs')->exists())->toBeFalse()
+            ->and($report['errors'])->toHaveCount(1)
+            ->and($report['errors'][0])->toMatchArray(['source' => 'docman', 'id' => 2]);
     });
 
     it('relance sans doublon et respecte une redirection existante', function (): void {

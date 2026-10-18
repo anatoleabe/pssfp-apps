@@ -50,7 +50,18 @@ final class ImportReport
     private array $redirects = ['created' => 0, 'existing' => 0, 'conflicts' => 0, 'discarded' => 0, 'by_form' => []];
 
     /** @var array<string, list<array<string, mixed>>> */
-    private array $details = ['skipped' => [], 'missing_files' => [], 'merged' => [], 'tolerant_matches' => [], 'redirect_conflicts' => [], 'errors' => []];
+    private array $details = [
+        'skipped' => [], 'missing_files' => [], 'merged' => [], 'merged_into_draft' => [], 'drafts' => [],
+        'non_pdf_files' => [], 'cover_failures' => [], 'tolerant_matches' => [], 'redirect_conflicts' => [],
+        'orphans' => [], 'cleanup_failures' => [], 'errors' => [],
+    ];
+
+    private int $orphansCleaned = 0;
+
+    private ?string $fatal = null;
+
+    /** @var array<string, mixed>|null état avant l'élément en cours */
+    private ?array $checkpoint = null;
 
     private int $keywordsCreated = 0;
 
@@ -70,6 +81,22 @@ final class ImportReport
         }
     }
 
+    /** Début d'un élément : ses compteurs seront annulés avec lui s'il échoue. */
+    public function begin(): void
+    {
+        $this->checkpoint = $this->state();
+    }
+
+    public function rollback(): void
+    {
+        if ($this->checkpoint !== null) {
+            foreach ($this->checkpoint as $property => $value) {
+                $this->{$property} = $value;
+            }
+        }
+        $this->checkpoint = null;
+    }
+
     public function created(LegacyItem $item, string $type): void
     {
         $this->count($item, self::CREATED);
@@ -78,7 +105,44 @@ final class ImportReport
         $this->createdByStatus[$status] = ($this->createdByStatus[$status] ?? 0) + 1;
         if ($item->draftReason !== null) {
             $this->draftReasons[$item->draftReason] = ($this->draftReasons[$item->draftReason] ?? 0) + 1;
+            $this->details['drafts'][] = ['source' => $item->source, 'id' => $item->id, 'reason' => $item->draftReason];
         }
+    }
+
+    public function mergedIntoDraft(LegacyItem $item, string $into): void
+    {
+        $this->details['merged_into_draft'][] = ['source' => $item->source, 'id' => $item->id, 'into' => $into];
+    }
+
+    public function nonPdfFile(LegacyItem $item, string $extension): void
+    {
+        $this->details['non_pdf_files'][] = ['source' => $item->source, 'id' => $item->id, 'file' => $item->file, 'extension' => $extension];
+    }
+
+    public function coverFailure(LegacyItem $item, string $reason): void
+    {
+        $this->details['cover_failures'][] = ['source' => $item->source, 'id' => $item->id, 'reason' => $reason];
+    }
+
+    /** @param  array{disk: string, key: string, source: string, id: int}  $entry */
+    public function orphan(array $entry): void
+    {
+        $this->details['orphans'][] = $entry;
+    }
+
+    public function orphanCleaned(): void
+    {
+        $this->orphansCleaned++;
+    }
+
+    public function cleanupFailure(string $disk, string $key): void
+    {
+        $this->details['cleanup_failures'][] = ['disk' => $disk, 'key' => $key];
+    }
+
+    public function fatal(string $message): void
+    {
+        $this->fatal = $message;
     }
 
     public function updated(LegacyItem $item, bool $changed): void
@@ -163,7 +227,7 @@ final class ImportReport
 
     public function hasErrors(): bool
     {
-        return $this->details['errors'] !== [];
+        return $this->details['errors'] !== [] || $this->fatal !== null;
     }
 
     /** @return array<string, int> */
@@ -200,7 +264,19 @@ final class ImportReport
             'system_user_created' => $this->systemUserCreated,
             'redirects' => $this->redirects,
             'acronym_candidates' => $this->acronymCandidates,
+            'orphans_cleaned' => $this->orphansCleaned,
+            'fatal' => $this->fatal,
         ] + $this->details;
+    }
+
+    /** @return array<string, mixed> */
+    private function state(): array
+    {
+        return [
+            'sources' => $this->sources, 'createdByType' => $this->createdByType, 'createdByStatus' => $this->createdByStatus,
+            'draftReasons' => $this->draftReasons, 'files' => $this->files, 'covers' => $this->covers,
+            'redirects' => $this->redirects, 'details' => $this->details,
+        ];
     }
 
     private function count(LegacyItem $item, string $outcome): void

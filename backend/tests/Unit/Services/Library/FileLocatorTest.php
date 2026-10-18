@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Services\Library\Import\FileLocator;
+use App\Services\Library\Import\ImportSources;
 use Illuminate\Support\Facades\File;
 
 uses()->group('module-3', 'library', 'biblio-import');
@@ -74,6 +75,23 @@ it('ne trouve rien pour un fichier absent, vide ou hors du dossier', function (s
     'remontée intermédiaire' => 'ARRETES/../racine.pdf',
     'octet nul' => "racine.pdf\0.jpg",
 ]);
+
+it('ignore les liens symboliques', function (): void {
+    symlink($this->root.'/racine.pdf', $this->root.'/ARRETES/lien.pdf');
+
+    expect(FileLocator::scan($this->root)->locate('ARRETES/lien.pdf'))->toBeNull();
+});
+
+it('ne cherche un fichier que sous le dossier de sa source (Documentations ou livres)', function (): void {
+    File::ensureDirectoryExists($this->root.'/files/livres');
+    File::ensureDirectoryExists($this->root.'/files/Documentations');
+    file_put_contents($this->root.'/files/livres/manuel.pdf', 'x');
+
+    $sources = ImportSources::fromDirectory($this->root.'/files');
+
+    expect($sources->forSource('docman')->locate('manuel.pdf'))->toBeNull()
+        ->and($sources->forSource('alexandria')->locate('manuel.pdf'))->not->toBeNull();
+});
 
 it('ne lève pas d\'erreur sur un dossier racine absent', function (): void {
     expect(FileLocator::scan($this->root.'/absent')->locate('racine.pdf'))->toBeNull();

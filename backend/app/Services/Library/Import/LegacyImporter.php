@@ -24,9 +24,14 @@ use Throwable;
  *
  * Clé d'idempotence : (legacy_source, legacy_id), documents supprimés compris (un document
  * supprimé dans la nouvelle bibliothèque n'est pas recréé). Un fichier dont le MD5 est déjà connu
- * n'est pas importé deux fois : ses anciennes URL mènent à la fiche existante, qui cumule ses vues.
- * Lots de 100 éléments par transaction, un point de sauvegarde par élément (un échec n'annule que
- * lui). Dry-run : tout se déroule dans une transaction annulée, sans aucun envoi sur MinIO.
+ * n'est pas importé deux fois : ses anciennes URL mènent à la fiche existante, qui cumule ses vues
+ * (et la publie si c'était un brouillon de l'import et que l'élément est publié).
+ *
+ * Reprise après incident : une transaction par élément, validée aussitôt (un échec n'annule que
+ * lui) ; chaque objet MinIO est inscrit au journal avant son envoi puis marqué validé (voir
+ * ImportJournal). Une relance ne modifie pas ce qui a été retouché depuis l'administration : elle
+ * ne complète que les champs vides et n'ajoute que les mots-clés manquants.
+ * Dry-run : tout se déroule dans une transaction annulée, sans aucun envoi sur MinIO.
  */
 final class LegacyImporter
 {
@@ -34,15 +39,17 @@ final class LegacyImporter
 
     public const SYSTEM_USER_NAME = 'Import Joomla';
 
-    private const BATCH_SIZE = 100;
-
     private const COVER_EXTENSIONS = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_GIF => 'gif', IMAGETYPE_WEBP => 'webp'];
 
     private const FILE_EXTENSION = '/^[a-z0-9]{1,5}$/';
 
     private ImportOptions $options;
 
-    private ImportReport $report;
+    private ?ImportReport $report = null;
+
+    private ?ImportJournal $journal = null;
+
+    private ?LegacyItem $current = null;
 
     private ImportSources $sources;
 
@@ -62,7 +69,7 @@ final class LegacyImporter
 
     private ?int $systemUserId = null;
 
-    /** @var array<string, array{id: ?int, slug: string, trashed: bool}> MD5 → document */
+    /** @var array<string, array{id: ?int, slug: string, trashed: bool, draft: bool, imported: bool}> MD5 → document */
     private array $checksums = [];
 
     /** @var list<string> MD5 retenus par l'élément en cours */
@@ -79,23 +86,26 @@ final class LegacyImporter
      */
     public function import(array $export, ImportSources $sources, ImportOptions $options, ?Closure $progress = null): ImportReport
     {
+        $this->report = null;
         self::assertShape($export);
         $this->start($export, $sources, $options);
         $items = $this->items($export);
 
+        if (! $options->dryRun) {
+            ImportPreflight::check();
+        }
+        if ($options->journalDirectory !== null && $this->journal !== null) {
+            ImportPreflight::orphans($options->journalDirectory, $this->journal, $this->report, $options->cleanOrphans && ! $options->dryRun);
+        }
+
         $run = function () use ($items, $progress): void {
             $this->ensureSystemUser();
             $this->ensureThesaurus();
-            $done = 0;
-            foreach (array_chunk($items, self::BATCH_SIZE) as $batch) {
-                DB::transaction(function () use ($batch, $progress, &$done, $items): void {
-                    foreach ($batch as $item) {
-                        $this->importItem($item);
-                        $progress?->__invoke(++$done, count($items));
-                    }
-                });
+            foreach ($items as $index => $item) {
+                $this->importItem($item);
+                $progress?->__invoke($index + 1, count($items));
             }
-            DB::transaction(fn () => $this->categoryRedirects());
+            $this->categoryRedirects();
         };
 
         if ($options->dryRun) {
@@ -112,6 +122,12 @@ final class LegacyImporter
 
         $this->report->redirectsDiscarded($this->planner->discardedCount());
 
+        return $this->report;
+    }
+
+    /** Rapport du lancement en cours ou interrompu (null si l'export a été refusé d'emblée). */
+    public function partialReport(): ?ImportReport
+    {
         return $this->report;
     }
 
@@ -139,6 +155,9 @@ final class LegacyImporter
         $this->keywordIds = [];
         $this->systemUserId = null;
         $this->checksums = [];
+        $this->journal = $options->journalDirectory === null
+            ? null
+            : ImportJournal::inDirectory($options->journalDirectory, Carbon::now()->format('Ymd-His'));
     }
 
     /**
@@ -203,6 +222,8 @@ final class LegacyImporter
 
     private function importItem(LegacyItem $item): void
     {
+        $this->current = $item;
+        $this->report->begin();
         $this->redirects->begin();
         $this->pendingChecksums = [];
         $this->uploaded = [];
@@ -214,15 +235,24 @@ final class LegacyImporter
             });
         } catch (Throwable $e) {
             $this->redirects->rollback();
+            $this->report->rollback();
             foreach ($this->pendingChecksums as $md5) {
                 unset($this->checksums[$md5]);
             }
             foreach ($allocatedSlugs as $slug) {
                 $this->slugs->release($slug);
             }
-            $this->discardUploads();
+            $this->discardUploads($item);
             $this->report->error($item->source, $item->id, $e->getMessage());
+
+            return;
         }
+
+        // Document validé en base : ses objets ne sont plus des orphelins potentiels.
+        foreach ($this->uploaded as [$disk, $key]) {
+            $this->journal?->committed($disk, $key, $item->source, $item->id);
+        }
+        $this->uploaded = [];
     }
 
     /** @param  list<string>  $allocatedSlugs  slugs attribués (libérés si l'élément échoue) */
@@ -273,8 +303,12 @@ final class LegacyImporter
     private function create(LegacyItem $item, MappedCategory $mapped, LocatedFile $file, string $md5, string $slug): void
     {
         $paths = $this->legacyPaths($item);
-        $this->rememberChecksum($md5, null, $slug, false);
+        $this->rememberChecksum($md5, null, $slug, false, ! $item->isPublished(), true);
         $cover = $item->source === LegacyMapping::SOURCE_ALEXANDRIA ? $this->coverImage($item) : null;
+        $extension = self::fileExtension($file);
+        if ($extension !== 'pdf') {
+            $this->report->nonPdfFile($item, $extension);
+        }
 
         if ($this->options->dryRun) {
             $this->report->cover($cover === null ? 'generated' : 'copied');
@@ -289,7 +323,8 @@ final class LegacyImporter
             'slug' => $slug,
             // Niveau d'accès fixé à la création seulement : une restriction posée depuis
             // l'administration survit à une relance de l'import.
-            'access_level' => $mapped->accessLevel,
+            // Accès restreint dans Joomla : réservé, pour qu'une publication ultérieure ne l'expose pas.
+            'access_level' => $item->restricted ? 'auditor' : $mapped->accessLevel,
             'title' => ['fr' => $item->title],
             'legacy_source' => $item->source,
             'legacy_id' => $item->id,
@@ -303,15 +338,15 @@ final class LegacyImporter
             'subtitle' => $item->subtitle === null ? null : ['fr' => $item->subtitle],
             'abstract' => $item->abstract === null ? null : ['fr' => $item->abstract],
         ]));
-        $this->rememberChecksum($md5, $document->id, $slug, false);
+        $this->rememberChecksum($md5, $document->id, $slug, false, ! $published, true);
 
         $document->authors()->createMany(array_map(
             fn (string $name, int $i): array => ['author_name' => $name, 'order' => $i + 1],
             $item->authors,
             array_keys($item->authors),
         ));
-        $this->syncKeywords($document, $mapped);
-        $this->storeFile($document, $file, $md5, $cover);
+        $this->addKeywords($document, $mapped);
+        $this->storeFile($document, $file, $md5, $cover, $extension);
         $this->redirects->ensure($paths, '/documents/'.$slug);
         $document->refresh()->syncSearchIndex();
         $this->report->created($item, $mapped->type);
@@ -324,10 +359,9 @@ final class LegacyImporter
      *
      * @param  array{path: string, extension: string}|null  $cover
      */
-    private function storeFile(Document $document, LocatedFile $file, string $md5, ?array $cover): void
+    private function storeFile(Document $document, LocatedFile $file, string $md5, ?array $cover, string $extension): void
     {
-        $extension = strtolower(pathinfo($file->relative, PATHINFO_EXTENSION));
-        $key = 'documents/'.$document->uuid.'.'.(preg_match(self::FILE_EXTENSION, $extension) === 1 ? $extension : 'pdf');
+        $key = 'documents/'.$document->uuid.'.'.$extension;
         $this->upload((string) config('library.documents_disk'), $key, $file->path, []);
 
         $coverPath = null;
@@ -348,8 +382,26 @@ final class LegacyImporter
 
             return;
         }
+        // Couverture générée par le job : journalisée d'avance, retirée si l'élément échoue.
+        $disk = (string) config('library.covers_disk');
+        $generated = config('library.covers_directory').'/'.$document->uuid.'.jpg';
+        $this->journal?->sent($disk, $generated, $this->current->source, $this->current->id);
+        $this->uploaded[] = [$disk, $generated];
+
         ProcessDocumentFile::dispatchSync($document->id);
-        $this->report->cover($document->refresh()->cover_path === null ? 'failed' : 'generated');
+        if ($document->refresh()->cover_path === null) {
+            $this->report->cover('failed');
+            $this->report->coverFailure($this->current, 'génération de la couverture impossible');
+        } else {
+            $this->report->cover('generated');
+        }
+    }
+
+    private static function fileExtension(LocatedFile $file): string
+    {
+        $extension = strtolower(pathinfo($file->relative, PATHINFO_EXTENSION));
+
+        return preg_match(self::FILE_EXTENSION, $extension) === 1 ? $extension : 'pdf';
     }
 
     /** @param  array<string, mixed>  $options */
@@ -359,6 +411,9 @@ final class LegacyImporter
         if ($stream === false) {
             throw new RuntimeException("Lecture impossible : {$localPath}");
         }
+        // Inscrit avant l'envoi : un arrêt brutal entre l'envoi et la validation laisse une trace.
+        $this->journal?->sent($disk, $key, $this->current->source, $this->current->id);
+        $this->uploaded[] = [$disk, $key];
 
         try {
             // Disques MinIO en throw=false : le booléen renvoyé est la seule preuve de l'envoi.
@@ -372,13 +427,17 @@ final class LegacyImporter
         if ($written !== true) {
             throw new RuntimeException("Envoi impossible vers le disque {$disk} : {$key}");
         }
-        $this->uploaded[] = [$disk, $key];
     }
 
-    private function discardUploads(): void
+    private function discardUploads(LegacyItem $item): void
     {
         foreach ($this->uploaded as [$disk, $key]) {
-            Storage::disk($disk)->delete($key);
+            if (Storage::disk($disk)->delete($key)) {
+                $this->journal?->deleted($disk, $key, $item->source, $item->id);
+            } else {
+                // Reste « envoi » au journal : signalé comme orphelin à la prochaine relance.
+                $this->report->cleanupFailure($disk, $key);
+            }
         }
         $this->uploaded = [];
     }
@@ -393,6 +452,7 @@ final class LegacyImporter
         $located = $this->sources->cover($item->image);
         if ($located === null) {
             $this->report->cover('image_missing');
+            $this->report->coverFailure($item, 'image de couverture introuvable');
 
             return null;
         }
@@ -401,6 +461,7 @@ final class LegacyImporter
         $extension = $info === false ? null : (self::COVER_EXTENSIONS[$info[2]] ?? null);
         if ($extension === null) {
             $this->report->cover('image_invalid');
+            $this->report->coverFailure($item, 'image de couverture illisible');
 
             return null;
         }
@@ -409,8 +470,10 @@ final class LegacyImporter
     }
 
     /**
-     * Document déjà importé : métadonnées Joomla rafraîchies (type, titres, année, langue…) ;
-     * statut, slug, niveau d'accès, fichier et couverture conservés ; vues jamais diminuées.
+     * Document déjà importé : seuls les champs encore vides sont complétés (année, ISBN, pages,
+     * ancienne URL, sous-titre, résumé) et les mots-clés manquants ajoutés. Titre, type, statut,
+     * slug, accès, fichier et couverture ne sont jamais modifiés ; les vues ne baissent jamais :
+     * une retouche faite depuis l'administration survit à une relance.
      */
     private function refresh(Document $document, LegacyItem $item, MappedCategory $mapped): void
     {
@@ -421,9 +484,14 @@ final class LegacyImporter
         }
 
         $paths = $this->legacyPaths($item);
-        $document->fill($this->metadata($item, $mapped, $paths));
-        foreach (['title' => $item->title, 'subtitle' => $item->subtitle, 'abstract' => $item->abstract] as $key => $value) {
-            if ($value !== null && $document->getTranslation($key, 'fr', false) !== $value) {
+        $metadata = $this->metadata($item, $mapped, $paths);
+        foreach (['year', 'isbn', 'pages_count', 'legacy_url'] as $field) {
+            if (($document->{$field} === null || $document->{$field} === '') && $metadata[$field] !== null) {
+                $document->{$field} = $metadata[$field];
+            }
+        }
+        foreach (['subtitle' => $item->subtitle, 'abstract' => $item->abstract] as $key => $value) {
+            if ($value !== null && (string) $document->getTranslation($key, 'fr', false) === '') {
                 $document->setTranslation($key, 'fr', $value);
             }
         }
@@ -434,7 +502,7 @@ final class LegacyImporter
             if ($changed) {
                 $document->save();
             }
-            $this->syncKeywords($document, $mapped);
+            $this->addKeywords($document, $mapped);
             if ($item->authors !== [] && ! $document->authors()->exists()) {
                 $document->authors()->createMany(array_map(
                     fn (string $name, int $i): array => ['author_name' => $name, 'order' => $i + 1],
@@ -444,7 +512,10 @@ final class LegacyImporter
             }
         }
         if ($document->file_checksum_md5 !== null) {
-            $this->rememberChecksum($document->file_checksum_md5, $document->id, $document->slug, false);
+            $this->rememberChecksum(
+                $document->file_checksum_md5, $document->id, $document->slug, false,
+                $document->status === Document::STATUS_DRAFT, $this->isImported($document),
+            );
         }
 
         $this->redirects->ensure($paths, '/documents/'.$document->slug);
@@ -454,7 +525,7 @@ final class LegacyImporter
         $this->report->updated($item, $changed);
     }
 
-    /** @param  array{id: ?int, slug: string, trashed: bool}  $target */
+    /** @param  array{id: ?int, slug: string, trashed: bool, draft: bool, imported: bool}  $target */
     private function merge(LegacyItem $item, MappedCategory $mapped, array $target, string $md5): void
     {
         if ($target['trashed']) {
@@ -465,6 +536,8 @@ final class LegacyImporter
 
         $paths = $this->legacyPaths($item);
         $created = $this->redirects->ensure($paths, '/documents/'.$target['slug']);
+        // Publié dans Joomla sous une autre fiche : le brouillon créé par l'import est publié.
+        $publish = $item->isPublished() && $target['draft'] && $target['imported'];
 
         if (! $this->options->dryRun && $target['id'] !== null) {
             // Vues cumulées une seule fois : quand l'URL à query string de l'élément vient d'être créée.
@@ -474,31 +547,58 @@ final class LegacyImporter
             }
             $document = Document::query()->find($target['id']);
             if ($document !== null) {
-                $document->motsCles()->syncWithoutDetaching($this->keywordIdsFor($mapped));
+                $this->addKeywords($document, $mapped);
+                if ($publish) {
+                    $document->forceFill([
+                        'status' => Document::STATUS_PUBLISHED,
+                        'approved_by' => $this->systemUserId,
+                        'approved_at' => Carbon::now(),
+                        'published_at' => $item->publishedAt ?? $document->published_at,
+                    ])->save();
+                    $document->syncSearchIndex();
+                }
             }
         }
 
+        if ($publish) {
+            $this->rememberChecksum($md5, $target['id'], $target['slug'], false, false, true);
+            $this->report->mergedIntoDraft($item, $target['slug']);
+        }
         $this->report->merged($item, $target['slug'], $md5);
     }
 
-    /** @return array{id: ?int, slug: string, trashed: bool}|null */
+    /** @return array{id: ?int, slug: string, trashed: bool, draft: bool, imported: bool}|null */
     private function duplicateOf(string $md5): ?array
     {
         if (isset($this->checksums[$md5])) {
             return $this->checksums[$md5];
         }
 
-        $document = Document::withTrashed()->where('file_checksum_md5', $md5)->orderBy('id')->first(['id', 'slug', 'deleted_at']);
+        $document = Document::withTrashed()
+            ->where('file_checksum_md5', $md5)
+            ->orderBy('id')
+            ->first(['id', 'slug', 'status', 'legacy_source', 'uploaded_by', 'deleted_at']);
         if ($document === null) {
             return null;
         }
 
-        return $this->checksums[$md5] = ['id' => $document->id, 'slug' => $document->slug, 'trashed' => $document->trashed()];
+        return $this->checksums[$md5] = [
+            'id' => $document->id, 'slug' => $document->slug, 'trashed' => $document->trashed(),
+            'draft' => $document->status === Document::STATUS_DRAFT, 'imported' => $this->isImported($document),
+        ];
     }
 
-    private function rememberChecksum(string $md5, ?int $id, string $slug, bool $trashed): void
+    /** Créé par cet import (et non déposé à la main) : source Joomla et déposant « Import Joomla ». */
+    private function isImported(Document $document): bool
     {
-        $this->checksums[$md5] = ['id' => $id, 'slug' => $slug, 'trashed' => $trashed];
+        return $document->legacy_source !== null
+            && $this->systemUserId !== null
+            && (int) $document->uploaded_by === $this->systemUserId;
+    }
+
+    private function rememberChecksum(string $md5, ?int $id, string $slug, bool $trashed, bool $draft, bool $imported): void
+    {
+        $this->checksums[$md5] = ['id' => $id, 'slug' => $slug, 'trashed' => $trashed, 'draft' => $draft, 'imported' => $imported];
         $this->pendingChecksums[] = $md5;
     }
 
@@ -526,16 +626,10 @@ final class LegacyImporter
             : $this->planner->alexandriaBook($item->raw);
     }
 
-    /** Mots-clés de la correspondance ; les autres mots-clés du thésaurus d'import sont retirés, les autres conservés. */
-    private function syncKeywords(Document $document, MappedCategory $mapped): void
+    /** Mots-clés de la correspondance ajoutés s'ils manquent ; aucun mot-clé n'est jamais retiré. */
+    private function addKeywords(Document $document, MappedCategory $mapped): void
     {
-        $wanted = $this->keywordIdsFor($mapped);
-        $current = $document->motsCles()->pluck('mots_cles.id')->all();
-        $obsolete = array_diff(array_intersect($current, $this->keywordIds), $wanted);
-        if ($obsolete !== []) {
-            $document->motsCles()->detach($obsolete);
-        }
-        $document->motsCles()->syncWithoutDetaching($wanted);
+        $document->motsCles()->syncWithoutDetaching($this->keywordIdsFor($mapped));
     }
 
     /** @return list<int> */
@@ -572,7 +666,7 @@ final class LegacyImporter
         return $mapped;
     }
 
-    /** Pages de catégorie : `/collections/{type}`, filtrée sur le mot-clé le plus spécifique s'il y en a un. */
+    /** Pages de catégorie : `/collections/{type}`, filtrée sur le mot-clé le plus spécifique ; un échec n'arrête pas les autres. */
     private function categoryRedirects(): void
     {
         foreach (ImportOptions::SOURCES as $source) {
@@ -588,11 +682,16 @@ final class LegacyImporter
 
                 $keyword = $mapped->primaryKeyword();
                 $target = '/collections/'.$mapped->type.($keyword === null ? '' : '?mot_cle='.$keyword->slug);
+                $paths = $source === LegacyMapping::SOURCE_DOCMAN ? $this->planner->docmanCategory($id) : $this->planner->alexandriaCategory($id);
+                $this->report->begin();
                 $this->redirects->begin();
-                $this->redirects->ensure(
-                    $source === LegacyMapping::SOURCE_DOCMAN ? $this->planner->docmanCategory($id) : $this->planner->alexandriaCategory($id),
-                    $target,
-                );
+                try {
+                    DB::transaction(fn () => $this->redirects->ensure($paths, $target));
+                } catch (Throwable $e) {
+                    $this->redirects->rollback();
+                    $this->report->rollback();
+                    $this->report->error($source, $id, 'Page de catégorie : '.$e->getMessage());
+                }
             }
         }
     }
