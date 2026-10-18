@@ -1,0 +1,91 @@
+import type { MetadataRoute } from 'next';
+import { getStats, listDocuments } from '@/lib/api/library';
+import type { DocumentType } from '@/lib/api/types';
+import { collectionHref, documentHref } from '@/lib/routes';
+import { siteUrl } from '@/lib/site';
+
+/** Régénéré au plus toutes les heures (ISR). */
+export const revalidate = 3600;
+
+/**
+ * Cache de données des appels de la sitemap : aligné sur la route. Un appel à 300 s (défaut des
+ * pages) ramènerait la régénération de toute la route à 5 minutes.
+ */
+const CACHE = { revalidate: 3600 };
+
+/** Plafond d'entrées de fiches (une page de sitemap en accepte 50 000 ; marge large). */
+const MAX_DOCUMENTS = 5000;
+const PER_PAGE = 50;
+
+type Entry = MetadataRoute.Sitemap[number];
+
+/** Journal serveur (build, régénération ISR) : sitemap incomplète, sans faire échouer la route. */
+function warn(message: string): void {
+  console.warn(`[sitemap] ${message}`);
+}
+
+/**
+ * Accueil, à propos, collections non vides et fiches publiées (`lastModified` = `published_at`).
+ * `/recherche` est exclu (pages non indexées). API indisponible (CI, panne) : sitemap réduit
+ * aux pages fixes, et à ce qui a déjà été lu — jamais d'exception (le build ne doit pas échouer),
+ * mais un avertissement journalisé.
+ */
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const origin = siteUrl().origin;
+  const url = (path: string): string => `${origin}${path}`;
+  const fixed: Entry[] = [
+    { url: url('/'), changeFrequency: 'daily', priority: 1 },
+    { url: url('/a-propos'), changeFrequency: 'yearly', priority: 0.3 },
+  ];
+
+  const [collections, documents] = await Promise.all([collectionEntries(url), documentEntries(url)]);
+  return [...fixed, ...collections, ...documents];
+}
+
+async function collectionEntries(url: (path: string) => string): Promise<Entry[]> {
+  try {
+    const r = await getStats(CACHE);
+    if (!r.ok) {
+      warn(`statistiques indisponibles (${r.error.message}) : collections absentes`);
+      return [];
+    }
+    return Object.entries(r.data.data.by_type)
+      .filter(([, n]) => (n ?? 0) > 0)
+      .map(([type]) => ({ url: url(collectionHref(type as DocumentType)), changeFrequency: 'weekly', priority: 0.8 }));
+  } catch (e) {
+    warn(`statistiques inattendues (${e instanceof Error ? e.message : 'erreur'}) : collections absentes`);
+    return [];
+  }
+}
+
+async function documentEntries(url: (path: string) => string): Promise<Entry[]> {
+  const entries: Entry[] = [];
+  let more = false;
+  try {
+    for (let page = 1; ; page += 1) {
+      const r = await listDocuments({ tri: 'recent' }, page, PER_PAGE, CACHE);
+      if (!r.ok) {
+        warn(`liste des fiches interrompue page ${page} (${r.error.message}) : ${entries.length} fiche(s) retenue(s)`);
+        break;
+      }
+      for (const doc of r.data.data) {
+        entries.push({
+          url: url(documentHref(doc.slug)),
+          ...(doc.published_at ? { lastModified: doc.published_at } : {}),
+          changeFrequency: 'monthly',
+          priority: 0.6,
+        });
+      }
+      if (r.data.data.length === 0 || page >= r.data.meta.last_page) break;
+      if (entries.length >= MAX_DOCUMENTS) {
+        more = true;
+        break;
+      }
+    }
+  } catch (e) {
+    // Réponse inattendue : on garde les fiches déjà lues.
+    warn(`liste des fiches inattendue (${e instanceof Error ? e.message : 'erreur'}) : ${entries.length} fiche(s) retenue(s)`);
+  }
+  if (more || entries.length > MAX_DOCUMENTS) warn(`liste tronquée à ${MAX_DOCUMENTS} fiches : d'autres fiches publiées existent`);
+  return entries.slice(0, MAX_DOCUMENTS);
+}

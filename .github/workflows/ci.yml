@@ -90,6 +90,10 @@ jobs:
 
       - name: Run Pest tests
         working-directory: backend
+        # Tests bibliothèque contre le service Meilisearch ci-dessus (index préfixé test_).
+        env:
+          MEILISEARCH_HOST: http://127.0.0.1:7700
+          MEILISEARCH_KEY: test_master_key
         run: ./vendor/bin/pest
 
       - name: Lint with Pint
