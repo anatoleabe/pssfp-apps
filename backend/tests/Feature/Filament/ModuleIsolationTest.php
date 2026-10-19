@@ -7,6 +7,7 @@ use App\Filament\Pages\Parametres;
 use App\Filament\Resources\CampagneCandidatureResource;
 use App\Filament\Resources\CandidatureResource;
 use App\Filament\Resources\DocumentResource;
+use App\Filament\Resources\LibraryRedirectResource;
 use App\Filament\Resources\MotCleResource;
 use App\Filament\Widgets\AvancementCampagneWidget;
 use App\Filament\Widgets\LibraryOverview;
@@ -291,7 +292,7 @@ it('cantonne chaque rôle de la bibliothèque à la bibliothèque', function (st
     $this->get(CandidatureResource::getUrl('index'))->assertForbidden();
     $this->get(Parametres::getUrl())->assertForbidden();
 })->with([
-    'responsable' => ['library_manager', [DocumentResource::class, MotCleResource::class], [LibraryOverview::class, LibraryZeroResultSearches::class]],
+    'responsable' => ['library_manager', [DocumentResource::class, MotCleResource::class, LibraryRedirectResource::class], [LibraryOverview::class, LibraryZeroResultSearches::class]],
     'bibliothécaire' => ['librarian', [DocumentResource::class, MotCleResource::class], [LibraryOverview::class, LibraryZeroResultSearches::class]],
     'consultation' => ['library_viewer', [DocumentResource::class, MotCleResource::class], [LibraryOverview::class, LibraryZeroResultSearches::class]],
     // Le contributeur n'ouvre que l'écran Documents (limité à ses dépôts) :

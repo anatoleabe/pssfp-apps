@@ -7,10 +7,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /** Ancienne URL de la bibliothèque Joomla → nouveau chemin. */
 class LibraryRedirect extends Model
 {
+    use LogsActivity;
+
     protected $fillable = ['from_path', 'to_path', 'status_code', 'hits'];
 
     protected $casts = ['status_code' => 'integer', 'hits' => 'integer'];
@@ -47,5 +51,10 @@ class LibraryRedirect extends Model
 
             return $value;
         });
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logOnly(['from_path', 'to_path', 'status_code'])->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }
