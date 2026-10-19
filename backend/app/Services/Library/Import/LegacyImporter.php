@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Library\Import;
 
-use App\Jobs\ProcessDocumentFile;
 use App\Models\Document;
 use App\Models\MotCle;
 use App\Models\User;
 use Closure;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use RuntimeException;
@@ -75,8 +73,7 @@ final class LegacyImporter
     /** @var list<string> MD5 retenus par l'élément en cours */
     private array $pendingChecksums = [];
 
-    /** @var list<array{0: string, 1: string}> objets MinIO envoyés pour l'élément en cours */
-    private array $uploaded = [];
+    private ImportedFileStore $files;
 
     public function __construct(private readonly LegacyMapping $mapping) {}
 
@@ -158,6 +155,7 @@ final class LegacyImporter
         $this->journal = $options->journalDirectory === null
             ? null
             : ImportJournal::inDirectory($options->journalDirectory, Carbon::now()->format('Ymd-His'));
+        $this->files = new ImportedFileStore($this->journal);
     }
 
     /**
@@ -226,7 +224,7 @@ final class LegacyImporter
         $this->report->begin();
         $this->redirects->begin();
         $this->pendingChecksums = [];
-        $this->uploaded = [];
+        $this->files->begin($item->source, $item->id);
         $allocatedSlugs = [];
 
         try {
@@ -242,17 +240,15 @@ final class LegacyImporter
             foreach ($allocatedSlugs as $slug) {
                 $this->slugs->release($slug);
             }
-            $this->discardUploads($item);
+            foreach ($this->files->discard() as [$disk, $key]) {
+                $this->report->cleanupFailure($disk, $key);
+            }
             $this->report->error($item->source, $item->id, $e->getMessage());
 
             return;
         }
 
-        // Document validé en base : ses objets ne sont plus des orphelins potentiels.
-        foreach ($this->uploaded as [$disk, $key]) {
-            $this->journal?->committed($disk, $key, $item->source, $item->id);
-        }
-        $this->uploaded = [];
+        $this->files->committed();
     }
 
     /** @param  list<string>  $allocatedSlugs  slugs attribués (libérés si l'élément échoue) */
@@ -353,47 +349,16 @@ final class LegacyImporter
     }
 
     /**
-     * Fichier sur MinIO (writeStream, retour vérifié), puis couverture : celle d'Alexandria si elle
-     * existe, sinon générée par ProcessDocumentFile, exécuté ici de façon synchrone (le fichier est
-     * enregistré sans événement pour que l'observateur ne le mette pas aussi en file).
+     * Fichier et couverture (celle d'Alexandria si elle existe, sinon générée) : voir ImportedFileStore.
      *
      * @param  array{path: string, extension: string}|null  $cover
      */
     private function storeFile(Document $document, LocatedFile $file, string $md5, ?array $cover, string $extension): void
     {
-        $key = 'documents/'.$document->uuid.'.'.$extension;
-        $this->upload((string) config('library.documents_disk'), $key, $file->path, []);
-
-        $coverPath = null;
-        if ($cover !== null) {
-            $coverPath = config('library.covers_directory').'/'.$document->uuid.'.'.$cover['extension'];
-            $this->upload((string) config('library.covers_disk'), $coverPath, $cover['path'], ['visibility' => 'public']);
-        }
-
-        $document->forceFill([
-            'file_path' => $key,
-            'file_size_bytes' => filesize($file->path) ?: null,
-            'file_checksum_md5' => $md5,
-            'cover_path' => $coverPath,
-        ])->saveQuietly();
-
-        if ($coverPath !== null) {
-            $this->report->cover('copied');
-
-            return;
-        }
-        // Couverture générée par le job : journalisée d'avance, retirée si l'élément échoue.
-        $disk = (string) config('library.covers_disk');
-        $generated = config('library.covers_directory').'/'.$document->uuid.'.jpg';
-        $this->journal?->sent($disk, $generated, $this->current->source, $this->current->id);
-        $this->uploaded[] = [$disk, $generated];
-
-        ProcessDocumentFile::dispatchSync($document->id);
-        if ($document->refresh()->cover_path === null) {
-            $this->report->cover('failed');
+        $outcome = $this->files->store($document, $file->path, $md5, $extension, $cover);
+        $this->report->cover($outcome);
+        if ($outcome === 'failed') {
             $this->report->coverFailure($this->current, 'génération de la couverture impossible');
-        } else {
-            $this->report->cover('generated');
         }
     }
 
@@ -402,44 +367,6 @@ final class LegacyImporter
         $extension = strtolower(pathinfo($file->relative, PATHINFO_EXTENSION));
 
         return preg_match(self::FILE_EXTENSION, $extension) === 1 ? $extension : 'pdf';
-    }
-
-    /** @param  array<string, mixed>  $options */
-    private function upload(string $disk, string $key, string $localPath, array $options): void
-    {
-        $stream = fopen($localPath, 'rb');
-        if ($stream === false) {
-            throw new RuntimeException("Lecture impossible : {$localPath}");
-        }
-        // Inscrit avant l'envoi : un arrêt brutal entre l'envoi et la validation laisse une trace.
-        $this->journal?->sent($disk, $key, $this->current->source, $this->current->id);
-        $this->uploaded[] = [$disk, $key];
-
-        try {
-            // Disques MinIO en throw=false : le booléen renvoyé est la seule preuve de l'envoi.
-            $written = Storage::disk($disk)->writeStream($key, $stream, $options);
-        } finally {
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-        }
-
-        if ($written !== true) {
-            throw new RuntimeException("Envoi impossible vers le disque {$disk} : {$key}");
-        }
-    }
-
-    private function discardUploads(LegacyItem $item): void
-    {
-        foreach ($this->uploaded as [$disk, $key]) {
-            if (Storage::disk($disk)->delete($key)) {
-                $this->journal?->deleted($disk, $key, $item->source, $item->id);
-            } else {
-                // Reste « envoi » au journal : signalé comme orphelin à la prochaine relance.
-                $this->report->cleanupFailure($disk, $key);
-            }
-        }
-        $this->uploaded = [];
     }
 
     /** @return array{path: string, extension: string}|null image de couverture Alexandria valide */
