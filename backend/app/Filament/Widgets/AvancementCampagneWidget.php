@@ -39,10 +39,11 @@ class AvancementCampagneWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        // Vue d'ensemble des admissions : réservée aux comptes qui ont accès au
-        // module (un éditeur ou un bibliothécaire seul ne la voit plus).
+        // Vue d'ensemble des admissions, pour les rôles qui lisent ce module.
+        // `librarian` et `editor` n'y ont plus accès (encaissement passé à
+        // `caisse`) : ils sont sortis de la liste.
         return static::moduleAllows() && (auth()->user()?->hasAnyRole([
-            'super_admin', 'admin', 'admission_committee', 'librarian', 'editor', 'caisse',
+            'super_admin', 'admin', 'admission_committee', 'caisse',
         ]) ?? false);
     }
 

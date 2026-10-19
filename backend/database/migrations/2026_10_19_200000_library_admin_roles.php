@@ -135,6 +135,19 @@ return new class extends Migration
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
+    /**
+     * Rend `candidature.mark_paid` et la lecture des admissions à `librarian`
+     * (et son ancienne description si elle n'a pas été retouchée), supprime
+     * les 4 permissions, et supprime chacun des 4 rôles **seulement** s'il
+     * porte encore la description posée par up().
+     *
+     * Cas d'un rôle `caisse` qui existait avant la migration (description
+     * différente) : il est conservé avec ses titulaires, y compris les
+     * bibliothécaires à qui up() l'a donné, et garde les permissions qu'up()
+     * lui a ajoutées (lecture admissions, `candidature.mark_paid`) : on ne
+     * sait pas distinguer celles qu'il portait déjà. Aucun droit n'est donc
+     * perdu ; à nettoyer à la main depuis l'écran Rôles si besoin.
+     */
     public function down(): void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();

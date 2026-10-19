@@ -6,7 +6,8 @@ Trois pièces portent ce cloisonnement :
 
 - `App\Support\ModulePermissionMap::modules()` : la carte des modules (permissions de lecture, de gestion, actions sensibles, actions autonomes). C'est la seule source de vérité, partagée par l'écran Rôles et par `RolePermissionSeeder`.
 - `#[BelongsToModule('…')]` (`App\Support\BelongsToModule`) : chaque écran du panneau (Resource, Page, Widget) déclare son module, ou `core` pour le socle commun (tableau de bord, profil).
-- `App\Support\ModuleAccess` : le point de contrôle unique. Un écran s'ouvre si l'utilisateur porte au moins une permission du module (lecture, gestion ou action sensible, autonomes comprises). Ce contrôle s'ajoute aux Policies, il ne les remplace pas.
+- `App\Support\ModuleAccess` : le point de contrôle unique. Un écran s'ouvre si l'utilisateur porte au moins une permission qui ouvre le module : lecture, gestion ou action autonome (`ModulePermissionMap::accessPermissions()`). Une action sensible ordinaire seule (ex. `candidature.export_csv` posée à la main) n'ouvre rien. Ce contrôle s'ajoute aux Policies, il ne les remplace pas.
+- Exception : `super_admin` ouvre tous les modules sans condition. En prod il doit quand même recevoir explicitement chaque nouvelle permission (les Policies, elles, n'ont pas de contournement) ; le raccourci évite seulement qu'une permission oubliée lui ferme un module entier.
 
 ## Étapes
 
@@ -69,7 +70,16 @@ class InscriptionsWidget extends StatsOverviewWidget
 }
 ```
 
-`tests/Feature/Filament/ModuleIsolationTest.php` parcourt tous les écrans enregistrés dans le panneau. Il échoue si un écran ne déclare pas de module, déclare un module inconnu, n'utilise pas le trait, ou reste ouvert à un compte sans droit sur son module. Un écran fourni par Filament lui-même (qu'on ne peut pas annoter) se rattache au socle dans `ModuleAccess::FRAMEWORK_SCREENS`, et uniquement au socle.
+Les widgets affichés en en-tête ou en pied d'une page de Resource (`getHeaderWidgets()` / `getFooterWidgets()`) ne sont pas enregistrés dans le panneau et échappent donc au test ci-dessous : ils doivent eux aussi déclarer leur module et passer par `ChecksModuleAccess` dans `canView()`.
+
+`tests/Feature/Filament/ModuleIsolationTest.php` parcourt les Resources, Pages et Widgets enregistrés dans le panneau (`Filament::getPanel('admin')`). Il échoue si l'un d'eux :
+
+- ne déclare pas de module, ou déclare un module inconnu ;
+- n'utilise pas `ChecksModuleAccess` (directement ou via `RestrictedToModule`) ;
+- a un `canAccess()` (Resource, Page) ou un `canView()` (Widget) qui n'est ni celui du trait, ni une redéfinition appelant `moduleAllows()` ;
+- reste ouvert à un compte `admin` privé de la lecture, de la gestion et des actions autonomes de son module.
+
+Un écran fourni par Filament lui-même (qu'on ne peut pas annoter) se rattache au socle dans `ModuleAccess::FRAMEWORK_SCREENS`, et uniquement au socle.
 
 ### 3. Livrer les permissions et les rôles par migration additive
 

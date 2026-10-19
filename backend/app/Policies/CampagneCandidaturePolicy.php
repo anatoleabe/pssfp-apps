@@ -12,8 +12,9 @@ use App\Models\User;
  *
  * Une campagne pilote l'ouverture des candidatures, la numérotation des
  * dossiers et le communiqué publié sur apply.pssfp.org : elle est **consultable
- * par tous les rôles back-office** mais ne se modifie que par `admin` et
- * `super_admin`. Le verrou est doublé — rôle *et* permission — pour qu'une
+ * par tout rôle qui a accès aux admissions** (lecture ou gestion) mais ne se
+ * modifie que par `admin` et `super_admin`. Les rôles des autres modules
+ * (site, bibliothèque) ne la voient pas (cf. ModuleAccess). Le verrou est doublé — rôle *et* permission — pour qu'une
  * permission accordée par erreur depuis l'écran des rôles ne suffise jamais à
  * ouvrir ou clore une campagne.
  *

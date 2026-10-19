@@ -144,8 +144,8 @@ class RoleResource extends Resource
 
                 if ($standalone !== []) {
                     $fields[] = Forms\Components\CheckboxList::make("standalone_actions.{$key}")
-                        ->label('Sans accès au module')
-                        ->helperText('Ces actions valent même au niveau « Aucun accès » : le compte ne voit que ce qu\'elles ouvrent.')
+                        ->label('Actions autonomes (sans niveau requis)')
+                        ->helperText('Valables quel que soit le niveau ci-dessus, y compris « Aucun accès » : le compte ne voit alors que ce qu\'elles ouvrent.')
                         ->options(array_intersect_key($module['sensitive'], array_flip($standalone)))
                         ->columns(2);
                 }

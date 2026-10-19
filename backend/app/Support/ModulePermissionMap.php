@@ -172,14 +172,18 @@ final class ModulePermissionMap
     }
 
     /**
-     * Toutes les permissions qui rattachent un rôle à un module : lecture,
-     * gestion et actions sensibles (autonomes comprises). En porter une seule
-     * suffit à ouvrir les écrans du module (cf. ModuleAccess) — les Policies
-     * restent seules juges de ce que l'écran permet ensuite.
+     * Permissions qui **ouvrent** un module : lecture, gestion et actions
+     * autonomes. En porter une seule suffit à ouvrir les écrans du module
+     * (cf. ModuleAccess) — les Policies restent seules juges de ce que
+     * l'écran permet ensuite.
+     *
+     * Les actions sensibles ordinaires n'en font pas partie : sans niveau
+     * d'accès elles sont inopérantes (cf. toPermissions()), et une telle
+     * permission posée à la main ne doit pas ouvrir le module.
      *
      * @return list<string>
      */
-    public static function modulePermissions(string $moduleKey): array
+    public static function accessPermissions(string $moduleKey): array
     {
         $module = self::modules()[$moduleKey] ?? null;
 
@@ -190,7 +194,7 @@ final class ModulePermissionMap
         return array_values(array_unique([
             ...$module['read'],
             ...$module['manage'],
-            ...array_keys($module['sensitive']),
+            ...($module['standalone'] ?? []),
         ]));
     }
 

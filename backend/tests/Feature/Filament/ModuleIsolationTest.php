@@ -94,9 +94,10 @@ function isolationScreenOpens(string $screen): bool
 }
 
 /**
- * Modules sur lesquels l'utilisateur porte au moins un droit, déduits de la
- * carte des modules — indépendamment de ModuleAccess, pour ne pas tester une
- * implémentation contre elle-même.
+ * Modules ouverts à l'utilisateur, déduits de la carte des modules —
+ * indépendamment de ModuleAccess, pour ne pas tester une implémentation
+ * contre elle-même : lecture, gestion ou action autonome. Une action
+ * sensible ordinaire n'ouvre pas le module à elle seule.
  *
  * @return list<string>
  */
@@ -106,11 +107,34 @@ function isolationGrantedModules(User $user): array
 
     return collect(ModulePermissionMap::modules())
         ->filter(fn (array $module): bool => array_intersect(
-            [...$module['read'], ...$module['manage'], ...array_keys($module['sensitive'])],
+            [...$module['read'], ...$module['manage'], ...($module['standalone'] ?? [])],
             $permissions,
         ) !== [])
         ->keys()
         ->all();
+}
+
+/**
+ * La méthode d'accès de l'écran applique-t-elle le contrôle par module ?
+ * Soit c'est l'implémentation du trait (RestrictedToModule), soit une
+ * redéfinition dont le code appelle moduleAllows().
+ */
+function isolationMethodChecksModule(string $screen, string $method): bool
+{
+    $reflection = new ReflectionMethod($screen, $method);
+    $file = (string) $reflection->getFileName();
+
+    if (str_ends_with($file, 'app/Filament/Concerns/RestrictedToModule.php')) {
+        return true;
+    }
+
+    if (! str_starts_with($reflection->getDeclaringClass()->getName(), 'App\\')) {
+        return false;
+    }
+
+    $lines = array_slice(file($file), $reflection->getStartLine() - 1, $reflection->getEndLine() - $reflection->getStartLine() + 1);
+
+    return str_contains(implode('', $lines), 'moduleAllows()');
 }
 
 it('suit la liste des rôles du seeder', function (): void {
@@ -131,8 +155,12 @@ it('déclare un module connu pour chaque écran enregistré dans le panneau', fu
             ->and(in_array($module, $known, true))->toBeTrue("{$screen} déclare un module inconnu : {$module}");
 
         if (str_starts_with($screen, 'App\\')) {
+            $method = is_subclass_of($screen, Widget::class) ? 'canView' : 'canAccess';
+
             expect(in_array(ChecksModuleAccess::class, class_uses_recursive($screen), true))
-                ->toBeTrue("{$screen} n'applique pas le contrôle d'accès par module");
+                ->toBeTrue("{$screen} n'applique pas le contrôle d'accès par module")
+                ->and(isolationMethodChecksModule($screen, $method))
+                ->toBeTrue("{$screen}::{$method}() ne passe pas par moduleAllows()");
         } else {
             // Écran fourni par Filament : seul le socle commun est admis.
             expect($module)->toBe(ModuleAccess::CORE, "{$screen} (Filament) doit rester dans le socle commun");
@@ -140,16 +168,17 @@ it('déclare un module connu pour chaque écran enregistré dans le panneau', fu
     }
 });
 
-it('ferme chaque écran d\'un module à qui ne porte aucun droit sur ce module', function (): void {
+it('ferme chaque écran d\'un module à qui n\'y a ni lecture, ni gestion, ni action autonome', function (): void {
     $admin = Role::findByName('admin', 'web');
     $user = isolationUser('admin');
 
     foreach (array_keys(ModulePermissionMap::modules()) as $moduleKey) {
-        // Le rôle `admin` figure dans toutes les listes de rôles des widgets :
-        // seul le contrôle par module peut encore fermer l'écran.
+        // Le rôle `admin` figure dans toutes les listes de rôles des widgets et
+        // garde les actions sensibles ordinaires du module : seul le contrôle
+        // par module peut encore fermer l'écran.
         $admin->syncPermissions(array_values(array_diff(
             ModulePermissionMap::allPermissions(),
-            ModulePermissionMap::modulePermissions($moduleKey),
+            ModulePermissionMap::accessPermissions($moduleKey),
         )));
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         $this->actingAs($user = $user->fresh());
@@ -287,4 +316,31 @@ it('tranche l\'accès à un module sur les droits réels', function (): void {
         ->and(ModuleAccess::accessibleModules($contributor))->toBe(['bibliotheque'])
         ->and(ModuleAccess::moduleOf(DocumentResource::class))->toBe('bibliotheque')
         ->and(ModuleAccess::moduleOf(stdClass::class))->toBeNull();
+});
+
+it('n\'ouvre pas un module sur une simple action sensible', function (): void {
+    $role = Role::create(['name' => 'export_seul', 'label' => 'Export seul', 'guard_name' => 'web']);
+    $role->givePermissionTo('candidature.export_csv');
+    $user = isolationUser('export_seul');
+    $this->actingAs($user);
+
+    $admissions = array_filter(isolationAllScreens(), fn (string $screen): bool => ModuleAccess::moduleOf($screen) === 'admissions');
+
+    expect(ModuleAccess::allows($user, 'admissions'))->toBeFalse()
+        ->and(ModuleAccess::accessibleModules($user))->toBe([])
+        ->and($admissions)->not->toBeEmpty();
+
+    foreach ($admissions as $screen) {
+        expect(isolationScreenOpens($screen))->toBeFalse("{$screen} s'ouvre sur une action sensible seule");
+    }
+});
+
+it('ne montre aucun écran des admissions à un bibliothécaire doté d\'un export', function (): void {
+    $librarian = isolationUser('librarian');
+    $librarian->givePermissionTo('candidature.export_csv');
+    $this->actingAs($librarian = $librarian->fresh());
+
+    expect(AvancementCampagneWidget::canView())->toBeFalse()
+        ->and(CandidatureResource::canAccess())->toBeFalse()
+        ->and(ModuleAccess::allows($librarian, 'bibliotheque'))->toBeTrue();
 });

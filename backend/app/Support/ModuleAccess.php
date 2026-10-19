@@ -14,11 +14,17 @@ use ReflectionClass;
  * Point unique du cloisonnement du back-office par module.
  *
  * Un compte n'ouvre les écrans d'un module que s'il porte au moins une
- * permission de ce module (lecture, gestion ou action sensible, autonomes
- * comprises — cf. ModulePermissionMap::modulePermissions()). Le contrôle
- * s'ajoute aux Policies, il ne les remplace jamais : un rôle « bibliothèque »
- * seul ne voit ni les pages du site, ni les candidatures, ni l'administration,
- * même si une Policy venait un jour à être trop large.
+ * permission qui **ouvre** ce module : lecture, gestion ou action autonome
+ * (cf. ModulePermissionMap::accessPermissions()). Une action sensible
+ * ordinaire seule (ex. `candidature.export_csv` posée à la main) n'ouvre rien.
+ * Le contrôle s'ajoute aux Policies, il ne les remplace jamais : un rôle
+ * « bibliothèque » seul ne voit ni les pages du site, ni les candidatures, ni
+ * l'administration, même si une Policy venait un jour à être trop large.
+ *
+ * Exception assumée : `super_admin` ouvre tous les modules sans condition.
+ * En prod il est censé porter chaque permission (pas de contournement de Gate
+ * dans les Policies, qui restent appliquées) ; le raccourci évite seulement
+ * qu'une permission oubliée dans une migration lui ferme un module entier.
  *
  * Les écrans déclarent leur module par l'attribut #[BelongsToModule] ; les
  * écrans fournis par Filament, qu'on ne peut pas annoter, sont rattachés ici.
@@ -79,13 +85,15 @@ final class ModuleAccess
             return false;
         }
 
+        // Cf. docblock de la classe : raccourci volontaire, les Policies
+        // s'appliquent toujours ensuite.
         if ($user->hasRole('super_admin')) {
             return true;
         }
 
         return $user->getAllPermissions()
             ->pluck('name')
-            ->intersect(ModulePermissionMap::modulePermissions($module))
+            ->intersect(ModulePermissionMap::accessPermissions($module))
             ->isNotEmpty();
     }
 

@@ -59,9 +59,11 @@ final class RolePermissionSeeder extends Seeder
         /*
          * Périmètre initial de chaque rôle.
          *
-         * Règle transverse : les campagnes sont lisibles par tous les rôles
-         * back-office mais ne se modifient que par `admin` / `super_admin`
-         * (verrou porté par CampagneCandidaturePolicy).
+         * Règle transverse : les campagnes sont lisibles par tout rôle qui a
+         * accès aux admissions (lecture ou gestion) mais ne se modifient que
+         * par `admin` / `super_admin` (verrou porté par
+         * CampagneCandidaturePolicy). Les rôles d'autres modules (site,
+         * bibliothèque) ne les voient pas.
          */
         $roles = [
             'super_admin' => [
