@@ -72,16 +72,13 @@ class MotCleResource extends Resource
         };
     }
 
-    /** Chemins « Racine › … › Terme » (id => chemin), recalculés à chaque requête de la table. */
-    private static array $paths = [];
-
-    /** Nombre de documents publiés avec leurs sous-thèmes (id => n), même agrégation que l'API publique. */
-    private static array $publishedWithDescendants = [];
-
-    /** Documents publiés rattachés directement (id => n). */
-    private static array $publishedDirect = [];
-
-    private static function loadThesaurus(): void
+    /**
+     * Chemins « Racine › … › Terme », comptes de documents publiés directs et avec sous-thèmes
+     * (même agrégation que l'API publique), calculés en quelques requêtes pour tout le thésaurus.
+     *
+     * @return array{paths: array<int, string>, direct: array<int, int>, withDescendants: array<int, int>}
+     */
+    private static function loadThesaurus(): array
     {
         $labels = [];
         $parents = [];
@@ -90,7 +87,7 @@ class MotCleResource extends Resource
             $parents[$m->id] = $m->parent_id;
         }
 
-        self::$paths = [];
+        $paths = [];
         foreach ($parents as $id => $_) {
             $chain = [];
             $seen = [];
@@ -98,7 +95,7 @@ class MotCleResource extends Resource
                 $seen[$cursor] = true;
                 array_unshift($chain, $labels[$cursor]);
             }
-            self::$paths[$id] = implode(' › ', $chain);
+            $paths[$id] = implode(' › ', $chain);
         }
 
         $byKeyword = DB::table('document_mot_cle')
@@ -107,42 +104,52 @@ class MotCleResource extends Resource
             ->groupBy('mot_cle_id')
             ->map(fn ($rows) => $rows->pluck('document_id')->all());
 
-        self::$publishedDirect = $byKeyword->map(fn (array $ids): int => count(array_unique($ids)))->all();
-        self::$publishedWithDescendants = [];
+        $direct = $byKeyword->map(fn (array $ids): int => count(array_unique($ids)))->all();
+        $withDescendants = [];
         foreach (MotCle::descendantsIndex() as $id => $ids) {
-            self::$publishedWithDescendants[$id] = collect($ids)->flatMap(fn (int $d) => $byKeyword->get($d, []))->unique()->count();
+            $withDescendants[$id] = collect($ids)->flatMap(fn (int $d) => $byKeyword->get($d, []))->unique()->count();
         }
+
+        return ['paths' => $paths, 'direct' => $direct, 'withDescendants' => $withDescendants];
     }
 
-    /** Identifiants triés par chemin (insensible à la casse) ; sert au tri SQL. */
-    private static function idsOrderedByPath(): array
+    /**
+     * Tri SQL sur une valeur calculée en PHP : `array_position` (PostgreSQL, ADR-0002) sur la liste
+     * des identifiants déjà ordonnée. Les identifiants sont passés par intval (aucune injection
+     * possible) et le thésaurus compte une cinquantaine de lignes, donc la liste reste minuscule.
+     *
+     * @param  list<int>  $orderedIds
+     */
+    private static function orderByIdList(Builder $query, array $orderedIds, string $direction): Builder
     {
-        $paths = self::$paths;
-        uasort($paths, fn (string $a, string $b): int => strcasecmp($a, $b));
+        if ($orderedIds === []) {
+            return $query;
+        }
 
-        return array_keys($paths);
+        return $query->orderByRaw(
+            'array_position(ARRAY['.implode(',', array_map('intval', $orderedIds)).']::bigint[], mots_cles.id::bigint) '.($direction === 'desc' ? 'desc' : 'asc'),
+        );
     }
 
     public static function table(Table $table): Table
     {
-        return $table
-            ->modifyQueryUsing(function (Builder $query): Builder {
-                self::loadThesaurus();
+        // État de la requête courante, porté par la fermeture (aucune donnée statique partagée).
+        $data = new \ArrayObject(['paths' => [], 'direct' => [], 'withDescendants' => []]);
 
-                return $query->with('parent')->withCount(['documents as published_documents_count' => fn (Builder $q): Builder => $q->published()]);
+        return $table
+            ->modifyQueryUsing(function (Builder $query) use ($data): Builder {
+                $data->exchangeArray(self::loadThesaurus());
+
+                return $query->with('parent');
             })
             ->columns([
                 Tables\Columns\TextColumn::make('chemin')->label('Chemin')
-                    ->getStateUsing(fn (MotCle $record): string => self::$paths[$record->getKey()] ?? '')
-                    ->sortable(query: function (Builder $query, string $direction): Builder {
-                        $ids = self::idsOrderedByPath();
-                        if ($ids === []) {
-                            return $query;
-                        }
+                    ->getStateUsing(fn (MotCle $record): string => $data['paths'][$record->getKey()] ?? '')
+                    ->sortable(query: function (Builder $query, string $direction) use ($data): Builder {
+                        $paths = $data['paths'];
+                        uasort($paths, fn (string $a, string $b): int => strcasecmp($a, $b));
 
-                        return $query->orderByRaw(
-                            'array_position(ARRAY['.implode(',', array_map('intval', $ids)).']::bigint[], mots_cles.id::bigint) '.($direction === 'desc' ? 'desc' : 'asc'),
-                        );
+                        return self::orderByIdList($query, array_keys($paths), $direction);
                     }),
                 // `label.fr` seul se lit comme une relation : état et recherche explicites.
                 Tables\Columns\TextColumn::make('label.fr')->label('Libellé')
@@ -151,10 +158,15 @@ class MotCleResource extends Resource
                 Tables\Columns\TextColumn::make('parent.label')->label('Parent')
                     ->getStateUsing(fn (MotCle $record): ?string => $record->parent?->getTranslation('label', 'fr', false)),
                 Tables\Columns\TextColumn::make('published_documents_count')->label('Documents publiés')
-                    ->getStateUsing(fn (MotCle $record): int => self::$publishedDirect[$record->getKey()] ?? 0)
-                    ->sortable(),
+                    ->getStateUsing(fn (MotCle $record): int => $data['direct'][$record->getKey()] ?? 0)
+                    ->sortable(query: function (Builder $query, string $direction) use ($data): Builder {
+                        $ids = array_keys($data['paths']);
+                        usort($ids, fn (int $a, int $b): int => ($data['direct'][$a] ?? 0) <=> ($data['direct'][$b] ?? 0));
+
+                        return self::orderByIdList($query, $ids, $direction);
+                    }),
                 Tables\Columns\TextColumn::make('published_with_descendants_count')->label('Avec sous-thèmes')
-                    ->getStateUsing(fn (MotCle $record): int => self::$publishedWithDescendants[$record->getKey()] ?? 0),
+                    ->getStateUsing(fn (MotCle $record): int => $data['withDescendants'][$record->getKey()] ?? 0),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('racine')->label('Racine')

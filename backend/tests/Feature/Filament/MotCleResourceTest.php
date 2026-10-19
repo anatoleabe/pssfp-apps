@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Exceptions\MotCleHasChildrenException;
 use App\Filament\Resources\MotCleResource;
 use App\Filament\Resources\MotCleResource\Pages\ManageMotsCles;
 use App\Models\Document;
@@ -197,4 +198,14 @@ it('refuse de supprimer un mot-clé qui a des sous-thèmes', function (): void {
         ->assertNotified('Suppression impossible');
 
     expect(MotCle::query()->whereKey($t['themes']->id)->exists())->toBeTrue();
+});
+
+it('refuse au niveau du modèle de supprimer un mot-clé qui a des enfants', function (): void {
+    $t = thesaurusArbre();
+
+    expect(fn () => $t['themes']->delete())
+        ->toThrow(MotCleHasChildrenException::class, "Déplacez ou supprimez d'abord ses sous-thèmes.");
+
+    expect(MotCle::query()->whereKey([$t['themes']->id, $t['dette']->id])->count())->toBe(2)
+        ->and($t['dette']->fresh()->parent_id)->toBe($t['themes']->id);
 });

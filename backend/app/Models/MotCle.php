@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Exceptions\MotCleHasChildrenException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +22,17 @@ class MotCle extends Model
     use LogsActivity;
 
     protected $table = 'mots_cles';
+
+    protected static function booted(): void
+    {
+        // La FK parent_id est en nullOnDelete : sans ce garde-fou, supprimer un parent
+        // transformerait silencieusement ses enfants en racines, par quelque chemin que ce soit.
+        static::deleting(function (self $motCle): void {
+            if ($motCle->children()->exists()) {
+                throw new MotCleHasChildrenException("Déplacez ou supprimez d'abord ses sous-thèmes.");
+            }
+        });
+    }
 
     protected $fillable = ['slug', 'label', 'parent_id'];
 
