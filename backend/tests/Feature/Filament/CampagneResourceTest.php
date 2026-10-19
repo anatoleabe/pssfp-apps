@@ -67,7 +67,14 @@ it('opens campaigns in read-only to every back-office role', function (string $r
 
     expect($agent->can('viewAny', CampagneCandidature::class))->toBeTrue()
         ->and($agent->can('view', $campagne))->toBeTrue();
-})->with(['admission_committee', 'receptionniste', 'librarian']);
+})->with(['admission_committee', 'receptionniste', 'caisse']);
+
+it('keeps campaigns closed to library-only roles', function (string $role): void {
+    $agent = User::factory()->create(['email' => $role.'-campagne-biblio@pssfp.local']);
+    $agent->assignRole($role);
+
+    expect($agent->can('viewAny', CampagneCandidature::class))->toBeFalse();
+})->with(['librarian', 'library_manager', 'library_viewer', 'library_contributor']);
 
 it('reserves campaign writing to admin and super_admin', function (string $role, bool $canWrite): void {
     $agent = User::factory()->create(['email' => $role.'-write@pssfp.local']);
@@ -81,7 +88,7 @@ it('reserves campaign writing to admin and super_admin', function (string $role,
     ['admin', true],
     ['admission_committee', false],
     ['receptionniste', false],
-    ['librarian', false],
+    ['caisse', false],
 ]);
 
 it('keeps campaigns read-only even if the write permission is granted by mistake', function (): void {

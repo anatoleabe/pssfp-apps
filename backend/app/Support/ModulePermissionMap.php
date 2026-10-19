@@ -50,7 +50,16 @@ final class ModulePermissionMap
      * sensibles du module (permission => libellé), volontairement hors des
      * niveaux : « gestion » n'emporte jamais le droit de décider ou de publier.
      *
-     * @return array<string, array{label: string, description: string, read: list<string>, manage: list<string>, sensitive: array<string, string>, sensitive_description?: string}>
+     * `standalone` (facultatif) désigne, parmi les actions sensibles, celles
+     * qui ont un sens **sans** niveau d'accès au module (ex. un contributeur
+     * qui dépose ses documents sans voir le catalogue) : l'écran des rôles les
+     * propose même au niveau « aucun ».
+     *
+     * Chaque clé est aussi le nom de module que déclarent les écrans du
+     * panneau (#[BelongsToModule('bibliotheque')]) : ajouter un module, c'est
+     * ajouter une entrée ici (cf. docs/ajouter-un-module.md).
+     *
+     * @return array<string, array{label: string, description: string, read: list<string>, manage: list<string>, sensitive: array<string, string>, standalone?: list<string>, sensitive_description?: string}>
      */
     public static function modules(): array
     {
@@ -111,7 +120,12 @@ final class ModulePermissionMap
                 'sensitive_description' => 'À cocher explicitement : gérer les documents n\'emporte pas le droit de les mettre en ligne.',
                 'sensitive' => [
                     'document.publish' => 'Publier ou dépublier un document de la bibliothèque',
+                    'library.thesaurus' => 'Organiser le thésaurus (thèmes)',
+                    'library.redirects' => 'Gérer les anciennes adresses',
+                    'library.stats_export' => 'Exporter les statistiques',
+                    'document.contribute' => 'Déposer des documents (contributeur)',
                 ],
+                'standalone' => ['document.contribute'],
             ],
             'administration' => [
                 'label' => 'Administration',
@@ -144,6 +158,43 @@ final class ModulePermissionMap
     }
 
     /**
+     * Actions sensibles « autonomes » de tous les modules : valables même sans
+     * niveau d'accès au module.
+     *
+     * @return list<string>
+     */
+    public static function standaloneActions(): array
+    {
+        return array_values(array_merge(...array_values(array_map(
+            fn (array $module): array => $module['standalone'] ?? [],
+            self::modules(),
+        ))));
+    }
+
+    /**
+     * Toutes les permissions qui rattachent un rôle à un module : lecture,
+     * gestion et actions sensibles (autonomes comprises). En porter une seule
+     * suffit à ouvrir les écrans du module (cf. ModuleAccess) — les Policies
+     * restent seules juges de ce que l'écran permet ensuite.
+     *
+     * @return list<string>
+     */
+    public static function modulePermissions(string $moduleKey): array
+    {
+        $module = self::modules()[$moduleKey] ?? null;
+
+        if ($module === null) {
+            return [];
+        }
+
+        return array_values(array_unique([
+            ...$module['read'],
+            ...$module['manage'],
+            ...array_keys($module['sensitive']),
+        ]));
+    }
+
+    /**
      * Toutes les permissions connues du projet (modules + actions sensibles).
      *
      * @return list<string>
@@ -172,27 +223,25 @@ final class ModulePermissionMap
     public static function toPermissions(array $levels, array $sensitiveActions = []): array
     {
         $permissions = [];
-        $modules = self::modules();
 
-        foreach ($levels as $moduleKey => $level) {
-            $module = $modules[$moduleKey] ?? null;
+        foreach (self::modules() as $moduleKey => $module) {
+            $level = $levels[$moduleKey] ?? self::LEVEL_NONE;
+            $opened = $level === self::LEVEL_READ || $level === self::LEVEL_MANAGE;
 
-            if ($module === null || $level === self::LEVEL_NONE) {
-                continue;
+            if ($opened) {
+                $permissions = [...$permissions, ...$module['read']];
             }
-
-            $permissions = [...$permissions, ...$module['read']];
 
             if ($level === self::LEVEL_MANAGE) {
                 $permissions = [...$permissions, ...$module['manage']];
             }
-        }
 
-        // On ne retient que les actions sensibles connues. Une action sensible
-        // sans accès à son module serait inopérante : l'écran des rôles ne
-        // l'affiche (et ne l'enregistre) que si le module a un niveau d'accès.
-        $known = array_keys(self::sensitiveActions());
-        $permissions = [...$permissions, ...array_values(array_intersect($sensitiveActions, $known))];
+            // Actions sensibles connues seulement. Sans accès au module, une
+            // action sensible serait inopérante : on ne garde alors que les
+            // actions autonomes (dépôt contributeur…).
+            $allowed = $opened ? array_keys($module['sensitive']) : ($module['standalone'] ?? []);
+            $permissions = [...$permissions, ...array_values(array_intersect($sensitiveActions, $allowed))];
+        }
 
         return array_values(array_unique($permissions));
     }
