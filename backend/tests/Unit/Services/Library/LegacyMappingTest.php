@@ -234,3 +234,47 @@ it('refuse une configuration de dossiers serveur invalide', function (array $ove
 it('expose la source « serveur »', function (): void {
     expect(LegacyMapping::SOURCE_SERVER)->toBe('serveur');
 });
+
+it('exclut les chemins serveur non canoniques au lieu de les laisser passer', function (string $path, string $reason, string $rule): void {
+    $result = (new LegacyMapping)->forServerFile($path);
+
+    expect($result->category)->toBeNull()
+        ->and($result->exclusionReason)->toBe($reason)
+        ->and($result->folderRule)->toBe($rule);
+})->with([
+    'double slash' => ['Documentations//ARRETES/TEST/x.pdf', "données personnelles (liste nominative d'auditeurs)", 'Documentations/ARRETES/TEST'],
+    'segment point' => ['Documentations/./ARRETES/TEST/x.pdf', "données personnelles (liste nominative d'auditeurs)", 'Documentations/ARRETES/TEST'],
+    'antislash' => ['Documentations\\ARRETES\\TEST\\x.pdf', "données personnelles (liste nominative d'auditeurs)", 'Documentations/ARRETES/TEST'],
+    'remontée' => ['livres/../Documentations/ARRETES/TEST/x.pdf', 'chemin non canonique', ''],
+]);
+
+it('retombe sur la règle générique Documentations', function (): void {
+    $result = (new LegacyMapping)->forServerFile('Documentations/X.pdf');
+
+    expect($result->folderRule)->toBe('Documentations')->and($result->category->type)->toBe('texte_loi');
+});
+
+it('refuse les clés qui se confondent après normalisation', function (array $override): void {
+    $config = [
+        'thesaurus' => ['themes' => ['label' => 'Thèmes']],
+        'docman' => ['a' => ['type' => 'rapport']],
+    ];
+
+    expect(fn () => new LegacyMapping($config + $override))->toThrow(InvalidArgumentException::class, 'doublon');
+})->with([
+    'dossiers' => [['server_folders' => [
+        'Docs/A' => ['exclude' => 'x'],
+        'docs//a' => ['exclude' => 'y'],
+    ]]],
+    'fichiers' => [['server_excluded_files' => ['Livres/X.pdf' => 'x', 'livres/x.PDF' => 'y']]],
+]);
+
+it('refuse un dossier à la fois exclu et catégorisé', function (): void {
+    $config = [
+        'thesaurus' => ['themes' => ['label' => 'Thèmes']],
+        'docman' => ['a' => ['type' => 'rapport']],
+        'server_folders' => ['x' => ['exclude' => 'raison', 'source' => 'docman', 'category' => 'a']],
+    ];
+
+    expect(fn () => new LegacyMapping($config))->toThrow(InvalidArgumentException::class, 'x');
+});

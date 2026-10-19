@@ -69,7 +69,11 @@ final class LegacyMapping
      */
     public function forServerFile(string $relativePath): ServerFileRule
     {
-        $path = $this->normaliseServerPath($relativePath);
+        $segments = $this->serverSegments($relativePath);
+        if ($segments === null) {
+            return new ServerFileRule(null, 'chemin non canonique', '');
+        }
+        $path = implode('/', $segments);
 
         if (isset($this->serverExcludedFiles[$path])) {
             $excluded = $this->serverExcludedFiles[$path];
@@ -77,7 +81,6 @@ final class LegacyMapping
             return new ServerFileRule(null, $excluded['reason'], $excluded['key']);
         }
 
-        $segments = explode('/', $path);
         array_pop($segments); // le nom du fichier n'est pas un dossier
         while ($segments !== []) {
             $rule = $this->serverFolders[implode('/', $segments)] ?? null;
@@ -207,12 +210,15 @@ final class LegacyMapping
         foreach ($definitions as $key => $definition) {
             $key = (string) $key;
             $definition = (array) $definition;
-            $normalised = $this->normaliseServerPath($key);
-            if ($normalised === '') {
-                throw new InvalidArgumentException('Dossier serveur : clé vide.');
+            $normalised = $this->configServerPath($key, 'Dossier serveur');
+            if (isset($this->serverFolders[$normalised])) {
+                throw new InvalidArgumentException("Dossier serveur « {$key} » : doublon de « {$this->serverFolders[$normalised]['key']} » après normalisation.");
             }
 
             $exclude = isset($definition['exclude']) ? trim((string) $definition['exclude']) : null;
+            if ($exclude !== null && (isset($definition['source']) || isset($definition['category']))) {
+                throw new InvalidArgumentException("Dossier serveur « {$key} » : « exclude » est incompatible avec « source »/« category ».");
+            }
             if ($exclude !== null) {
                 if ($exclude === '') {
                     throw new InvalidArgumentException("Dossier serveur « {$key} » : raison d'exclusion vide.");
@@ -246,15 +252,33 @@ final class LegacyMapping
         foreach ($definitions as $path => $reason) {
             $path = (string) $path;
             $reason = trim((string) $reason);
-            if ($this->normaliseServerPath($path) === '' || $reason === '') {
-                throw new InvalidArgumentException("Fichier serveur exclu « {$path} » : chemin ou raison vide.");
+            $normalised = $this->configServerPath($path, 'Fichier serveur exclu');
+            if ($reason === '') {
+                throw new InvalidArgumentException("Fichier serveur exclu « {$path} » : raison vide.");
             }
-            $this->serverExcludedFiles[$this->normaliseServerPath($path)] = ['key' => $path, 'reason' => $reason];
+            if (isset($this->serverExcludedFiles[$normalised])) {
+                throw new InvalidArgumentException("Fichier serveur exclu « {$path} » : doublon de « {$this->serverExcludedFiles[$normalised]['key']} » après normalisation.");
+            }
+            $this->serverExcludedFiles[$normalised] = ['key' => $path, 'reason' => $reason];
         }
     }
 
-    /** UTF-8 (Windows-1252 sinon), NFC, minuscules, séparateurs « / » sans bords. */
-    private function normaliseServerPath(string $path): string
+    private function configServerPath(string $path, string $label): string
+    {
+        $segments = $this->serverSegments($path);
+        if ($segments === null || $segments === []) {
+            throw new InvalidArgumentException("{$label} « {$path} » : chemin vide ou non canonique.");
+        }
+
+        return implode('/', $segments);
+    }
+
+    /**
+     * UTF-8 (Windows-1252 sinon), NFC, minuscules, découpé sur « / » et « \ » sans segments vides ni « . ».
+     *
+     * @return list<string>|null null si le chemin remonte (« .. ») : il n'est pas canonique
+     */
+    private function serverSegments(string $path): ?array
     {
         if (! mb_check_encoding($path, 'UTF-8')) {
             $path = mb_convert_encoding($path, 'UTF-8', 'Windows-1252');
@@ -263,7 +287,18 @@ final class LegacyMapping
             $path = (string) \Normalizer::normalize($path, \Normalizer::FORM_C);
         }
 
-        return mb_strtolower(trim(str_replace('\\', '/', $path), " \t/"));
+        $segments = [];
+        foreach (preg_split('#[/\\\\]#u', mb_strtolower($path)) ?: [] as $segment) {
+            $segment = trim($segment);
+            if ($segment === '..') {
+                return null;
+            }
+            if ($segment !== '' && $segment !== '.') {
+                $segments[] = $segment;
+            }
+        }
+
+        return $segments;
     }
 
     private function accessLevel(mixed $value): string

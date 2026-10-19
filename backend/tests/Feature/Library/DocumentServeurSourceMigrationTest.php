@@ -23,3 +23,10 @@ it('refuse le rollback tant que des lignes serveur existent', function (): void 
 
     expect(fn () => $migration->down())->toThrow(QueryException::class);
 });
+
+it('accepte le rollback quand aucune ligne serveur n\'existe', function (): void {
+    $migration = require database_path('migrations/2026_10_19_100000_add_serveur_to_documents_legacy_source_check.php');
+    $migration->down();
+
+    expect(fn () => Document::factory()->create(['legacy_source' => 'serveur', 'legacy_id' => null]))->toThrow(QueryException::class);
+});
