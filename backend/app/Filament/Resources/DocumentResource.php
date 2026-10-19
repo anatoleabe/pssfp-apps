@@ -9,6 +9,7 @@ use App\Filament\Forms\Components\PrivateFileUpload;
 use App\Filament\Resources\DocumentResource\Pages;
 use App\Models\Document;
 use App\Models\User;
+use App\Services\Library\DocumentReviewNotifier;
 use App\Support\BelongsToModule;
 use Closure;
 use Filament\Forms;
@@ -64,6 +65,9 @@ class DocumentResource extends Resource
         Document::STATUS_PUBLISHED => 'Publié',
         Document::STATUS_ARCHIVED => 'Archivé',
     ];
+
+    /** Motif d'un renvoi en brouillon : transmis au déposant et tracé. */
+    public const RETURN_REASON_MAX = 1000;
 
     public const ACCESS_MODE_LABELS = ['libre' => 'Libre', 'reserve' => 'Réservé', 'payant' => 'Payant'];
 
@@ -259,7 +263,7 @@ class DocumentResource extends Resource
                 Tables\Actions\Action::make('soumettre')->label('Soumettre en revue')->icon('heroicon-o-paper-airplane')
                     ->authorize(fn (Document $record) => (bool) auth()->user()?->can('update', $record))
                     ->visible(fn (Document $record) => $record->status === Document::STATUS_DRAFT)
-                    ->action(fn (Document $record) => $record->update(['status' => Document::STATUS_IN_REVIEW])),
+                    ->action(fn (Document $record) => self::submit($record)),
                 Tables\Actions\Action::make('publier')->label('Publier')->icon('heroicon-o-check-badge')->color('success')
                     ->authorize(fn (Document $record) => (bool) auth()->user()?->can('publish', $record))
                     ->visible(fn (Document $record) => in_array($record->status, self::PUBLISHABLE_STATUSES, true))
@@ -271,6 +275,17 @@ class DocumentResource extends Resource
                             return;
                         }
                         self::publish($record);
+                    }),
+                Tables\Actions\Action::make('renvoyerBrouillon')->label('Renvoyer en brouillon')->icon('heroicon-o-arrow-uturn-left')->color('warning')
+                    ->authorize(fn () => (bool) auth()->user()?->can('document.publish'))
+                    ->visible(fn (Document $record) => $record->status === Document::STATUS_IN_REVIEW)
+                    ->modalDescription('Le déposant reçoit ce motif par e-mail ; il est aussi conservé dans l\'historique de la fiche.')
+                    ->form([
+                        Forms\Components\Textarea::make('motif')->label('Motif')->required()->maxLength(self::RETURN_REASON_MAX)->rows(4),
+                    ])
+                    ->action(function (Document $record, array $data): void {
+                        self::returnToDraft($record, (string) $data['motif']);
+                        Notification::make()->title('Document renvoyé en brouillon')->success()->send();
                     }),
                 Tables\Actions\Action::make('archiver')->label('Archiver')->icon('heroicon-o-archive-box')->color('gray')
                     ->authorize(fn (Document $record) => (bool) auth()->user()?->can('publish', $record))
@@ -284,10 +299,15 @@ class DocumentResource extends Resource
                     ->authorize(fn () => (bool) auth()->user()?->can('document.publish'))
                     ->requiresConfirmation()
                     ->action(function (Collection $records): void {
-                        $published = $records
+                        $publishable = $records
                             ->filter(fn (Document $d) => in_array($d->status, self::PUBLISHABLE_STATUSES, true) && self::hasContent($d))
-                            ->each(fn (Document $d) => self::publish($d))
-                            ->count();
+                            ->values();
+                        // Seule une première validation prévient le déposant (pas une republication).
+                        $validated = $publishable->filter(fn (Document $d) => $d->status === Document::STATUS_IN_REVIEW)->values();
+                        $publishable->each(fn (Document $d) => self::publish($d, notify: false));
+                        DocumentReviewNotifier::published($validated, self::actor());
+
+                        $published = $publishable->count();
                         $skipped = $records->count() - $published;
 
                         Notification::make()
@@ -300,11 +320,28 @@ class DocumentResource extends Resource
             ->defaultSort('updated_at', 'desc');
     }
 
-    public static function publish(Document $document): void
+    /** Brouillon → en revue ; les validateurs sont prévenus. */
+    public static function submit(Document $document): void
+    {
+        abort_unless(auth()->user()?->can('update', $document), 403);
+        abort_unless($document->status === Document::STATUS_DRAFT, 403);
+
+        $document->update(['status' => Document::STATUS_IN_REVIEW]);
+
+        DocumentReviewNotifier::submitted($document, self::actor());
+    }
+
+    /**
+     * Publication. Une première validation (depuis « en revue ») prévient le
+     * déposant ; le lot passe `notify: false` et regroupe les messages.
+     */
+    public static function publish(Document $document, bool $notify = true): void
     {
         abort_unless(auth()->user()?->can('document.publish'), 403);
         abort_unless(in_array($document->status, self::PUBLISHABLE_STATUSES, true), 403);
         abort_unless(self::hasContent($document), 422, 'Ajoutez un PDF ou un lien externe avant de publier.');
+
+        $validated = $document->status === Document::STATUS_IN_REVIEW;
 
         $document->update([
             'status' => Document::STATUS_PUBLISHED,
@@ -312,6 +349,34 @@ class DocumentResource extends Resource
             'approved_by' => auth()->id(),
             'approved_at' => now(),
         ]);
+
+        if ($notify && $validated) {
+            DocumentReviewNotifier::published(collect([$document]), self::actor());
+        }
+    }
+
+    /** En revue → brouillon, avec un motif tracé dans l'historique et transmis au déposant. */
+    public static function returnToDraft(Document $document, string $reason): void
+    {
+        abort_unless(auth()->user()?->can('document.publish'), 403);
+        abort_unless($document->status === Document::STATUS_IN_REVIEW, 403);
+        abort_if(blank($reason) || mb_strlen($reason) > self::RETURN_REASON_MAX, 422, 'Motif requis (1 000 caractères au plus).');
+
+        $document->update(['status' => Document::STATUS_DRAFT]);
+
+        activity('documents')->causedBy(auth()->user())->performedOn($document)
+            ->withProperties(['from' => Document::STATUS_IN_REVIEW, 'to' => Document::STATUS_DRAFT, 'motif' => $reason])
+            ->event('document_returned_to_draft')
+            ->log('Renvoyé en brouillon');
+
+        DocumentReviewNotifier::returnedToDraft($document, self::actor(), $reason);
+    }
+
+    private static function actor(): ?User
+    {
+        $user = auth()->user();
+
+        return $user instanceof User ? $user : null;
     }
 
     /** Dépublication : l'historique de publication et de validation est conservé. */

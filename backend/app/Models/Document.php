@@ -122,6 +122,12 @@ class Document extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    /** Compte qui a déposé le document (contributeur, bibliothécaire ou import). */
+    public function uploader(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
     public function scopePublished(Builder $query): Builder
     {
         return $query

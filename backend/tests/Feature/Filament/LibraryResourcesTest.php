@@ -177,7 +177,9 @@ it('publie en lot seulement les documents en revue ou archivés', function (): v
     $draft = Document::factory()->create(['status' => Document::STATUS_DRAFT]);
     $this->actingAs($this->librarian);
 
+    // « À valider » s'ouvre d'emblée : la sélection mêle ici tous les statuts.
     $this->livewire(ListDocuments::class)
+        ->set('activeTab', 'tous')
         ->callTableBulkAction('publierLot', collect([$review, $published, $draft]))
         ->assertNotified('1 document(s) publié(s), 2 ignoré(s)');
 
