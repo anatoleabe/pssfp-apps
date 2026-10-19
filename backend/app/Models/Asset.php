@@ -138,6 +138,12 @@ class Asset extends Model
         return self::DISKS_BY_CATEGORY[$category] ?? null;
     }
 
+    /** Visibilité du fichier déposé : privée sur le disque privé, publique sinon. */
+    public static function visibilityForCategory(string $category): string
+    {
+        return self::diskForCategory($category) === self::PRIVATE_DISK ? 'private' : 'public';
+    }
+
     public function hasAllowedDisk(): bool
     {
         return in_array($this->disk, self::allowedDisks(), true);

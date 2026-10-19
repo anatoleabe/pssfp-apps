@@ -25,7 +25,8 @@ uses()->group('filament', 'module-1');
 beforeEach(function (): void {
     config()->set('pssfp.filament.require_2fa', false);
     Storage::fake('minio_media');
-    Storage::fake('minio_documents');
+    // Comme le bucket privé de prod : un fichier n'est public que s'il est déposé en public.
+    Storage::fake('minio_documents', ['visibility' => 'private']);
     Storage::fake('minio_candidatures');
     Storage::disk('minio_documents')->buildTemporaryUrlsUsing(fn (string $path): string => 'https://signe.test/'.$path);
     $this->seed([RolePermissionSeeder::class]);
@@ -179,3 +180,38 @@ it('ne signe rien pour une ligne héritée hors de la liste des disques, sans la
 
     expect($legacy->fresh()->disk)->toBe('minio_candidatures');
 });
+
+it('dépose un document en privé et un média en public', function (string $category, string $subcategory, UploadedFile $file, string $disk, string $visibility): void {
+    $this->livewire(CreateAsset::class)
+        ->fillForm(['category' => $category])
+        ->fillForm(['subcategory' => $subcategory])
+        ->set('data.upload', [$file])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $asset = Asset::query()->firstOrFail();
+
+    expect(Storage::disk($disk)->getVisibility($asset->path))->toBe($visibility);
+})->with([
+    'photo' => fn () => [Asset::CATEGORY_PHOTO, 'campus', UploadedFile::fake()->image('campus.png', 20, 20), 'minio_media', 'public'],
+    'document' => fn () => [Asset::CATEGORY_DOCUMENT, 'convention', UploadedFile::fake()->createWithContent('convention.pdf', "%PDF-1.4\n%%EOF\n"), 'minio_documents', 'private'],
+]);
+
+it('refuse une catégorie inconnue ou une sous-catégorie d\'une autre catégorie, sans rien stocker', function (array $state, array $errors): void {
+    $page = $this->livewire(CreateAsset::class);
+
+    foreach ($state as $path => $value) {
+        $page->set("data.{$path}", $value);
+    }
+
+    $page->set('data.upload', [UploadedFile::fake()->createWithContent('convention.pdf', "%PDF-1.4\n%%EOF\n")])
+        ->call('create')
+        ->assertHasFormErrors($errors);
+
+    expect(Asset::query()->count())->toBe(0)
+        ->and(Storage::disk('minio_media')->allFiles())->toBe([])
+        ->and(Storage::disk('minio_documents')->allFiles())->toBe([]);
+})->with([
+    'catégorie inconnue' => [['category' => 'inconnue', 'subcategory' => 'autre'], ['category']],
+    'sous-catégorie d\'une autre catégorie' => [['category' => Asset::CATEGORY_PHOTO, 'subcategory' => 'convention'], ['subcategory']],
+]);

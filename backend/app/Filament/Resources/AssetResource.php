@@ -57,19 +57,16 @@ class AssetResource extends Resource
                     Forms\Components\Select::make('category')
                         ->required()
                         ->options(Asset::CATEGORIES)
+                        // Liste fermée, validée avant tout stockage du fichier déposé.
+                        ->in(array_keys(Asset::CATEGORIES))
                         ->disabled(fn (string $operation): bool => $operation === 'edit')
                         ->live()
                         ->afterStateUpdated(fn ($state, Forms\Set $set, string $operation) => $operation === 'edit' ? null : $set('subcategory', null)),
                     Forms\Components\Select::make('subcategory')
                         // À l'édition, la catégorie enregistrée fait foi (champ figé).
-                        ->options(function (Forms\Get $get, ?Asset $record): array {
-                            return match ($record?->category ?? $get('category')) {
-                                Asset::CATEGORY_LOGO => Asset::LOGO_SUBCATEGORIES,
-                                Asset::CATEGORY_PHOTO => Asset::PHOTO_SUBCATEGORIES,
-                                Asset::CATEGORY_DOCUMENT => Asset::DOCUMENT_SUBCATEGORIES,
-                                default => [],
-                            };
-                        })
+                        ->options(fn (Forms\Get $get, ?Asset $record): array => self::subcategoriesFor($record?->category ?? $get('category')))
+                        // La sous-catégorie appartient à la catégorie choisie.
+                        ->in(fn (Forms\Get $get, ?Asset $record): array => array_keys(self::subcategoriesFor($record?->category ?? $get('category'))))
                         ->required(),
                     // Seule source du disque et du chemin d'un média : le dépôt, à la
                     // création. Ni disque ni chemin ne se saisissent (cf. CreateAsset).
@@ -79,7 +76,8 @@ class AssetResource extends Resource
                         ->hiddenOn('edit')
                         ->disk(fn (Forms\Get $get): string => Asset::diskForCategory((string) $get('category')) ?? Asset::PUBLIC_DISK)
                         ->directory(fn (Forms\Get $get) => self::uploadDirectory((string) $get('category'), (string) $get('subcategory')))
-                        ->visibility('public')
+                        // Documents privés (URL signée), médias publics.
+                        ->visibility(fn (Forms\Get $get): string => Asset::visibilityForCategory((string) $get('category')))
                         ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/svg+xml', 'image/webp', 'application/pdf'])
                         ->maxSize(20480)
                         ->columnSpanFull()
@@ -186,6 +184,17 @@ class AssetResource extends Resource
             'create' => Pages\CreateAsset::route('/create'),
             'edit' => Pages\EditAsset::route('/{record}/edit'),
         ];
+    }
+
+    /** @return array<string, string> */
+    private static function subcategoriesFor(mixed $category): array
+    {
+        return match ($category) {
+            Asset::CATEGORY_LOGO => Asset::LOGO_SUBCATEGORIES,
+            Asset::CATEGORY_PHOTO => Asset::PHOTO_SUBCATEGORIES,
+            Asset::CATEGORY_DOCUMENT => Asset::DOCUMENT_SUBCATEGORIES,
+            default => [],
+        };
     }
 
     private static function uploadDirectory(string $category, string $subcategory): string
