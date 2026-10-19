@@ -39,17 +39,21 @@ const loadTheme = cache(async (slug: string): Promise<{ theme: MotCle; motsCles:
   return { theme, motsCles };
 });
 
+/** Liste paginée du thème : un seul appel par rendu, partagé avec `generateMetadata`. */
+const loadDocuments = cache((slug: string, page: number) => listDocuments({ mot_cle: slug }, page, COLLECTION_PER_PAGE));
+
 export async function generateMetadata(props: ThemePageProps): Promise<Metadata> {
   const { slug, page } = readRequest(props);
-  const { theme } = await loadTheme(slug);
+  const [{ theme }, listResult] = await Promise.all([loadTheme(slug), loadDocuments(slug, page)]);
+  const total = unwrapOrThrow(listResult).meta.total;
   const t = await getTranslations('themes');
   const path = themeHref(slug);
   return {
     title: theme.label,
     description: t('metaDescriptionTheme', { label: theme.label }),
     alternates: { canonical: path },
-    // Pages suivantes : non indexées, liens suivis (la canonique reste la première page).
-    robots: page === 1 ? { index: true, follow: true } : { index: false, follow: true },
+    // Pages suivantes et thème sans document : non indexés, liens suivis (la canonique reste la première page).
+    robots: page === 1 && total > 0 ? { index: true, follow: true } : { index: false, follow: true },
     openGraph: { title: theme.label, url: path, type: 'website', locale: 'fr_FR' },
   };
 }
@@ -64,7 +68,7 @@ const PRIMARY =
  */
 export default async function ThemePage(props: ThemePageProps): Promise<JSX.Element> {
   const { slug, page } = readRequest(props);
-  const [{ theme, motsCles }, listResult] = await Promise.all([loadTheme(slug), listDocuments({ mot_cle: slug }, page, COLLECTION_PER_PAGE)]);
+  const [{ theme, motsCles }, listResult] = await Promise.all([loadTheme(slug), loadDocuments(slug, page)]);
   const { data: docs, meta } = unwrapOrThrow(listResult);
 
   const t = await getTranslations('themes');

@@ -50,12 +50,13 @@ export function CollectionThemes({ type, filters, motsCles }: CollectionThemesPr
                 href={href}
                 scroll={false}
                 aria-current={active ? 'true' : undefined}
-                aria-label={t(active ? 'chipActive' : 'chip', { label: m.label, count: m.documents_count })}
                 className={active ? ACTIVE : IDLE}
               >
                 {active && <Check size={14} strokeWidth={2.5} aria-hidden="true" />}
-                {m.label}
+                {m.label}{' '}
                 <span className={`text-xs [font-variant-numeric:lining-nums_tabular-nums] ${active ? 'text-white/85' : 'text-pssfp-graphite-light'}`}>{format.number(m.documents_count)}</span>
+                {/* Nom accessible = texte visible (libellé, nombre) suivi d'une précision pour les lecteurs d'écran. */}
+                <span className="sr-only"> {t(active ? 'chipActiveSuffix' : 'chipSuffix', { count: m.documents_count })}</span>
                 {active && <X size={14} strokeWidth={2} aria-hidden="true" />}
               </Link>
             </li>

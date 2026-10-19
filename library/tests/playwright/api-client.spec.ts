@@ -168,8 +168,8 @@ test.describe('sitemap : cache d\'une heure et journalisation', () => {
     expect(calls.length).toBeGreaterThanOrEqual(3);
     expect(calls.map((c) => c.revalidate)).toEqual(calls.map(() => 3600));
     expect(entries.some((e) => e.url.endsWith('/collections/memoire'))).toBe(true);
-    // Thèmes comptant des documents publiés (racine comprise) ; un thème vide n'y figure pas.
-    expect(entries.filter((e) => e.url.includes('/themes/')).map((e) => new URL(e.url).pathname)).toEqual(['/themes/themes', '/themes/fiscalite']);
+    // Thèmes comptant des documents publiés ; ni racine du thésaurus ni thème vide.
+    expect(entries.filter((e) => e.url.includes('/themes/')).map((e) => new URL(e.url).pathname)).toEqual(['/themes/fiscalite']);
     expect(entries.filter((e) => e.url.includes('/documents/'))).toHaveLength(100);
     expect(warnings).toEqual([]);
   });

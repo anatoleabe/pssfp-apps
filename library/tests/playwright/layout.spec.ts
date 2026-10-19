@@ -39,7 +39,7 @@ test.describe('Socle', () => {
     await page.goto('/a-propos');
     const bar = page.getByRole('navigation', { name: 'Liens institutionnels' });
     await expect(bar.getByRole('link', { name: /site du pssfp/i })).toHaveAttribute('href', /^https?:\/\//);
-    await expect(bar.getByRole('link', { name: /plateforme foad/i })).toHaveAttribute('href', /^https?:\/\/.*foad/);
+    await expect(bar.getByRole('link', { name: /plateforme foad/i })).toHaveAttribute('href', (process.env.NEXT_PUBLIC_FOAD_URL || 'https://foad.pssfp.net').replace(/\/+$/, ''));
   });
 
   test('tiroir : rubriques, Thèmes et recherche', async ({ page }) => {

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 // Même base que l'app (playwright.config.ts charge .env.local comme `next dev`).
 import { API_BASE_URL as API } from '../../lib/api/client';
@@ -48,7 +48,8 @@ test.describe('Thèmes — utilitaires', () => {
     // Niveau intermédiaire conservé.
     expect(tree[1]!.children.map((n) => n.slug)).toEqual(['institutions-internationales', 'institutions-nationales']);
     expect(tree[1]!.children[0]!.children.map((n) => n.slug)).toEqual(['bad', 'fmi']);
-    expect(themesCount(TREE)).toBe(4);
+    // « Autres ouvrages » (fourre-tout) n'est pas compté comme thème de recherche.
+    expect(themesCount(TREE)).toBe(3);
   });
 
   test('comptes fournis : mots-clés à 0 masqués, branches vides retirées', () => {
@@ -62,7 +63,7 @@ test.describe('Thèmes — utilitaires', () => {
     const institutions = tree.find((n) => n.slug === 'institutions')!;
     expect(institutions.children.map((n) => n.slug)).toEqual(['institutions-internationales']);
     expect(institutions.children[0]!.children.map((n) => n.slug)).toEqual(['fmi']);
-    expect(themesCount(COUNTED)).toBe(3);
+    expect(themesCount(COUNTED)).toBe(2);
   });
 
   test('racine absente ou sans enfant visible : pas de groupe', () => {
@@ -71,15 +72,18 @@ test.describe('Thèmes — utilitaires', () => {
     expect(buildThemeTree([])).toEqual([]);
   });
 
-  test('thèmes mis en avant : ordre du brief sans comptes, par nombre sinon', () => {
-    expect(featuredThemes(TREE).map((m) => m.slug)).toEqual(['gestion-budgetaire', 'fiscalite', 'marches-publics', 'autres-ouvrages']);
-    expect(featuredThemes(COUNTED).map((m) => m.slug)).toEqual(['fiscalite', 'autres-ouvrages', 'gestion-budgetaire']);
+  test('thèmes mis en avant : ordre du brief sans comptes, par nombre sinon, sans fourre-tout', () => {
+    expect(featuredThemes(TREE).map((m) => m.slug)).toEqual(['gestion-budgetaire', 'fiscalite', 'marches-publics']);
+    expect(featuredThemes(COUNTED).map((m) => m.slug)).toEqual(['fiscalite', 'gestion-budgetaire']);
+    const withGeneralites: MotCle[] = [...COUNTED, { slug: 'generalites', label: 'Généralités', parent_slug: 'themes', documents_count: 99 }];
+    expect(featuredThemes(withGeneralites).map((m) => m.slug)).not.toContain('generalites');
+    expect(themesCount(withGeneralites)).toBe(2);
     expect(featuredThemes(TREE, 2)).toHaveLength(2);
   });
 
-  test('puces de collection : feuilles comptées, par nombre décroissant, aucune sans comptes', () => {
+  test('puces de collection : mots-clés comptés (niveaux intermédiaires compris), par nombre décroissant, aucune sans comptes', () => {
     expect(collectionThemes(TREE)).toEqual([]);
-    expect(collectionThemes(COUNTED).map((m) => m.slug)).toEqual(['fiscalite', 'decrets', 'autres-ouvrages', 'lois', 'gestion-budgetaire', 'fmi']);
+    expect(collectionThemes(COUNTED).map((m) => m.slug)).toEqual(['fiscalite', 'decrets', 'autres-ouvrages', 'lois', 'gestion-budgetaire', 'fmi', 'institutions-internationales']);
     expect(collectionThemes(COUNTED, 2).map((m) => m.slug)).toEqual(['fiscalite', 'decrets']);
   });
 
@@ -129,28 +133,49 @@ test.describe('Thèmes — composants (démonstration)', () => {
     await page.goto(DEMO);
     const zone = page.getByTestId('demo-collection-themes');
     const chips = zone.getByRole('listitem').getByRole('link');
-    // Feuilles comptées par nombre décroissant (le niveau intermédiaire est redondant).
-    await expect(chips).toHaveText([/Fiscalité \(démo\)/, /Gestion budgétaire \(démo\)/, /Décrets \(démo\)/, /Organisation fictive A/]);
+    // Mots-clés comptés par nombre décroissant, niveau intermédiaire compris.
+    await expect(chips).toHaveText([/Fiscalité \(démo\)/, /Gestion budgétaire \(démo\)/, /Décrets \(démo\)/, /Institutions internationales \(démo\)/, /Organisation fictive A/]);
     await expect(chips.first()).toHaveAttribute('href', '/collections/texte_loi?mot_cle=demo-fiscalite&acces=libre');
     const active = zone.locator('[aria-current="true"]');
     await expect(active).toHaveCount(1);
-    await expect(active).toHaveAccessibleName(/Décrets \(démo\), 47 documents, thème appliqué/);
+    // Nom accessible : texte visible (libellé, nombre) d'abord, précision ensuite (WCAG 2.5.3).
+    await expect(active).toHaveAccessibleName(/^Décrets \(démo\) 47 documents, thème appliqué/);
+    await expect(chips.first()).toHaveAccessibleName(/^Fiscalité \(démo\) 1\s?250 documents, filtrer la collection/);
     await expect(active).toHaveAttribute('href', '/collections/texte_loi?acces=libre');
     await expect(zone.getByRole('link', { name: 'Tous les thèmes' })).toHaveAttribute('href', '/themes');
     // Sans comptes : aucune puce (rien ne dit quels mots-clés concernent la collection).
     await expect(page.getByTestId('demo-collection-themes-uncounted').getByTestId('collection-themes')).toHaveCount(0);
   });
 
-  test('puces de collection : atteintes au clavier, focus visible', async ({ page }) => {
+  test('puces de collection : atteintes par Tab, focus visible', async ({ page }) => {
     await page.goto(DEMO);
-    await page.keyboard.press('Tab');
+    // Point de départ : le titre de la section, rendu focalisable par programme (tabindex=-1, hors ordre de
+    // tabulation) ; la puce doit ensuite être atteinte par de vraies tabulations, jamais par `.focus()`.
+    await startFrom(page.getByRole('heading', { level: 2, name: 'Thèmes d\'une collection' }));
     const chip = page.getByTestId('demo-collection-themes').getByRole('listitem').getByRole('link').first();
-    await chip.focus();
-    await expect(chip).toBeFocused();
+    const reached = await tabUntil(page, chip, 6);
+    expect(reached, 'puce atteinte en 6 tabulations au plus').toBe(true);
     const ring = await chip.evaluate((el) => getComputedStyle(el).boxShadow);
     expect(ring).toContain('rgb(74, 46, 103)');
   });
 });
+
+/** Place le point de départ de la navigation séquentielle sur `el` (non focalisable par Tab). */
+async function startFrom(el: Locator): Promise<void> {
+  await el.evaluate((node) => {
+    node.setAttribute('tabindex', '-1');
+    (node as HTMLElement).focus();
+  });
+}
+
+/** Appuie sur Tab jusqu'à ce que `target` ait le focus (au plus `max` fois) ; vrai si atteint. */
+async function tabUntil(page: Page, target: Locator, max: number): Promise<boolean> {
+  for (let i = 0; i < max; i += 1) {
+    await page.keyboard.press('Tab');
+    if (await target.evaluate((el) => el === document.activeElement)) return true;
+  }
+  return false;
+}
 
 /** Pages réelles : nécessitent l'API (ignorées sans backend, comme les autres specs de données). */
 test.describe('Thèmes — pages (API)', () => {
@@ -201,6 +226,41 @@ test.describe('Thèmes — pages (API)', () => {
     await page.goto(`/themes/${slug}?page=2`);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', new RegExp(`/themes/${slug}$`));
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+  });
+
+  test('thème sans document : noindex', async ({ page, request }) => {
+    const list = ((await (await request.get(`${API}/library/mots-cles`, { timeout: 3000 })).json()) as { data: MotCle[] }).data;
+    const empty = list.find((m) => m.parent_slug !== null && m.documents_count === 0);
+    test.skip(!empty, 'aucun thème vide (ou comptes indisponibles)');
+    const res = await page.goto(`/themes/${empty!.slug}`);
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+  });
+
+  test('collection Législation : puce de thème atteinte par Tab, ajoute puis retire mot_cle', async ({ page, request }) => {
+    const typed = ((await (await request.get(`${API}/library/mots-cles?type=texte_loi`, { timeout: 3000 })).json()) as { data: MotCle[] }).data;
+    const chips = collectionThemes(typed);
+    test.skip(chips.length === 0, 'aucun thème compté pour la collection (comptes indisponibles)');
+    const first = chips[0]!;
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/collections/texte_loi');
+    const zone = page.getByTestId('collection-themes');
+    await expect(zone).toBeVisible();
+    const chip = zone.getByRole('listitem').getByRole('link').first();
+    await expect(chip).toHaveAccessibleName(new RegExp(`^${first.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} `));
+    // Vraies tabulations depuis le titre de la page (recherche, filtres, tri et « Tous les thèmes » avant les puces).
+    await startFrom(page.getByRole('heading', { level: 1 }));
+    expect(await tabUntil(page, chip, 40), 'puce atteinte au clavier').toBe(true);
+
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(new RegExp(`[?&]mot_cle=${first.slug}(&|$)`));
+    const active = page.getByTestId('collection-themes').locator('[aria-current="true"]');
+    await expect(active).toHaveCount(1);
+    await expect(active).toHaveAccessibleName(new RegExp(`thème appliqué`));
+
+    await active.click();
+    await expect(page).not.toHaveURL(/mot_cle=/);
+    await expect(page.getByTestId('collection-themes').locator('[aria-current="true"]')).toHaveCount(0);
   });
 
   test('slug inconnu : 404', async ({ page }) => {

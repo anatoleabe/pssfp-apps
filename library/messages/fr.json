@@ -53,7 +53,7 @@
     "title": "Cette page n'est pas dans nos rayons.",
     "body": "Le lien est peut-être ancien ou le document a été déplacé. Reprenez depuis l'accueil ou lancez une recherche dans le catalogue.",
     "home": "Retour à l'accueil",
-    "search": "Rechercher un document"
+    "themes": "Explorer par thème"
   },
   "home": {
     "metaTitle": "Accueil",
@@ -160,8 +160,8 @@
   "collectionThemes": {
     "title": "Thèmes de la collection",
     "all": "Tous les thèmes",
-    "chip": "{label}, {count, plural, one {# document} other {# documents}} : filtrer la collection",
-    "chipActive": "{label}, {count, plural, one {# document} other {# documents}}, thème appliqué : activer pour le retirer"
+    "chipSuffix": "{count, plural, one {document} other {documents}}, filtrer la collection sur ce thème",
+    "chipActiveSuffix": "{count, plural, one {document} other {documents}}, thème appliqué : activer pour le retirer"
   },
   "specialites": {
     "economie-publique-gestion-publique": "Économie Publique et Gestion Publique",

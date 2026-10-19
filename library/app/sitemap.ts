@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { getMotsCles, getStats, listDocuments } from '@/lib/api/library';
 import type { DocumentType } from '@/lib/api/types';
 import { collectionHref, documentHref, themeHref, themesHref } from '@/lib/routes';
-import { hasCount } from '@/lib/themes';
+import { THESAURUS_ROOTS, hasCount } from '@/lib/themes';
 import { siteUrl } from '@/lib/site';
 
 /** Régénéré au plus toutes les heures (ISR). */
@@ -26,7 +26,7 @@ function warn(message: string): void {
 }
 
 /**
- * Accueil, à propos, thèmes, collections non vides, thèmes comptant des documents publiés et fiches
+ * Accueil, à propos, thèmes, collections non vides, thèmes (hors racines) comptant des documents publiés et fiches
  * publiées (`lastModified` = `published_at`). Sans comptes de documents (API antérieure au plan 4),
  * seule la page `/themes` figure : rien ne garantit qu'un thème ait des documents.
  * `/recherche` est exclu (pages non indexées). API indisponible (CI, panne) : sitemap réduit
@@ -70,7 +70,8 @@ async function themeEntries(url: (path: string) => string): Promise<Entry[]> {
       return [];
     }
     return r.data.data
-      .filter((m) => hasCount(m) && m.documents_count > 0)
+      // Racines du thésaurus exclues : regroupements sans intérêt propre pour les moteurs.
+      .filter((m) => hasCount(m) && m.documents_count > 0 && !(THESAURUS_ROOTS as readonly string[]).includes(m.slug))
       .map((m) => ({ url: url(themeHref(m.slug)), changeFrequency: 'weekly', priority: 0.6 }));
   } catch (e) {
     warn(`mots-clés inattendus (${e instanceof Error ? e.message : 'erreur'}) : thèmes absents`);

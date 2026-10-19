@@ -22,6 +22,12 @@ const FEATURED_ORDER = [
   'finances-publiques',
 ];
 
+/**
+ * Mots-clés « fourre-tout » : pas un domaine d'expertise. Absents des thèmes mis en avant et du
+ * nombre de thèmes de l'accueil ; conservés sur `/themes` et dans les puces de collection.
+ */
+const CATCH_ALL = new Set(['autres-ouvrages', 'generalites']);
+
 export interface ThemeNode {
   slug: string;
   label: string;
@@ -73,10 +79,10 @@ export function childrenOf(motsCles: readonly MotCle[], slug: string): MotCle[] 
   return motsCles.filter((m) => m.parent_slug === slug && visible(m, known)).sort(byLabel);
 }
 
-/** Thèmes mis en avant sur l'accueil : enfants de « Thèmes », par nombre de documents si connu. */
+/** Thèmes mis en avant sur l'accueil : enfants de « Thèmes » hors fourre-tout, par nombre de documents si connu. */
 export function featuredThemes(motsCles: readonly MotCle[], limit = 8): MotCle[] {
   const known = countsKnown(motsCles);
-  const themes = motsCles.filter((m) => m.parent_slug === 'themes' && visible(m, known));
+  const themes = motsCles.filter((m) => m.parent_slug === 'themes' && !CATCH_ALL.has(m.slug) && visible(m, known));
   const rank = (m: MotCle): number => {
     const i = FEATURED_ORDER.indexOf(m.slug);
     return i === -1 ? FEATURED_ORDER.length : i;
@@ -89,15 +95,15 @@ export function featuredThemes(motsCles: readonly MotCle[], limit = 8): MotCle[]
 
 /**
  * Puces « Thèmes de la collection » (liste de `getMotsCles({ type })`) : mots-clés non racines avec au
- * moins un document du type, par nombre décroissant, `limit` au plus. Sans comptes (API antérieure),
- * aucune puce : rien ne dit quels mots-clés concernent la collection.
+ * moins un document du type (niveaux intermédiaires compris, ex. Institutions internationales), par
+ * nombre décroissant, `limit` au plus. Sans comptes (API antérieure), aucune puce : rien ne dit quels
+ * mots-clés concernent la collection.
  */
 export function collectionThemes(motsCles: readonly MotCle[], limit = 12): Array<MotCle & { documents_count: number }> {
   if (!countsKnown(motsCles)) return [];
   const roots = new Set<string>(THESAURUS_ROOTS);
   return motsCles
     .filter((m): m is MotCle & { documents_count: number } => hasCount(m) && m.documents_count > 0 && m.parent_slug !== null && !roots.has(m.slug))
-    .filter((m) => !motsCles.some((c) => c.parent_slug === m.slug)) // niveaux intermédiaires : redondants avec leurs enfants
     .sort((a, b) => b.documents_count - a.documents_count || byLabel(a, b))
     .slice(0, limit);
 }
@@ -109,9 +115,9 @@ export function countedChildren(motsCles: readonly MotCle[], parent: string): Ar
     .sort((a, b) => b.documents_count - a.documents_count || byLabel(a, b));
 }
 
-/** Nombre de thèmes (enfants de « Thèmes ») à afficher : null si le thésaurus n'en contient aucun. */
+/** Nombre de thèmes de recherche (enfants de « Thèmes », hors fourre-tout) : null si aucun. */
 export function themesCount(motsCles: readonly MotCle[]): number | null {
   const known = countsKnown(motsCles);
-  const n = motsCles.filter((m) => m.parent_slug === 'themes' && visible(m, known)).length;
+  const n = motsCles.filter((m) => m.parent_slug === 'themes' && !CATCH_ALL.has(m.slug) && visible(m, known)).length;
   return n > 0 ? n : null;
 }

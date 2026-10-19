@@ -17,8 +17,8 @@ export const SEARCH_HREF = '/recherche';
 
 /** URL du site principal, sans barre oblique finale (les chemins s'y ajoutent). */
 export const MAIN_SITE_URL = (process.env.NEXT_PUBLIC_MAIN_SITE_URL || 'https://pssfp.org').replace(/\/+$/, '');
-/** Plateforme FOAD : même valeur par défaut que le site principal. */
-export const FOAD_URL = (process.env.NEXT_PUBLIC_FOAD_URL || 'https://foad.pssfp.org').replace(/\/+$/, '');
+/** Plateforme FOAD (Moodle) : https://foad.pssfp.net par défaut (seul domaine FOAD en service). */
+export const FOAD_URL = (process.env.NEXT_PUBLIC_FOAD_URL || 'https://foad.pssfp.net').replace(/\/+$/, '');
 
 /**
  * Un lien d'ancre (`/#…`) n'est jamais « page courante » ; l'accueil ne l'est que sur `/` exactement.
