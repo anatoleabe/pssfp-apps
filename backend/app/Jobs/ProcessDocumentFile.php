@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -127,7 +128,7 @@ final class ProcessDocumentFile implements ShouldQueue
      * Couverture tirée de la première page. Sans rendu, une couverture
      * automatique périmée est effacée ; une couverture personnalisée reste.
      *
-     * @return array{cover_path?: ?string}
+     * @return array{cover_path?: ?string, updated_at?: Carbon}
      */
     private function coverAttributes(Document $document, CoverRenderer $renderer, string $local, bool $customCover): array
     {
@@ -148,6 +149,9 @@ final class ProcessDocumentFile implements ShouldQueue
             return [];
         }
 
-        return ['cover_path' => $coverPath];
+        // Même chemin qu'avant ({uuid}.jpg) : sans autre changement, la fiche
+        // ne serait pas réécrite et Document::coverUrl() (version = updated_at)
+        // resterait identique ; on date donc toute nouvelle image.
+        return ['cover_path' => $coverPath, 'updated_at' => now()];
     }
 }

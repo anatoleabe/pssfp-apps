@@ -585,3 +585,28 @@ it('indexe la cible des redirections, de façon réversible', function (): void 
     $migration->up();
     expect(Schema::hasIndex('library_redirects', ['to_path']))->toBeTrue();
 });
+
+it('renouvelle l\'adresse de la couverture après une régénération forcée du même PDF', function (): void {
+    Storage::fake('minio_documents');
+    Storage::fake('minio_media');
+    $doc = bulkToolsDocument(Document::STATUS_DRAFT);
+    Storage::disk('minio_documents')->put($doc->file_path, '%PDF-1.4 contenu');
+    $renderer = new class implements CoverRenderer
+    {
+        public function render(string $pdfPath): ?string
+        {
+            return 'JPEGDATA';
+        }
+    };
+
+    (new ProcessDocumentFile($doc->id))->handle($renderer);
+    $before = $doc->fresh()->coverUrl();
+
+    $this->travel(5)->minutes();
+    (new ProcessDocumentFile($doc->id, forceCover: true))->handle($renderer);
+    $after = $doc->fresh();
+
+    expect($after->cover_path)->toBe("library/covers/{$doc->uuid}.jpg")
+        ->and($before)->not->toBeNull()
+        ->and($after->coverUrl())->not->toBe($before);
+});
