@@ -48,7 +48,7 @@ export function CitationBox({ doc }: CitationBoxProps): JSX.Element {
       className="rounded-pssfp-card border border-pssfp-lavande/40 bg-white p-5 shadow-pssfp-soft"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id={headingId} className="font-heading text-2xl font-semibold text-pssfp-prune">
+        <h2 id={headingId} className="font-heading text-2xl font-semibold text-pssfp-prune-dark">
           {t('citation.title')}
         </h2>
         <p className="font-ui text-xs font-medium uppercase tracking-[0.14em] text-pssfp-bleu-petrole">{t('citation.format')}</p>

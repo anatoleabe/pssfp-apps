@@ -5,7 +5,7 @@ import { PRICE_FORMAT, fileSizeFormat } from '@/lib/format';
 import { downloadHref } from '@/lib/routes';
 
 const BUTTON =
-  'inline-flex items-center justify-center gap-2 rounded-pssfp-button bg-pssfp-prune px-5 py-3 font-ui text-sm font-medium text-white shadow-pssfp-soft transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2';
+  'inline-flex min-h-12 items-center justify-center gap-2 rounded-pssfp-button bg-pssfp-prune px-6 py-3 font-ui text-sm font-semibold text-white shadow-pssfp-soft transition-colors hover:bg-pssfp-prune-dark active:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 sm:text-base';
 
 /** Seuls http(s) sont suivis ; sinon on passe par la redirection de l'API. */
 function safeExternalUrl(url: string | null): string | null {
