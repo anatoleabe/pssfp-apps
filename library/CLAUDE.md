@@ -17,10 +17,12 @@ App Next.js 14 servant la bibliothèque virtuelle sur `library.pssfp.org` (domai
 ```
 app/
 ├── layout.tsx                 # en-tête, pied de page, lien d'évitement #main
-├── page.tsx                   # / : héros + recherche, collections, nouveautés, plus lus (ISR 5 min)
+├── page.tsx                   # / : héros + recherche, indicateurs, collections, nouveautés, législation, thèmes, plus lus (ISR 5 min)
 ├── collections/[type]/page.tsx  # catalogue filtrable, trié, paginé (dynamique : searchParams ; cache de données 5 min, pas d'ISR)
 ├── recherche/page.tsx         # coquille serveur ; résultats demandés par le navigateur (noindex)
 ├── documents/[slug]/page.tsx  # fiche (ISR 5 min, generateStaticParams → [])
+├── themes/page.tsx            # index du thésaurus : Thèmes, Institutions, Types de textes (ISR 5 min)
+├── themes/[slug]/page.tsx     # documents d'un thème, sous-thèmes, pagination (dynamique : searchParams)
 ├── a-propos/page.tsx          # statique (force-static)
 ├── dev/composants/page.tsx    # vitrine des composants (404 en production, interdite dans robots)
 ├── sitemap.ts · robots.ts     # sitemap (ISR 1 h, plafond 5 000 fiches) et robots
@@ -37,14 +39,16 @@ middleware.ts                  # anciennes URL Joomla → 301 via /v1/library/re
 - **Consultations par balise** : `ViewBeacon` envoie `POST /v1/library/documents/{uuid}/view` depuis le navigateur (`sendBeacon`, repli `fetch keepalive`) ; rien n'est compté côté serveur (pages ISR).
 - **Collections** : `/collections/[type]` lit `searchParams`, donc rendue à la demande (`ƒ` au build) ; ne pas y remettre d'export `revalidate` (sans effet). Protection de l'API : cache de données des appels (300 s, mots-clés 3600 s). Page > dernière → état « page inexistante » ; page > 500 → 404. Après une navigation dans la page, `ResultsFocus` rend le focus au titre des résultats.
 - **Anciennes URL** (`middleware.ts`) : chemins hors routes de l'app et hors fichiers statiques usuels → `resolveLegacyPath` (délai 2 s), avec la query string pour tout chemin `/index.php…` (`/index.php?option=…`, `/index.php/component/abook/book?id=N`) ; trouvé → 301/302 vers un chemin interne du même site uniquement (`lib/redirects.ts`, `safeRedirectTarget` : ni contrôle, ni barre inverse, ni `//`, ni segment `.`/`..` même encodé ; cible reconstruite depuis le chemin normalisé — mêmes règles en base, contrainte CHECK) ; réponses mémorisées 10 min par processus ; toute erreur → suite normale (404). Les anciennes URL `…/file` mènent à la fiche, jamais à l'API. Garder `APP_PREFIXES` synchronisé avec `app/` et `public/`.
-- **Focus** : anneau `ring-pssfp-prune` + `ring-offset-2` sur fond clair (contour global `*:focus-visible` prune) ; or uniquement sur le pied de page prune.
+- **Thèmes** (`lib/themes.ts`) : `GET /v1/library/mots-cles[?type=]` ; `documents_count` (plan 4) est facultatif. Sans comptes : thèmes affichés sans nombre, ni puces « Thèmes de la collection », ni liens vers les pages de regroupement (racines, niveaux intermédiaires), sitemap limitée à `/themes`. Avec comptes : mots-clés à 0 masqués. Les mots-clés sont facultatifs sur l'accueil et les collections (sections masquées en cas d'échec), indispensables sur `/themes` et `/themes/[slug]` (`unwrapOrThrow`).
+- **Charte de la refonte (plan 5)** : héros, bandeaux des pages intérieures (`components/layout/PageHeader.tsx`) et pied de page sur prune « deep » `#2E1C40` / « ink » `#211429` (surcharge locale de `tailwind.config.ts`), surfaces secondaires lavande « mist » `#F4F0F8`. Logo officiel `/logos/pssfp.png` (`BrandMark`). Couvertures de repli typographiques sans marque institutionnelle. Aucun chiffre en dur : indicateurs et comptes viennent de l'API.
+- **Focus** : anneau `ring-pssfp-prune` + `ring-offset-2` sur fond clair (contour global `*:focus-visible` prune) ; or uniquement sur les fonds prune sombres (bandeau institutionnel, héros, bandeaux intérieurs, pied de page).
 - **Formats** : prix via `format.number(prix, PRICE_FORMAT)` et tailles via `fileSizeFormat` (`lib/format.ts`) : devise et unités viennent d'Intl, jamais des messages.
 - **SEO** : `/recherche` noindex + `Disallow`, exclue du sitemap ; variantes filtrées/paginées des collections noindex avec canonique nue.
 - **Textes** : tout passe par `next-intl` (`messages/fr.json`), y compris `aria-label`, `alt`, `title`.
 
 ## Tests
 
-Playwright (`tests/playwright/*.spec.ts`), verts **avec ou sans backend** (la CI ne démarre pas l'API) : les tests de données se marquent `test.skip()` si l'API est injoignable, et échouent explicitement sur un 429. Specs : `accueil`, `collections`, `recherche`, `fiche`, `layout`, `redirections`, `seo`, plus les tests unitaires de `lib/` (`routes`, `pagination`, `highlight`, `citation`, `api-client`, `composants`). Serveur de test : `pnpm dev --port 6002`. Les redirections utilisent celles de `LibraryDemoSeeder` (`/index.php/textes-et-lois` → `/collections/texte_loi`, `/index.php?option=com_docman&view=list&slug=memoires` → `/collections/memoire`).
+Playwright (`tests/playwright/*.spec.ts`), verts **avec ou sans backend** (la CI ne démarre pas l'API) : les tests de données se marquent `test.skip()` si l'API est injoignable, et échouent explicitement sur un 429. Specs : `accueil`, `collections`, `recherche`, `fiche`, `layout`, `redirections`, `seo`, `themes` (utilitaires, composants sur `/dev/composants`, pages avec API), plus les tests unitaires de `lib/` (`routes`, `pagination`, `highlight`, `citation`, `api-client`, `composants`). Serveur de test : `pnpm dev --port 6002`. Les redirections utilisent celles de `LibraryDemoSeeder` (`/index.php/textes-et-lois` → `/collections/texte_loi`, `/index.php?option=com_docman&view=list&slug=memoires` → `/collections/memoire`).
 
 ### Avec l'API locale (`cd backend && php artisan serve --port=8000`)
 

@@ -3,8 +3,7 @@ import Link from 'next/link';
 import { ArrowRight, ArrowUpRight, Mail, MapPin } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { AccessBadge } from '@/components/document/AccessBadge';
-import { Eyebrow } from '@/components/home/Eyebrow';
-import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { MAIN_SITE_URL } from '@/components/layout/nav-config';
 import { ACCESS_MODES } from '@/lib/api/types';
 
@@ -37,23 +36,17 @@ export default async function AboutPage(): Promise<JSX.Element> {
 
   return (
     <>
-      <section aria-labelledby="about-title" className="relative isolate overflow-hidden border-b border-pssfp-lavande/30">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-40 -top-48 -z-10 h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(closest-side,rgba(165,146,189,0.26),transparent)]" />
-        <div className="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 sm:pb-16 lg:pt-10">
-          <Breadcrumbs items={[{ href: '/', label: tCrumbs('home') }, { label: t('metaTitle') }]} />
-          <div className="mt-8 max-w-3xl">
-            <Eyebrow tone="or">{t('eyebrow')}</Eyebrow>
-            <h1 id="about-title" className="mt-4 text-balance font-heading text-pssfp-h1 font-semibold text-pssfp-prune lg:text-[4rem] lg:leading-none">
-              {t('title')}
-            </h1>
-            <p className="mt-6 text-pssfp-lead text-pssfp-graphite">{t('lead')}</p>
-          </div>
-        </div>
-      </section>
+      <PageHeader
+        titleId="about-title"
+        title={t('title')}
+        eyebrow={t('eyebrow')}
+        breadcrumbs={[{ href: '/', label: tCrumbs('home') }, { label: t('metaTitle') }]}
+        meta={<p className="max-w-3xl text-pssfp-lead text-white/85">{t('lead')}</p>}
+      />
 
       <section aria-labelledby="about-presentation" className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-16 lg:py-20">
         <div className="min-w-0">
-          <h2 id="about-presentation" className="text-balance font-heading text-pssfp-h2 font-semibold text-pssfp-prune">
+          <h2 id="about-presentation" className="text-balance font-heading text-pssfp-h2 font-semibold text-pssfp-prune-dark">
             {t('presentationTitle')}
           </h2>
           <div className="mt-6 max-w-2xl space-y-4 leading-relaxed">
@@ -66,7 +59,7 @@ export default async function AboutPage(): Promise<JSX.Element> {
           </Link>
         </div>
         <aside aria-labelledby="about-holdings" className="min-w-0 self-start rounded-pssfp-card border border-pssfp-lavande/30 bg-white p-6 shadow-pssfp-soft sm:p-8">
-          <h3 id="about-holdings" className="font-ui text-xs font-medium uppercase tracking-[0.18em] text-pssfp-bleu-petrole">
+          <h3 id="about-holdings" className="font-ui text-xs font-semibold uppercase tracking-[0.18em] text-pssfp-prune-light">
             {t('holdingsTitle')}
           </h3>
           <ul className="mt-5 divide-y divide-pssfp-lavande/30">
@@ -83,7 +76,7 @@ export default async function AboutPage(): Promise<JSX.Element> {
       <section aria-labelledby="about-access" className="border-y border-pssfp-lavande/30 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:py-20">
           <div className="max-w-2xl">
-            <h2 id="about-access" className="font-heading text-pssfp-h2 font-semibold text-pssfp-prune">
+            <h2 id="about-access" className="font-heading text-pssfp-h2 font-semibold text-pssfp-prune-dark">
               {t('accessTitle')}
             </h2>
             <p className="mt-4 leading-relaxed">{t('accessIntro')}</p>
@@ -107,7 +100,7 @@ export default async function AboutPage(): Promise<JSX.Element> {
       <section aria-labelledby="about-contact" data-testid="about-contact" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:py-20">
         <div className="grid gap-8 border-l-2 border-pssfp-or pl-6 sm:pl-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-end lg:gap-16">
           <div className="min-w-0">
-            <h2 id="about-contact" className="text-balance font-heading text-pssfp-h2 font-semibold text-pssfp-prune">
+            <h2 id="about-contact" className="text-balance font-heading text-pssfp-h2 font-semibold text-pssfp-prune-dark">
               {t('contactTitle')}
             </h2>
             <p className="mt-4 max-w-2xl leading-relaxed">{t('contactBody')}</p>

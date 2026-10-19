@@ -71,7 +71,7 @@
 - Modify: `library/app/documents/[slug]/page.tsx`, `library/components/document/AccessAction.tsx`, `CitationBox.tsx`
 - Test: `library/tests/playwright/fiche.spec.ts`
 
-- [ ] Tests existants (accès selon `access.reason`, citation APA + copie, consultations, documents liés, JSON-LD, balise) verts ; mots-clés menant au thème ; axe.
+- [ ] Tests existants (accès selon `access.reason`, citation APA + copie, consultations, documents liés, JSON-LD, balise) verts ; mots-clés toujours vers la collection filtrée (comportement existant) ; axe.
 - [ ] Suite verte, commit `feat(biblio-front): fiche document a la nouvelle charte`.
 
 ### Task 6 : navigation par thèmes (plan 4, tâches 4 et 5)
@@ -82,7 +82,7 @@
 - Modify: `library/app/collections/[type]/page.tsx` (puces « Thèmes de la collection »), `library/app/dev/composants/*`
 - Test: `library/tests/playwright/themes.spec.ts`, `collections.spec.ts`, `seo.spec.ts`
 
-Spécification : celle du plan 4 (tâches 4 et 5), avec la tolérance suivante tant que l'API ne renvoie pas `documents_count` : thème affiché sans compte (jamais masqué ni « 0 »), puces de collection triées par libellé, sitemap limitée à `/themes`.
+Spécification : celle du plan 4 (tâches 4 et 5), avec la tolérance suivante tant que l'API ne renvoie pas `documents_count` : thème affiché sans compte (jamais masqué ni « 0 »), puces « Thèmes de la collection » masquées (sans comptes, rien ne relie un mot-clé à une collection), pages de regroupement (racines, niveaux intermédiaires) non liées depuis `/themes`, sitemap limitée à `/themes`. Thésaurus indisponible sur `/themes` : `unwrapOrThrow` (règle des pages ISR du projet : jamais d'état d'erreur mis en cache) ; message d'indisponibilité seulement pendant `next build` sans API.
 
 - [ ] Tests : `/themes` (trois groupes, comptes, niveau intermédiaire des institutions), page d'un thème (fil d'Ariane, compte, sous-thèmes, pagination, 404 si slug inconnu, canonique nue, `noindex` au-delà de la page 1), puces de collection (lien `mot_cle`, `aria-current`, retrait, clavier), sitemap avec `/themes`. Sans API : composants testés sur `/dev/composants`, tests de pages ignorés.
 - [ ] Suite verte, commit `feat(biblio-front): navigation par themes`.
