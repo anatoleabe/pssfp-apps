@@ -421,7 +421,7 @@ test.describe('Recherche — navigation dans les résultats (réponses simulées
     });
     await page.goto('/recherche?q=budget');
     await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
-    await page.getByRole('banner').getByRole('link', { name: 'Recherche', exact: true }).click();
+    await page.getByRole('banner').getByTestId('header-search').click();
     await expect(page.getByTestId('search-invite')).toBeVisible();
     await page.getByTestId('search-invite').getByRole('link', { name: 'TVA' }).click();
     await expect(page).toHaveURL(/q=TVA/);

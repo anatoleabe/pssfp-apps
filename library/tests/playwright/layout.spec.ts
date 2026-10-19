@@ -13,6 +13,45 @@ test.describe('Socle', () => {
     await expect(page.getByRole('link', { name: /pssfp\.org|site du pssfp/i }).first()).toBeVisible();
   });
 
+  test('navigation principale : cinq rubriques, Thèmes vers /themes, Accueil courant sur /', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/a-propos');
+    const nav = page.getByRole('navigation', { name: 'Navigation principale' });
+    const links = nav.getByRole('link');
+    await expect(links).toHaveText(['Accueil', 'Collections', 'Nouveautés', 'Thèmes', 'À propos']);
+    await expect(nav.getByRole('link', { name: 'Thèmes' })).toHaveAttribute('href', '/themes');
+    await expect(nav.getByRole('link', { name: 'Nouveautés' })).toHaveAttribute('href', '/#nouveautes');
+    await expect(nav.getByRole('link', { name: 'À propos' })).toHaveAttribute('aria-current', 'page');
+    await expect(nav.getByRole('link', { name: 'Accueil' })).not.toHaveAttribute('aria-current', /.*/);
+    // Recherche : bouton dédié de l'en-tête.
+    await expect(page.getByTestId('header-search')).toHaveAttribute('href', '/recherche');
+  });
+
+  test('logo officiel du PSSFP dans l\'en-tête et le pied de page', async ({ page }) => {
+    await page.goto('/a-propos');
+    const headerLogo = page.getByRole('banner').locator('img');
+    await expect(headerLogo).toHaveAttribute('alt', 'PSSFP');
+    await expect(headerLogo).toHaveAttribute('src', /logos%2Fpssfp\.png|logos\/pssfp\.png/);
+    await expect(page.getByRole('contentinfo').locator('img')).toHaveAttribute('src', /logos%2Fpssfp\.png|logos\/pssfp\.png/);
+  });
+
+  test('bandeau institutionnel : site du PSSFP et FOAD', async ({ page }) => {
+    await page.goto('/a-propos');
+    const bar = page.getByRole('navigation', { name: 'Liens institutionnels' });
+    await expect(bar.getByRole('link', { name: /site du pssfp/i })).toHaveAttribute('href', /^https?:\/\//);
+    await expect(bar.getByRole('link', { name: /plateforme foad/i })).toHaveAttribute('href', /^https?:\/\/.*foad/);
+  });
+
+  test('tiroir : rubriques, Thèmes et recherche', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 800 });
+    await page.goto('/a-propos');
+    await page.getByRole('button', { name: /ouvrir le menu/i }).click();
+    const drawer = page.getByRole('dialog');
+    await expect(drawer.getByRole('link', { name: 'Thèmes' })).toHaveAttribute('href', '/themes');
+    await expect(drawer.getByRole('link', { name: 'Recherche' })).toHaveAttribute('href', '/recherche');
+    await expect(drawer.getByRole('link', { name: 'À propos' })).toHaveAttribute('aria-current', 'page');
+  });
+
   test('menu mobile accessible au clavier', async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 740 });
     await page.goto('/');

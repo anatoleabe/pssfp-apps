@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowUpRight, X } from 'lucide-react';
+import { ArrowUpRight, Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@pssfp/ui';
-import { MAIN_SITE_URL, NAV_ITEMS, isNavActive } from './nav-config';
+import { FOAD_URL, MAIN_SITE_URL, NAV_ITEMS, SEARCH_HREF, isNavActive } from './nav-config';
 
 interface MobileDrawerProps {
   pathname: string;
@@ -65,7 +65,7 @@ export function MobileDrawer({ pathname, onClose, onNavigate }: MobileDrawerProp
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 md:hidden">
+    <div className="fixed inset-0 z-50 lg:hidden">
       <div
         aria-hidden="true"
         onClick={onClose}
@@ -119,7 +119,7 @@ export function MobileDrawer({ pathname, onClose, onNavigate }: MobileDrawerProp
                       'flex items-center border-l-2 px-4 py-3 font-heading text-2xl font-semibold transition-colors',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 focus-visible:ring-offset-pssfp-ivoire',
                       active
-                        ? 'border-pssfp-or text-pssfp-prune'
+                        ? 'border-pssfp-prune text-pssfp-prune'
                         : 'border-transparent text-pssfp-graphite hover:border-pssfp-lavande hover:text-pssfp-prune',
                     )}
                   >
@@ -128,16 +128,38 @@ export function MobileDrawer({ pathname, onClose, onNavigate }: MobileDrawerProp
                 </li>
               );
             })}
+            <li className="mt-2 border-t border-pssfp-lavande/40 pt-3">
+              <Link
+                href={SEARCH_HREF}
+                onClick={onNavigate}
+                aria-current={isNavActive(pathname, SEARCH_HREF) ? 'page' : undefined}
+                className={cn(
+                  'flex items-center gap-3 rounded-pssfp-button px-4 py-3 font-ui text-base font-medium text-pssfp-prune transition-colors hover:bg-white',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 focus-visible:ring-offset-pssfp-ivoire',
+                )}
+              >
+                <Search size={18} aria-hidden="true" />
+                {t('search')}
+              </Link>
+            </li>
           </ul>
         </nav>
 
-        <div className="border-t border-pssfp-lavande/40 px-5 py-5">
+        <div className="flex flex-col gap-2 border-t border-pssfp-lavande/40 px-5 py-5">
           <a
             href={MAIN_SITE_URL}
             onClick={onNavigate}
             className="flex items-center justify-between rounded-pssfp-button bg-pssfp-prune px-4 py-3 font-ui text-sm font-medium text-white transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 focus-visible:ring-offset-pssfp-ivoire"
           >
             {t('mainSite')}
+            <ArrowUpRight size={16} aria-hidden="true" />
+          </a>
+          <a
+            href={FOAD_URL}
+            onClick={onNavigate}
+            className="flex items-center justify-between rounded-pssfp-button border border-pssfp-prune/30 bg-white px-4 py-3 font-ui text-sm font-medium text-pssfp-prune transition-colors hover:border-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 focus-visible:ring-offset-pssfp-ivoire"
+          >
+            {t('foad')}
             <ArrowUpRight size={16} aria-hidden="true" />
           </a>
         </div>
