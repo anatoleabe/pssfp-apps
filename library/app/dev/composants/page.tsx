@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
+import { CollectionCard } from '@/components/home/CollectionCard';
 import { CollectionsMosaic } from '@/components/home/CollectionsMosaic';
 import { Pagination } from '@/components/catalogue/Pagination';
 import { StateMessage } from '@/components/catalogue/StateMessage';
@@ -68,6 +69,18 @@ function Demo(): JSX.Element {
           <DocumentCard doc={DEMO_ROW} layout="row" />
           <DocumentCard doc={DEMO_SURLIGNAGE} layout="row" highlight={DEMO_TRAP_TITLE} />
         </div>
+      </section>
+
+      <section aria-labelledby="demo-collection-cards" className="space-y-6">
+        <h2 id="demo-collection-cards" className={SECTION_TITLE}>{t('collectionCards')}</h2>
+        <ul data-testid="demo-collection-cards" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <li>
+            <CollectionCard type="texte_loi" count={1453} />
+          </li>
+          <li>
+            <CollectionCard type="memoire" count={1} />
+          </li>
+        </ul>
       </section>
 
       <section aria-labelledby="demo-covers" className="space-y-6">

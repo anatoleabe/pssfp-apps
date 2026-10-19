@@ -16,7 +16,10 @@ const base: DocumentSummary = {
   specialite: null,
   promotion: 12,
   authors: ['A. Exemple', 'B. Fictif', 'C. Démonstration'],
-  mots_cles: [],
+  mots_cles: [
+    { slug: 'budget-programme', label: 'Budget-programme' },
+    { slug: 'gestion-budgetaire', label: 'Gestion budgétaire' },
+  ],
   cover_url: null,
   access_mode: 'libre',
   price_xaf: null,

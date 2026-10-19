@@ -76,7 +76,20 @@
       "documents": "{count, plural, one {document} other {documents}}",
       "premiumTitle": "Ouvrages premium",
       "premiumBody": "Bientôt disponibles",
-      "premiumCount": "{count, plural, one {# titre bientôt disponible à l'achat} other {# titres bientôt disponibles à l'achat}}"
+      "premiumCount": "{count, plural, one {# titre bientôt disponible à l'achat} other {# titres bientôt disponibles à l'achat}}",
+      "descriptions": {
+        "memoire": "Travaux de fin de formation des auditeurs",
+        "these": "Recherches doctorales en finances publiques",
+        "ouvrage_numerique": "Manuels, guides et ouvrages de référence",
+        "texte_loi": "Lois, décrets, circulaires, instructions",
+        "article_scientifique": "Revues et contributions de recherche",
+        "cours": "Supports de cours des enseignants",
+        "acte_conference": "Communications et actes de colloques",
+        "rapport_stage": "Rapports de stage des auditeurs",
+        "bulletin": "Bulletins et lettres d'information",
+        "ressource_pedagogique": "Supports et ressources d'enseignement",
+        "rapport": "Études, analyses et publications institutionnelles"
+      }
     },
     "latest": {
       "eyebrow": "Derniers ajouts au catalogue",
@@ -332,6 +345,7 @@
     "citation": "Citation",
     "pagination": "Pagination",
     "states": "États vide et erreur",
-    "emptyCatalogue": "Accueil — catalogue vide"
+    "emptyCatalogue": "Accueil — catalogue vide",
+    "collectionCards": "Cartes de collection"
   }
 }
