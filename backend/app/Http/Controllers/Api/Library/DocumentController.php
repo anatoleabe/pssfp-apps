@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\Library;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Library\DocumentResource;
 use App\Models\Document;
+use App\Models\MotCle;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
@@ -71,7 +72,10 @@ final class DocumentController extends Controller
             ->when($filters['annee_min'] ?? null, fn (Builder $q, $v) => $q->where('year', '>=', $v))
             ->when($filters['annee_max'] ?? null, fn (Builder $q, $v) => $q->where('year', '<=', $v))
             ->when($filters['langue'] ?? null, fn (Builder $q, $v) => $q->where('language', $v))
-            ->when($filters['mot_cle'] ?? null, fn (Builder $q, $v) => $q->whereHas('motsCles', fn (Builder $m) => $m->where('slug', $v)))
+            ->when($filters['mot_cle'] ?? null, fn (Builder $q, $v) => $q->whereHas('motsCles', fn (Builder $m) => $m->whereIn(
+                'mots_cles.id',
+                ($id = MotCle::query()->where('slug', $v)->value('id')) === null ? [] : MotCle::selfAndDescendantIds($id),
+            )))
             ->when($filters['acces'] ?? null, fn (Builder $q, $v) => match ($v) {
                 'payant' => $q->whereNotNull('price_xaf'),
                 'reserve' => $q->whereNull('price_xaf')->where('access_level', '!=', 'public'),

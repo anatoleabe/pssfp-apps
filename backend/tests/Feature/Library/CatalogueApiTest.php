@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Document;
 use App\Models\LibraryRedirect;
 use App\Models\MotCle;
+use Illuminate\Support\Facades\DB;
 
 uses()->group('module-3', 'library');
 
@@ -184,4 +185,98 @@ it('propose d\'abord les documents liés qui partagent un mot-clé', function ()
     $related = collect($this->getJson('/v1/library/documents/fiche')->json('related'))->pluck('slug')->all();
 
     expect($related)->toBe(['proche', 'populaire']);
+});
+
+function thesaurusTroisNiveaux(): array
+{
+    $inst = MotCle::factory()->create(['slug' => 'institutions', 'label' => ['fr' => 'Institutions']]);
+    $intl = MotCle::factory()->create(['slug' => 'institutions-internationales', 'label' => ['fr' => 'Internationales'], 'parent_id' => $inst->id]);
+    $fmi = MotCle::factory()->create(['slug' => 'fmi', 'label' => ['fr' => 'FMI'], 'parent_id' => $intl->id]);
+
+    return [$inst, $intl, $fmi];
+}
+
+function compteDe($response, string $slug): int
+{
+    return collect($response->json('data'))->firstWhere('slug', $slug)['documents_count'];
+}
+
+it('compte une seule fois un document rattaché à un parent et à son enfant', function (): void {
+    [$inst, $intl, $fmi] = thesaurusTroisNiveaux();
+    $doc = Document::factory()->published()->create();
+    $doc->motsCles()->attach([$inst->id, $fmi->id]);
+    Document::factory()->published()->create()->motsCles()->attach($intl->id);
+
+    $response = $this->getJson('/v1/library/mots-cles')->assertOk();
+
+    expect(compteDe($response, 'institutions'))->toBe(2)
+        ->and(compteDe($response, 'institutions-internationales'))->toBe(2)
+        ->and(compteDe($response, 'fmi'))->toBe(1)
+        ->and($response->json('data.0.slug'))->toBe('fmi');
+});
+
+it('ne compte ni les brouillons ni les publications futures', function (): void {
+    [$inst] = thesaurusTroisNiveaux();
+    Document::factory()->create()->motsCles()->attach($inst->id);
+    Document::factory()->published()->create(['published_at' => now()->addDay()])->motsCles()->attach($inst->id);
+    Document::factory()->published()->create()->motsCles()->attach($inst->id);
+
+    expect(compteDe($this->getJson('/v1/library/mots-cles'), 'institutions'))->toBe(1);
+});
+
+it('restreint les comptes au type demandé et rejette un type inconnu', function (): void {
+    [$inst] = thesaurusTroisNiveaux();
+    Document::factory()->published()->create(['type' => 'texte_loi'])->motsCles()->attach($inst->id);
+    Document::factory()->published()->create(['type' => 'memoire'])->motsCles()->attach($inst->id);
+
+    expect(compteDe($this->getJson('/v1/library/mots-cles?type=texte_loi'), 'institutions'))->toBe(1)
+        ->and(compteDe($this->getJson('/v1/library/mots-cles?type=these'), 'institutions'))->toBe(0);
+    $this->getJson('/v1/library/mots-cles?type=inconnu')->assertUnprocessable();
+});
+
+it('compte les mots-clés sans document à zéro', function (): void {
+    MotCle::factory()->create(['slug' => 'vide']);
+
+    expect(compteDe($this->getJson('/v1/library/mots-cles'), 'vide'))->toBe(0);
+});
+
+it('garde un nombre de requêtes indépendant du nombre de mots-clés', function (): void {
+    $count = function (): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->getJson('/v1/library/mots-cles')->assertOk();
+
+        return count(DB::getQueryLog());
+    };
+    thesaurusTroisNiveaux();
+    $avant = $count();
+
+    foreach (range(1, 15) as $i) {
+        $mc = MotCle::factory()->create();
+        Document::factory()->published()->create()->motsCles()->attach($mc->id);
+    }
+
+    expect($count())->toBe($avant);
+});
+
+it('filtre les documents par mot-clé en incluant les sous-thèmes', function (): void {
+    [$inst, , $fmi] = thesaurusTroisNiveaux();
+    Document::factory()->published()->create(['slug' => 'sur-fmi'])->motsCles()->attach($fmi->id);
+    Document::factory()->published()->create(['slug' => 'ailleurs']);
+
+    $slugs = fn (string $q) => collect($this->getJson('/v1/library/documents?mot_cle='.$q)->assertOk()->json('data'))->pluck('slug')->all();
+
+    expect($slugs('institutions'))->toBe(['sur-fmi'])
+        ->and($slugs('fmi'))->toBe(['sur-fmi'])
+        ->and($slugs('inconnu'))->toBe([]);
+});
+
+it('ne boucle pas sur un cycle de parenté', function (): void {
+    $a = MotCle::factory()->create(['slug' => 'a']);
+    $b = MotCle::factory()->create(['slug' => 'b', 'parent_id' => $a->id]);
+    $a->update(['parent_id' => $b->id]);
+    Document::factory()->published()->create(['slug' => 'd'])->motsCles()->attach($b->id);
+
+    expect(compteDe($this->getJson('/v1/library/mots-cles'), 'a'))->toBe(1);
+    $this->getJson('/v1/library/documents?mot_cle=a')->assertOk()->assertJsonCount(1, 'data');
 });
