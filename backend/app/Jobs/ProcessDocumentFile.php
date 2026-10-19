@@ -21,7 +21,8 @@ use RuntimeException;
  * Une couverture personnalisée (Document::hasCustomCover()) n'est jamais
  * remplacée par le traitement automatique ; seule la régénération forcée
  * (`forceCover`, action « Régénérer la couverture ») la remplace, et
- * seulement si le rendu réussit.
+ * seulement si le rendu réussit (un rendu forcé en échec ne vide jamais la
+ * couverture existante).
  *
  * Lecture par readStream (GetObject) uniquement — pas de HeadObject en prod.
  */
@@ -102,11 +103,24 @@ final class ProcessDocumentFile implements ShouldQueue
             @unlink($local);
         }
 
+        // Le rendu prend du temps : une couverture personnalisée posée
+        // entre-temps (relue en base) l'emporte sur un traitement automatique.
+        if (! $this->forceCover && array_key_exists('cover_path', $attributes) && $this->customCoverSetMeanwhile()) {
+            unset($attributes['cover_path']);
+        }
+
         Document::withoutEvents(fn () => $document->forceFill($attributes)->save());
 
         // searchable() seul ne consulte pas shouldBeSearchable() : sans ce garde,
         // un brouillon avec PDF partirait dans l'index public.
         $document->syncSearchIndex();
+    }
+
+    private function customCoverSetMeanwhile(): bool
+    {
+        $current = Document::query()->whereKey($this->documentId)->value('cover_path');
+
+        return is_string($current) && str_starts_with($current, Document::customCoversDirectory().'/');
     }
 
     /**
@@ -117,7 +131,9 @@ final class ProcessDocumentFile implements ShouldQueue
      */
     private function coverAttributes(Document $document, CoverRenderer $renderer, string $local, bool $customCover): array
     {
-        $fallback = $customCover ? [] : ['cover_path' => null];
+        // Régénération forcée sans rendu : on garde ce qui existe plutôt que
+        // de vider la couverture à la demande de l'utilisateur.
+        $fallback = ($customCover || $this->forceCover) ? [] : ['cover_path' => null];
 
         $jpeg = $renderer->render($local);
         if ($jpeg === null) {

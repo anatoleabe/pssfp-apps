@@ -18,7 +18,8 @@ use Illuminate\Database\Eloquent\Collection;
 /**
  * Actions en lot de la liste des documents (Plan 6, Task 4).
  *
- * Type et thèmes : réservés à la gestion du catalogue (`update_document`) ;
+ * Type et thèmes : réservés à la gestion du catalogue
+ * (DocumentResource::managesCatalogue()) ;
  * chaque document passe par la Policy, donc un document publié n'est touché
  * qu'avec `document.publish` — sinon il est ignoré et compté. Archivage :
  * `document.publish`. Soumission : brouillons modifiables par le compte.
@@ -42,7 +43,7 @@ final class DocumentBulkActions
     private static function changeType(): BulkAction
     {
         return BulkAction::make('changerType')->label('Changer le type')->icon('heroicon-o-tag')
-            ->authorize(fn (): bool => self::managesCatalogue())
+            ->authorize(fn (): bool => DocumentResource::managesCatalogue())
             ->form([Select::make('type')->label('Nouveau type')->options(Document::TYPES)->required()])
             ->action(fn (Collection $records, array $data) => self::applyToEditable($records, function (Document $document) use ($data): bool {
                 if ($document->type === $data['type']) {
@@ -58,7 +59,7 @@ final class DocumentBulkActions
     private static function addThemes(): BulkAction
     {
         return BulkAction::make('ajouterThemes')->label('Ajouter des thèmes')->icon('heroicon-o-plus-circle')
-            ->authorize(fn (): bool => self::managesCatalogue())
+            ->authorize(fn (): bool => DocumentResource::managesCatalogue())
             ->form([self::themesField()])
             ->action(function (Collection $records, array $data): void {
                 $themes = self::themes($data);
@@ -81,7 +82,7 @@ final class DocumentBulkActions
     private static function removeThemes(): BulkAction
     {
         return BulkAction::make('retirerThemes')->label('Retirer des thèmes')->icon('heroicon-o-minus-circle')
-            ->authorize(fn (): bool => self::managesCatalogue())
+            ->authorize(fn (): bool => DocumentResource::managesCatalogue())
             ->form([self::themesField()])
             ->action(function (Collection $records, array $data): void {
                 $themes = self::themes($data);
@@ -122,7 +123,7 @@ final class DocumentBulkActions
     private static function submit(): BulkAction
     {
         return BulkAction::make('soumettreLot')->label('Soumettre la sélection')->icon('heroicon-o-paper-airplane')
-            ->authorize(fn (): bool => self::managesCatalogue())
+            ->authorize(fn (): bool => DocumentResource::managesCatalogue())
             ->requiresConfirmation()
             ->modalDescription('Les brouillons de la sélection passent en revue ; les validateurs reçoivent un seul message.')
             ->action(function (Collection $records): void {
@@ -174,11 +175,6 @@ final class DocumentBulkActions
         }
 
         self::notify($title, $changed > 0 && $skippedPublished === 0);
-    }
-
-    private static function managesCatalogue(): bool
-    {
-        return (bool) auth()->user()?->can('update_document');
     }
 
     private static function themesField(): Select

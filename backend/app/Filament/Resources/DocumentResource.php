@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Forms\Components\PrivateFileUpload;
 use App\Filament\Resources\DocumentResource\DocumentBulkActions;
+use App\Filament\Resources\DocumentResource\DocumentInfolist;
 use App\Filament\Resources\DocumentResource\Pages;
 use App\Filament\Resources\DocumentResource\RelationManagers;
 use App\Models\Document;
@@ -16,6 +17,7 @@ use App\Support\BelongsToModule;
 use Closure;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -183,6 +185,27 @@ class DocumentResource extends Resource
         ]);
     }
 
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return DocumentInfolist::make($infolist);
+    }
+
+    /**
+     * Fiche ouverte au clic : modification si le compte peut modifier le
+     * document, sinon consultation (lecture, document en ligne sans droit de
+     * publier, dépôt soumis d'un contributeur).
+     */
+    public static function recordUrl(Document $record): ?string
+    {
+        $user = auth()->user();
+
+        return match (true) {
+            (bool) $user?->can('update', $record) => self::getUrl('edit', ['record' => $record]),
+            (bool) $user?->can('view', $record) => self::getUrl('view', ['record' => $record]),
+            default => null,
+        };
+    }
+
     /**
      * Fichier ou lien, exclusifs (contrainte reprise en base) : un lien externe
      * n'a ni PDF chez nous, ni prix, ni accès réservé.
@@ -294,8 +317,11 @@ class DocumentResource extends Resource
                     ->visible(fn (Document $record) => $record->status === Document::STATUS_PUBLISHED)
                     ->requiresConfirmation()
                     ->action(fn (Document $record) => self::archive($record)),
+                Tables\Actions\ViewAction::make()
+                    ->visible(fn (Document $record): bool => ! auth()->user()?->can('update', $record)),
                 Tables\Actions\EditAction::make(),
             ])
+            ->recordUrl(fn (Document $record): ?string => self::recordUrl($record))
             ->bulkActions([
                 Tables\Actions\BulkAction::make('publierLot')->label('Publier la sélection')->icon('heroicon-o-check-badge')
                     ->authorize(fn () => (bool) auth()->user()?->can('document.publish'))
@@ -410,6 +436,7 @@ class DocumentResource extends Resource
         return [
             'index' => Pages\ListDocuments::route('/'),
             'create' => Pages\CreateDocument::route('/create'),
+            'view' => Pages\ViewDocument::route('/{record}'),
             'edit' => Pages\EditDocument::route('/{record}/edit'),
         ];
     }

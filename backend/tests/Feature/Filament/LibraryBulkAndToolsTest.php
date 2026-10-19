@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Filament\Resources\DocumentResource;
 use App\Filament\Resources\DocumentResource\Pages\EditDocument;
 use App\Filament\Resources\DocumentResource\Pages\ListDocuments;
+use App\Filament\Resources\DocumentResource\Pages\ViewDocument;
 use App\Filament\Resources\DocumentResource\RelationManagers\ActivitiesRelationManager;
 use App\Filament\Resources\DocumentResource\RelationManagers\LegacyRedirectsRelationManager;
 use App\Jobs\ProcessDocumentFile;
@@ -20,6 +21,8 @@ use App\Services\Library\Files\CoverRenderer;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Scout\EngineManager;
 use Laravel\Scout\Engines\NullEngine;
@@ -448,4 +451,137 @@ it('affiche l\'historique et les anciennes adresses sous la fiche', function ():
 
     expect(array_values($this->livewire(EditDocument::class, ['record' => $own->getRouteKey()])->instance()->getRelationManagers()))
         ->toBe([ActivitiesRelationManager::class]);
+});
+
+it('réindexe après un retrait de thèmes et après une soumission en lot', function (): void {
+    $engine = bulkToolsRecordingEngine();
+    $theme = MotCle::factory()->create();
+    $published = bulkToolsDocument(Document::STATUS_PUBLISHED);
+    $published->motsCles()->attach($theme);
+    $draft = bulkToolsDocument(Document::STATUS_DRAFT);
+    $engine->updated = [];
+    $engine->deleted = [];
+    $this->actingAs($this->librarian);
+
+    bulkToolsList()->callTableBulkAction('retirerThemes', [$published], data: ['mots_cles' => [$theme->id]]);
+    expect($engine->updated[$published->id]['mots_cles'] ?? null)->toBe([]);
+
+    bulkToolsList()->callTableBulkAction('soumettreLot', [$draft]);
+    expect($engine->deleted)->toContain($draft->id);
+});
+
+it('garde la couverture existante quand une régénération forcée ne produit rien', function (): void {
+    Storage::fake('minio_documents');
+    $doc = bulkToolsDocument(Document::STATUS_DRAFT);
+    Storage::disk('minio_documents')->put($doc->file_path, '%PDF-1.4 contenu');
+    $auto = "library/covers/{$doc->uuid}.jpg";
+    Document::withoutEvents(fn () => $doc->update(['cover_path' => $auto]));
+    $renderer = new class implements CoverRenderer
+    {
+        public function render(string $pdfPath): ?string
+        {
+            return null;
+        }
+    };
+
+    (new ProcessDocumentFile($doc->id, forceCover: true))->handle($renderer);
+
+    expect($doc->fresh()->cover_path)->toBe($auto);
+});
+
+it('ne remplace pas une couverture personnalisée posée pendant le traitement automatique', function (): void {
+    Storage::fake('minio_documents');
+    Storage::fake('minio_media');
+    $doc = bulkToolsDocument(Document::STATUS_DRAFT);
+    Storage::disk('minio_documents')->put($doc->file_path, '%PDF-1.4 contenu');
+    $custom = Document::customCoversDirectory().'/posee-entre-temps.jpg';
+    $renderer = new class($doc->id, $custom) implements CoverRenderer
+    {
+        public function __construct(private readonly int $id, private readonly string $custom) {}
+
+        public function render(string $pdfPath): ?string
+        {
+            // Un bibliothécaire dépose sa couverture pendant le rendu.
+            DB::table('documents')->where('id', $this->id)->update(['cover_path' => $this->custom]);
+
+            return 'JPEGDATA';
+        }
+    };
+
+    (new ProcessDocumentFile($doc->id))->handle($renderer);
+
+    expect($doc->fresh()->cover_path)->toBe($custom)
+        ->and($doc->fresh()->file_checksum_md5)->toBe(md5('%PDF-1.4 contenu'));
+});
+
+it('versionne l\'URL publique de la couverture', function (): void {
+    Storage::fake('minio_documents');
+    Storage::fake('minio_media');
+    $doc = bulkToolsDocument(Document::STATUS_PUBLISHED, ['slug' => 'couverture-versionnee', 'cover_path' => 'library/covers/x.jpg']);
+
+    $url = (string) $this->getJson('/v1/library/documents/couverture-versionnee')->assertOk()->json('data.cover_url');
+
+    expect($url)->toContain('library/covers/x.jpg?v='.$doc->fresh()->updated_at->getTimestamp())
+        ->and(Document::factory()->make(['cover_path' => null])->coverUrl())->toBeNull();
+});
+
+it('ouvre la fiche en consultation à qui ne peut que la voir', function (): void {
+    $viewer = bulkToolsUser('library_viewer');
+    $doc = bulkToolsDocument(Document::STATUS_PUBLISHED);
+    $this->actingAs($viewer);
+
+    $this->get(DocumentResource::getUrl('view', ['record' => $doc]))->assertOk()
+        ->assertSee($doc->getTranslation('title', 'fr'))
+        ->assertSee('Historique')
+        ->assertSee('Anciennes adresses');
+    $this->get(DocumentResource::getUrl('edit', ['record' => $doc]))->assertForbidden();
+
+    $page = $this->livewire(ViewDocument::class, ['record' => $doc->getRouteKey()])
+        ->assertActionHidden('edit');
+
+    expect(array_values($page->instance()->getRelationManagers()))
+        ->toBe([ActivitiesRelationManager::class, LegacyRedirectsRelationManager::class])
+        ->and(DocumentResource::recordUrl($doc))->toBe(DocumentResource::getUrl('view', ['record' => $doc]));
+
+    bulkToolsList()->assertTableActionVisible('view', $doc)->assertTableActionHidden('edit', $doc);
+});
+
+it('ouvre la modification à qui peut modifier, la consultation pour un document en ligne sans droit de publier', function (): void {
+    $draft = bulkToolsDocument(Document::STATUS_DRAFT);
+    $published = bulkToolsDocument(Document::STATUS_PUBLISHED);
+
+    $this->actingAs($this->librarian);
+    expect(DocumentResource::recordUrl($draft))->toBe(DocumentResource::getUrl('edit', ['record' => $draft]));
+
+    $this->actingAs(bulkToolsCataloguer());
+    expect(DocumentResource::recordUrl($published))->toBe(DocumentResource::getUrl('view', ['record' => $published]));
+    $this->get(DocumentResource::getUrl('view', ['record' => $published]))->assertOk();
+});
+
+it('laisse le contributeur consulter son dépôt soumis, pas celui d\'un autre', function (): void {
+    $contributor = bulkToolsUser('library_contributor');
+    $own = bulkToolsDocument(Document::STATUS_IN_REVIEW, ['uploaded_by' => $contributor->id]);
+    $other = bulkToolsDocument(Document::STATUS_IN_REVIEW, ['uploaded_by' => bulkToolsUser('library_contributor')->id]);
+    $this->actingAs($contributor);
+
+    $this->get(DocumentResource::getUrl('view', ['record' => $own]))->assertOk()->assertDontSee('Anciennes adresses');
+    $this->get(DocumentResource::getUrl('edit', ['record' => $own]))->assertForbidden();
+    $this->get(DocumentResource::getUrl('view', ['record' => $other]))->assertNotFound();
+
+    $page = $this->livewire(ViewDocument::class, ['record' => $own->getRouteKey()])->assertActionHidden('edit');
+
+    expect(array_values($page->instance()->getRelationManagers()))->toBe([ActivitiesRelationManager::class])
+        ->and(DocumentResource::recordUrl($own))->toBe(DocumentResource::getUrl('view', ['record' => $own]));
+});
+
+it('indexe la cible des redirections, de façon réversible', function (): void {
+    $migration = require database_path('migrations/2026_10_19_210000_index_library_redirects_to_path.php');
+
+    expect(Schema::hasIndex('library_redirects', ['to_path']))->toBeTrue();
+
+    $migration->down();
+    expect(Schema::hasIndex('library_redirects', ['to_path']))->toBeFalse();
+
+    $migration->up();
+    expect(Schema::hasIndex('library_redirects', ['to_path']))->toBeTrue();
 });

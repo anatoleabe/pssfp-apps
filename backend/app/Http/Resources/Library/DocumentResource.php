@@ -8,7 +8,6 @@ use App\Models\Document;
 use App\Services\Library\DocumentAccess;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 /** @mixin Document */
 final class DocumentResource extends JsonResource
@@ -41,9 +40,7 @@ final class DocumentResource extends JsonResource
             'authors' => $this->whenLoaded('authors', fn () => $this->authors->pluck('author_name')->all(), []),
             'mots_cles' => $this->whenLoaded('motsCles', fn () => $this->motsCles
                 ->map(fn ($m) => ['slug' => $m->slug, 'label' => $m->getTranslation('label', 'fr')])->all(), []),
-            'cover_url' => $this->cover_path !== null
-                ? Storage::disk((string) config('library.covers_disk'))->url($this->cover_path)
-                : null,
+            'cover_url' => $this->resource->coverUrl(),
             'access_mode' => $this->access_mode,
             'price_xaf' => $this->price_xaf,
             'published_at' => optional($this->published_at)->toIso8601String(),

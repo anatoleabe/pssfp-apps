@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Scout\Searchable;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -121,6 +122,10 @@ class Document extends Model
      * Anciennes adresses (site Joomla) qui mènent à la fiche publique.
      * Clé calculée (`site_path`) : lecture seule, l'écriture passe par
      * l'écran des redirections.
+     *
+     * Attention : la clé locale n'est pas une colonne. Chargement paresseux
+     * ou `load()` seulement — jamais `whereHas()`, `has()`, `withCount()` ni
+     * jointure sur cette relation (SQL invalide sur `documents.site_path`).
      */
     public function legacyRedirects(): HasMany
     {
@@ -180,6 +185,23 @@ class Document extends Model
     public static function customCoversDirectory(): string
     {
         return (string) config('library.covers_directory').'/custom';
+    }
+
+    /**
+     * URL publique de la couverture, versionnée : une couverture régénérée
+     * ou remplacée garde parfois le même chemin, le paramètre `v` (date de
+     * dernière écriture de la fiche) force navigateurs et cache d'images à
+     * la recharger. Pas d'appel au stockage (aucun HeadObject).
+     */
+    public function coverUrl(): ?string
+    {
+        if ($this->cover_path === null) {
+            return null;
+        }
+
+        $url = Storage::disk((string) config('library.covers_disk'))->url($this->cover_path);
+
+        return $url.(str_contains($url, '?') ? '&' : '?').'v='.($this->updated_at?->getTimestamp() ?? 0);
     }
 
     public function hasCustomCover(): bool
