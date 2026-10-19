@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\DocumentResource\Pages;
 use App\Models\Document;
+use App\Models\User;
 use App\Support\BelongsToModule;
 use Closure;
 use Filament\Forms;
@@ -18,6 +19,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 /**
@@ -64,6 +66,62 @@ class DocumentResource extends Resource
 
     public const ACCESS_MODE_LABELS = ['libre' => 'Libre', 'reserve' => 'Réservé', 'payant' => 'Payant'];
 
+    /** Valeurs imposées au dépôt d'un contributeur : l'accès et le prix restent à la bibliothèque. */
+    public const CONTRIBUTOR_FORCED = ['access_level' => 'public', 'price_xaf' => null];
+
+    /**
+     * Le compte gère-t-il le catalogue (créer et modifier tout document) ?
+     * Sinon il ne fait que déposer (`document.contribute`) : formulaire et
+     * actions réduits, liste limitée à ses dépôts.
+     */
+    public static function managesCatalogue(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && $user->can('create_document') && $user->can('update_document');
+    }
+
+    /**
+     * Création par un contributeur, quoi que contienne la requête : le
+     * formulaire masque l'accès et le prix, le serveur les impose.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function enforceContributorCreateData(array $data): array
+    {
+        return self::managesCatalogue() ? $data : [...$data, ...self::CONTRIBUTOR_FORCED];
+    }
+
+    /**
+     * Modification par un contributeur : l'accès et le prix fixés par la
+     * bibliothèque restent tels quels, quoi que contienne la requête.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function enforceContributorUpdateData(array $data): array
+    {
+        return self::managesCatalogue() ? $data : Arr::except($data, array_keys(self::CONTRIBUTOR_FORCED));
+    }
+
+    /**
+     * Sans lecture du catalogue, un compte ne voit que ses dépôts : liste,
+     * recherche globale et résolution des adresses de fiche (une adresse
+     * forgée vers le dépôt d'un autre aboutit à une 404).
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return $query->whereKey([]);
+        }
+
+        return $user->can('view_any_document') ? $query : $query->where('uploaded_by', $user->getKey());
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
@@ -106,8 +164,11 @@ class DocumentResource extends Resource
                 Forms\Components\TextInput::make('external_url')->label('Ou lien externe')->url()->rule('url:http,https')->maxLength(500)->columnSpanFull()
                     ->helperText('Sans PDF, sans prix et en accès public : le bouton du site ouvre ce lien.')
                     ->rule(fn (Forms\Get $get): Closure => self::externalUrlIsExclusive($get)),
-                Forms\Components\Select::make('access_level')->label('Niveau d\'accès')->options(Document::ACCESS_LEVELS)->default('public')->required(),
+                // Accès et prix relèvent de la bibliothèque : absents pour un contributeur.
+                Forms\Components\Select::make('access_level')->label('Niveau d\'accès')->options(Document::ACCESS_LEVELS)->default('public')->required()
+                    ->visible(fn (): bool => self::managesCatalogue()),
                 Forms\Components\TextInput::make('price_xaf')->label('Prix (FCFA)')->integer()->minValue(1)
+                    ->visible(fn (): bool => self::managesCatalogue())
                     ->helperText('Non vendu tant que le paiement en ligne n\'est pas actif : le document s\'affiche « Payant — bientôt disponible ».'),
             ]),
         ]);
@@ -124,7 +185,8 @@ class DocumentResource extends Resource
                 return;
             }
 
-            if (filled($get('file_path')) || filled($get('price_xaf')) || $get('access_level') !== 'public') {
+            // Niveau d'accès masqué au contributeur : vide à la création, il vaudra « public ».
+            if (filled($get('file_path')) || filled($get('price_xaf')) || ($get('access_level') ?? 'public') !== 'public') {
                 $fail('Un lien externe exclut le PDF, le prix et l\'accès réservé : retirez-les ou videz le lien.');
             }
         };
@@ -162,7 +224,10 @@ class DocumentResource extends Resource
                 Tables\Filters\SelectFilter::make('type')->options(Document::TYPES),
                 Tables\Filters\SelectFilter::make('status')->label('Statut')->options(self::STATUS_LABELS),
                 Tables\Filters\SelectFilter::make('access_level')->label('Accès')->options(Document::ACCESS_LEVELS),
-                Tables\Filters\TernaryFilter::make('legacy_source')->label('Importé de l\'ancien site')->nullable(),
+                Tables\Filters\Filter::make('mes_depots')->label('Mes dépôts')->toggle()
+                    ->query(fn (Builder $query): Builder => $query->where('uploaded_by', auth()->id())),
+                Tables\Filters\TernaryFilter::make('legacy_source')->label('Importé de l\'ancien site')->nullable()
+                    ->visible(fn (): bool => self::managesCatalogue()),
                 Tables\Filters\TernaryFilter::make('file_path')->label('Avec fichier')->nullable(),
             ])
             ->actions([

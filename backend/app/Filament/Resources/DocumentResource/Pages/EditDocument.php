@@ -18,6 +18,18 @@ class EditDocument extends EditRecord
         return [Actions\DeleteAction::make()];
     }
 
+    /**
+     * Un contributeur ne change ni l'accès ni le prix, même par une requête forgée.
+     * (Filament revérifie `update` à chaque requête : un brouillon soumis en
+     * revue entre-temps lui est fermé.)
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        return DocumentResource::enforceContributorUpdateData($data);
+    }
+
     /** Les auteurs et mots-clés sont enregistrés : l'index reflète l'état final. */
     protected function afterSave(): void
     {

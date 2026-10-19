@@ -12,9 +12,12 @@ class CreateDocument extends CreateRecord
 {
     protected static string $resource = DocumentResource::class;
 
+    /** Tout dépôt naît brouillon, au nom de son auteur ; un contributeur ne fixe ni accès ni prix. */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        return [...$data, 'status' => Document::STATUS_DRAFT, 'uploaded_by' => auth()->id()];
+        return DocumentResource::enforceContributorCreateData(
+            [...$data, 'status' => Document::STATUS_DRAFT, 'uploaded_by' => auth()->id()],
+        );
     }
 
     protected function afterCreate(): void

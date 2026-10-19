@@ -267,9 +267,9 @@ it('cantonne chaque rôle de la bibliothèque à la bibliothèque', function (st
     'responsable' => ['library_manager', [DocumentResource::class, MotCleResource::class], [LibraryOverview::class, LibraryZeroResultSearches::class]],
     'bibliothécaire' => ['librarian', [DocumentResource::class, MotCleResource::class], [LibraryOverview::class, LibraryZeroResultSearches::class]],
     'consultation' => ['library_viewer', [DocumentResource::class, MotCleResource::class], [LibraryOverview::class, LibraryZeroResultSearches::class]],
-    // Les écrans du contributeur arrivent avec la Task 2 : d'ici là, rien
-    // d'autre que le tableau de bord.
-    'contributeur' => ['library_contributor', [], []],
+    // Le contributeur n'ouvre que l'écran Documents (limité à ses dépôts) :
+    // ni thésaurus, ni widgets du catalogue.
+    'contributeur' => ['library_contributor', [DocumentResource::class], []],
 ]);
 
 it('additionne les modules quand les rôles se cumulent', function (): void {
