@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Forms\Components\PrivateFileUpload;
 use App\Filament\Resources\DocumentResource\Pages;
 use App\Models\Document;
 use App\Models\User;
@@ -155,15 +156,17 @@ class DocumentResource extends Resource
                     ->multiple()->searchable()->preload(),
             ]),
             Forms\Components\Section::make('Fichier et accès')->columns(2)->schema([
-                Forms\Components\FileUpload::make('file_path')->label('PDF')
-                    ->disk((string) config('library.documents_disk'))->directory('documents')->visibility('private')
+                // Disque privé : seul le fichier déjà enregistré sur la fiche, ou
+                // un nouveau dépôt, est admis (cf. PrivateFileUpload).
+                PrivateFileUpload::make('file_path')->label('PDF')
+                    ->disk((string) config('library.documents_disk'))->directory('documents')
                     ->acceptedFileTypes(['application/pdf'])->maxSize(204800)->columnSpanFull()
                     // Pas de HeadObject en prod : sans ce réglage, Filament croit le
                     // PDF absent à l'ouverture et l'efface à l'enregistrement.
                     ->fetchFileInformation(false),
                 Forms\Components\TextInput::make('external_url')->label('Ou lien externe')->url()->rule('url:http,https')->maxLength(500)->columnSpanFull()
                     ->helperText('Sans PDF, sans prix et en accès public : le bouton du site ouvre ce lien.')
-                    ->rule(fn (Forms\Get $get): Closure => self::externalUrlIsExclusive($get)),
+                    ->rule(fn (Forms\Get $get, ?Model $record): Closure => self::externalUrlIsExclusive($get, $record)),
                 // Accès et prix relèvent de la bibliothèque : absents pour un contributeur.
                 Forms\Components\Select::make('access_level')->label('Niveau d\'accès')->options(Document::ACCESS_LEVELS)->default('public')->required()
                     ->visible(fn (): bool => self::managesCatalogue()),
@@ -178,18 +181,40 @@ class DocumentResource extends Resource
      * Fichier ou lien, exclusifs (contrainte reprise en base) : un lien externe
      * n'a ni PDF chez nous, ni prix, ni accès réservé.
      */
-    private static function externalUrlIsExclusive(Forms\Get $get): Closure
+    private static function externalUrlIsExclusive(Forms\Get $get, ?Model $record): Closure
     {
-        return function (string $attribute, mixed $value, Closure $fail) use ($get): void {
+        return function (string $attribute, mixed $value, Closure $fail) use ($get, $record): void {
             if (blank($value)) {
                 return;
             }
 
-            // Niveau d'accès masqué au contributeur : vide à la création, il vaudra « public ».
-            if (filled($get('file_path')) || filled($get('price_xaf')) || ($get('access_level') ?? 'public') !== 'public') {
+            if (! self::managesCatalogue()) {
+                self::checkContributorExternalUrl($get, $record, $fail);
+
+                return;
+            }
+
+            if (filled($get('file_path')) || filled($get('price_xaf')) || $get('access_level') !== 'public') {
                 $fail('Un lien externe exclut le PDF, le prix et l\'accès réservé : retirez-les ou videz le lien.');
             }
         };
+    }
+
+    /**
+     * Le contributeur ne voit ni l'accès ni le prix : ceux enregistrés (fixés
+     * par la bibliothèque) font foi, avec un message qu'il peut comprendre.
+     */
+    private static function checkContributorExternalUrl(Forms\Get $get, ?Model $record, Closure $fail): void
+    {
+        if (filled($get('file_path'))) {
+            $fail('Un lien externe exclut le PDF : retirez le PDF ou videz le lien.');
+
+            return;
+        }
+
+        if ($record instanceof Document && ($record->price_xaf !== null || $record->access_level !== 'public')) {
+            $fail('La bibliothèque a réservé ou tarifé ce document : il ne peut pas renvoyer vers un lien externe.');
+        }
     }
 
     /** Un document se publie avec un PDF ou un lien externe, jamais sans. */

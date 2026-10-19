@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Forms\Components\PrivateFileUpload;
 use App\Filament\Resources\AssetResource\Pages;
 use App\Models\Asset;
 use App\Services\AssetImportService;
@@ -66,7 +67,8 @@ class AssetResource extends Resource
                             };
                         })
                         ->required(),
-                    Forms\Components\FileUpload::make('upload')
+                    // Peut viser le disque privé des documents : pas de chemin forgé.
+                    PrivateFileUpload::make('upload')
                         ->label('Fichier (upload)')
                         ->disk(fn (Forms\Get $get) => $get('category') === Asset::CATEGORY_DOCUMENT
                             ? AssetImportService::DOCUMENTS_DISK

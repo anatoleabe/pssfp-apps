@@ -19,6 +19,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Storage;
 
 /*
  * Contributeurs de la bibliothèque (Plan 6, Task 2) : un compte
@@ -290,4 +291,53 @@ it('laisse le bibliothécaire voir tous les documents et filtrer ses dépôts', 
     $this->livewire(CreateDocument::class)
         ->assertFormFieldIsVisible('access_level')
         ->assertFormFieldIsVisible('price_xaf');
+});
+
+it('limite la recherche globale du contributeur à ses dépôts', function (): void {
+    $mine = contributorTestDocument($this->contributor, attributes: ['slug' => 'alpha-mon-depot', 'title' => ['fr' => 'Alpha mon dépôt']]);
+    contributorTestDocument($this->otherContributor, attributes: ['slug' => 'alpha-depot-voisin', 'title' => ['fr' => 'Alpha dépôt voisin']]);
+    Document::factory()->published()->create(['slug' => 'alpha-catalogue', 'title' => ['fr' => 'Alpha catalogue']]);
+    $this->actingAs($this->contributor);
+
+    $titles = DocumentResource::getGlobalSearchResults('alpha')->map(fn ($result): string => (string) $result->title)->all();
+
+    expect($titles)->toBe([$mine->getTranslation('title', 'fr')]);
+});
+
+it('refuse « Soumettre en revue » sur le brouillon d\'un autre, même par une clé forgée', function (): void {
+    $others = contributorTestDocument($this->otherContributor);
+    $this->actingAs($this->contributor);
+
+    $this->livewire(ListDocuments::class)
+        ->call('mountTableAction', 'soumettre', (string) $others->getKey())
+        ->call('callMountedTableAction');
+
+    expect($others->fresh()->status)->toBe(Document::STATUS_DRAFT);
+});
+
+it('explique au contributeur qu\'un lien externe exclut son PDF', function (): void {
+    Storage::fake('minio_documents');
+    $draft = contributorTestDocument($this->contributor, attributes: ['file_path' => 'documents/mon-depot.pdf']);
+    $this->actingAs($this->contributor);
+
+    $page = $this->livewire(EditDocument::class, ['record' => $draft->getRouteKey()])
+        ->fillForm(['external_url' => 'https://exemple.org/ouvrage'])
+        ->call('save')
+        ->assertHasFormErrors(['external_url']);
+
+    expect($page->errors()->first('data.external_url'))->toBe('Un lien externe exclut le PDF : retirez le PDF ou videz le lien.');
+});
+
+it('refuse un lien externe sur un dépôt que la bibliothèque a réservé ou tarifé', function (): void {
+    $draft = contributorTestDocument($this->contributor, attributes: ['access_level' => 'auditor']);
+    $this->actingAs($this->contributor);
+
+    $page = $this->livewire(EditDocument::class, ['record' => $draft->getRouteKey()])
+        ->fillForm(['external_url' => 'https://exemple.org/ouvrage'])
+        ->call('save')
+        ->assertHasFormErrors(['external_url']);
+
+    expect($page->errors()->first('data.external_url'))->toBe('La bibliothèque a réservé ou tarifé ce document : il ne peut pas renvoyer vers un lien externe.');
+
+    expect($draft->fresh()->external_url)->toBeNull();
 });
