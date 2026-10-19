@@ -52,9 +52,17 @@
 
 ---
 
-### Task 1 : rôles et permissions
+### Task 1 : rôles, permissions et cloisonnement des modules
 
-**Files:** `backend/app/Support/ModulePermissionMap.php`, `backend/app/Filament/Resources/RoleResource.php` (+ pages si besoin), `backend/database/seeders/RolePermissionSeeder.php`, nouvelle migration `backend/database/migrations/2026_10_19_200000_library_admin_roles.php`, tests `backend/tests/Feature/Library/LibraryAdminRolesMigrationTest.php`, `backend/tests/Feature/Filament/RoleResourceTest.php`.
+**Exigence ajoutée par l'utilisateur (2026-10-19)** : les rôles de la bibliothèque n'ouvrent **que** la partie bibliothèque du back-office, rien d'autre, sauf cumul avec d'autres rôles ; la gestion des rôles doit être robuste et prête pour les prochains modules.
+
+**Files:** `backend/app/Support/ModulePermissionMap.php`, nouveau `backend/app/Support/BelongsToModule.php` (attribut ou interface) et un point unique de contrôle d'accès par module, toutes les Resources/Pages/Widgets Filament existants (déclaration de leur module), `backend/app/Filament/Resources/RoleResource.php` (+ pages si besoin), `backend/database/seeders/RolePermissionSeeder.php`, nouvelle migration `backend/database/migrations/2026_10_19_200000_library_admin_roles.php`, tests `backend/tests/Feature/Library/LibraryAdminRolesMigrationTest.php`, `backend/tests/Feature/Filament/RoleResourceTest.php`, `backend/tests/Feature/Filament/ModuleIsolationTest.php`, doc `backend/docs/ajouter-un-module.md`.
+
+Cloisonnement :
+- chaque écran du panneau (Resource, Page, Widget, y compris Paramètres et le tableau de bord) déclare son module (`site`, `admissions`, `bibliotheque`, `administration`) ou `core` (profil, déconnexion, tableau de bord vide) ; un écran sans module déclaré fait échouer un **test d'architecture** qui parcourt tous les écrans enregistrés dans le panneau ;
+- l'accès (navigation, URL, widgets) exige au moins la lecture du module de l'écran, en plus de la Policy existante ;
+- test de matrice : pour chaque rôle du seeder pris **seul**, l'utilisateur voit exactement les écrans des modules auxquels le rôle donne accès (navigation et réponses 200/403) ; un rôle bibliothèque seul ne voit ni Pages, Articles, Candidatures, Campagnes, Utilisateurs, Rôles, Paramètres, ni leurs widgets ; un cumul `librarian` + `caisse` voit bibliothèque + admissions (lecture) ;
+- ajouter un module futur = une entrée dans `ModulePermissionMap::modules()`, une déclaration de module sur ses écrans, une migration additive (motif documenté dans `backend/docs/ajouter-un-module.md`).
 
 - [ ] Tests d'abord :
   - la migration crée les 4 permissions et les rôles `library_manager`, `library_contributor`, `library_viewer`, `caisse` avec libellés, descriptions et permissions du tableau ;
