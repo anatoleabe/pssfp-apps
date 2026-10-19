@@ -24,10 +24,21 @@ const fontFamily = {
  * Or foncé #7A5A1C : version lisible de l'or champagne pour du texte sur fond clair
  * (5,9:1 sur ivoire, 6,9:1 sur blanc, 5,42:1 sur #F6ECD9) ; le #D4AF6A plafonne à ~2:1.
  */
+/*
+ * Prune « deep » et « ink » : nuances plus sombres de la prune profonde #3A2452, réservées aux
+ * surfaces sombres (héros, bandeau institutionnel, pied de page) — ADR-0008 autorise la prune
+ * profonde et ses nuances plus sombres pour ces surfaces. Contrastes : blanc / deep 15,5:1 ·
+ * blanc 70 % / deep 8,3:1 · blanc / ink 17,6:1 · lavande #A592BD / ink 6,2:1 · lavande / deep 5,5:1 ·
+ * or #D4AF6A / deep 7,5:1. La lavande n'est jamais un texte sur fond clair (2,8:1 sur blanc).
+ * « Mist » : lavande très claire des surfaces secondaires (prune #4A2E67 dessus : 9,9:1 ;
+ * graphite #3C3C3C : 9,8:1 ; graphite clair #6B6B6B : 4,7:1 ; or foncé #7A5A1C : 5,6:1).
+ */
 const sharedColors = (sharedTheme.theme?.extend?.colors ?? {}) as Record<string, unknown>;
 const colors = {
   ...sharedColors,
+  'pssfp-prune': { ...(sharedColors['pssfp-prune'] as Record<string, string>), deep: '#2E1C40', ink: '#211429' },
   'pssfp-or': { ...(sharedColors['pssfp-or'] as Record<string, string>), dark: '#7A5A1C' },
+  'pssfp-mist': '#F4F0F8',
 };
 
 const config: Config = {

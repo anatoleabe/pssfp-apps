@@ -137,6 +137,13 @@ test.describe('sitemap : cache d\'une heure et journalisation', () => {
       const url = String(input);
       calls.push({ url, revalidate: (init as { next?: { revalidate?: unknown } } | undefined)?.next?.revalidate });
       if (url.includes('/library/stats')) return json({ data: { total: 2, by_type: { memoire: 2 }, paid_count: 0 } });
+      if (url.includes('/library/mots-cles')) {
+        return json({ data: [
+          { slug: 'themes', label: 'Thèmes', parent_slug: null, documents_count: 2 },
+          { slug: 'fiscalite', label: 'Fiscalité', parent_slug: 'themes', documents_count: 2 },
+          { slug: 'vide', label: 'Vide', parent_slug: 'themes', documents_count: 0 },
+        ] });
+      }
       const page = Number(new URL(url).searchParams.get('page') ?? 1);
       return json({ data: Array.from({ length: 50 }, (_, i) => doc((page - 1) * 50 + i)), meta: { current_page: page, last_page: lastPage, total: lastPage * 50 } });
     });
@@ -161,6 +168,8 @@ test.describe('sitemap : cache d\'une heure et journalisation', () => {
     expect(calls.length).toBeGreaterThanOrEqual(3);
     expect(calls.map((c) => c.revalidate)).toEqual(calls.map(() => 3600));
     expect(entries.some((e) => e.url.endsWith('/collections/memoire'))).toBe(true);
+    // Thèmes comptant des documents publiés ; ni racine du thésaurus ni thème vide.
+    expect(entries.filter((e) => e.url.includes('/themes/')).map((e) => new URL(e.url).pathname)).toEqual(['/themes/fiscalite']);
     expect(entries.filter((e) => e.url.includes('/documents/'))).toHaveLength(100);
     expect(warnings).toEqual([]);
   });
@@ -168,9 +177,9 @@ test.describe('sitemap : cache d\'une heure et journalisation', () => {
   test('API en échec : sitemap réduite aux pages fixes, avertissement journalisé', async () => {
     stubFetch(async () => json({ message: 'panne' }, 503));
     const entries = await sitemap();
-    expect(entries.map((e) => new URL(e.url).pathname)).toEqual(['/', '/a-propos']);
+    expect(entries.map((e) => new URL(e.url).pathname)).toEqual(['/', '/a-propos', '/themes']);
     expect(warnings.join('\n')).toMatch(/sitemap/i);
-    expect(warnings.length).toBeGreaterThanOrEqual(2);
+    expect(warnings.length).toBeGreaterThanOrEqual(3);
   });
 
   test('liste tronquée au plafond : avertissement journalisé', async () => {

@@ -14,10 +14,11 @@ interface SearchScopeProps {
 }
 
 const CHIP =
-  'inline-flex min-h-8 items-center gap-1.5 rounded-full border border-pssfp-prune/60 bg-pssfp-lavande/15 py-1 pl-3 pr-2 font-ui text-sm text-pssfp-prune-dark transition-colors hover:border-pssfp-prune hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2';
+  'inline-flex min-h-8 items-center gap-1.5 rounded-full border border-white bg-white py-1 pl-3 pr-2 font-ui text-sm text-pssfp-prune-dark transition-colors hover:bg-pssfp-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2 focus-visible:ring-offset-pssfp-prune-deep';
 
 /**
- * Portée reportée sur une nouvelle requête : une puce par filtre appliqué, placée sous le champ.
+ * Portée reportée sur une nouvelle requête : une puce par filtre appliqué, placée sous le champ
+ * (bandeau prune : puces blanches, anneau de focus or).
  * Chaque puce est un lien qui retire ce filtre, garde `q` et revient en page 1. Même règle que
  * `ActiveFilters` : jamais de slug brut. La page ne reporte d'ailleurs ni spécialité ni mot-clé sans intitulé.
  */

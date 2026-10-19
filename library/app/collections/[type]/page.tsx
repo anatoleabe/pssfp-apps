@@ -5,15 +5,15 @@ import { Suspense } from 'react';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { ActiveFilters } from '@/components/catalogue/ActiveFilters';
+import { CollectionThemes } from '@/components/catalogue/CollectionThemes';
 import { FilterPanel } from '@/components/catalogue/FilterPanel';
 import { Pagination } from '@/components/catalogue/Pagination';
 import { ResultsFocus } from '@/components/catalogue/ResultsFocus';
 import { SortSelect } from '@/components/catalogue/SortSelect';
 import { StateMessage } from '@/components/catalogue/StateMessage';
 import { DocumentCard } from '@/components/document/DocumentCard';
-import { Eyebrow } from '@/components/home/Eyebrow';
 import { SearchForm } from '@/components/home/SearchForm';
-import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { getMotsCles, listDocuments } from '@/lib/api/library';
 import type { CatalogueFilters, DocumentType } from '@/lib/api/types';
 import { unwrapOrThrow } from '@/lib/api/unwrap';
@@ -69,17 +69,20 @@ const RESULTS_GRID = 'grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-
  */
 export default async function CollectionPage(props: CollectionPageProps): Promise<JSX.Element> {
   const { type, filters, page } = readRequest(props);
-  const [listResult, motsClesResult] = await Promise.all([listDocuments(filters, page, COLLECTION_PER_PAGE), getMotsCles()]);
+  const [listResult, motsClesResult, typeMotsClesResult] = await Promise.all([listDocuments(filters, page, COLLECTION_PER_PAGE), getMotsCles(), getMotsCles({ type })]);
   const { data: docs, meta } = unwrapOrThrow(listResult);
   // Exception assumée à la règle `unwrapOrThrow` : les mots-clés ne servent qu'au filtre facultatif
   // « Mot-clé ». Sans eux, la page reste servie sans ce champ plutôt que de basculer en erreur.
   const motsCles = motsClesResult.ok ? motsClesResult.data.data : [];
+  // Thèmes de la collection : mêmes règles (facultatifs, masqués sans comptes ou en cas d'échec).
+  const typeMotsCles = typeMotsClesResult.ok ? typeMotsClesResult.data.data : [];
 
   const t = await getTranslations('collection');
   const tTypes = await getTranslations('types');
   const tCatalogue = await getTranslations('catalogue');
   const tCrumbs = await getTranslations('breadcrumbs');
   const tStates = await getTranslations('states');
+  const tCollections = await getTranslations('home.collections');
   const format = await getFormatter();
 
   const title = tTypes(`${type}.other`);
@@ -93,31 +96,29 @@ export default async function CollectionPage(props: CollectionPageProps): Promis
 
   return (
     <>
-      <section aria-labelledby="collection-title" className="relative isolate overflow-hidden border-b border-pssfp-lavande/30">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-40 -top-48 -z-10 h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(closest-side,rgba(165,146,189,0.26),transparent)]" />
-        <div className="mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6 sm:pb-12 lg:pt-10">
-          <Breadcrumbs items={[{ href: '/', label: tCrumbs('home') }, { label: title }]} />
-          <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-end lg:gap-16">
-            <div className="min-w-0">
-              <Eyebrow tone="or">{t('eyebrow')}</Eyebrow>
-              <h1 id="collection-title" className="mt-4 text-balance font-heading text-pssfp-h1 font-semibold text-pssfp-prune lg:text-[4rem] lg:leading-none">
-                {title}
-              </h1>
-              <p data-testid="collection-total" className="mt-4 flex items-baseline gap-2 text-pssfp-graphite">
-                <span className="font-heading text-3xl font-semibold text-pssfp-prune [font-variant-numeric:lining-nums_tabular-nums]">{format.number(meta.total)}</span>
-                <span className="font-ui text-sm">{t('totalUnit', { count: meta.total })}</span>
-              </p>
-            </div>
-            <SearchForm size="compact" id="collection-search-q" type={type} placeholder={t('searchPlaceholder')} />
-          </div>
-        </div>
-      </section>
+      <PageHeader
+        titleId="collection-title"
+        title={title}
+        eyebrow={t('eyebrow')}
+        breadcrumbs={[{ href: '/', label: tCrumbs('home') }, { href: '/#collections', label: tCrumbs('collections') }, { label: title }]}
+        meta={
+          <>
+            <p className="max-w-xl text-white/85">{tCollections(`descriptions.${type}`)}</p>
+            <p data-testid="collection-total" className="mt-4 flex items-baseline gap-2">
+              <span className="font-heading text-4xl font-semibold leading-none text-pssfp-or-light [font-variant-numeric:lining-nums_tabular-nums]">{format.number(meta.total)}</span>
+              <span className="font-ui text-sm text-white/80">{t('totalUnit', { count: meta.total })}</span>
+            </p>
+          </>
+        }
+        aside={<SearchForm size="compact" id="collection-search-q" type={type} placeholder={t('searchPlaceholder')} tone="dark" />}
+      />
 
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-12 lg:py-14">
         {/* Colonne de filtres ≥ lg ; en dessous, le même formulaire dans un tiroir natif. */}
         <aside aria-labelledby="filters-title" className="hidden lg:block">
-          <div className="rounded-pssfp-card border border-pssfp-lavande/30 bg-white p-6 shadow-pssfp-soft">
-            <h2 id="filters-title" className="font-heading text-2xl font-semibold text-pssfp-prune">
+          <div className="rounded-pssfp-card border border-pssfp-lavande/35 bg-white p-6 shadow-pssfp-soft">
+            <h2 id="filters-title" className="flex items-center gap-2.5 border-b border-pssfp-lavande/30 pb-4 font-heading text-2xl font-semibold text-pssfp-prune-dark">
+              <SlidersHorizontal size={18} strokeWidth={1.75} aria-hidden="true" className="text-pssfp-prune-light" />
               {tCatalogue('filtersTitle')}
             </h2>
             <div className="mt-5">
@@ -127,7 +128,7 @@ export default async function CollectionPage(props: CollectionPageProps): Promis
         </aside>
 
         <details data-testid="filters-mobile" className="group rounded-pssfp-card border border-pssfp-lavande/40 bg-white shadow-pssfp-soft lg:hidden">
-          <summary className="flex cursor-pointer list-none items-center gap-3 rounded-pssfp-card px-4 py-3 font-ui text-sm font-medium text-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-pssfp-card px-4 py-3 font-ui text-sm font-medium text-pssfp-prune focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
             <SlidersHorizontal size={16} aria-hidden="true" />
             <span>{t('filterToggle')}</span>
             {activeCount > 0 && (
@@ -148,6 +149,7 @@ export default async function CollectionPage(props: CollectionPageProps): Promis
           <Suspense fallback={null}>
             <ResultsFocus targetId="results-title" />
           </Suspense>
+          <CollectionThemes type={type} filters={filters} motsCles={typeMotsCles} />
           <div className="flex flex-col gap-4 border-b border-pssfp-lavande/30 pb-4 sm:flex-row sm:items-center sm:justify-between">
             {/* Seule région vivante de la page : annonce le nouveau total après un retrait de filtre ou un changement de page (navigation client). */}
             <p role="status" data-testid="results-count" className="font-ui text-sm text-pssfp-graphite-light">

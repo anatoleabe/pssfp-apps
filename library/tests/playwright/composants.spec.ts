@@ -86,6 +86,35 @@ test.describe('Composants documentaires', () => {
     await expect(paid.getByRole('link')).toHaveCount(0);
   });
 
+  test('couverture typographique : type et titre, sans marque ni mention institutionnelle', async ({ page }) => {
+    await page.goto(DEMO);
+    const covers = page.getByTestId('document-cover-typo');
+    expect(await covers.count()).toBeGreaterThan(0);
+    for (const text of await covers.allTextContents()) {
+      expect(text).not.toMatch(/PSSFP|officiel|Biblioth[eè]que/i);
+    }
+  });
+
+  test('carte en grille : badge d\'accès en surimpression et mots-clés réels', async ({ page }) => {
+    await page.goto(DEMO);
+    const card = page.getByTestId('document-card-demo-memoire-libre');
+    await expect(card.getByTestId('access-badge')).toBeVisible();
+    await expect(card).toContainText('Budget-programme · Gestion budgétaire');
+    // Le titre est le premier (et seul) lien de la carte.
+    await expect(card.getByRole('link')).toHaveCount(1);
+  });
+
+  test('cartes de collection : lien, nom en h3 et compte formaté', async ({ page }) => {
+    await page.goto(DEMO);
+    const zone = page.getByTestId('demo-collection-cards');
+    const loi = zone.getByTestId('collection-tile-texte_loi');
+    await expect(loi).toHaveAttribute('href', '/collections/texte_loi');
+    await expect(loi.getByRole('heading', { level: 3 })).toHaveText('Législation');
+    await expect(loi.getByTestId('collection-count')).toHaveText('1 453');
+    await expect(loi).toContainText('documents');
+    await expect(zone.getByTestId('collection-tile-memoire').getByTestId('collection-count')).toHaveText('1');
+  });
+
   test('le surlignage n\'injecte que des <mark>', async ({ page }) => {
     await page.goto(DEMO);
     const card = page.getByTestId('document-card-demo-surlignage');

@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react';
+import { ArrowRight, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { CatalogueFilters, DocumentType } from '@/lib/api/types';
 import { filtersToSearchParams } from '@/lib/routes';
@@ -14,22 +14,29 @@ interface SearchFormProps {
   placeholder?: string;
   /** Filtres reportés sur la nouvelle requête (champs cachés, sans tri ni page) ; prime sur `type`. */
   filters?: CatalogueFilters;
+  /** `dark` : posé sur un bandeau prune — indicateur de focus or (la lueur prune n'y serait pas visible). */
+  tone?: 'light' | 'dark';
 }
+
+const FOCUS_WITHIN = {
+  light: 'focus-within:border-pssfp-prune/60 focus-within:shadow-pssfp-glow-prune',
+  dark: 'focus-within:ring-2 focus-within:ring-pssfp-or focus-within:ring-offset-2 focus-within:ring-offset-pssfp-prune-deep',
+} as const;
 
 const STYLES = {
   hero: {
-    shell: 'rounded-[0.875rem] p-1.5 shadow-pssfp-elevated',
+    shell: 'rounded-2xl p-1.5 shadow-[0_18px_40px_-12px_rgba(33,20,41,0.45)]',
     input: 'h-12 pl-11 text-base sm:h-14 sm:pl-12 sm:text-lg',
     icon: 'left-4 sm:left-[1.1rem]',
     iconSize: 20,
-    button: 'h-12 px-4 text-sm sm:h-14 sm:px-7 sm:text-base',
+    button: 'h-12 rounded-xl px-4 text-sm sm:h-14 sm:px-7 sm:text-base',
   },
   compact: {
-    shell: 'rounded-pssfp-button p-1 shadow-pssfp-soft',
-    input: 'h-10 pl-9 text-sm',
-    icon: 'left-3',
+    shell: 'rounded-xl p-1 shadow-pssfp-soft',
+    input: 'h-11 pl-10 text-sm',
+    icon: 'left-3.5',
     iconSize: 16,
-    button: 'h-10 px-4 text-sm',
+    button: 'h-11 rounded-lg px-4 text-sm',
   },
 } as const;
 
@@ -37,7 +44,7 @@ const STYLES = {
  * Formulaire GET vers /recherche (aucun JS client) : champ `q`, deux caractères au moins.
  * Réutilisé par l'accueil, la recherche et les pages de collection.
  */
-export function SearchForm({ defaultQuery, size = 'compact', id = `search-q-${size}`, type, placeholder, filters }: SearchFormProps): JSX.Element {
+export function SearchForm({ defaultQuery, size = 'compact', id = `search-q-${size}`, type, placeholder, filters, tone = 'light' }: SearchFormProps): JSX.Element {
   const t = useTranslations('search');
   const s = STYLES[size];
   const hidden = [...filtersToSearchParams(filters ? { ...filters, tri: undefined } : { type })];
@@ -48,7 +55,7 @@ export function SearchForm({ defaultQuery, size = 'compact', id = `search-q-${si
       action="/recherche"
       method="get"
       data-testid={`search-form-${size}`}
-      className={`flex w-full items-stretch gap-1.5 border border-pssfp-lavande/50 bg-white transition-shadow focus-within:border-pssfp-prune/60 focus-within:shadow-pssfp-glow-prune ${s.shell}`}
+      className={`flex w-full items-stretch gap-1.5 border border-pssfp-lavande/50 bg-white transition-shadow ${FOCUS_WITHIN[tone]} ${s.shell}`}
     >
       {hidden.map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
@@ -60,7 +67,7 @@ export function SearchForm({ defaultQuery, size = 'compact', id = `search-q-${si
         <Search
           size={s.iconSize}
           aria-hidden="true"
-          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-pssfp-prune/70 ${s.icon}`}
+          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-pssfp-prune-light ${s.icon}`}
         />
         <input
           id={id}
@@ -78,9 +85,10 @@ export function SearchForm({ defaultQuery, size = 'compact', id = `search-q-${si
       </div>
       <button
         type="submit"
-        className={`shrink-0 rounded-lg bg-pssfp-prune font-ui font-medium text-white transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 active:bg-pssfp-prune-dark ${s.button}`}
+        className={`inline-flex shrink-0 items-center gap-2 bg-pssfp-prune font-ui font-medium text-white transition-colors hover:bg-pssfp-prune-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 active:bg-pssfp-prune-dark ${s.button}`}
       >
         {t('submit')}
+        <ArrowRight size={16} aria-hidden="true" className="hidden sm:block" />
       </button>
     </form>
   );

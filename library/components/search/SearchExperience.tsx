@@ -162,8 +162,9 @@ export function SearchExperience(): JSX.Element {
 
       {withFacets && shown ? (
         <aside aria-labelledby="facets-title" data-testid="facets-desktop" className="hidden lg:block">
-          <div className="rounded-pssfp-card border border-pssfp-lavande/30 bg-white p-6 shadow-pssfp-soft">
-            <h2 id="facets-title" className="font-heading text-2xl font-semibold text-pssfp-prune">
+          <div className="rounded-pssfp-card border border-pssfp-lavande/35 bg-white p-6 shadow-pssfp-soft">
+            <h2 id="facets-title" className="flex items-center gap-2.5 border-b border-pssfp-lavande/30 pb-4 font-heading text-2xl font-semibold text-pssfp-prune-dark">
+              <SlidersHorizontal size={18} strokeWidth={1.75} aria-hidden="true" className="text-pssfp-prune-light" />
               {t('facets.title')}
             </h2>
             <div ref={facetsRef} className="mt-5">
@@ -175,7 +176,7 @@ export function SearchExperience(): JSX.Element {
 
       {withFacets && shown ? (
         <details data-testid="facets-mobile" className="group rounded-pssfp-card border border-pssfp-lavande/40 bg-white shadow-pssfp-soft lg:hidden">
-          <summary className={`flex cursor-pointer list-none items-center gap-3 rounded-pssfp-card px-4 py-3 font-ui text-sm font-medium text-pssfp-prune [&::-webkit-details-marker]:hidden ${FOCUS}`}>
+          <summary className={`flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-pssfp-card px-4 py-3 font-ui text-sm font-medium text-pssfp-prune [&::-webkit-details-marker]:hidden ${FOCUS}`}>
             <SlidersHorizontal size={16} aria-hidden="true" />
             <span>{t('facets.toggle')}</span>
             {shownCount > 0 && <span className="rounded-full bg-pssfp-prune px-2 py-0.5 text-xs text-white">{t('facets.activeCount', { count: shownCount })}</span>}

@@ -16,6 +16,7 @@ const APP_PREFIXES = [
   '/recherche',
   '/documents',
   '/a-propos',
+  '/themes',
   '/dev',
   '/_next',
   '/__nextjs',

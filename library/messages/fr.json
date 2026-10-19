@@ -8,15 +8,23 @@
   },
   "nav": {
     "skip": "Aller au contenu principal",
-    "brandEyebrow": "PSSFP",
+    "institutional": "Portail documentaire · Programme Supérieur de Spécialisation en Finances Publiques",
+    "institutionalLabel": "Liens institutionnels",
+    "logoAlt": "PSSFP",
     "brandName": "Bibliothèque",
+    "brandTagline": "Le savoir au service des finances publiques",
     "brandHomeSuffix": "— accueil",
     "mainLabel": "Navigation principale",
     "mobileLabel": "Navigation mobile",
+    "home": "Accueil",
     "collections": "Collections",
-    "search": "Recherche",
+    "latest": "Nouveautés",
+    "themes": "Thèmes",
     "about": "À propos",
+    "search": "Recherche",
+    "searchCta": "Rechercher",
     "mainSite": "Site du PSSFP",
+    "foad": "Plateforme FOAD",
     "menuOpen": "Ouvrir le menu",
     "menuClose": "Fermer le menu",
     "menuTitle": "Menu"
@@ -24,20 +32,20 @@
   "footer": {
     "aboutTitle": "Bibliothèque du PSSFP",
     "aboutBody": "Le fonds documentaire du Programme Supérieur de Spécialisation en Finances Publiques : travaux des promotions, textes de référence et ressources d'enseignement, réunis en un seul catalogue.",
-    "collectionsTitle": "Collections",
-    "browseTitle": "Parcourir",
-    "contactTitle": "Contact",
+    "browseTitle": "Explorer",
     "contactBody": "Une question sur un document ou un accès ? Écrivez au service de la bibliothèque.",
     "contactAddress": "Campus de Messa, Yaoundé, Cameroun",
     "contactEmail": "contact@pssfp.org",
     "contactPage": "Page contact du PSSFP",
     "foad": "Plateforme FOAD",
     "copyright": "© {year} PSSFP — Programme Supérieur de Spécialisation en Finances Publiques",
-    "linksLabel": "Liens du pied de page"
+    "linksTitle": "Liens utiles"
   },
   "breadcrumbs": {
     "label": "Fil d'Ariane",
-    "home": "Accueil"
+    "home": "Accueil",
+    "collections": "Collections",
+    "themes": "Thèmes"
   },
   "notFound": {
     "metaTitle": "Page introuvable",
@@ -45,37 +53,72 @@
     "title": "Cette page n'est pas dans nos rayons.",
     "body": "Le lien est peut-être ancien ou le document a été déplacé. Reprenez depuis l'accueil ou lancez une recherche dans le catalogue.",
     "home": "Retour à l'accueil",
-    "search": "Rechercher un document"
+    "themes": "Explorer par thème"
   },
   "home": {
     "metaTitle": "Accueil",
     "metaDescription": "Mémoires, thèses, textes de loi, ouvrages et cours en finances publiques : consultez librement le fonds documentaire du PSSFP.",
     "hero": {
-      "eyebrow": "{count, plural, one {# document} other {# documents}} · finances publiques",
-      "title": "Le savoir des finances publiques, en libre consultation.",
+      "eyebrow": "La bibliothèque numérique du PSSFP",
+      "titleLead": "Le savoir public.",
+      "titleAccent": "À portée de tous.",
+      "lead": "Explorez les ouvrages, textes officiels, travaux et ressources de référence pour comprendre, enseigner et transformer les finances publiques.",
       "suggestionsLabel": "Suggestions :",
       "suggestions": ["marchés publics", "TVA", "décentralisation", "audit interne", "loi de finances"],
-      "typesLabel": "Parcourir par type",
-      "latestTitle": "Derniers arrivés"
+      "showcaseLabel": "Documents les plus consultés",
+      "showcaseTitle": "Les plus consultés",
+      "showcaseBody": "Une sélection tirée du catalogue"
+    },
+    "stats": {
+      "label": "La bibliothèque en chiffres",
+      "documents": "{count, plural, one {document référencé} other {documents référencés}}",
+      "collections": "{count, plural, one {collection documentaire} other {collections documentaires}}",
+      "themes": "{count, plural, one {thème de recherche} other {thèmes de recherche}}",
+      "promotions": "{count, plural, one {promotion d'auditeurs} other {promotions d'auditeurs}}"
     },
     "collections": {
-      "eyebrow": "Collections",
-      "title": "Explorer le fonds",
-      "intro": "Travaux des promotions, textes de référence et ressources d'enseignement : chaque collection s'ouvre sur son catalogue complet.",
-      "collection": "Collection",
+      "eyebrow": "Un savoir structuré, facile à explorer",
+      "title": "Explorez nos collections",
+      "intro": "Un accès direct aux grandes familles de ressources du PSSFP : chaque collection s'ouvre sur son catalogue complet.",
+      "themesLink": "Parcourir par thème",
       "emptyTitle": "Le catalogue est en cours de constitution",
       "emptyBody": "Les premiers documents seront publiés prochainement. Revenez bientôt pour parcourir les collections.",
-      "memoireMeta": "{count, plural, one {travail} other {travaux}}",
-      "memoireMetaPromotions": "{count, plural, one {travail} other {travaux}} · {promotions, plural, one {# promotion} other {# promotions}}",
       "documents": "{count, plural, one {document} other {documents}}",
       "premiumTitle": "Ouvrages premium",
       "premiumBody": "Bientôt disponibles",
-      "premiumCount": "{count, plural, one {# titre bientôt disponible à l'achat} other {# titres bientôt disponibles à l'achat}}"
+      "premiumCount": "{count, plural, one {# titre bientôt disponible à l'achat} other {# titres bientôt disponibles à l'achat}}",
+      "descriptions": {
+        "memoire": "Travaux de fin de formation des auditeurs",
+        "these": "Recherches doctorales en finances publiques",
+        "ouvrage_numerique": "Manuels, guides et ouvrages de référence",
+        "texte_loi": "Lois, décrets, circulaires, instructions",
+        "article_scientifique": "Revues et contributions de recherche",
+        "cours": "Supports de cours des enseignants",
+        "acte_conference": "Communications et actes de colloques",
+        "rapport_stage": "Rapports de stage des auditeurs",
+        "bulletin": "Bulletins et lettres d'information",
+        "ressource_pedagogique": "Supports et ressources d'enseignement",
+        "rapport": "Études, analyses et publications institutionnelles"
+      }
     },
     "latest": {
       "eyebrow": "Derniers ajouts au catalogue",
       "title": "Nouveautés",
+      "intro": "Les derniers documents publiés dans la bibliothèque.",
       "empty": "Aucune nouveauté pour le moment."
+    },
+    "legal": {
+      "eyebrow": "Un raccourci vers l'essentiel",
+      "title": "Les textes qui façonnent les finances publiques.",
+      "body": "Lois, décrets, circulaires, instructions : {count, plural, one {# texte de référence est réuni} other {# textes de référence sont réunis}} dans la collection Législation, à consulter et à citer.",
+      "typesLabel": "Types de textes",
+      "cta": "Explorer la législation"
+    },
+    "themes": {
+      "eyebrow": "Par domaine d'expertise",
+      "title": "Quel sujet vous intéresse ?",
+      "intro": "Accédez directement aux ressources de votre domaine.",
+      "all": "Tous les thèmes"
     },
     "mostRead": {
       "eyebrow": "Palmarès des consultations",
@@ -113,6 +156,12 @@
     "pageOutOfRangeTitle": "Cette page n'existe pas.",
     "pageOutOfRangeBody": "{last, plural, one {La liste ne compte qu'une page.} other {La liste compte # pages.}} Revenez à la première page pour parcourir les documents.",
     "firstPage": "Revenir à la première page"
+  },
+  "collectionThemes": {
+    "title": "Thèmes de la collection",
+    "all": "Tous les thèmes",
+    "chipSuffix": "{count, plural, one {document} other {documents}}, filtrer la collection sur ce thème",
+    "chipActiveSuffix": "{count, plural, one {document} other {documents}}, thème appliqué : activer pour le retirer"
   },
   "specialites": {
     "economie-publique-gestion-publique": "Économie Publique et Gestion Publique",
@@ -326,6 +375,30 @@
     "citation": "Citation",
     "pagination": "Pagination",
     "states": "États vide et erreur",
-    "emptyCatalogue": "Accueil — catalogue vide"
+    "emptyCatalogue": "Accueil — catalogue vide",
+    "collectionCards": "Cartes de collection",
+    "themeIndex": "Index des thèmes",
+    "themeIndexNoCounts": "Index des thèmes — comptes indisponibles",
+    "collectionThemes": "Thèmes d'une collection"
+  },
+  "themes": {
+    "metaTitle": "Thèmes",
+    "metaDescription": "Parcourez le fonds documentaire du PSSFP par thème : finances publiques, fiscalité, marchés publics, institutions, types de textes.",
+    "metaDescriptionTheme": "{label} : documents du fonds documentaire du PSSFP rattachés à ce thème, à consulter et à citer.",
+    "eyebrow": "Thésaurus de la bibliothèque",
+    "eyebrowTheme": "Thème",
+    "title": "Explorer par thème",
+    "intro": "Domaines d'expertise, institutions et types de textes : chaque thème rassemble les documents qui s'y rattachent, sous-thèmes compris.",
+    "sectionsLabel": "Groupes de thèmes",
+    "allOf": "Tous les documents : {label}",
+    "count": "{count, plural, =0 {Aucun document} one {# document} other {# documents}}",
+    "emptyTitle": "Aucun thème n'est encore disponible.",
+    "emptyBody": "Le thésaurus de la bibliothèque est en cours de constitution. Parcourez les collections en attendant.",
+    "subthemes": "Sous-thèmes",
+    "resultsTitle": "Documents du thème {label}",
+    "searchPlaceholder": "Rechercher dans ce thème…",
+    "allThemes": "Tous les thèmes",
+    "emptyThemeTitle": "Aucun document n'est encore rattaché à ce thème.",
+    "emptyThemeBody": "Explorez un autre thème ou lancez une recherche dans tout le catalogue."
   }
 }

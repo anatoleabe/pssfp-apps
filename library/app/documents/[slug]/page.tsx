@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { cache } from 'react';
-import { ArrowUpRight, Eye } from 'lucide-react';
+import { ArrowUpRight, Eye, Tag } from 'lucide-react';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { AccessAction } from '@/components/document/AccessAction';
 import { AccessBadge } from '@/components/document/AccessBadge';
@@ -32,8 +32,8 @@ export function generateStaticParams(): { slug: string }[] {
 }
 
 const RELATED_MAX = 4;
-/** Largeur rendue d'une carte liée : 2 colonnes, 4 à partir de lg (conteneur 80 rem). */
-const RELATED_COVER_SIZES = '(min-width: 1024px) 280px, (min-width: 640px) 45vw, 45vw';
+/** Largeur rendue d'une couverture liée : 2 colonnes, 4 à partir de lg (conteneur 80 rem, marges du cadre). */
+const RELATED_COVER_SIZES = '(min-width: 1280px) 200px, (min-width: 1024px) 16vw, 32vw';
 
 interface DocumentPageProps {
   params: { slug: string };
@@ -133,18 +133,18 @@ export default async function DocumentPage({ params }: DocumentPageProps): Promi
       <ViewBeacon uuid={doc.uuid} />
 
       {/* Pas d'overflow-hidden ici : il deviendrait le conteneur de la couverture collante et la figerait.
-          Le halo décoratif est rogné par son propre calque absolu. */}
+          Le décor est rogné par son propre calque absolu. */}
       <div className="relative isolate">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute -right-40 -top-48 h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(closest-side,rgba(165,146,189,0.24),transparent)]" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[22rem] overflow-hidden bg-[linear-gradient(180deg,#F1EBF6_0%,rgba(250,247,242,0)_100%)]">
+          <div className="absolute -right-32 -top-48 h-[28rem] w-[28rem] rounded-full border border-pssfp-lavande/30 shadow-[0_0_0_4rem_rgba(165,146,189,0.06)]" />
         </div>
         <div className="mx-auto max-w-7xl px-4 pb-14 pt-8 sm:px-6 lg:pb-20 lg:pt-10">
           <Breadcrumbs items={[{ href: '/', label: tCrumbs('home') }, { href: collectionHref(doc.type), label: tTypes(`${doc.type}.other`) }, { label: shortTitle(doc.title) }]} />
 
-          <div className="mt-8 grid gap-8 sm:gap-10 lg:mt-10 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-16 xl:grid-cols-[20rem_minmax(0,1fr)]">
+          <div className="mt-8 grid gap-8 sm:gap-10 lg:mt-10 lg:grid-cols-[19rem_minmax(0,1fr)] lg:gap-16 xl:grid-cols-[21rem_minmax(0,1fr)]">
             <div data-testid="document-cover-column" className="lg:sticky lg:top-28 lg:self-start">
-              <div className="w-52 sm:w-56 lg:w-full [&>div]:max-w-none">
-                <DocumentCover doc={doc} size="lg" priority sizes="(min-width: 1280px) 320px, (min-width: 1024px) 288px, (min-width: 640px) 224px, 208px" />
+              <div className="w-60 rounded-[1.25rem] bg-pssfp-mist p-6 ring-1 ring-pssfp-lavande/25 sm:w-64 lg:w-full lg:p-8 [&>div]:max-w-none">
+                <DocumentCover doc={doc} size="lg" priority sizes="(min-width: 1280px) 272px, (min-width: 1024px) 240px, 208px" />
               </div>
             </div>
 
@@ -154,7 +154,7 @@ export default async function DocumentPage({ params }: DocumentPageProps): Promi
                   <Eyebrow>{tTypes(`${doc.type}.one`)}</Eyebrow>
                   <AccessBadge mode={doc.access_mode} price={doc.price_xaf} />
                 </div>
-                <h1 id="document-title" className="mt-4 text-balance font-heading text-pssfp-h1 font-semibold text-pssfp-prune hyphens-auto [overflow-wrap:anywhere]">
+                <h1 id="document-title" className="mt-4 text-balance font-heading text-pssfp-h1 font-semibold text-pssfp-prune-dark hyphens-auto [overflow-wrap:anywhere]">
                   {doc.title}
                 </h1>
                 {doc.subtitle && <p className="mt-3 text-pssfp-lead text-pssfp-graphite">{doc.subtitle}</p>}
@@ -166,27 +166,11 @@ export default async function DocumentPage({ params }: DocumentPageProps): Promi
                 )}
               </header>
 
-              {items.length > 0 && (
-                <section aria-labelledby="details-title" className="mt-8">
-                  <h2 id="details-title" className="sr-only">
-                    {t('detailsTitle')}
-                  </h2>
-                  <dl data-testid="document-details" className="flex flex-wrap gap-x-10 gap-y-4 border-y border-pssfp-lavande/40 py-5">
-                    {items.map((item) => (
-                      <div key={item.key} className={`min-w-0 ${item.key === 'doi' || item.key === 'journal' || item.key === 'specialite' ? 'basis-full sm:basis-auto' : ''}`}>
-                        <dt className="font-ui text-xs font-medium uppercase tracking-[0.14em] text-pssfp-bleu-petrole">{item.label}</dt>
-                        <dd className="mt-1 break-words text-pssfp-graphite">{item.value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </section>
-              )}
-
-              <section aria-labelledby="access-title" className="mt-8">
-                <h2 id="access-title" className="sr-only">
+              <section aria-labelledby="access-title" className="mt-8 rounded-pssfp-card border border-pssfp-lavande/35 bg-white p-5 shadow-pssfp-soft sm:p-6">
+                <h2 id="access-title" className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-pssfp-prune-light">
                   {t('accessTitle')}
                 </h2>
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-5">
+                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                   <AccessAction doc={doc} />
                   <p className="inline-flex items-center gap-1.5 font-ui text-sm text-pssfp-graphite-light">
                     <Eye size={16} aria-hidden="true" />
@@ -195,9 +179,25 @@ export default async function DocumentPage({ params }: DocumentPageProps): Promi
                 </div>
               </section>
 
+              {items.length > 0 && (
+                <section aria-labelledby="details-title" className="mt-8">
+                  <h2 id="details-title" className="font-heading text-2xl font-semibold text-pssfp-prune-dark">
+                    {t('detailsTitle')}
+                  </h2>
+                  <dl data-testid="document-details" className="mt-4 flex flex-wrap overflow-hidden rounded-pssfp-card border border-pssfp-lavande/35 bg-white">
+                    {items.map((item) => (
+                      <div key={item.key} className="min-w-0 flex-1 basis-44 px-4 py-3.5 shadow-[-1px_-1px_0_0_rgba(165,146,189,0.35)]">
+                        <dt className="font-ui text-xs font-medium uppercase tracking-[0.14em] text-pssfp-bleu-petrole">{item.label}</dt>
+                        <dd className="mt-1 break-words text-pssfp-graphite">{item.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              )}
+
               {paragraphs.length > 0 && (
                 <section data-testid="document-abstract" aria-labelledby="abstract-title" className="mt-12">
-                  <h2 id="abstract-title" className="font-heading text-pssfp-h2 font-semibold text-pssfp-prune">
+                  <h2 id="abstract-title" className="font-heading text-pssfp-h2 font-semibold text-pssfp-prune-dark">
                     {tDoc('abstract')}
                   </h2>
                   <div className="mt-4 space-y-4 text-lg leading-relaxed text-pssfp-graphite">
@@ -212,7 +212,7 @@ export default async function DocumentPage({ params }: DocumentPageProps): Promi
 
               {doc.mots_cles.length > 0 && (
                 <section data-testid="document-keywords" aria-labelledby="keywords-title" className="mt-10">
-                  <h2 id="keywords-title" className="font-heading text-2xl font-semibold text-pssfp-prune">
+                  <h2 id="keywords-title" className="font-heading text-2xl font-semibold text-pssfp-prune-dark">
                     {tDoc('keywords')}
                   </h2>
                   <p className="mt-1 text-sm text-pssfp-graphite-light">{t('keywordsHint')}</p>
@@ -221,8 +221,9 @@ export default async function DocumentPage({ params }: DocumentPageProps): Promi
                       <li key={mc.slug}>
                         <Link
                           href={collectionHref(doc.type, { mot_cle: mc.slug })}
-                          className="inline-flex min-h-9 items-center rounded-full border border-pssfp-prune/60 bg-white px-3.5 py-1.5 font-ui text-sm text-pssfp-prune transition-colors hover:border-pssfp-prune hover:bg-pssfp-prune hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 motion-reduce:transition-none"
+                          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-pssfp-prune/60 bg-white px-3.5 py-1.5 font-ui text-sm text-pssfp-prune transition-colors hover:border-pssfp-prune hover:bg-pssfp-prune hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 motion-reduce:transition-none"
                         >
+                          <Tag size={13} strokeWidth={1.75} aria-hidden="true" />
                           {mc.label}
                         </Link>
                       </li>
@@ -242,11 +243,11 @@ export default async function DocumentPage({ params }: DocumentPageProps): Promi
       {relatedDocs.length > 0 && (
         <section data-testid="document-related" aria-labelledby="related-title" className="border-t border-pssfp-lavande/30 bg-white py-14 sm:py-16">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <Eyebrow tone="or">{t('relatedEyebrow')}</Eyebrow>
-            <h2 id="related-title" className="mt-4 font-heading text-pssfp-h2 font-semibold text-pssfp-prune">
+            <Eyebrow>{t('relatedEyebrow')}</Eyebrow>
+            <h2 id="related-title" className="mt-4 font-heading text-pssfp-h2 font-semibold text-pssfp-prune-dark">
               {tDoc('related')}
             </h2>
-            <ul className="mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+            <ul className="mt-10 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4">
               {relatedDocs.map((rel) => (
                 <li key={rel.uuid} className="flex [&>article]:w-full">
                   <DocumentCard doc={rel} coverSizes={RELATED_COVER_SIZES} />

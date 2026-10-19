@@ -1,83 +1,37 @@
 import Link from 'next/link';
 import { ArrowUpRight, Mail, MapPin } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
-import { Logo } from '@pssfp/ui';
-import { DOCUMENT_TYPES } from '@/lib/api/types';
-import { collectionHref } from '@/lib/routes';
-import { FOAD_URL, MAIN_SITE_URL, NAV_ITEMS } from './nav-config';
+import { BrandMark } from './BrandMark';
+import { FOAD_URL, MAIN_SITE_URL, NAV_ITEMS, SEARCH_HREF } from './nav-config';
 
+/*
+ * Fond prune « deep » #2E1C40 : blanc 85 % 11,5:1 · or #D4AF6A 7,5:1 (titres de colonnes, icônes).
+ * Anneau de focus or : seul cas où l'or sert d'indicateur (fond sombre).
+ */
 const LINK =
-  'rounded-sm text-white/85 underline-offset-4 transition-colors hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or';
+  'inline-flex min-h-6 items-center gap-1 rounded-sm text-white/85 underline-offset-4 transition-colors hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-or focus-visible:ring-offset-2 focus-visible:ring-offset-pssfp-prune-deep';
 const HEADING = 'font-ui text-xs font-medium uppercase tracking-[0.18em] text-pssfp-or';
 
 export async function SiteFooter(): Promise<JSX.Element> {
   const t = await getTranslations('footer');
   const tNav = await getTranslations('nav');
-  const tTypes = await getTranslations('types');
-  const tMeta = await getTranslations('meta');
   const year = new Date().getFullYear();
-  const browse = NAV_ITEMS.filter((item) => item.key !== 'collections');
+  const explore = [...NAV_ITEMS.filter((item) => item.key !== 'home').map((item) => ({ href: item.href, label: tNav(item.key) })), { href: SEARCH_HREF, label: tNav('search') }];
 
   return (
-    <footer className="mt-auto bg-pssfp-prune text-white">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.1fr_2fr_1fr] lg:gap-12">
+    <footer className="relative isolate mt-auto overflow-hidden bg-pssfp-prune-deep text-white">
+      {/* Arcs concentriques décoratifs, en écho au logo (sans le reproduire). */}
+      <div aria-hidden="true" className="pointer-events-none absolute -right-40 -top-56 -z-10 h-[28rem] w-[28rem] rounded-full border border-white/[0.06] shadow-[0_0_0_4rem_rgba(255,255,255,0.02),0_0_0_8rem_rgba(255,255,255,0.015)]" />
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr] lg:gap-16 lg:py-16">
         <section aria-labelledby="footer-about">
-          <div className="flex items-center gap-3">
-            <Logo variant="mark" title={tMeta('logoTitle')} aria-hidden="true" className="h-10 w-10 ring-1 ring-white/25 rounded-lg" />
-            <h2 id="footer-about" className="font-heading text-2xl font-semibold">
+          <div className="flex items-center gap-4">
+            <BrandMark alt="" height={40} onDark />
+            <h2 id="footer-about" className="font-heading text-2xl font-semibold leading-tight">
               {t('aboutTitle')}
             </h2>
           </div>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/85">{t('aboutBody')}</p>
-        </section>
-
-        <nav aria-label={t('linksLabel')} className="grid gap-8 sm:grid-cols-[2fr_1fr]">
-          <div>
-            <h2 className={HEADING}>{t('collectionsTitle')}</h2>
-            <ul className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-              {DOCUMENT_TYPES.map((type) => (
-                <li key={type}>
-                  <Link href={collectionHref(type)} className={LINK}>
-                    {tTypes(`${type}.other`)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h2 className={HEADING}>{t('browseTitle')}</h2>
-            <ul className="mt-4 space-y-2 text-sm">
-              {browse.map((item) => (
-                <li key={item.key}>
-                  <Link href={item.href} className={LINK}>
-                    {tNav(item.key)}
-                  </Link>
-                </li>
-              ))}
-              <li>
-                <a href={MAIN_SITE_URL} className={`${LINK} inline-flex items-center gap-1`}>
-                  {tNav('mainSite')}
-                  <ArrowUpRight size={14} aria-hidden="true" />
-                </a>
-              </li>
-              {FOAD_URL ? (
-                <li>
-                  <a href={FOAD_URL} className={`${LINK} inline-flex items-center gap-1`}>
-                    {t('foad')}
-                    <ArrowUpRight size={14} aria-hidden="true" />
-                  </a>
-                </li>
-              ) : null}
-            </ul>
-          </div>
-        </nav>
-
-        <section aria-labelledby="footer-contact">
-          <h2 id="footer-contact" className={HEADING}>
-            {t('contactTitle')}
-          </h2>
-          <p className="mt-4 text-sm leading-relaxed text-white/85">{t('contactBody')}</p>
-          <ul className="mt-4 space-y-3 text-sm">
+          <p className="mt-5 max-w-md text-sm leading-relaxed text-white/85">{t('aboutBody')}</p>
+          <ul className="mt-6 space-y-3 text-sm">
             <li className="flex items-start gap-2 text-white/85">
               <MapPin size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-pssfp-or" />
               <span>{t('contactAddress')}</span>
@@ -88,19 +42,53 @@ export async function SiteFooter(): Promise<JSX.Element> {
                 {t('contactEmail')}
               </a>
             </li>
+          </ul>
+        </section>
+
+        <nav aria-labelledby="footer-explore">
+          <h2 id="footer-explore" className={HEADING}>
+            {t('browseTitle')}
+          </h2>
+          <ul className="mt-4 space-y-2.5 text-sm">
+            {explore.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className={LINK}>
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <nav aria-labelledby="footer-links">
+          <h2 id="footer-links" className={HEADING}>
+            {t('linksTitle')}
+          </h2>
+          <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/85">{t('contactBody')}</p>
+          <ul className="mt-4 space-y-2.5 text-sm">
             <li>
-              <a href={`${MAIN_SITE_URL}/contact`} className={`${LINK} inline-flex items-center gap-1`}>
+              <a href={MAIN_SITE_URL} className={LINK}>
+                {tNav('mainSite')}
+                <ArrowUpRight size={14} aria-hidden="true" />
+              </a>
+            </li>
+            <li>
+              <a href={FOAD_URL} className={LINK}>
+                {t('foad')}
+                <ArrowUpRight size={14} aria-hidden="true" />
+              </a>
+            </li>
+            <li>
+              <a href={`${MAIN_SITE_URL}/contact`} className={LINK}>
                 {t('contactPage')}
                 <ArrowUpRight size={14} aria-hidden="true" />
               </a>
             </li>
           </ul>
-        </section>
+        </nav>
       </div>
       <div className="border-t border-white/15">
-        <p className="mx-auto max-w-7xl px-4 py-5 font-ui text-xs text-white/75 sm:px-6">
-          {t('copyright', { year })}
-        </p>
+        <p className="mx-auto max-w-7xl px-4 py-5 font-ui text-xs text-white/75 sm:px-6">{t('copyright', { year })}</p>
       </div>
     </footer>
   );

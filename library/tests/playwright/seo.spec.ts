@@ -42,7 +42,7 @@ test.describe('SEO — toujours (avec ou sans API)', () => {
     expect(body).toContain(`Sitemap: ${ORIGIN}/sitemap.xml`);
   });
 
-  test('sitemap.xml : XML valide, accueil et à propos présents, recherche absente', async ({ page, request }) => {
+  test('sitemap.xml : XML valide, accueil, à propos et thèmes présents, recherche absente', async ({ page, request }) => {
     const res = await request.get('/sitemap.xml');
     expect(res.status()).toBe(200);
     expect(res.headers()['content-type']).toContain('xml');
@@ -50,6 +50,7 @@ test.describe('SEO — toujours (avec ou sans API)', () => {
     expect(locs).not.toBeNull();
     expect(locs).toContain(`${ORIGIN}/`);
     expect(locs).toContain(`${ORIGIN}/a-propos`);
+    expect(locs).toContain(`${ORIGIN}/themes`);
     expect(locs!.some((l) => l.includes('/recherche') || l.includes('/dev'))).toBe(false);
   });
 

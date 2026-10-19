@@ -85,6 +85,21 @@ function borderContrast(css: string): number {
   return (Math.max(border, ivoire) + 0.05) / (Math.min(border, ivoire) + 0.05);
 }
 
+/** Contraste WCAG entre une couleur CSS opaque `rgb()` et un fond RVB. */
+function contrast(css: string, background: number[]): number {
+  const [r = 0, g = 0, b = 0] = (css.match(/[\d.]+/g) ?? []).map(Number);
+  const lum = (rgb: number[]): number => {
+    const [lr = 0, lg = 0, lb = 0] = rgb.map((c) => {
+      const v = c / 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+  };
+  const a = lum([r, g, b]);
+  const z = lum(background);
+  return (Math.max(a, z) + 0.05) / (Math.min(a, z) + 0.05);
+}
+
 /** Contraste WCAG d'une couleur CSS `rgb()`/`rgba()` posée sur du blanc. */
 async function contrastOnWhite(css: string): Promise<number> {
   const [r = 0, g = 0, b = 0, a = 1] = (css.match(/[\d.]+/g) ?? []).map(Number);
@@ -421,7 +436,7 @@ test.describe('Recherche — navigation dans les résultats (réponses simulées
     });
     await page.goto('/recherche?q=budget');
     await expect(page.getByTestId('results-count')).toHaveText('3 résultats pour « budget »');
-    await page.getByRole('banner').getByRole('link', { name: 'Recherche', exact: true }).click();
+    await page.getByRole('banner').getByTestId('header-search').click();
     await expect(page.getByTestId('search-invite')).toBeVisible();
     await page.getByTestId('search-invite').getByRole('link', { name: 'TVA' }).click();
     await expect(page).toHaveURL(/q=TVA/);
@@ -533,13 +548,16 @@ test.describe('Recherche — navigation dans les résultats (réponses simulées
     for (const border of borders) expect(borderContrast(border), border).toBeGreaterThanOrEqual(3);
   });
 
-  test('puces de portée : contour au repos ≥ 3:1', async ({ page }) => {
+  test('puces de portée : pastille blanche ≥ 3:1 sur le bandeau prune, texte ≥ 4,5:1', async ({ page }) => {
     await page.route(SEARCH_ROUTE, fulfillMock);
     await page.goto('/recherche?q=budget&type=memoire&acces=libre');
     const chips = page.getByTestId('search-scope').getByRole('link');
     await expect(chips).toHaveCount(2);
-    for (const border of await chips.evaluateAll((els) => els.map((el) => getComputedStyle(el).borderTopColor))) {
-      expect(borderContrast(border), border).toBeGreaterThanOrEqual(3);
+    // Bandeau prune « deep » #2E1C40 : la pastille entière (fond blanc opaque) délimite la cible.
+    const band = [46, 28, 64];
+    for (const { bg, color } of await chips.evaluateAll((els) => els.map((el) => ({ bg: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color })))) {
+      expect(contrast(bg, band), bg).toBeGreaterThanOrEqual(3);
+      expect(contrast(color, [255, 255, 255]), color).toBeGreaterThanOrEqual(4.5);
     }
   });
 

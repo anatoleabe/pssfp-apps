@@ -16,9 +16,11 @@ const BADGES: Record<AccessMode, { className: string; Icon: LucideIcon }> = {
 interface AccessBadgeProps {
   mode: AccessMode;
   price?: number | null;
+  /** Sur une couverture : contour blanc et ombre légère pour détacher la pastille. */
+  floating?: boolean;
 }
 
-export function AccessBadge({ mode, price = null }: AccessBadgeProps): JSX.Element {
+export function AccessBadge({ mode, price = null, floating = false }: AccessBadgeProps): JSX.Element {
   const t = useTranslations('access');
   const format = useFormatter();
   const { className, Icon } = BADGES[mode];
@@ -26,7 +28,7 @@ export function AccessBadge({ mode, price = null }: AccessBadgeProps): JSX.Eleme
   return (
     <span
       data-testid="access-badge"
-      className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 font-ui text-xs font-medium ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-ui text-xs font-medium ${className} ${floating ? 'shadow-pssfp-soft ring-1 ring-white' : ''}`}
     >
       <Icon size={12} strokeWidth={2} aria-hidden="true" />
       {label}

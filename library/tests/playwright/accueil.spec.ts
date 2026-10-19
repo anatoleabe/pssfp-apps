@@ -23,21 +23,6 @@ async function fetchStats(request: APIRequestContext): Promise<Stats | null> {
  */
 const BYPASS_DATA_CACHE = { 'cache-control': 'no-cache' };
 
-/** Contraste WCAG d'une bordure CSS `rgb()`/`rgba()`, composée sur blanc, contre le fond ivoire de la page (cas le plus défavorable). */
-function borderContrast(css: string): number {
-  const [r = 0, g = 0, b = 0, a = 1] = (css.match(/[\d.]+/g) ?? []).map(Number);
-  const lum = (rgb: number[]): number => {
-    const [lr = 0, lg = 0, lb = 0] = rgb.map((c) => {
-      const v = c / 255;
-      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-    });
-    return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
-  };
-  const border = lum([r, g, b].map((c) => c * a + 255 * (1 - a)));
-  const ivoire = lum([250, 247, 242]);
-  return (Math.max(border, ivoire) + 0.05) / (Math.min(border, ivoire) + 0.05);
-}
-
 test.describe('Accueil — toujours (avec ou sans API)', () => {
   test.beforeEach(async ({ page }) => {
     await page.setExtraHTTPHeaders(BYPASS_DATA_CACHE);
@@ -126,29 +111,64 @@ test.describe('Accueil — données de l\'API', () => {
     test.skip(stats === null, 'API injoignable : tests de données ignorés');
   });
 
-  test('pas de frontière d\'erreur, sur-titre avec le total de l\'API', async ({ page }) => {
+  test('pas de frontière d\'erreur, titre de la maquette et indicateurs de l\'API', async ({ page }) => {
     await page.setExtraHTTPHeaders(BYPASS_DATA_CACHE);
     await page.goto('/');
     await expect(page.getByTestId('page-error')).toHaveCount(0);
-    await expect(page.locator('h1')).toContainText('finances publiques');
-    const eyebrow = page.getByTestId('home-eyebrow');
+    await expect(page.locator('h1')).toHaveText('Le savoir public. À portée de tous.');
+    const statsBar = page.getByTestId('home-stats');
     if (stats!.total === 0) {
-      await expect(eyebrow).toHaveCount(0);
+      await expect(page.getByTestId('home-stat-documents')).toHaveCount(0);
       return;
     }
-    await expect(eyebrow).toContainText(`${new Intl.NumberFormat('fr-FR').format(stats!.total)} document`);
-    await expect(eyebrow).toContainText('finances publiques');
+    await expect(statsBar.getByTestId('home-stat-documents').getByTestId('home-stat-value')).toHaveText(new Intl.NumberFormat('fr-FR').format(stats!.total));
+    const byType = Array.isArray(stats!.by_type) ? {} : stats!.by_type;
+    const collections = Object.values(byType).filter((n) => n > 0).length;
+    await expect(statsBar.getByTestId('home-stat-collections').getByTestId('home-stat-value')).toHaveText(String(collections));
   });
 
-  test('suggestions et puces de types mènent au catalogue', async ({ page }) => {
+  test('suggestions de recherche vers /recherche', async ({ page }) => {
     await page.goto('/');
     const hero = page.getByTestId('home-hero');
     await expect(hero.getByRole('search')).toBeVisible();
     await expect(hero.getByRole('link', { name: 'TVA', exact: true })).toHaveAttribute('href', '/recherche?q=TVA');
+  });
+
+  test('seules les collections non vides ont une carte, avec le compte de l\'API', async ({ page }) => {
+    await page.goto('/');
     const byType = Array.isArray(stats!.by_type) ? {} : stats!.by_type;
-    if ((byType.memoire ?? 0) > 0) {
-      await expect(hero.getByRole('link', { name: 'Mémoires', exact: true })).toHaveAttribute('href', '/collections/memoire');
+    const nonEmpty = Object.entries(byType).filter(([, n]) => n > 0);
+    await expect(page.locator('#collections [data-testid^="collection-tile-"]:not([data-testid="collection-tile-premium"])')).toHaveCount(nonEmpty.length);
+    for (const [type, n] of nonEmpty) {
+      const tile = page.getByTestId(`collection-tile-${type}`);
+      await expect(tile).toHaveAttribute('href', `/collections/${type}`);
+      await expect(tile.getByTestId('collection-count')).toHaveText(new Intl.NumberFormat('fr-FR').format(n));
     }
+  });
+
+  test('législation : section et lien vers la collection si elle compte des textes', async ({ page }) => {
+    await page.goto('/');
+    const byType = Array.isArray(stats!.by_type) ? {} : stats!.by_type;
+    const legal = page.getByTestId('home-legal');
+    if ((byType.texte_loi ?? 0) === 0) {
+      await expect(legal).toHaveCount(0);
+      return;
+    }
+    await expect(legal.getByTestId('home-legal-cta')).toHaveAttribute('href', '/collections/texte_loi');
+    for (const href of await legal.getByRole('listitem').getByRole('link').evaluateAll((els) => els.map((el) => el.getAttribute('href')))) {
+      expect(href).toMatch(/^\/collections\/texte_loi\?mot_cle=[a-z0-9-]+$/);
+    }
+  });
+
+  test('thèmes : liens vers /themes/{slug} et vers /themes', async ({ page }) => {
+    await page.goto('/');
+    const section = page.getByTestId('home-themes');
+    test.skip((await section.count()) === 0, 'thésaurus indisponible ou vide');
+    const links = section.getByRole('listitem').getByRole('link');
+    expect(await links.count()).toBeGreaterThan(0);
+    expect(await links.count()).toBeLessThanOrEqual(8);
+    for (const href of await links.evaluateAll((els) => els.map((el) => el.getAttribute('href')))) expect(href).toMatch(/^\/themes\/[a-z0-9-]+$/);
+    await expect(section.getByRole('link', { name: /tous les thèmes/i })).toHaveAttribute('href', '/themes');
   });
 
   test('JSON-LD WebSite + SearchAction', async ({ page }) => {
@@ -159,29 +179,13 @@ test.describe('Accueil — données de l\'API', () => {
     expect(data.potentialAction?.target?.urlTemplate).toContain('/recherche?q={search_term_string}');
   });
 
-  test('la tuile Mémoires affiche le compteur de l\'API', async ({ page }) => {
-    const byType = Array.isArray(stats!.by_type) ? {} : stats!.by_type;
-    const n = byType.memoire ?? 0;
+  test('huit nouveautés au plus, section cible du lien « Nouveautés »', async ({ page }) => {
     await page.goto('/');
-    const tile = page.getByTestId('collection-tile-memoire');
-    if (n === 0) {
-      await expect(tile).toHaveCount(0);
-      return;
-    }
-    await expect(tile).toHaveAttribute('href', '/collections/memoire');
-    await expect(tile.getByTestId('collection-count')).toHaveText(new Intl.NumberFormat('fr-FR').format(n));
-    // Promotions réelles : affichées seulement si l'API en compte.
-    const promotions = stats!.promotions_count ?? 0;
-    if (promotions > 0) await expect(tile).toContainText(`${promotions} promotion`);
-    else await expect(tile).not.toContainText('promotion');
-  });
-
-  test('six nouveautés au plus', async ({ page }) => {
-    await page.goto('/');
-    const cards = page.getByTestId('home-latest').locator('article');
-    const count = await cards.count();
+    const latest = page.getByTestId('home-latest');
+    await expect(latest).toHaveAttribute('id', 'nouveautes');
+    const count = await latest.locator('article').count();
     expect(count).toBeGreaterThan(0);
-    expect(count).toBeLessThanOrEqual(6);
+    expect(count).toBeLessThanOrEqual(8);
   });
 
   test('la tuile premium apparaît si et seulement si paid_count > 0', async ({ page }) => {
@@ -204,15 +208,6 @@ test.describe('Accueil — données de l\'API', () => {
     expect(await list.locator('li').count()).toBeGreaterThanOrEqual(1);
     for (const name of [/suivants/i, /précédents/i]) {
       await expect(page.getByRole('button', { name })).toHaveAttribute('aria-controls', 'most-read-list');
-    }
-  });
-
-  test('puces « Parcourir par type » : contour au repos ≥ 3:1', async ({ page }) => {
-    await page.goto('/');
-    const chips = page.getByRole('navigation', { name: 'Parcourir par type' }).getByRole('link');
-    expect(await chips.count()).toBeGreaterThan(0);
-    for (const border of await chips.evaluateAll((els) => els.map((el) => getComputedStyle(el).borderTopColor))) {
-      expect(borderContrast(border), border).toBeGreaterThanOrEqual(3);
     }
   });
 

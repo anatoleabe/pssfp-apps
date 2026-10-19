@@ -2,7 +2,11 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
-import { CollectionsMosaic } from '@/components/home/CollectionsMosaic';
+import { CollectionCard } from '@/components/home/CollectionCard';
+import { CollectionThemes } from '@/components/catalogue/CollectionThemes';
+import { ThemeIndex } from '@/components/themes/ThemeIndex';
+import { buildThemeTree } from '@/lib/themes';
+import { CollectionsGrid } from '@/components/home/CollectionsGrid';
 import { Pagination } from '@/components/catalogue/Pagination';
 import { StateMessage } from '@/components/catalogue/StateMessage';
 import { AccessAction } from '@/components/document/AccessAction';
@@ -21,6 +25,8 @@ import {
   DEMO_RESERVE,
   DEMO_ROW,
   DEMO_SURLIGNAGE,
+  DEMO_THESAURUS,
+  DEMO_THESAURUS_COUNTED,
   DEMO_TRAP_TITLE,
 } from './fixtures';
 
@@ -67,6 +73,42 @@ function Demo(): JSX.Element {
         <div className="grid max-w-3xl gap-4">
           <DocumentCard doc={DEMO_ROW} layout="row" />
           <DocumentCard doc={DEMO_SURLIGNAGE} layout="row" highlight={DEMO_TRAP_TITLE} />
+        </div>
+      </section>
+
+      <section aria-labelledby="demo-collection-cards" className="space-y-6">
+        <h2 id="demo-collection-cards" className={SECTION_TITLE}>{t('collectionCards')}</h2>
+        <ul data-testid="demo-collection-cards" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <li>
+            <CollectionCard type="texte_loi" count={1453} />
+          </li>
+          <li>
+            <CollectionCard type="memoire" count={1} />
+          </li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="demo-theme-index" className="space-y-6">
+        <h2 id="demo-theme-index" className={SECTION_TITLE}>{t('themeIndex')}</h2>
+        <div data-testid="demo-theme-index-counted">
+          <ThemeIndex tree={buildThemeTree(DEMO_THESAURUS_COUNTED)} idPrefix="demo-a-" />
+        </div>
+      </section>
+
+      <section aria-labelledby="demo-theme-index-nocount" className="space-y-6">
+        <h2 id="demo-theme-index-nocount" className={SECTION_TITLE}>{t('themeIndexNoCounts')}</h2>
+        <div data-testid="demo-theme-index-uncounted">
+          <ThemeIndex tree={buildThemeTree(DEMO_THESAURUS)} idPrefix="demo-b-" />
+        </div>
+      </section>
+
+      <section aria-labelledby="demo-collection-themes" className="space-y-6">
+        <h2 id="demo-collection-themes" className={SECTION_TITLE}>{t('collectionThemes')}</h2>
+        <div data-testid="demo-collection-themes">
+          <CollectionThemes type="texte_loi" filters={{ mot_cle: 'demo-decrets', acces: 'libre' }} motsCles={DEMO_THESAURUS_COUNTED} />
+        </div>
+        <div data-testid="demo-collection-themes-uncounted">
+          <CollectionThemes type="texte_loi" filters={{}} motsCles={DEMO_THESAURUS} />
         </div>
       </section>
 
@@ -123,7 +165,7 @@ function Demo(): JSX.Element {
       <section aria-labelledby="demo-empty-catalogue">
         <h2 id="demo-empty-catalogue" className={`mx-auto max-w-7xl px-4 sm:px-6 ${SECTION_TITLE}`}>{t('emptyCatalogue')}</h2>
         <div data-testid="demo-empty-catalogue">
-          <CollectionsMosaic stats={DEMO_EMPTY_STATS} />
+          <CollectionsGrid stats={DEMO_EMPTY_STATS} />
         </div>
       </section>
     </div>
