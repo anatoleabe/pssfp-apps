@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\BelongsToModule;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -25,8 +27,11 @@ use Illuminate\Support\Str;
  * apply.pssfp.org n'ont rien à faire dans cet écran, ils se gèrent via les
  * candidatures. Un filtre permet malgré tout de les retrouver ponctuellement.
  */
+#[BelongsToModule('administration')]
 class UserResource extends Resource
 {
+    use RestrictedToModule;
+
     protected static ?string $model = User::class;
 
     protected static ?string $modelLabel = 'Utilisateur';

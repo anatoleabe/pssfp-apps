@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\ChecksModuleAccess;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
+use App\Support\BelongsToModule;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -17,17 +19,20 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  * sans dossier papier reçu n'est donc pas recevable : c'est cet écart que
  * l'écran doit rendre visible au jour le jour.
  */
+#[BelongsToModule('admissions')]
 class DepotsCampagneWidget extends BaseWidget
 {
+    use ChecksModuleAccess;
+
     protected static ?int $sort = 1;
 
     protected static ?string $pollingInterval = '60s';
 
     public static function canView(): bool
     {
-        return auth()->user()?->hasAnyRole([
+        return static::moduleAllows() && (auth()->user()?->hasAnyRole([
             'super_admin', 'admin', 'admission_committee', 'receptionniste',
-        ]) ?? false;
+        ]) ?? false);
     }
 
     protected function getStats(): array

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\ChecksModuleAccess;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Services\CandidatureService;
+use App\Support\BelongsToModule;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -24,19 +26,24 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  * - Taux frais payés
  * - Compte à rebours date de clôture (couleur conditionnelle)
  *
- * Visible à tout user qui peut accéder au panel admin.
+ * Visible aux comptes back-office qui ont accès au module des admissions.
  */
+#[BelongsToModule('admissions')]
 class AvancementCampagneWidget extends BaseWidget
 {
+    use ChecksModuleAccess;
+
     protected static ?int $sort = 0;
 
     protected static ?string $pollingInterval = '60s';
 
     public static function canView(): bool
     {
-        return auth()->user()?->hasAnyRole([
-            'super_admin', 'admin', 'admission_committee', 'librarian', 'editor',
-        ]) ?? false;
+        // Vue d'ensemble des admissions : réservée aux comptes qui ont accès au
+        // module (un éditeur ou un bibliothécaire seul ne la voit plus).
+        return static::moduleAllows() && (auth()->user()?->hasAnyRole([
+            'super_admin', 'admin', 'admission_committee', 'librarian', 'editor', 'caisse',
+        ]) ?? false);
     }
 
     protected function getStats(): array

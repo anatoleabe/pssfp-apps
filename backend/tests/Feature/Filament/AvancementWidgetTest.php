@@ -21,13 +21,24 @@ beforeEach(function (): void {
     ]);
 });
 
-it('is visible for librarian (general overview)', function (): void {
+it('is visible for the caisse, alone or with librarian', function (array $roles): void {
     $u = User::factory()->create();
-    $u->assignRole('librarian');
+    $u->assignRole($roles);
     $this->actingAs($u);
 
     expect(AvancementCampagneWidget::canView())->toBeTrue();
-});
+})->with([
+    'caisse' => [['caisse']],
+    'librarian + caisse' => [['librarian', 'caisse']],
+]);
+
+it('is hidden for roles without access to the admissions module', function (string $role): void {
+    $u = User::factory()->create();
+    $u->assignRole($role);
+    $this->actingAs($u);
+
+    expect(AvancementCampagneWidget::canView())->toBeFalse();
+})->with(['librarian', 'editor']);
 
 it('is hidden for candidat', function (): void {
     $u = User::factory()->candidat()->create();

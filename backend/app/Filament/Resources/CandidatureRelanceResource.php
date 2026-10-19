@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\CandidatureRelanceResource\Pages;
 use App\Models\CandidatureRelance;
 use App\Services\Sms\EchoSmsCodes;
@@ -11,6 +12,7 @@ use App\Services\Sms\QueriesMessageStatus;
 use App\Services\Sms\SmsDeliveryStatuses;
 use App\Services\Sms\SmsServiceInterface;
 use App\Services\Sms\TechSoftCodes;
+use App\Support\BelongsToModule;
 use App\Support\SecretRedactor;
 use Filament\Forms\Components\DatePicker;
 use Filament\Notifications\Notification;
@@ -35,8 +37,11 @@ use Illuminate\Database\Eloquent\Builder;
  * Réservé à admin et super_admin, comme l'envoi lui-même : le journal
  * contient le texte intégral des messages adressés aux candidats.
  */
+#[BelongsToModule('admissions')]
 class CandidatureRelanceResource extends Resource
 {
+    use RestrictedToModule;
+
     protected static ?string $model = CandidatureRelance::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-paper-airplane';

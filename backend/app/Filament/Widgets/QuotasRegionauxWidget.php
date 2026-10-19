@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\ChecksModuleAccess;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\RegionCameroun;
+use App\Support\BelongsToModule;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Collection;
 
@@ -22,8 +24,11 @@ use Illuminate\Support\Collection;
  *
  * Visible uniquement pour les rôles admission_committee, admin, super_admin.
  */
+#[BelongsToModule('admissions')]
 class QuotasRegionauxWidget extends Widget
 {
+    use ChecksModuleAccess;
+
     protected static string $view = 'filament.widgets.quotas-regionaux';
 
     protected int|string|array $columnSpan = 'full';
@@ -37,7 +42,8 @@ class QuotasRegionauxWidget extends Widget
 
     public static function canView(): bool
     {
-        return auth()->user()?->hasAnyRole(['super_admin', 'admin', 'admission_committee']) ?? false;
+        return static::moduleAllows()
+            && (auth()->user()?->hasAnyRole(['super_admin', 'admin', 'admission_committee']) ?? false);
     }
 
     /**

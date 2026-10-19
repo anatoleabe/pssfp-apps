@@ -4,21 +4,26 @@ declare(strict_types=1);
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\ChecksModuleAccess;
 use App\Models\SearchLog;
+use App\Support\BelongsToModule;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 
 /** Les 10 recherches sans résultat les plus fréquentes sur 30 jours : pistes d'enrichissement du fonds. */
+#[BelongsToModule('bibliotheque')]
 class LibraryZeroResultSearches extends TableWidget
 {
+    use ChecksModuleAccess;
+
     protected static ?int $sort = 41;
 
     protected static ?string $heading = 'Recherches sans résultat (30 jours)';
 
     public static function canView(): bool
     {
-        return auth()->user()?->can('view_any_document') ?? false;
+        return static::moduleAllows() && (auth()->user()?->can('view_any_document') ?? false);
     }
 
     public function table(Table $table): Table

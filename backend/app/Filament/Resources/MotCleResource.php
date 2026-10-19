@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\MotCleResource\Pages;
 use App\Models\MotCle;
+use App\Support\BelongsToModule;
 use Closure;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -15,8 +17,11 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
 /** Thésaurus de la bibliothèque (mots-clés hiérarchiques). */
+#[BelongsToModule('bibliotheque')]
 class MotCleResource extends Resource
 {
+    use RestrictedToModule;
+
     protected static ?string $model = MotCle::class;
 
     protected static ?string $modelLabel = 'Mot-clé';

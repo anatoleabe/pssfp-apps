@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\CampagneCandidatureResource\Pages;
 use App\Filament\Resources\CampagneCandidatureResource\ResultatsSelectionActions;
 use App\Filament\Tables\TranslatedColumn;
 use App\Models\CampagneCandidature;
+use App\Support\BelongsToModule;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -21,8 +23,11 @@ use Illuminate\Support\Str;
  * Permet à super_admin / admin d'ouvrir P15/2027 le moment venu sans passer
  * par tinker. Pas de delete (FK RESTRICT).
  */
+#[BelongsToModule('admissions')]
 class CampagneCandidatureResource extends Resource
 {
+    use RestrictedToModule;
+
     protected static ?string $model = CampagneCandidature::class;
 
     protected static ?string $modelLabel = 'Campagne';

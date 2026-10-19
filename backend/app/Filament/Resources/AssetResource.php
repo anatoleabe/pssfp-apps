@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\AssetResource\Pages;
 use App\Models\Asset;
 use App\Services\AssetImportService;
+use App\Support\BelongsToModule;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -24,8 +26,11 @@ use Illuminate\Support\Str;
  * stockés sur MinIO. Trois disks supportés : minio_media (public),
  * minio_documents (privé).
  */
+#[BelongsToModule('site')]
 class AssetResource extends Resource
 {
+    use RestrictedToModule;
+
     protected static ?string $model = Asset::class;
 
     protected static ?string $modelLabel = 'Média';

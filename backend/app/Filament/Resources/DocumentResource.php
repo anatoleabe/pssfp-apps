@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\DocumentResource\Pages;
 use App\Models\Document;
+use App\Support\BelongsToModule;
 use Closure;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -23,8 +25,11 @@ use Illuminate\Support\Str;
  *
  * Circuit : brouillon → en revue → publié (validateur tracé) → archivé.
  */
+#[BelongsToModule('bibliotheque')]
 class DocumentResource extends Resource
 {
+    use RestrictedToModule;
+
     protected static ?string $model = Document::class;
 
     protected static ?string $modelLabel = 'Document';

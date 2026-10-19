@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\RoleResource\Pages;
 use App\Models\Role;
+use App\Support\BelongsToModule;
 use App\Support\ModulePermissionMap;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -31,8 +33,11 @@ use Spatie\Permission\PermissionRegistrar;
  * l'ouverture du formulaire et retraduits à l'enregistrement
  * (cf. Pages\CreateRole / Pages\EditRole).
  */
+#[BelongsToModule('administration')]
 class RoleResource extends Resource
 {
+    use RestrictedToModule;
+
     protected static ?string $model = Role::class;
 
     protected static ?string $modelLabel = 'Rôle';

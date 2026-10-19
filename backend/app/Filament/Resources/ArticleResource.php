@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\ArticleResource\Pages;
 use App\Filament\Tables\TranslatedColumn;
 use App\Models\Article;
+use App\Support\BelongsToModule;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -18,8 +20,11 @@ use Filament\Tables\Table;
  *
  * Édite les actualités, billets et communiqués affichés sur /actualites/*.
  */
+#[BelongsToModule('site')]
 class ArticleResource extends Resource
 {
+    use RestrictedToModule;
+
     protected static ?string $model = Article::class;
 
     protected static ?string $modelLabel = 'Article';

@@ -4,21 +4,26 @@ declare(strict_types=1);
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\ChecksModuleAccess;
 use App\Models\Document;
 use App\Models\DocumentDownload;
+use App\Support\BelongsToModule;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 /** Compteurs de la bibliothèque pour le tableau de bord (spec V1 §5.5). */
+#[BelongsToModule('bibliotheque')]
 class LibraryOverview extends StatsOverviewWidget
 {
+    use ChecksModuleAccess;
+
     protected static ?int $sort = 40;
 
     protected static ?string $pollingInterval = '60s';
 
     public static function canView(): bool
     {
-        return auth()->user()?->can('view_any_document') ?? false;
+        return static::moduleAllows() && (auth()->user()?->can('view_any_document') ?? false);
     }
 
     /** Libellé des types publiés avec effectifs, du plus fourni au moins fourni. */

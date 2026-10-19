@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\PageResource\Pages;
 use App\Filament\Tables\TranslatedColumn;
 use App\Models\Page;
+use App\Support\BelongsToModule;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -20,8 +22,11 @@ use Filament\Tables\Table;
  * (mentions légales, confidentialité, etc.). Body en Markdown rendu côté
  * frontend Next.js avec sanitize.
  */
+#[BelongsToModule('site')]
 class PageResource extends Resource
 {
+    use RestrictedToModule;
+
     protected static ?string $model = Page::class;
 
     protected static ?string $modelLabel = 'Page';
