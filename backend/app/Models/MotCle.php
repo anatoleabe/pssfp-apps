@@ -52,6 +52,21 @@ class MotCle extends Model
     }
 
     /**
+     * Slugs du mot-clé et de tous ses descendants ; vide si le slug est inconnu.
+     *
+     * @return list<string>
+     */
+    public static function selfAndDescendantSlugs(string $slug): array
+    {
+        $id = self::query()->where('slug', $slug)->value('id');
+        if ($id === null) {
+            return [];
+        }
+
+        return self::query()->whereIn('id', self::selfAndDescendantIds($id))->orderBy('id')->pluck('slug')->all();
+    }
+
+    /**
      * Pour chaque mot-clé, la liste de lui-même et de ses descendants.
      * Un ensemble « visité » protège des cycles de parent_id.
      *

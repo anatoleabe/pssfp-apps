@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Library\Search;
 
 use App\Models\Document;
+use App\Models\MotCle;
 use Meilisearch\Endpoints\Indexes;
 
 /** Recherche principale : facettes, tolérance aux fautes, extraits surlignés. */
@@ -65,6 +66,18 @@ final class MeilisearchDocumentSearch implements DocumentSearch
     public static function filterExpression(array $filters): array
     {
         $quoted = fn (string $attribute, mixed $value): string => sprintf('%s = "%s"', $attribute, addcslashes((string) $value, '"\\'));
+        // Thème et sous-thèmes ; slug inconnu : égalité exacte, qui ne correspond à rien.
+        $motCle = function (string $slug) use ($quoted): string {
+            $slugs = MotCle::selfAndDescendantSlugs($slug);
+            if ($slugs === []) {
+                return $quoted('mots_cles', $slug);
+            }
+
+            return sprintf('mots_cles IN [%s]', implode(', ', array_map(
+                fn (string $s): string => sprintf('"%s"', addcslashes($s, '"\\')),
+                $slugs,
+            )));
+        };
         $present = fn (string $key): bool => isset($filters[$key]) && $filters[$key] !== '';
 
         return array_values(array_filter([
@@ -72,7 +85,7 @@ final class MeilisearchDocumentSearch implements DocumentSearch
             $present('acces') ? $quoted('access_mode', $filters['acces']) : null,
             $present('annee_min') ? sprintf('year >= %d', (int) $filters['annee_min']) : null,
             $present('annee_max') ? sprintf('year <= %d', (int) $filters['annee_max']) : null,
-            $present('mot_cle') ? $quoted('mots_cles', $filters['mot_cle']) : null,
+            $present('mot_cle') ? $motCle((string) $filters['mot_cle']) : null,
             $present('specialite') ? $quoted('specialite', $filters['specialite']) : null,
             $present('promotion') ? sprintf('promotion = %d', (int) $filters['promotion']) : null,
             $present('langue') ? $quoted('language', $filters['langue']) : null,
