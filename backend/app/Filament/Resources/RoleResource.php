@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\RoleResource\Pages;
 use App\Models\Role;
+use App\Support\BelongsToModule;
 use App\Support\ModulePermissionMap;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -26,12 +28,16 @@ use Spatie\Permission\PermissionRegistrar;
  * Spatie est faite par ModulePermissionMap, seule source de vérité — partagée
  * avec le RolePermissionSeeder.
  *
- * Les champs `modules.*` et `sensitive_actions.*` (une liste par module) ne
- * sont pas des colonnes : ils sont calculés à l'ouverture du formulaire et
- * retraduits à l'enregistrement (cf. Pages\CreateRole / Pages\EditRole).
+ * Les champs `modules.*`, `sensitive_actions.*` et `standalone_actions.*`
+ * (une liste par module) ne sont pas des colonnes : ils sont calculés à
+ * l'ouverture du formulaire et retraduits à l'enregistrement
+ * (cf. Pages\CreateRole / Pages\EditRole).
  */
+#[BelongsToModule('administration')]
 class RoleResource extends Resource
 {
+    use RestrictedToModule;
+
     protected static ?string $model = Role::class;
 
     protected static ?string $modelLabel = 'Rôle';
@@ -107,10 +113,12 @@ class RoleResource extends Resource
     /**
      * Une section d'actions sensibles par module qui en a.
      *
-     * Visible seulement si le module a un niveau d'accès : sans accès, ces
-     * actions n'auraient aucune prise. Filament n'enregistre pas une section
-     * masquée ; chaque module ayant sa propre liste, masquer l'une ne vide
-     * jamais les autres (cf. mergeSensitiveActions()).
+     * Les actions ordinaires (`sensitive_actions.{module}`) ne s'affichent que
+     * si le module a un niveau d'accès : sans accès, elles n'auraient aucune
+     * prise. Les actions autonomes (`standalone_actions.{module}`, ex. dépôt
+     * contributeur) restent proposées au niveau « aucun ». Filament
+     * n'enregistre pas un champ masqué ; chaque module ayant ses propres
+     * listes, masquer l'une ne vide jamais les autres (cf. mergeSensitiveActions()).
      *
      * @return list<Forms\Components\Section>
      */
@@ -118,16 +126,35 @@ class RoleResource extends Resource
     {
         return collect(ModulePermissionMap::modules())
             ->filter(fn (array $module): bool => $module['sensitive'] !== [])
-            ->map(fn (array $module, string $key): Forms\Components\Section => Forms\Components\Section::make('Actions sensibles — '.(Str::after($module['label'], '— ') ?: $module['label']))
-                ->description($module['sensitive_description'] ?? null)
-                ->schema([
-                    Forms\Components\CheckboxList::make("sensitive_actions.{$key}")
+            ->map(function (array $module, string $key): Forms\Components\Section {
+                $standalone = $module['standalone'] ?? [];
+                $ordinary = array_diff_key($module['sensitive'], array_flip($standalone));
+                $opened = fn (Forms\Get $get): bool => $get("modules.{$key}") !== ModulePermissionMap::LEVEL_NONE;
+
+                $fields = [];
+
+                if ($ordinary !== []) {
+                    $fields[] = Forms\Components\CheckboxList::make("sensitive_actions.{$key}")
                         ->hiddenLabel()
-                        ->options($module['sensitive'])
+                        ->options($ordinary)
                         ->columns(2)
-                        ->bulkToggleable(count($module['sensitive']) > 1),
-                ])
-                ->visible(fn (Forms\Get $get): bool => $get("modules.{$key}") !== ModulePermissionMap::LEVEL_NONE))
+                        ->bulkToggleable(count($ordinary) > 1)
+                        ->visible($opened);
+                }
+
+                if ($standalone !== []) {
+                    $fields[] = Forms\Components\CheckboxList::make("standalone_actions.{$key}")
+                        ->label('Actions autonomes (sans niveau requis)')
+                        ->helperText('Valables quel que soit le niveau ci-dessus, y compris « Aucun accès » : le compte ne voit alors que ce qu\'elles ouvrent.')
+                        ->options(array_intersect_key($module['sensitive'], array_flip($standalone)))
+                        ->columns(2);
+                }
+
+                return Forms\Components\Section::make('Actions sensibles — '.(Str::after($module['label'], '— ') ?: $module['label']))
+                    ->description($module['sensitive_description'] ?? null)
+                    ->schema($fields)
+                    ->visible(fn (Forms\Get $get): bool => $standalone !== [] || $opened($get));
+            })
             ->values()
             ->all();
     }
@@ -135,12 +162,15 @@ class RoleResource extends Resource
     /**
      * Réunit les listes d'actions sensibles par module en une seule liste.
      *
-     * @param  mixed  $byModule  module => list de permissions (sections visibles)
+     * Accepte plusieurs jeux de listes (actions ordinaires, actions autonomes).
+     *
+     * @param  mixed  ...$byModule  module => list de permissions (champs visibles)
      * @return list<string>
      */
-    public static function mergeSensitiveActions(mixed $byModule): array
+    public static function mergeSensitiveActions(mixed ...$byModule): array
     {
-        return collect(is_array($byModule) ? $byModule : [])
+        return collect($byModule)
+            ->map(fn (mixed $lists): array => is_array($lists) ? $lists : [])
             ->flatten()
             ->filter(fn (mixed $permission): bool => is_string($permission))
             ->unique()
@@ -149,7 +179,8 @@ class RoleResource extends Resource
     }
 
     /**
-     * Opération inverse, pour pré-remplir le formulaire : module => actions cochées.
+     * Opération inverse, pour pré-remplir le formulaire : module => actions
+     * cochées, hors actions autonomes (cf. standaloneActionsByModule()).
      *
      * @param  list<string>  $permissions
      * @return array<string, list<string>>
@@ -158,7 +189,24 @@ class RoleResource extends Resource
     {
         return collect(ModulePermissionMap::modules())
             ->filter(fn (array $module): bool => $module['sensitive'] !== [])
-            ->map(fn (array $module): array => array_values(array_intersect(array_keys($module['sensitive']), $permissions)))
+            ->map(fn (array $module): array => array_values(array_intersect(
+                array_diff(array_keys($module['sensitive']), $module['standalone'] ?? []),
+                $permissions,
+            )))
+            ->all();
+    }
+
+    /**
+     * Actions autonomes cochées, par module (seuls les modules qui en ont).
+     *
+     * @param  list<string>  $permissions
+     * @return array<string, list<string>>
+     */
+    public static function standaloneActionsByModule(array $permissions): array
+    {
+        return collect(ModulePermissionMap::modules())
+            ->filter(fn (array $module): bool => ($module['standalone'] ?? []) !== [])
+            ->map(fn (array $module): array => array_values(array_intersect($module['standalone'], $permissions)))
             ->all();
     }
 
@@ -220,13 +268,18 @@ class RoleResource extends Resource
         $modules = ModulePermissionMap::modules();
 
         return collect(ModulePermissionMap::toLevels($permissions))
-            ->reject(fn (string $level): bool => $level === ModulePermissionMap::LEVEL_NONE)
-            ->map(function (string $level, string $key) use ($modules): string {
+            ->map(function (string $level, string $key) use ($modules, $permissions): ?string {
                 $label = Str::after($modules[$key]['label'], '— ') ?: $modules[$key]['label'];
-                $niveau = $level === ModulePermissionMap::LEVEL_MANAGE ? 'gestion' : 'lecture';
 
-                return "{$label} : {$niveau}";
+                return match (true) {
+                    $level === ModulePermissionMap::LEVEL_MANAGE => "{$label} : gestion",
+                    $level === ModulePermissionMap::LEVEL_READ => "{$label} : lecture",
+                    // Action autonome sans niveau (dépôt contributeur…).
+                    array_intersect($modules[$key]['standalone'] ?? [], $permissions) !== [] => "{$label} : actions autonomes",
+                    default => null,
+                };
             })
+            ->filter()
             ->values()
             ->all();
     }

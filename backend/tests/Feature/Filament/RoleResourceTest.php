@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Filament\Resources\RoleResource;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\ModuleAccess;
 use App\Support\ModulePermissionMap;
 use Database\Seeders\RolePermissionSeeder;
 
@@ -198,10 +199,9 @@ it('garde document.publish sur un rôle bibliothèque sans accès aux admissions
 it('garde les actions sensibles de chaque module à l\'enregistrement', function (): void {
     $committee = Role::query()->where('name', 'admission_committee')->firstOrFail();
     $librarian = Role::query()->where('name', 'librarian')->firstOrFail();
-    $before = [
-        'committee' => $committee->permissions->pluck('name')->sort()->values()->all(),
-        'librarian' => $librarian->permissions->pluck('name')->sort()->values()->all(),
-    ];
+    $caisse = Role::query()->where('name', 'caisse')->firstOrFail();
+    $snapshot = fn (Role $role): array => $role->fresh()->permissions->pluck('name')->sort()->values()->all();
+    $before = ['committee' => $snapshot($committee), 'librarian' => $snapshot($librarian), 'caisse' => $snapshot($caisse)];
 
     $this->actingAs(roleUser('super_admin'));
 
@@ -209,25 +209,138 @@ it('garde les actions sensibles de chaque module à l\'enregistrement', function
         ->call('save')->assertHasNoFormErrors();
     $this->livewire(RoleResource\Pages\EditRole::class, ['record' => $librarian->getKey()])
         ->assertFormSet([
-            'sensitive_actions.admissions' => ['candidature.mark_paid'],
+            'modules.admissions' => ModulePermissionMap::LEVEL_NONE,
             'sensitive_actions.bibliotheque' => ['document.publish'],
         ])
         ->call('save')->assertHasNoFormErrors();
+    $this->livewire(RoleResource\Pages\EditRole::class, ['record' => $caisse->getKey()])
+        ->assertFormSet([
+            'modules.admissions' => ModulePermissionMap::LEVEL_READ,
+            'sensitive_actions.admissions' => ['candidature.mark_paid'],
+        ])
+        ->call('save')->assertHasNoFormErrors();
 
-    expect($committee->fresh()->permissions->pluck('name')->sort()->values()->all())->toBe($before['committee'])
+    expect($snapshot($committee))->toBe($before['committee'])
         ->and($before['committee'])->toContain('candidature.accept')
-        ->and($librarian->fresh()->permissions->pluck('name')->sort()->values()->all())->toBe($before['librarian']);
+        ->and($snapshot($librarian))->toBe($before['librarian'])
+        ->and($snapshot($caisse))->toBe($before['caisse'])
+        ->and($before['caisse'])->toContain('candidature.mark_paid');
 });
 
 it('retire les actions sensibles d\'un module passé à « aucun accès »', function (): void {
-    $librarian = Role::query()->where('name', 'librarian')->firstOrFail();
+    $role = Role::create(['name' => 'biblio_et_caisse', 'label' => 'Bibliothèque et caisse', 'guard_name' => 'web']);
+    RoleResource::applyPerimeter(
+        $role,
+        ['admissions' => ModulePermissionMap::LEVEL_READ, 'bibliotheque' => ModulePermissionMap::LEVEL_MANAGE],
+        ['candidature.mark_paid', 'document.publish'],
+    );
+    expect($role->fresh()->permissions->pluck('name'))->toContain('candidature.mark_paid');
+
     $this->actingAs(roleUser('super_admin'));
 
-    $this->livewire(RoleResource\Pages\EditRole::class, ['record' => $librarian->getKey()])
+    $this->livewire(RoleResource\Pages\EditRole::class, ['record' => $role->getKey()])
         ->fillForm(['modules.admissions' => ModulePermissionMap::LEVEL_NONE])
         ->call('save')->assertHasNoFormErrors();
 
-    expect($librarian->fresh()->permissions->pluck('name'))
+    expect($role->fresh()->permissions->pluck('name'))
         ->not->toContain('candidature.mark_paid')
+        ->not->toContain('view_any_candidature')
         ->toContain('document.publish');
+});
+
+it('propose l\'action autonome document.contribute même sans accès au module', function (): void {
+    $this->actingAs(roleUser('super_admin'));
+
+    $this->livewire(RoleResource\Pages\CreateRole::class)
+        ->fillForm([
+            'label' => 'Dépôt de mémoires',
+            'name' => 'depot_memoires',
+            'modules' => [
+                'site' => ModulePermissionMap::LEVEL_NONE,
+                'admissions' => ModulePermissionMap::LEVEL_NONE,
+                'bibliotheque' => ModulePermissionMap::LEVEL_NONE,
+                'administration' => ModulePermissionMap::LEVEL_NONE,
+            ],
+        ])
+        ->assertFormFieldIsVisible('standalone_actions.bibliotheque')
+        ->assertFormFieldIsHidden('sensitive_actions.bibliotheque')
+        ->fillForm(['standalone_actions' => ['bibliotheque' => ['document.contribute']]])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $role = Role::query()->where('name', 'depot_memoires')->firstOrFail();
+    expect($role->permissions->pluck('name')->all())->toBe(['document.contribute']);
+
+    // Aller-retour : rouvrir et enregistrer sans rien changer ne perd rien.
+    $this->livewire(RoleResource\Pages\EditRole::class, ['record' => $role->getKey()])
+        ->assertFormSet([
+            'modules.bibliotheque' => ModulePermissionMap::LEVEL_NONE,
+            'standalone_actions.bibliotheque' => ['document.contribute'],
+        ])
+        ->assertFormFieldIsVisible('standalone_actions.bibliotheque')
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($role->fresh()->permissions->pluck('name')->all())->toBe(['document.contribute'])
+        ->and(roleUser('depot_memoires')->hasBackOfficePerimeter())->toBeTrue();
+});
+
+it('n\'enregistre une action sensible non autonome qu\'avec un accès au module', function (): void {
+    $none = ['bibliotheque' => ModulePermissionMap::LEVEL_NONE];
+
+    expect(ModulePermissionMap::toPermissions($none, ['document.publish', 'document.contribute']))
+        ->toBe(['document.contribute'])
+        ->and(ModulePermissionMap::toPermissions(['bibliotheque' => ModulePermissionMap::LEVEL_READ], ['library.stats_export']))
+        ->toContain('library.stats_export')->toContain('view_any_document');
+});
+
+it('fait l\'aller-retour des actions autonomes sans dérive', function (): void {
+    $levels = [
+        'site' => ModulePermissionMap::LEVEL_NONE,
+        'admissions' => ModulePermissionMap::LEVEL_NONE,
+        'bibliotheque' => ModulePermissionMap::LEVEL_NONE,
+        'administration' => ModulePermissionMap::LEVEL_NONE,
+    ];
+    $permissions = ModulePermissionMap::toPermissions($levels, ['document.contribute']);
+
+    expect(ModulePermissionMap::toLevels($permissions))->toBe($levels)
+        ->and(RoleResource::sensitiveActionsByModule($permissions)['bibliotheque'])->toBe([])
+        ->and(RoleResource::standaloneActionsByModule($permissions))->toBe(['bibliotheque' => ['document.contribute']])
+        ->and(ModulePermissionMap::standaloneActions())->toBe(['document.contribute']);
+});
+
+it('range les nouvelles actions de la bibliothèque parmi ses actions sensibles', function (): void {
+    expect(array_keys(ModulePermissionMap::modules()['bibliotheque']['sensitive']))->toBe([
+        'document.publish', 'library.thesaurus', 'library.redirects', 'library.stats_export', 'document.contribute',
+    ]);
+});
+
+it('affiche en lecture un module que le rôle ouvre par une seule permission de gestion', function (): void {
+    // Un rôle posé à la main avec une permission de gestion sans lecture ouvre
+    // le module (ModuleAccess) : l'écran des rôles ne doit pas l'afficher
+    // « Aucun accès », sinon un simple enregistrement retirerait l'accès.
+    $permissions = ['update_document', 'document.publish'];
+    $role = Role::findOrCreate('gestion-partielle', 'web');
+    $role->syncPermissions($permissions);
+    $user = User::factory()->create();
+    $user->assignRole($role);
+
+    expect(ModuleAccess::allows($user->fresh(), 'bibliotheque'))->toBeTrue();
+
+    $levels = ModulePermissionMap::toLevels($permissions);
+
+    expect($levels['bibliotheque'])->toBe(ModulePermissionMap::LEVEL_READ)
+        ->and($levels['admissions'])->toBe(ModulePermissionMap::LEVEL_NONE);
+
+    // Aller-retour : le niveau affiché, réenregistré, garde le module ouvert
+    // et l'action sensible cochée.
+    $saved = ModulePermissionMap::toPermissions($levels, ['document.publish']);
+
+    expect($saved)->toContain('view_any_document')->toContain('document.publish')
+        ->and(ModulePermissionMap::toLevels($saved))->toBe($levels);
+});
+
+it('garde « Aucun accès » pour un rôle qui ne porte qu\'une action autonome', function (): void {
+    expect(ModulePermissionMap::toLevels(['document.contribute'])['bibliotheque'])
+        ->toBe(ModulePermissionMap::LEVEL_NONE);
 });

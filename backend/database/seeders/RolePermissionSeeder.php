@@ -24,7 +24,8 @@ final class RolePermissionSeeder extends Seeder
      * Pour une base neuve (dev, tests, première installation) uniquement.
      * **Ne jamais relancer en prod** : `syncPermissions` écraserait les
      * réglages faits depuis l'écran Rôles. Toute nouvelle permission arrive en
-     * prod par une migration additive (ex. 2026_10_17_110000_grant_library_permissions).
+     * prod par une migration additive (ex. 2026_10_17_110000_grant_library_permissions,
+     * 2026_10_19_200000_library_admin_roles).
      */
     public function run(): void
     {
@@ -58,9 +59,11 @@ final class RolePermissionSeeder extends Seeder
         /*
          * Périmètre initial de chaque rôle.
          *
-         * Règle transverse : les campagnes sont lisibles par tous les rôles
-         * back-office mais ne se modifient que par `admin` / `super_admin`
-         * (verrou porté par CampagneCandidaturePolicy).
+         * Règle transverse : les campagnes sont lisibles par tout rôle qui a
+         * accès aux admissions (lecture ou gestion) mais ne se modifient que
+         * par `admin` / `super_admin` (verrou porté par
+         * CampagneCandidaturePolicy). Les rôles d'autres modules (site,
+         * bibliothèque) ne les voient pas.
          */
         $roles = [
             'super_admin' => [
@@ -82,6 +85,10 @@ final class RolePermissionSeeder extends Seeder
                     'candidature.notify',
                     'campagne.download_resultats',
                     'document.publish',
+                    'library.thesaurus',
+                    'library.redirects',
+                    'library.stats_export',
+                    'document.contribute',
                 ],
             ],
             'editor' => [
@@ -113,11 +120,45 @@ final class RolePermissionSeeder extends Seeder
                 'modules' => ['site' => $none, 'admissions' => $read, 'administration' => $none, 'bibliotheque' => $none],
                 'sensitive' => ['candidature.mark_depot_physique'],
             ],
+            /*
+             * Bibliothèque (Plan 6) : ces rôles n'ouvrent que le module
+             * bibliothèque du back-office (cf. ModuleAccess). L'encaissement
+             * des frais de dossier, autrefois porté par `librarian`, est
+             * passé au rôle `caisse` — à cumuler si besoin.
+             *
+             * Libellés et descriptions identiques à la migration
+             * 2026_10_19_200000_library_admin_roles (vérifié par
+             * LibraryAdminRolesMigrationTest).
+             */
+            'library_manager' => [
+                'label' => 'Responsable de la bibliothèque',
+                'description' => 'Bibliothèque seulement : documents, thésaurus, publication, anciennes adresses et statistiques.',
+                'modules' => ['site' => $none, 'admissions' => $none, 'administration' => $none, 'bibliotheque' => $manage],
+                'sensitive' => ['document.publish', 'library.thesaurus', 'library.redirects', 'library.stats_export'],
+            ],
             'librarian' => [
                 'label' => 'Bibliothécaire',
-                'description' => 'Bibliothèque virtuelle et encaissement des frais de dossier.',
-                'modules' => ['site' => $none, 'admissions' => $read, 'administration' => $none, 'bibliotheque' => $manage],
-                'sensitive' => ['candidature.mark_paid', 'document.publish'],
+                'description' => 'Bibliothèque seulement : gestion des documents et du thésaurus, publication.',
+                'modules' => ['site' => $none, 'admissions' => $none, 'administration' => $none, 'bibliotheque' => $manage],
+                'sensitive' => ['document.publish'],
+            ],
+            'library_contributor' => [
+                'label' => 'Contributeur bibliothèque',
+                'description' => 'Bibliothèque seulement : dépôt de ses propres documents, soumis à validation.',
+                'modules' => ['site' => $none, 'admissions' => $none, 'administration' => $none, 'bibliotheque' => $none],
+                'sensitive' => ['document.contribute'],
+            ],
+            'library_viewer' => [
+                'label' => 'Consultation bibliothèque',
+                'description' => 'Bibliothèque seulement : consultation du catalogue et export des statistiques.',
+                'modules' => ['site' => $none, 'admissions' => $none, 'administration' => $none, 'bibliotheque' => $read],
+                'sensitive' => ['library.stats_export'],
+            ],
+            'caisse' => [
+                'label' => 'Caisse — frais de dossier',
+                'description' => 'Admissions en lecture et encaissement des frais de dossier.',
+                'modules' => ['site' => $none, 'admissions' => $read, 'administration' => $none, 'bibliotheque' => $none],
+                'sensitive' => ['candidature.mark_paid'],
             ],
             // `teacher` et `auditor` n'ouvrent pas le back-office (cf.
             // User::NON_PANEL_ROLES) : ce sont des rôles d'API et de futurs

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\ChecksModuleAccess;
 use App\Models\User;
 use App\Services\EnvoiTestService;
 use App\Services\Sms\ChecksConnectivity;
@@ -12,6 +13,7 @@ use App\Services\Sms\SmsConfigurationSummary;
 use App\Services\Sms\SmsDeliveryStatuses;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\AppSettings;
+use App\Support\BelongsToModule;
 use App\Support\SecretRedactor;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Actions\Action as FormAction;
@@ -36,8 +38,10 @@ use RuntimeException;
  * « nouvelle candidature soumise ». Elles étaient jusqu'ici figées dans
  * `MAIL_TO_ADMISSIONS`, donc modifiables uniquement par un accès serveur.
  */
+#[BelongsToModule('administration')]
 class Parametres extends Page implements HasForms
 {
+    use ChecksModuleAccess;
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
@@ -57,7 +61,7 @@ class Parametres extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('settings.manage') ?? false;
+        return static::moduleAllows() && (auth()->user()?->can('settings.manage') ?? false);
     }
 
     public function mount(): void

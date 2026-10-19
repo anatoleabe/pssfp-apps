@@ -55,7 +55,11 @@ final class SendThrottledMail implements ShouldQueue
         private readonly Mailable $mailable,
         private readonly array $copiesCachees = [],
         private readonly ?int $relanceId = null,
-    ) {}
+    ) {
+        // Jamais de message pour une écriture annulée ensuite (transaction
+        // en échec) : la mise en file attend la validation.
+        $this->afterCommit();
+    }
 
     /** @return list<object> */
     public function middleware(): array

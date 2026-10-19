@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\ChecksModuleAccess;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\RegionCameroun;
+use App\Support\BelongsToModule;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Collection;
 
@@ -20,10 +22,14 @@ use Illuminate\Support\Collection;
  *
  * Polling auto 60s + bouton refresh manuel (Livewire $this->dispatch).
  *
- * Visible uniquement pour les rôles admission_committee, admin, super_admin.
+ * Visible aux comptes qui ont accès au module des admissions et gèrent les
+ * dossiers (`update_candidature`).
  */
+#[BelongsToModule('admissions')]
 class QuotasRegionauxWidget extends Widget
 {
+    use ChecksModuleAccess;
+
     protected static string $view = 'filament.widgets.quotas-regionaux';
 
     protected int|string|array $columnSpan = 'full';
@@ -37,7 +43,10 @@ class QuotasRegionauxWidget extends Widget
 
     public static function canView(): bool
     {
-        return auth()->user()?->hasAnyRole(['super_admin', 'admin', 'admission_committee']) ?? false;
+        // Pour qui gère les dossiers : permission et non noms de rôles, pour
+        // qu'un rôle créé depuis l'écran des rôles le voie aussi.
+        return static::moduleAllows()
+            && (auth()->user()?->can('update_candidature') ?? false);
     }
 
     /**

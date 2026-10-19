@@ -184,16 +184,16 @@ it('logs an admin_download activity when admin views the recipisse', function ()
     expect($log->properties->get('type'))->toBe('admin_download');
 });
 
-it('forbids accept action for librarian (no candidature.accept)', function (): void {
-    $librarian = User::factory()->create();
-    $librarian->assignRole('librarian');
+it('forbids accept action for the caisse (no candidature.accept)', function (): void {
+    $caisse = User::factory()->create();
+    $caisse->assignRole('caisse');
 
     $cand = Candidature::factory()->forCampagne($this->campagne)->submitted()->create([
         'user_id' => $this->candidat->id,
         'phone_e164' => $this->candidat->phone_e164,
     ]);
 
-    $this->actingAs($librarian);
+    $this->actingAs($caisse);
     $this->livewire(ListCandidatures::class)
         ->assertTableActionHidden('accept', $cand);
 });

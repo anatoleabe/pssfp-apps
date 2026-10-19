@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Events\CandidatureAccepted;
 use App\Events\CandidatureRefused;
+use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\CandidatureResource\Pages;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
@@ -18,6 +19,7 @@ use App\Services\DocumentUploadService;
 use App\Services\NotificationCandidatsService;
 use App\Services\RecipisseService;
 use App\Services\TestCandidaturePurgeService;
+use App\Support\BelongsToModule;
 use App\Support\CandidatureDocumentTypeLabel;
 use Carbon\Carbon;
 use Filament\Forms;
@@ -47,8 +49,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *   modification via Filament (ajout 5 PR D).
  * - Filtres persistés en session pour confort UX du comité.
  */
+#[BelongsToModule('admissions')]
 class CandidatureResource extends Resource
 {
+    use RestrictedToModule;
+
     protected static ?string $model = Candidature::class;
 
     protected static ?string $modelLabel = 'Candidature';

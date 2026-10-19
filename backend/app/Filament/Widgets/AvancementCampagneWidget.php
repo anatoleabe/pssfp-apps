@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\ChecksModuleAccess;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Services\CandidatureService;
+use App\Support\BelongsToModule;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -24,19 +26,29 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  * - Taux frais payés
  * - Compte à rebours date de clôture (couleur conditionnelle)
  *
- * Visible à tout user qui peut accéder au panel admin.
+ * Visible aux comptes qui ont accès au module des admissions et qui gèrent
+ * les dossiers (`update_candidature`) ou encaissent les frais
+ * (`candidature.mark_paid`).
  */
+#[BelongsToModule('admissions')]
 class AvancementCampagneWidget extends BaseWidget
 {
+    use ChecksModuleAccess;
+
     protected static ?int $sort = 0;
 
     protected static ?string $pollingInterval = '60s';
 
     public static function canView(): bool
     {
-        return auth()->user()?->hasAnyRole([
-            'super_admin', 'admin', 'admission_committee', 'librarian', 'editor',
-        ]) ?? false;
+        // Vue d'ensemble de la campagne (statuts, frais payés) : pour qui gère
+        // les dossiers ou encaisse les frais. Permissions et non noms de
+        // rôles, pour qu'un rôle créé depuis l'écran des rôles la voie aussi ;
+        // le guichet (pointage seul) ne la voit pas.
+        $user = auth()->user();
+
+        return static::moduleAllows() && $user !== null
+            && ($user->can('update_candidature') || $user->can('candidature.mark_paid'));
     }
 
     protected function getStats(): array

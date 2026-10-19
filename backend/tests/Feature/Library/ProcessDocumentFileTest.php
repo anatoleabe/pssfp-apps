@@ -211,3 +211,23 @@ it('garde la couverture précédente et journalise si l\'envoi de la nouvelle é
         ->and($doc->file_checksum_md5)->toBe(md5('contenu i'));
     Log::shouldHaveReceived('warning')->withArgs(fn (string $message): bool => str_contains($message, 'couverture'))->once();
 });
+
+it('désérialise un job mis en file avant l\'ajout de la régénération forcée', function (): void {
+    // Un job sérialisé par l'ancienne signature (documentId seul) ne porte pas
+    // `forceCover` : il doit retomber sur false au lieu d'une propriété non
+    // initialisée qui ferait échouer le worker.
+    $current = serialize(new ProcessDocumentFile(42, true));
+    $legacy = preg_replace_callback(
+        '/^O:(\d+):"([^"]+)":(\d+):\{(.*)s:10:"forceCover";b:1;(.*)$/s',
+        fn (array $m): string => sprintf('O:%s:"%s":%d:{%s%s', $m[1], $m[2], ((int) $m[3]) - 1, $m[4], $m[5]),
+        $current,
+    );
+
+    expect($legacy)->not->toBe($current)->not->toContain('forceCover');
+
+    $job = unserialize($legacy);
+
+    expect($job)->toBeInstanceOf(ProcessDocumentFile::class)
+        ->and($job->documentId)->toBe(42)
+        ->and($job->forceCover)->toBeFalse();
+});

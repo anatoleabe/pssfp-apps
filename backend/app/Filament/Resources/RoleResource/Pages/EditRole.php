@@ -39,6 +39,7 @@ class EditRole extends EditRecord
 
         $data['modules'] = ModulePermissionMap::toLevels($permissions);
         $data['sensitive_actions'] = RoleResource::sensitiveActionsByModule($permissions);
+        $data['standalone_actions'] = RoleResource::standaloneActionsByModule($permissions);
 
         return $data;
     }
@@ -50,9 +51,12 @@ class EditRole extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $this->levels = (array) ($data['modules'] ?? []);
-        $this->sensitiveActions = RoleResource::mergeSensitiveActions($data['sensitive_actions'] ?? []);
+        $this->sensitiveActions = RoleResource::mergeSensitiveActions(
+            $data['sensitive_actions'] ?? [],
+            $data['standalone_actions'] ?? [],
+        );
 
-        unset($data['modules'], $data['sensitive_actions']);
+        unset($data['modules'], $data['sensitive_actions'], $data['standalone_actions']);
 
         return $data;
     }

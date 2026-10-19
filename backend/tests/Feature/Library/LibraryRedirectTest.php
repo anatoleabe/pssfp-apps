@@ -105,3 +105,9 @@ it('résout une ancienne URL /index.php stockée avec sa query string', function
 
     $this->getJson('/v1/library/redirects?path='.rawurlencode('/index.php'))->assertNotFound();
 });
+
+it('rejette les caractères de contrôle C1 dans une cible', function (): void {
+    expect(LibraryRedirect::isSafeTarget("/a\u{0085}b"))->toBeFalse()
+        ->and(LibraryRedirect::isSafeTarget("/a\u{009F}"))->toBeFalse()
+        ->and(LibraryRedirect::isSafeTarget('/documents/été'))->toBeTrue();
+});

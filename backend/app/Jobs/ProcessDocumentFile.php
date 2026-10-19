@@ -11,12 +11,19 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 /**
  * Après dépôt ou import d'un PDF : taille, MD5 et couverture.
+ *
+ * Une couverture personnalisée (Document::hasCustomCover()) n'est jamais
+ * remplacée par le traitement automatique ; seule la régénération forcée
+ * (`forceCover`, action « Régénérer la couverture ») la remplace, et
+ * seulement si le rendu réussit (un rendu forcé en échec ne vide jamais la
+ * couverture existante).
  *
  * Lecture par readStream (GetObject) uniquement — pas de HeadObject en prod.
  */
@@ -35,7 +42,19 @@ final class ProcessDocumentFile implements ShouldQueue
      */
     public int $timeout = 85;
 
-    public function __construct(public readonly int $documentId) {}
+    /**
+     * Propriété classique avec valeur par défaut (et non promue `readonly`) :
+     * un job sérialisé avant son ajout, sans cette clé, se désérialise avec
+     * false au lieu d'une propriété non initialisée.
+     */
+    public bool $forceCover = false;
+
+    public function __construct(
+        public readonly int $documentId,
+        bool $forceCover = false,
+    ) {
+        $this->forceCover = $forceCover;
+    }
 
     public function handle(CoverRenderer $renderer): void
     {
@@ -78,19 +97,11 @@ final class ProcessDocumentFile implements ShouldQueue
             $attributes = [
                 'file_size_bytes' => filesize($local),
                 'file_checksum_md5' => md5_file($local),
-                'cover_path' => null,
             ];
 
-            $jpeg = $renderer->render($local);
-            if ($jpeg !== null) {
-                $coverPath = (string) config('library.covers_directory')."/{$document->uuid}.jpg";
-                // Disque en throw=false : sans écriture confirmée, la couverture précédente reste.
-                if (Storage::disk((string) config('library.covers_disk'))->put($coverPath, $jpeg, ['visibility' => 'public']) === true) {
-                    $attributes['cover_path'] = $coverPath;
-                } else {
-                    unset($attributes['cover_path']);
-                    Log::warning('Bibliothèque : envoi de la couverture impossible', ['document' => $document->uuid, 'path' => $coverPath]);
-                }
+            $customCover = $document->hasCustomCover();
+            if (! $customCover || $this->forceCover) {
+                $attributes = [...$attributes, ...$this->coverAttributes($document, $renderer, $local, $customCover)];
             }
         } finally {
             if (is_resource($stream)) {
@@ -102,10 +113,54 @@ final class ProcessDocumentFile implements ShouldQueue
             @unlink($local);
         }
 
+        // Le rendu prend du temps : une couverture personnalisée posée
+        // entre-temps (relue en base) l'emporte sur un traitement automatique.
+        if (! $this->forceCover && array_key_exists('cover_path', $attributes) && $this->customCoverSetMeanwhile()) {
+            unset($attributes['cover_path']);
+        }
+
         Document::withoutEvents(fn () => $document->forceFill($attributes)->save());
 
         // searchable() seul ne consulte pas shouldBeSearchable() : sans ce garde,
         // un brouillon avec PDF partirait dans l'index public.
         $document->syncSearchIndex();
+    }
+
+    private function customCoverSetMeanwhile(): bool
+    {
+        $current = Document::query()->whereKey($this->documentId)->value('cover_path');
+
+        return is_string($current) && str_starts_with($current, Document::customCoversDirectory().'/');
+    }
+
+    /**
+     * Couverture tirée de la première page. Sans rendu, une couverture
+     * automatique périmée est effacée ; une couverture personnalisée reste.
+     *
+     * @return array{cover_path?: ?string, updated_at?: Carbon}
+     */
+    private function coverAttributes(Document $document, CoverRenderer $renderer, string $local, bool $customCover): array
+    {
+        // Régénération forcée sans rendu : on garde ce qui existe plutôt que
+        // de vider la couverture à la demande de l'utilisateur.
+        $fallback = ($customCover || $this->forceCover) ? [] : ['cover_path' => null];
+
+        $jpeg = $renderer->render($local);
+        if ($jpeg === null) {
+            return $fallback;
+        }
+
+        $coverPath = (string) config('library.covers_directory')."/{$document->uuid}.jpg";
+        // Disque en throw=false : sans écriture confirmée, la couverture précédente reste.
+        if (Storage::disk((string) config('library.covers_disk'))->put($coverPath, $jpeg, ['visibility' => 'public']) !== true) {
+            Log::warning('Bibliothèque : envoi de la couverture impossible', ['document' => $document->uuid, 'path' => $coverPath]);
+
+            return [];
+        }
+
+        // Même chemin qu'avant ({uuid}.jpg) : sans autre changement, la fiche
+        // ne serait pas réécrite et Document::coverUrl() (version = updated_at)
+        // resterait identique ; on date donc toute nouvelle image.
+        return ['cover_path' => $coverPath, 'updated_at' => now()];
     }
 }

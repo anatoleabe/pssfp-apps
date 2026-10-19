@@ -7,10 +7,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /** Ancienne URL de la bibliothèque Joomla → nouveau chemin. */
 class LibraryRedirect extends Model
 {
+    use LogsActivity;
+
     protected $fillable = ['from_path', 'to_path', 'status_code', 'hits'];
 
     protected $casts = ['status_code' => 'integer', 'hits' => 'integer'];
@@ -20,6 +24,9 @@ class LibraryRedirect extends Model
      * `new URL('/a/..//evil.com', base)` donne le chemin `//evil.com`, que Next relativise en
      * `Location: //evil.com` (hôte externe). Même règle que la contrainte CHECK de la table.
      */
+    /** Contrôles C0, DEL et C1 (U+0080–U+009F), comme `[[:cntrl:]]` de la contrainte CHECK. */
+    public const CONTROL_CHARS = '/[\x00-\x1F\x7F\x{0080}-\x{009F}]/u';
+
     public const DOT_SEGMENT = '#(^|/)(\.|%2e){1,2}([/?\#]|$)#i';
 
     /**
@@ -33,7 +40,7 @@ class LibraryRedirect extends Model
         return str_starts_with($path, '/')
             && ! str_starts_with($path, '//')
             && ! str_contains($path, '\\')
-            && preg_match('/[\x00-\x1F\x7F]/', $path) === 0
+            && preg_match(self::CONTROL_CHARS, $path) === 0
             && preg_match(self::DOT_SEGMENT, $path) === 0;
     }
 
@@ -47,5 +54,10 @@ class LibraryRedirect extends Model
 
             return $value;
         });
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logOnly(['from_path', 'to_path', 'status_code'])->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

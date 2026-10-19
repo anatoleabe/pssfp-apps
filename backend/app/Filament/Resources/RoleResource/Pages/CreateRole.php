@@ -18,8 +18,9 @@ class CreateRole extends CreateRecord
     private array $sensitiveActions = [];
 
     /**
-     * `modules` et `sensitive_actions` ne sont pas des colonnes : on les met
-     * de côté avant l'insert, puis on les traduit en permissions après.
+     * `modules`, `sensitive_actions` et `standalone_actions` ne sont pas des
+     * colonnes : on les met de côté avant l'insert, puis on les traduit en
+     * permissions après.
      *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
@@ -27,9 +28,12 @@ class CreateRole extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $this->levels = (array) ($data['modules'] ?? []);
-        $this->sensitiveActions = RoleResource::mergeSensitiveActions($data['sensitive_actions'] ?? []);
+        $this->sensitiveActions = RoleResource::mergeSensitiveActions(
+            $data['sensitive_actions'] ?? [],
+            $data['standalone_actions'] ?? [],
+        );
 
-        unset($data['modules'], $data['sensitive_actions']);
+        unset($data['modules'], $data['sensitive_actions'], $data['standalone_actions']);
 
         $data['guard_name'] = 'web';
 
