@@ -18,6 +18,11 @@ use RuntimeException;
 /**
  * Après dépôt ou import d'un PDF : taille, MD5 et couverture.
  *
+ * Une couverture personnalisée (Document::hasCustomCover()) n'est jamais
+ * remplacée par le traitement automatique ; seule la régénération forcée
+ * (`forceCover`, action « Régénérer la couverture ») la remplace, et
+ * seulement si le rendu réussit.
+ *
  * Lecture par readStream (GetObject) uniquement — pas de HeadObject en prod.
  */
 final class ProcessDocumentFile implements ShouldQueue
@@ -35,7 +40,10 @@ final class ProcessDocumentFile implements ShouldQueue
      */
     public int $timeout = 85;
 
-    public function __construct(public readonly int $documentId) {}
+    public function __construct(
+        public readonly int $documentId,
+        public readonly bool $forceCover = false,
+    ) {}
 
     public function handle(CoverRenderer $renderer): void
     {
@@ -78,19 +86,11 @@ final class ProcessDocumentFile implements ShouldQueue
             $attributes = [
                 'file_size_bytes' => filesize($local),
                 'file_checksum_md5' => md5_file($local),
-                'cover_path' => null,
             ];
 
-            $jpeg = $renderer->render($local);
-            if ($jpeg !== null) {
-                $coverPath = (string) config('library.covers_directory')."/{$document->uuid}.jpg";
-                // Disque en throw=false : sans écriture confirmée, la couverture précédente reste.
-                if (Storage::disk((string) config('library.covers_disk'))->put($coverPath, $jpeg, ['visibility' => 'public']) === true) {
-                    $attributes['cover_path'] = $coverPath;
-                } else {
-                    unset($attributes['cover_path']);
-                    Log::warning('Bibliothèque : envoi de la couverture impossible', ['document' => $document->uuid, 'path' => $coverPath]);
-                }
+            $customCover = $document->hasCustomCover();
+            if (! $customCover || $this->forceCover) {
+                $attributes = [...$attributes, ...$this->coverAttributes($document, $renderer, $local, $customCover)];
             }
         } finally {
             if (is_resource($stream)) {
@@ -107,5 +107,31 @@ final class ProcessDocumentFile implements ShouldQueue
         // searchable() seul ne consulte pas shouldBeSearchable() : sans ce garde,
         // un brouillon avec PDF partirait dans l'index public.
         $document->syncSearchIndex();
+    }
+
+    /**
+     * Couverture tirée de la première page. Sans rendu, une couverture
+     * automatique périmée est effacée ; une couverture personnalisée reste.
+     *
+     * @return array{cover_path?: ?string}
+     */
+    private function coverAttributes(Document $document, CoverRenderer $renderer, string $local, bool $customCover): array
+    {
+        $fallback = $customCover ? [] : ['cover_path' => null];
+
+        $jpeg = $renderer->render($local);
+        if ($jpeg === null) {
+            return $fallback;
+        }
+
+        $coverPath = (string) config('library.covers_directory')."/{$document->uuid}.jpg";
+        // Disque en throw=false : sans écriture confirmée, la couverture précédente reste.
+        if (Storage::disk((string) config('library.covers_disk'))->put($coverPath, $jpeg, ['visibility' => 'public']) !== true) {
+            Log::warning('Bibliothèque : envoi de la couverture impossible', ['document' => $document->uuid, 'path' => $coverPath]);
+
+            return [];
+        }
+
+        return ['cover_path' => $coverPath];
     }
 }

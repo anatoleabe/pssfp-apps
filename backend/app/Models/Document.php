@@ -117,6 +117,16 @@ class Document extends Model
         return $this->hasMany(DocumentDownload::class);
     }
 
+    /**
+     * Anciennes adresses (site Joomla) qui mènent à la fiche publique.
+     * Clé calculée (`site_path`) : lecture seule, l'écriture passe par
+     * l'écran des redirections.
+     */
+    public function legacyRedirects(): HasMany
+    {
+        return $this->hasMany(LibraryRedirect::class, 'to_path', 'site_path');
+    }
+
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
@@ -157,6 +167,26 @@ class Document extends Model
         return preg_match('/^[a-z0-9]{1,5}$/', $extension) === 1 ? $extension : 'pdf';
     }
 
+    /** Chemin de la fiche sur le site de la bibliothèque (cible des redirections). */
+    protected function sitePath(): Attribute
+    {
+        return Attribute::get(fn (): string => '/documents/'.$this->slug);
+    }
+
+    /**
+     * Dossier des couvertures déposées à la main : le traitement automatique
+     * du PDF ne les remplace plus, sauf régénération forcée.
+     */
+    public static function customCoversDirectory(): string
+    {
+        return (string) config('library.covers_directory').'/custom';
+    }
+
+    public function hasCustomCover(): bool
+    {
+        return $this->cover_path !== null && str_starts_with($this->cover_path, self::customCoversDirectory().'/');
+    }
+
     /** Libellé d'accès : payant prime sur réservé, réservé sur libre. */
     protected function accessMode(): Attribute
     {
@@ -170,7 +200,7 @@ class Document extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['title', 'type', 'status', 'access_level', 'price_xaf', 'file_path', 'external_url'])
+            ->logOnly(['title', 'type', 'status', 'access_level', 'price_xaf', 'file_path', 'external_url', 'cover_path'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }

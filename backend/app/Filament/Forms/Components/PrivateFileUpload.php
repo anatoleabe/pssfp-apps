@@ -22,6 +22,9 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
  * Ici, une chaîne n'est admise que si c'est le fichier **déjà enregistré**
  * sur la fiche (valeur d'origine de la colonne) ; tout autre fichier doit
  * être un nouveau dépôt (TemporaryUploadedFile).
+ *
+ * La même garde sert sur un disque public (couverture personnalisée d'un
+ * document) : appeler `->visibility('public')` après `make()`.
  */
 class PrivateFileUpload extends FileUpload
 {

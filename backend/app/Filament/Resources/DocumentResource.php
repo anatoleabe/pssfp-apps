@@ -6,7 +6,9 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Forms\Components\PrivateFileUpload;
+use App\Filament\Resources\DocumentResource\DocumentBulkActions;
 use App\Filament\Resources\DocumentResource\Pages;
+use App\Filament\Resources\DocumentResource\RelationManagers;
 use App\Models\Document;
 use App\Models\User;
 use App\Services\Library\DocumentReviewNotifier;
@@ -316,19 +318,25 @@ class DocumentResource extends Resource
                             ->send();
                     })
                     ->deselectRecordsAfterCompletion(),
+                ...DocumentBulkActions::make(),
             ])
             ->defaultSort('updated_at', 'desc');
     }
 
-    /** Brouillon → en revue ; les validateurs sont prévenus. */
-    public static function submit(Document $document): void
+    /**
+     * Brouillon → en revue ; les validateurs sont prévenus. Le lot passe
+     * `notify: false` et regroupe les messages.
+     */
+    public static function submit(Document $document, bool $notify = true): void
     {
         abort_unless(auth()->user()?->can('update', $document), 403);
         abort_unless($document->status === Document::STATUS_DRAFT, 403);
 
         $document->update(['status' => Document::STATUS_IN_REVIEW]);
 
-        DocumentReviewNotifier::submitted($document, self::actor());
+        if ($notify) {
+            DocumentReviewNotifier::submitted($document, self::actor());
+        }
     }
 
     /**
@@ -372,7 +380,7 @@ class DocumentResource extends Resource
         DocumentReviewNotifier::returnedToDraft($document, self::actor(), $reason);
     }
 
-    private static function actor(): ?User
+    public static function actor(): ?User
     {
         $user = auth()->user();
 
@@ -386,6 +394,15 @@ class DocumentResource extends Resource
         abort_unless($document->status === Document::STATUS_PUBLISHED, 403);
 
         $document->update(['status' => Document::STATUS_ARCHIVED]);
+    }
+
+    /** Outils de la fiche, en lecture seule. */
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\ActivitiesRelationManager::class,
+            RelationManagers\LegacyRedirectsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

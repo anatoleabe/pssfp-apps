@@ -8,6 +8,7 @@ use App\Filament\Resources\DocumentResource;
 use App\Jobs\SendThrottledMail;
 use App\Mail\LibraryDocumentPublishedMail;
 use App\Mail\LibraryDocumentReturnedMail;
+use App\Mail\LibraryDocumentsSubmittedMail;
 use App\Mail\LibraryDocumentSubmittedMail;
 use App\Models\Document;
 use App\Models\User;
@@ -38,6 +39,28 @@ final class DocumentReviewNotifier
                 typeLabel: $summary['type'],
                 adminUrl: $summary['url'],
             ));
+        }
+    }
+
+    /**
+     * Soumission en lot : un seul message par validateur, qui liste les
+     * documents ; un lot d'un seul document garde le message habituel.
+     *
+     * @param  Collection<int, Document>  $documents
+     */
+    public static function submittedBatch(Collection $documents, ?User $actor): void
+    {
+        if ($documents->count() <= 1) {
+            $documents->each(fn (Document $d) => self::submitted($d, $actor));
+
+            return;
+        }
+
+        $summaries = $documents->map(fn (Document $d): array => self::summary($d))->values()->all();
+        $queueUrl = DocumentResource::getUrl('index', ['activeTab' => 'a_valider']);
+
+        foreach (self::publisherEmails($actor) as $email) {
+            SendThrottledMail::dispatch([$email], new LibraryDocumentsSubmittedMail($summaries, $queueUrl));
         }
     }
 

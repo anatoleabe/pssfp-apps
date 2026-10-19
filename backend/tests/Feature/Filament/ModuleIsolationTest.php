@@ -19,6 +19,8 @@ use App\Support\ModulePermissionMap;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
 use Filament\Pages\Dashboard;
+use Filament\Resources\RelationManagers\RelationGroup;
+use Filament\Resources\RelationManagers\RelationManagerConfiguration;
 use Filament\Widgets\Widget;
 use Filament\Widgets\WidgetConfiguration;
 use Illuminate\Support\Facades\Bus;
@@ -166,6 +168,31 @@ it('déclare un module connu pour chaque écran enregistré dans le panneau', fu
             expect($module)->toBe(ModuleAccess::CORE, "{$screen} (Filament) doit rester dans le socle commun");
         }
     }
+});
+
+it('déclare le module de chaque gestionnaire de relation, celui de sa Resource', function (): void {
+    $checked = 0;
+
+    foreach (isolationScreens()['resource'] as $resource) {
+        $relations = collect($resource::getRelations())
+            ->flatMap(fn (string|RelationGroup|RelationManagerConfiguration $relation): array => match (true) {
+                $relation instanceof RelationGroup => $relation->getManagers(),
+                default => [$relation],
+            })
+            ->map(fn (string|RelationManagerConfiguration $relation): string => $relation instanceof RelationManagerConfiguration ? $relation->relationManager : $relation);
+
+        foreach ($relations as $relation) {
+            $checked++;
+
+            expect(ModuleAccess::moduleOf($relation))->toBe(ModuleAccess::moduleOf($resource), "{$relation} ne déclare pas le module de {$resource}")
+                ->and(in_array(ChecksModuleAccess::class, class_uses_recursive($relation), true))
+                ->toBeTrue("{$relation} n'applique pas le contrôle d'accès par module")
+                ->and(isolationMethodChecksModule($relation, 'canViewForRecord'))
+                ->toBeTrue("{$relation}::canViewForRecord() ne passe pas par moduleAllows()");
+        }
+    }
+
+    expect($checked)->toBeGreaterThan(0);
 });
 
 it('ferme chaque écran d\'un module à qui n\'y a ni lecture, ni gestion, ni action autonome', function (): void {
