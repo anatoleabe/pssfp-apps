@@ -10,6 +10,8 @@ use App\Models\LibraryRedirect;
 use App\Models\MotCle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
 /** Données transverses de la bibliothèque : compteurs, thésaurus, anciennes URL. */
@@ -35,12 +37,35 @@ final class CatalogueController extends Controller
         ]]);
     }
 
-    public function motsCles(): JsonResponse
+    public function motsCles(Request $request): JsonResponse
     {
+        $filters = $request->validate(['type' => ['nullable', Rule::in(array_keys(Document::TYPES))]]);
+
+        // Paires (mot-clé, document) des documents publiés : une requête, agrégée en PHP.
+        $documentsByKeyword = DB::table('document_mot_cle')
+            ->joinSub(
+                Document::query()->published()
+                    ->when($filters['type'] ?? null, fn ($q, $v) => $q->where('type', $v))
+                    ->select('documents.id'),
+                'published_documents',
+                'published_documents.id',
+                '=',
+                'document_mot_cle.document_id',
+            )
+            ->get(['document_mot_cle.mot_cle_id', 'document_mot_cle.document_id'])
+            ->groupBy('mot_cle_id')
+            ->map(fn ($rows) => $rows->pluck('document_id')->all());
+
+        $descendants = MotCle::descendantsIndex();
+
         $items = MotCle::query()->with('parent')->orderBy('slug')->get()->map(fn (MotCle $m): array => [
             'slug' => $m->slug,
             'label' => $m->getTranslation('label', 'fr'),
             'parent_slug' => $m->parent?->slug,
+            'documents_count' => collect($descendants[$m->id] ?? [$m->id])
+                ->flatMap(fn (int $id) => $documentsByKeyword->get($id, []))
+                ->unique()
+                ->count(),
         ]);
 
         return response()->json(['data' => $items]);

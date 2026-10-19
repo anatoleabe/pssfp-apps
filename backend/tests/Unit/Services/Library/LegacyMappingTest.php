@@ -70,7 +70,7 @@ it('applique chaque ligne du tableau de correspondance Alexandria', function (st
     'comptabilité publique' => ['ouvrage-numerique/comptabilite-publiques', 'ouvrage_numerique', ['comptabilite-publique']],
     'recueils de textes' => ['ouvrage-numerique/receuil-de-textes', 'ouvrage_numerique', ['recueils-de-textes']],
     'finances' => ['ouvrage-numerique/finances', 'ouvrage_numerique', ['finances-publiques']],
-    'autres' => ['ouvrage-numerique/autres', 'ouvrage_numerique', []],
+    'autres' => ['ouvrage-numerique/autres', 'ouvrage_numerique', ['autres-ouvrages']],
     'réformes marchés publics' => ['reformes/marches-publics', 'rapport', ['reformes', 'marches-publics']],
     'rapports et publications' => ['rapports-et-publications', 'rapport', []],
     'textes dépubliés (des livres)' => ['textes-et-lois', 'ouvrage_numerique', []],
@@ -149,3 +149,132 @@ it('valide la configuration au chargement', function (array $config, string $mes
     'libellé vide' => [['thesaurus' => ['vide' => ['label' => ' ']], 'docman' => [], 'alexandria' => []], 'vide'],
     'accès inconnu' => [['thesaurus' => [], 'docman' => ['a' => ['type' => 'rapport', 'access_level' => 'vip']], 'alexandria' => []], 'vip'],
 ]);
+
+it('range « ouvrage-numerique/autres » sous le thème Autres ouvrages', function (): void {
+    $mapped = (new LegacyMapping)->forAlexandriaCategory('ouvrage-numerique/autres');
+    $theme = collect((new LegacyMapping)->thesaurus())->firstWhere('slug', 'autres-ouvrages');
+
+    expect($mapped->type)->toBe('ouvrage_numerique')
+        ->and(keywordSlugs($mapped))->toBe(['autres-ouvrages'])
+        ->and($theme->label)->toBe('Autres ouvrages')
+        ->and($theme->parentSlug)->toBe('themes');
+});
+
+it('applique la règle du dossier du serveur le plus spécifique', function (string $path, string $type, array $keywords, string $rule): void {
+    $result = (new LegacyMapping)->forServerFile($path);
+
+    expect($result->exclusionReason)->toBeNull()
+        ->and($result->category->type)->toBe($type)
+        ->and(keywordSlugs($result->category))->toBe($keywords)
+        ->and($result->folderRule)->toBe($rule);
+})->with([
+    'livre à la racine' => ['livres/Un livre.pdf', 'ouvrage_numerique', ['autres-ouvrages'], 'livres'],
+    'livre en sous-dossier' => ['livres/Livre/X.pdf', 'ouvrage_numerique', ['autres-ouvrages'], 'livres'],
+    'décrets' => ['Documentations/DECRETS/X.pdf', 'texte_loi', ['decrets'], 'Documentations/DECRETS'],
+    'réformes audit' => ['Documentations/REFORMES/AUDIT ET CONTROLE/X.pdf', 'rapport', ['reformes', 'audit-et-controle'], 'Documentations/REFORMES/AUDIT ET CONTROLE'],
+    'insensible à la casse' => ['documentations/decrets/x.PDF', 'texte_loi', ['decrets'], 'Documentations/DECRETS'],
+]);
+
+it('exclut les dossiers et fichiers listés', function (string $path, string $rule): void {
+    $result = (new LegacyMapping)->forServerFile($path);
+
+    expect($result->category)->toBeNull()
+        ->and($result->exclusionReason)->not->toBe('')->not->toBeNull()
+        ->and($result->folderRule)->toBe($rule);
+})->with([
+    'sous-dossier plus spécifique que ARRETES' => ['Documentations/ARRETES/TEST/X.pdf', 'Documentations/ARRETES/TEST'],
+    'fichier listé' => ['livres/Programmer en Java.pdf', 'livres/Programmer en Java.pdf'],
+    'fichier listé, autre casse' => ['LIVRES/programmer en java.PDF', 'livres/Programmer en Java.pdf'],
+]);
+
+it('normalise les chemins serveur (NFC, Windows-1252)', function (): void {
+    $mapping = new LegacyMapping([
+        'thesaurus' => ['themes' => ['label' => 'Thèmes']],
+        'docman' => ['a' => ['type' => 'rapport']],
+        'server_folders' => ['Étude' => ['source' => 'docman', 'category' => 'a']],
+    ]);
+
+    $nfd = "E\u{0301}tude/x.pdf";
+    $cp1252 = mb_convert_encoding('Étude/x.pdf', 'Windows-1252', 'UTF-8');
+
+    expect($mapping->forServerFile($nfd)->category?->type)->toBe('rapport')
+        ->and($mapping->forServerFile($cp1252)->category?->type)->toBe('rapport');
+});
+
+it('ne reconnaît pas un préfixe partiel de segment', function (): void {
+    $result = (new LegacyMapping)->forServerFile('livres-anciens/X.pdf');
+
+    expect($result->category)->toBeNull()->and($result->exclusionReason)->toBeNull();
+});
+
+it('renvoie un résultat vide pour un dossier inconnu', function (): void {
+    $result = (new LegacyMapping)->forServerFile('Inconnu/X.pdf');
+
+    expect($result->category)->toBeNull()
+        ->and($result->exclusionReason)->toBeNull()
+        ->and($result->folderRule)->toBe('');
+});
+
+it('refuse une configuration de dossiers serveur invalide', function (array $override, string $message): void {
+    $config = [
+        'thesaurus' => ['themes' => ['label' => 'Thèmes']],
+        'docman' => ['a' => ['type' => 'rapport']],
+        'alexandria' => ['' => ['type' => 'ouvrage_numerique']],
+    ];
+
+    expect(fn () => new LegacyMapping($config + $override))
+        ->toThrow(InvalidArgumentException::class, $message);
+})->with([
+    'catégorie absente' => [['server_folders' => ['x' => ['source' => 'docman', 'category' => 'absente']]], 'absente'],
+    'source inconnue' => [['server_folders' => ['x' => ['source' => 'ftp', 'category' => 'a']]], 'source'],
+    'règle sans catégorie ni exclusion' => [['server_folders' => ['x' => []]], 'x'],
+    'raison d\'exclusion vide' => [['server_excluded_files' => ['x.pdf' => ' ']], 'x.pdf'],
+]);
+
+it('expose la source « serveur »', function (): void {
+    expect(LegacyMapping::SOURCE_SERVER)->toBe('serveur');
+});
+
+it('exclut les chemins serveur non canoniques au lieu de les laisser passer', function (string $path, string $reason, string $rule): void {
+    $result = (new LegacyMapping)->forServerFile($path);
+
+    expect($result->category)->toBeNull()
+        ->and($result->exclusionReason)->toBe($reason)
+        ->and($result->folderRule)->toBe($rule);
+})->with([
+    'double slash' => ['Documentations//ARRETES/TEST/x.pdf', "données personnelles (liste nominative d'auditeurs)", 'Documentations/ARRETES/TEST'],
+    'segment point' => ['Documentations/./ARRETES/TEST/x.pdf', "données personnelles (liste nominative d'auditeurs)", 'Documentations/ARRETES/TEST'],
+    'antislash' => ['Documentations\\ARRETES\\TEST\\x.pdf', "données personnelles (liste nominative d'auditeurs)", 'Documentations/ARRETES/TEST'],
+    'remontée' => ['livres/../Documentations/ARRETES/TEST/x.pdf', 'chemin non canonique', ''],
+]);
+
+it('retombe sur la règle générique Documentations', function (): void {
+    $result = (new LegacyMapping)->forServerFile('Documentations/X.pdf');
+
+    expect($result->folderRule)->toBe('Documentations')->and($result->category->type)->toBe('texte_loi');
+});
+
+it('refuse les clés qui se confondent après normalisation', function (array $override): void {
+    $config = [
+        'thesaurus' => ['themes' => ['label' => 'Thèmes']],
+        'docman' => ['a' => ['type' => 'rapport']],
+    ];
+
+    expect(fn () => new LegacyMapping($config + $override))->toThrow(InvalidArgumentException::class, 'doublon');
+})->with([
+    'dossiers' => [['server_folders' => [
+        'Docs/A' => ['exclude' => 'x'],
+        'docs//a' => ['exclude' => 'y'],
+    ]]],
+    'fichiers' => [['server_excluded_files' => ['Livres/X.pdf' => 'x', 'livres/x.PDF' => 'y']]],
+]);
+
+it('refuse un dossier à la fois exclu et catégorisé', function (): void {
+    $config = [
+        'thesaurus' => ['themes' => ['label' => 'Thèmes']],
+        'docman' => ['a' => ['type' => 'rapport']],
+        'server_folders' => ['x' => ['exclude' => 'raison', 'source' => 'docman', 'category' => 'a']],
+    ];
+
+    expect(fn () => new LegacyMapping($config))->toThrow(InvalidArgumentException::class, 'x');
+});

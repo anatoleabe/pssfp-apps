@@ -40,14 +40,7 @@ final class ImportPreflight
      */
     public static function orphans(string $directory, ImportJournal $journal, ImportReport $report, bool $clean): void
     {
-        foreach (ImportJournal::pending($directory) as $entry) {
-            $referenced = Document::withTrashed()
-                ->where(fn ($q) => $q->where('file_path', $entry['key'])->orWhere('cover_path', $entry['key']))
-                ->exists();
-            if ($referenced) {
-                continue;
-            }
-
+        foreach (self::pendingObjects($directory) as $entry) {
             $report->orphan($entry);
             if ($clean) {
                 if (Storage::disk($entry['disk'])->delete($entry['key'])) {
@@ -58,6 +51,21 @@ final class ImportPreflight
                 }
             }
         }
+    }
+
+    /**
+     * Objets journalisés `envoi` (tous journaux du dossier) qu'aucun document, même supprimé, ne référence.
+     *
+     * @return list<array{disk: string, key: string, source: string, id: int}>
+     */
+    public static function pendingObjects(string $directory): array
+    {
+        return array_values(array_filter(
+            ImportJournal::pending($directory),
+            fn (array $entry): bool => ! Document::withTrashed()
+                ->where(fn ($q) => $q->where('file_path', $entry['key'])->orWhere('cover_path', $entry['key']))
+                ->exists(),
+        ));
     }
 
     private static function probe(string $disk): void

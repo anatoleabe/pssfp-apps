@@ -18,6 +18,8 @@ final class LegacyMapping
 
     public const SOURCE_ALEXANDRIA = 'alexandria';
 
+    public const SOURCE_SERVER = 'serveur';
+
     private const SLUG_PATTERN = '/^[a-z0-9]+(-[a-z0-9]+)*$/';
 
     private const KEYWORD_SLUG_MAX = 120;
@@ -27,6 +29,12 @@ final class LegacyMapping
 
     /** @var array<string, array<string, array{type: ?string, access_level: ?string, keywords: list<string>}>> */
     private array $rules = [];
+
+    /** @var array<string, array{key: string, category: ?MappedCategory, exclude: ?string}> clé normalisée → règle de dossier */
+    private array $serverFolders = [];
+
+    /** @var array<string, array{key: string, reason: string}> chemin normalisé → fichier exclu */
+    private array $serverExcludedFiles = [];
 
     private string $defaultAccessLevel;
 
@@ -40,6 +48,8 @@ final class LegacyMapping
         foreach ([self::SOURCE_DOCMAN, self::SOURCE_ALEXANDRIA] as $source) {
             $this->rules[$source] = $this->loadRules($source, (array) ($config[$source] ?? []));
         }
+        $this->loadServerFolders((array) ($config['server_folders'] ?? []));
+        $this->loadServerExcludedFiles((array) ($config['server_excluded_files'] ?? []));
     }
 
     public function forDocmanPath(string $path): MappedCategory
@@ -51,6 +61,36 @@ final class LegacyMapping
     public function forAlexandriaCategory(string $path): MappedCategory
     {
         return $this->map(self::SOURCE_ALEXANDRIA, $path);
+    }
+
+    /**
+     * Règle applicable à un fichier de l'ancien serveur (chemin relatif à la racine des fichiers) :
+     * exclusion si le fichier est listé, sinon règle du dossier le plus spécifique (par segment).
+     */
+    public function forServerFile(string $relativePath): ServerFileRule
+    {
+        $segments = $this->serverSegments($relativePath);
+        if ($segments === null) {
+            return new ServerFileRule(null, 'chemin non canonique', '');
+        }
+        $path = implode('/', $segments);
+
+        if (isset($this->serverExcludedFiles[$path])) {
+            $excluded = $this->serverExcludedFiles[$path];
+
+            return new ServerFileRule(null, $excluded['reason'], $excluded['key']);
+        }
+
+        array_pop($segments); // le nom du fichier n'est pas un dossier
+        while ($segments !== []) {
+            $rule = $this->serverFolders[implode('/', $segments)] ?? null;
+            if ($rule !== null) {
+                return new ServerFileRule($rule['category'], $rule['exclude'], $rule['key']);
+            }
+            array_pop($segments);
+        }
+
+        return new ServerFileRule(null, null, '');
     }
 
     /** @return list<KeywordRef> tout le thésaurus, chaque parent avant ses enfants */
@@ -162,6 +202,103 @@ final class LegacyMapping
         }
 
         return $rules;
+    }
+
+    /** @param  array<array-key, mixed>  $definitions */
+    private function loadServerFolders(array $definitions): void
+    {
+        foreach ($definitions as $key => $definition) {
+            $key = (string) $key;
+            $definition = (array) $definition;
+            $normalised = $this->configServerPath($key, 'Dossier serveur');
+            if (isset($this->serverFolders[$normalised])) {
+                throw new InvalidArgumentException("Dossier serveur « {$key} » : doublon de « {$this->serverFolders[$normalised]['key']} » après normalisation.");
+            }
+
+            $exclude = isset($definition['exclude']) ? trim((string) $definition['exclude']) : null;
+            if ($exclude !== null && (isset($definition['source']) || isset($definition['category']))) {
+                throw new InvalidArgumentException("Dossier serveur « {$key} » : « exclude » est incompatible avec « source »/« category ».");
+            }
+            if ($exclude !== null) {
+                if ($exclude === '') {
+                    throw new InvalidArgumentException("Dossier serveur « {$key} » : raison d'exclusion vide.");
+                }
+                $this->serverFolders[$normalised] = ['key' => $key, 'category' => null, 'exclude' => $exclude];
+
+                continue;
+            }
+
+            $source = (string) ($definition['source'] ?? '');
+            $category = (string) ($definition['category'] ?? '');
+            if (! in_array($source, [self::SOURCE_DOCMAN, self::SOURCE_ALEXANDRIA], true)) {
+                throw new InvalidArgumentException("Dossier serveur « {$key} » : source inconnue « {$source} » (ni exclusion, ni source/catégorie valides).");
+            }
+
+            try {
+                $mapped = $this->map($source, $category);
+            } catch (UnmappedLegacyCategory) {
+                throw new InvalidArgumentException("Dossier serveur « {$key} » : catégorie {$source} « {$category} » absente des règles.");
+            }
+            if (! isset($this->rules[$source][$this->normalisePath($category)])) {
+                throw new InvalidArgumentException("Dossier serveur « {$key} » : catégorie {$source} « {$category} » absente des règles.");
+            }
+            $this->serverFolders[$normalised] = ['key' => $key, 'category' => $mapped, 'exclude' => null];
+        }
+    }
+
+    /** @param  array<array-key, mixed>  $definitions */
+    private function loadServerExcludedFiles(array $definitions): void
+    {
+        foreach ($definitions as $path => $reason) {
+            $path = (string) $path;
+            $reason = trim((string) $reason);
+            $normalised = $this->configServerPath($path, 'Fichier serveur exclu');
+            if ($reason === '') {
+                throw new InvalidArgumentException("Fichier serveur exclu « {$path} » : raison vide.");
+            }
+            if (isset($this->serverExcludedFiles[$normalised])) {
+                throw new InvalidArgumentException("Fichier serveur exclu « {$path} » : doublon de « {$this->serverExcludedFiles[$normalised]['key']} » après normalisation.");
+            }
+            $this->serverExcludedFiles[$normalised] = ['key' => $path, 'reason' => $reason];
+        }
+    }
+
+    private function configServerPath(string $path, string $label): string
+    {
+        $segments = $this->serverSegments($path);
+        if ($segments === null || $segments === []) {
+            throw new InvalidArgumentException("{$label} « {$path} » : chemin vide ou non canonique.");
+        }
+
+        return implode('/', $segments);
+    }
+
+    /**
+     * UTF-8 (Windows-1252 sinon), NFC, minuscules, découpé sur « / » et « \ » sans segments vides ni « . ».
+     *
+     * @return list<string>|null null si le chemin remonte (« .. ») : il n'est pas canonique
+     */
+    private function serverSegments(string $path): ?array
+    {
+        if (! mb_check_encoding($path, 'UTF-8')) {
+            $path = mb_convert_encoding($path, 'UTF-8', 'Windows-1252');
+        }
+        if (class_exists(\Normalizer::class)) {
+            $path = (string) \Normalizer::normalize($path, \Normalizer::FORM_C);
+        }
+
+        $segments = [];
+        foreach (preg_split('#[/\\\\]#u', mb_strtolower($path)) ?: [] as $segment) {
+            $segment = trim($segment);
+            if ($segment === '..') {
+                return null;
+            }
+            if ($segment !== '' && $segment !== '.') {
+                $segments[] = $segment;
+            }
+        }
+
+        return $segments;
     }
 
     private function accessLevel(mixed $value): string

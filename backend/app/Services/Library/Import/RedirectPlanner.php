@@ -273,7 +273,7 @@ final class RedirectPlanner
      * Encodage du chemin par un navigateur (« path percent-encode set » WHATWG) : contrôles,
      * espace, `"`, `#`, `<`, `>`, `?`, `` ` ``, `{`, `}` et tout octet non ASCII ; `/` séparateur.
      */
-    private static function encodePath(string $path): string
+    public static function encodePath(string $path): string
     {
         return (string) preg_replace_callback(
             '/[\x00-\x20"#<>?`{}\x7F-\xFF]/',

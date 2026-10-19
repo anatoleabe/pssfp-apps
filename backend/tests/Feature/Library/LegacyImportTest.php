@@ -41,8 +41,11 @@ beforeEach(function (): void {
     };
     app()->instance(CoverRenderer::class, $this->renderer);
 
-    // Catégories fictives du mini-dump → règles de test (le thésaurus réel est conservé).
+    // Catégories fictives du mini-dump → règles de test (le thésaurus réel est conservé ;
+    // les dossiers du serveur visent des catégories réelles, hors sujet ici).
     config([
+        'biblio_migration.server_folders' => [],
+        'biblio_migration.server_excluded_files' => [],
         'biblio_migration.docman' => [
             'textes-fictifs' => ['type' => 'texte_loi'],
             'textes-fictifs/arretes-fictifs' => ['keywords' => ['arretes']],

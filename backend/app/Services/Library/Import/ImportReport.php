@@ -10,7 +10,7 @@ use Illuminate\Support\Carbon;
  * Rapport de biblio:import (console + storage/logs/biblio-import-{date}.json). Identique en
  * dry-run : « créés » se lit alors « seraient créés ».
  */
-final class ImportReport
+final class ImportReport implements RedirectRecorder
 {
     public const CREATED = 'created';
 
