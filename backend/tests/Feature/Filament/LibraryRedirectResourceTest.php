@@ -104,7 +104,27 @@ it('refuse une cible dangereuse avec un message clair, sans erreur 500', functio
         ->assertHasActionErrors(['to_path']);
 
     expect(LibraryRedirect::query()->count())->toBe(0);
-})->with(['//evil.com', 'https://evil.com', '/a/../b', '/\\evil.com', 'documents/a']);
+})->with(['//evil.com', 'https://evil.com', '/a/../b', '/\\evil.com', 'documents/a', "/a\u{0085}b", "/a\u{009F}"]);
+
+it('refuse une ancienne adresse à double barre, barre inverse ou contrôle, et rogne les espaces', function (string $source): void {
+    $this->actingAs($this->manager);
+
+    $this->livewire(ManageLibraryRedirects::class)
+        ->callAction('create', data: ['from_path' => $source, 'to_path' => '/documents/a', 'status_code' => 301])
+        ->assertHasActionErrors(['from_path']);
+
+    expect(LibraryRedirect::query()->count())->toBe(0);
+})->with(['//evil.com', '/a\\b', "/a\u{0085}b", "/a\tb", 'sans-slash']);
+
+it('rogne les espaces autour de l\'ancienne adresse', function (): void {
+    $this->actingAs($this->manager);
+
+    $this->livewire(ManageLibraryRedirects::class)
+        ->callAction('create', data: ['from_path' => '  /index.php/espace  ', 'to_path' => '/documents/a', 'status_code' => 301])
+        ->assertHasNoActionErrors();
+
+    expect(LibraryRedirect::query()->where('from_path', '/index.php/espace')->exists())->toBeTrue();
+});
 
 it('modifie la cible sans toucher à l\'ancienne adresse, et journalise', function (): void {
     $redirect = LibraryRedirect::create(['from_path' => '/ancien', 'to_path' => '/documents/a'])->fresh();

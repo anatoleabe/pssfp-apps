@@ -48,14 +48,21 @@ class LibraryRedirectResource extends Resource
                 ->helperText('Chemin de l\'ancien site, commençant par « / » (ex. : /index.php/ressources/12-note).')
                 ->required()->maxLength(500)
                 ->disabledOn('edit')->dehydrated(fn (string $operation): bool => $operation === 'create')
-                ->unique(ignoreRecord: true)
-                ->rule(static fn (): Closure => static function (string $attribute, mixed $value, Closure $fail): void {
-                    if (! is_string($value) || ! str_starts_with($value, '/') || preg_match('/[\x00-\x1F\x7F]/', $value) === 1) {
-                        $fail('L\'ancienne adresse doit commencer par « / » et ne contenir aucun caractère de contrôle.');
+                ->dehydrateStateUsing(fn (?string $state): string => trim((string) $state))
+                ->rule(static fn (?LibraryRedirect $record): Closure => static function (string $attribute, mixed $value, Closure $fail) use ($record): void {
+                    $value = is_string($value) ? trim($value) : $value;
+                    if (is_string($value) && LibraryRedirect::query()->where('from_path', $value)->when($record, fn (Builder $q) => $q->whereKeyNot($record->getKey()))->exists()) {
+                        $fail('Cette ancienne adresse existe déjà.');
+
+                        return;
+                    }
+                    if (! is_string($value) || ! str_starts_with($value, '/') || str_starts_with($value, '//')
+                        || str_contains($value, '\\') || preg_match(LibraryRedirect::CONTROL_CHARS, $value) !== 0) {
+                        $fail('L\'ancienne adresse doit commencer par un seul « / » et ne contenir ni barre oblique inverse ni caractère de contrôle.');
                     }
                 }),
             Forms\Components\TextInput::make('to_path')->label('Nouvelle adresse')
-                ->helperText('Chemin interne de la bibliothèque (ex. : /documents/mon-document).')
+                ->helperText('Chemin interne de la bibliothèque (ex. : /documents/mon-document). Les modifications s\'appliquent sur le site sous 10 minutes au plus.')
                 ->required()->maxLength(500)
                 ->rule(static fn (): Closure => static function (string $attribute, mixed $value, Closure $fail): void {
                     if (! is_string($value) || ! LibraryRedirect::isSafeTarget($value)) {
@@ -64,6 +71,7 @@ class LibraryRedirectResource extends Resource
                 }),
             Forms\Components\Select::make('status_code')->label('Type de redirection')
                 ->options([301 => '301 — permanente', 302 => '302 — temporaire'])
+                ->helperText('Les modifications s\'appliquent sur le site sous 10 minutes au plus.')
                 ->default(301)->required()->native(false),
         ]);
     }
@@ -76,7 +84,8 @@ class LibraryRedirectResource extends Resource
                 Tables\Columns\TextColumn::make('to_path')->label('Nouvelle adresse')->wrap()->searchable(),
                 Tables\Columns\TextColumn::make('status_code')->label('Code')->badge()
                     ->color(fn (int $state): string => $state === 301 ? 'success' : 'warning'),
-                Tables\Columns\TextColumn::make('hits')->label('Visites')->numeric()->sortable(),
+                Tables\Columns\TextColumn::make('hits')->label('Visites (approx.)')->numeric()->sortable()
+                    ->tooltip('Compteur indicatif : une visite répétée dans les 10 minutes n\'est pas recomptée.'),
                 Tables\Columns\TextColumn::make('updated_at')->label('Mise à jour')->dateTime('d/m/Y H:i')->sortable(),
             ])
             ->filters([
@@ -103,7 +112,7 @@ class LibraryRedirectResource extends Resource
 
                         return $prefix === null ? $query : $query->where('to_path', 'like', self::escapeLike($prefix).'%');
                     }),
-                Tables\Filters\Filter::make('jamais_visitee')->label('Jamais visitée')
+                Tables\Filters\Filter::make('jamais_visitee')->label('Aucune visite enregistrée')
                     ->query(fn (Builder $query): Builder => $query->where('hits', 0)),
             ])
             ->actions([

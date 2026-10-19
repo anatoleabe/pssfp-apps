@@ -12,6 +12,11 @@ class ManageLibraryRedirects extends ManageRecords
 {
     protected static string $resource = LibraryRedirectResource::class;
 
+    public function getSubheading(): string
+    {
+        return 'Les modifications s\'appliquent sur le site sous 10 minutes au plus.';
+    }
+
     protected function getHeaderActions(): array
     {
         return [Actions\CreateAction::make()];
