@@ -31,6 +31,7 @@ return [
 
         // Thèmes
         'audit-et-controle' => ['label' => 'Audit et contrôle', 'parent' => 'themes'],
+        'autres-ouvrages' => ['label' => 'Autres ouvrages', 'parent' => 'themes'],
         'budget-programme' => ['label' => 'Budget-programme', 'parent' => 'themes'],
         'comptabilite-publique' => ['label' => 'Comptabilité publique', 'parent' => 'themes'],
         'decentralisation' => ['label' => 'Décentralisation', 'parent' => 'themes'],
@@ -181,6 +182,7 @@ return [
 
         'ouvrage-numerique' => ['type' => 'ouvrage_numerique'],
         'ouvrage-numerique/audit-et-controle' => ['keywords' => ['audit-et-controle']],
+        'ouvrage-numerique/autres' => ['keywords' => ['autres-ouvrages']],
         'ouvrage-numerique/comptabilite-publiques' => ['keywords' => ['comptabilite-publique']],
         'ouvrage-numerique/economie-publique' => ['keywords' => ['economie-publique']],
         'ouvrage-numerique/finances' => ['keywords' => ['finances-publiques']],
@@ -201,5 +203,30 @@ return [
 
         // Catégorie dépubliée dans Joomla ; ses 9 livres sont des ouvrages, pas de la législation.
         'textes-et-lois' => ['type' => 'ouvrage_numerique'],
+    ],
+
+    /*
+     * Dossiers de l'ancien serveur (fichiers sans fiche Joomla) → catégorie existante ; plan 4, task 1.
+     * Chaque dossier reprend la catégorie Joomla de la majorité de ses fichiers déjà catalogués
+     * (relevé du 2026-10-19). Clé = chemin relatif à la racine des fichiers ; la règle la plus
+     * spécifique (par segment) l'emporte. `source` + `category` = chemin de catégorie
+     * DOCman/Alexandria ; `exclude` = raison de l'exclusion de tout le dossier.
+     */
+    'server_folders' => [
+        'livres' => ['source' => 'alexandria', 'category' => 'ouvrage-numerique/autres'],
+        'Documentations' => ['source' => 'docman', 'category' => 'textes-et-lois'],
+        'Documentations/ARRETES' => ['source' => 'docman', 'category' => 'textes-et-lois/arretes'],
+        'Documentations/ARRETES/TEST' => ['exclude' => 'données personnelles (liste nominative d\'auditeurs)'],
+        'Documentations/DECRETS' => ['source' => 'docman', 'category' => 'textes-et-lois/decrets'],
+        'Documentations/INSTITUTIONS/INSTITUTIONS_INTERNATIONALES/FMI' => ['source' => 'docman', 'category' => 'institutions/institutions-internationales/fonds-monetaire-internationale'],
+        'Documentations/REFORMES/AUDIT ET CONTROLE' => ['source' => 'docman', 'category' => 'reformes/audit-et-controle'],
+        'Documentations/REFORMES/COMPTABILITE' => ['source' => 'docman', 'category' => 'reformes/comptabilite'],
+        'Documentations/TEXTES SUR LE CONTROLE' => ['source' => 'docman', 'category' => 'reformes/audit-et-controle'],
+    ],
+
+    // Fichiers isolés à ne pas importer (chemin relatif complet → raison).
+    'server_excluded_files' => [
+        'livres/Programmer en Java.pdf' => 'hors sujet (programmation informatique)',
+        'livres/Les cahiers du programmeur - Java EE 5.pdf' => 'hors sujet (programmation informatique)',
     ],
 ];
