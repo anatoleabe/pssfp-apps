@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+// Même base que l'app (playwright.config.ts charge .env.local comme `next dev`).
+import { API_BASE_URL as API } from '../../lib/api/client';
 import type { MotCle } from '../../lib/api/types';
 import { themeHref, themesHref } from '../../lib/routes';
 import { buildThemeTree, childrenOf, collectionThemes, countedChildren, countsKnown, featuredThemes, themesCount } from '../../lib/themes';
@@ -86,4 +89,137 @@ test.describe('Thèmes — utilitaires', () => {
     expect(countedChildren(TREE, 'types-de-textes')).toEqual([]);
     expect(countedChildren(COUNTED, 'types-de-textes').map((m) => m.slug)).toEqual(['decrets', 'lois']);
   });
+});
+
+/** Composants des thèmes sur la page de démonstration (données fictives, sans backend). */
+test.describe('Thèmes — composants (démonstration)', () => {
+  const DEMO = '/dev/composants';
+
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/library/documents/*/view', (route) => route.fulfill({ status: 204 }));
+  });
+
+  test('index avec comptes : trois groupes, comptes, thèmes vides masqués, niveau intermédiaire', async ({ page }) => {
+    await page.goto(DEMO);
+    const index = page.getByTestId('demo-theme-index-counted');
+    await expect(index.locator('[data-testid^="theme-group-"]')).toHaveCount(3);
+    await expect(index.getByRole('heading', { level: 2 })).toHaveText(['Thèmes', 'Institutions', 'Types de textes']);
+    const fiscalite = index.getByTestId('theme-link-demo-fiscalite');
+    await expect(fiscalite).toHaveAttribute('href', '/themes/demo-fiscalite');
+    await expect(fiscalite).toContainText('1 250 documents');
+    await expect(index.getByTestId('theme-link-demo-vide')).toHaveCount(0);
+    // Institutions internationales : sous-titre lié à sa page, puis ses enfants.
+    await expect(index.getByRole('heading', { level: 3, name: /Institutions internationales/ }).getByRole('link')).toHaveAttribute('href', '/themes/demo-internationales');
+    await expect(index.getByTestId('theme-link-demo-fmi')).toContainText('12 documents');
+    // Sommaire : ancres vers chaque groupe.
+    await expect(index.getByRole('navigation', { name: 'Groupes de thèmes' }).getByRole('link')).toHaveCount(3);
+  });
+
+  test('index sans comptes (API antérieure) : tous les thèmes, aucun nombre', async ({ page }) => {
+    await page.goto(DEMO);
+    const index = page.getByTestId('demo-theme-index-uncounted');
+    await expect(index.getByTestId('theme-link-demo-vide')).toBeVisible();
+    await expect(index).not.toContainText(/\d+ documents?/);
+    // Sans comptes, l'API n'agrège pas les sous-thèmes : pas de lien vers les pages de regroupement.
+    await expect(index.getByRole('link', { name: /^Tous les documents/ })).toHaveCount(0);
+    await expect(index.getByRole('heading', { level: 3, name: /Institutions internationales/ }).getByRole('link')).toHaveCount(0);
+  });
+
+  test('puces de collection : comptes, lien mot_cle, puce appliquée qui retire le filtre', async ({ page }) => {
+    await page.goto(DEMO);
+    const zone = page.getByTestId('demo-collection-themes');
+    const chips = zone.getByRole('listitem').getByRole('link');
+    // Feuilles comptées par nombre décroissant (le niveau intermédiaire est redondant).
+    await expect(chips).toHaveText([/Fiscalité \(démo\)/, /Gestion budgétaire \(démo\)/, /Décrets \(démo\)/, /Organisation fictive A/]);
+    await expect(chips.first()).toHaveAttribute('href', '/collections/texte_loi?mot_cle=demo-fiscalite&acces=libre');
+    const active = zone.locator('[aria-current="true"]');
+    await expect(active).toHaveCount(1);
+    await expect(active).toHaveAccessibleName(/Décrets \(démo\), 47 documents, thème appliqué/);
+    await expect(active).toHaveAttribute('href', '/collections/texte_loi?acces=libre');
+    await expect(zone.getByRole('link', { name: 'Tous les thèmes' })).toHaveAttribute('href', '/themes');
+    // Sans comptes : aucune puce (rien ne dit quels mots-clés concernent la collection).
+    await expect(page.getByTestId('demo-collection-themes-uncounted').getByTestId('collection-themes')).toHaveCount(0);
+  });
+
+  test('puces de collection : atteintes au clavier, focus visible', async ({ page }) => {
+    await page.goto(DEMO);
+    await page.keyboard.press('Tab');
+    const chip = page.getByTestId('demo-collection-themes').getByRole('listitem').getByRole('link').first();
+    await chip.focus();
+    await expect(chip).toBeFocused();
+    const ring = await chip.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(ring).toContain('rgb(74, 46, 103)');
+  });
+});
+
+/** Pages réelles : nécessitent l'API (ignorées sans backend, comme les autres specs de données). */
+test.describe('Thèmes — pages (API)', () => {
+  let reachable = false;
+  let slug: string | null = null;
+
+  test.beforeAll(async ({ request }) => {
+    try {
+      const res = await request.get(`${API}/library/mots-cles`, { timeout: 3000 });
+      reachable = res.ok();
+      if (reachable) {
+        const list = ((await res.json()) as { data: MotCle[] }).data;
+        const theme = list.find((m) => m.parent_slug === 'themes' && (m.documents_count === undefined || m.documents_count > 0));
+        slug = theme?.slug ?? null;
+      }
+    } catch {
+      reachable = false;
+    }
+  });
+
+  test.beforeEach(async ({ page }) => {
+    test.skip(!reachable, 'API injoignable : tests de données ignorés');
+    await page.setExtraHTTPHeaders({ 'cache-control': 'no-cache' });
+  });
+
+  test('/themes : h1, groupes du thésaurus, liens vers les thèmes, axe', async ({ page }) => {
+    const res = await page.goto('/themes');
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Explorer par thème');
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/themes$/);
+    expect(await page.locator('[data-testid^="theme-group-"]').count()).toBeGreaterThan(0);
+    for (const href of await page.getByTestId('theme-index').locator('[data-testid^="theme-link-"]').evaluateAll((els) => els.map((el) => el.getAttribute('href')))) {
+      expect(href).toMatch(/^\/themes\/[a-z0-9-]+$/);
+    }
+    const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+    expect(axe.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')).toEqual([]);
+  });
+
+  test('page d\'un thème : fil d\'Ariane, compte, canonique nue, noindex au-delà de la page 1', async ({ page }) => {
+    test.skip(slug === null, 'aucun thème');
+    const res = await page.goto(`/themes/${slug}`);
+    expect(res?.status()).toBe(200);
+    const crumbs = page.getByRole('navigation', { name: 'Fil d\'Ariane' });
+    await expect(crumbs.getByRole('link', { name: 'Thèmes' })).toHaveAttribute('href', '/themes');
+    await expect(page.getByTestId('theme-total')).toBeVisible();
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', new RegExp(`/themes/${slug}$`));
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /^index/);
+    await page.goto(`/themes/${slug}?page=2`);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', new RegExp(`/themes/${slug}$`));
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+  });
+
+  test('slug inconnu : 404', async ({ page }) => {
+    const res = await page.goto('/themes/theme-inexistant-xyz');
+    expect(res?.status()).toBe(404);
+  });
+
+  test('aucun défilement horizontal à 320 px', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 640 });
+    await page.goto('/themes');
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+});
+
+test('/themes n\'est jamais traité comme une ancienne URL (pas de redirection)', async ({ request }) => {
+  for (const path of ['/themes', '/themes/fiscalite']) {
+    const res = await request.get(path, { maxRedirects: 0 });
+    expect(res.status(), path).not.toBe(301);
+    expect(res.headers().location, path).toBeUndefined();
+  }
 });

@@ -157,6 +157,12 @@
     "pageOutOfRangeBody": "{last, plural, one {La liste ne compte qu'une page.} other {La liste compte # pages.}} Revenez à la première page pour parcourir les documents.",
     "firstPage": "Revenir à la première page"
   },
+  "collectionThemes": {
+    "title": "Thèmes de la collection",
+    "all": "Tous les thèmes",
+    "chip": "{label}, {count, plural, one {# document} other {# documents}} : filtrer la collection",
+    "chipActive": "{label}, {count, plural, one {# document} other {# documents}}, thème appliqué : activer pour le retirer"
+  },
   "specialites": {
     "economie-publique-gestion-publique": "Économie Publique et Gestion Publique",
     "fiscalite-finance-comptabilite-publique": "Fiscalité, Finance et Comptabilité Publique",
@@ -370,9 +376,29 @@
     "pagination": "Pagination",
     "states": "États vide et erreur",
     "emptyCatalogue": "Accueil — catalogue vide",
-    "collectionCards": "Cartes de collection"
+    "collectionCards": "Cartes de collection",
+    "themeIndex": "Index des thèmes",
+    "themeIndexNoCounts": "Index des thèmes — comptes indisponibles",
+    "collectionThemes": "Thèmes d'une collection"
   },
   "themes": {
-    "count": "{count, plural, =0 {Aucun document} one {# document} other {# documents}}"
+    "metaTitle": "Thèmes",
+    "metaDescription": "Parcourez le fonds documentaire du PSSFP par thème : finances publiques, fiscalité, marchés publics, institutions, types de textes.",
+    "metaDescriptionTheme": "{label} : documents du fonds documentaire du PSSFP rattachés à ce thème, à consulter et à citer.",
+    "eyebrow": "Thésaurus de la bibliothèque",
+    "eyebrowTheme": "Thème",
+    "title": "Explorer par thème",
+    "intro": "Domaines d'expertise, institutions et types de textes : chaque thème rassemble les documents qui s'y rattachent, sous-thèmes compris.",
+    "sectionsLabel": "Groupes de thèmes",
+    "allOf": "Tous les documents : {label}",
+    "count": "{count, plural, =0 {Aucun document} one {# document} other {# documents}}",
+    "emptyTitle": "Aucun thème n'est encore disponible.",
+    "emptyBody": "Le thésaurus de la bibliothèque est en cours de constitution. Parcourez les collections en attendant.",
+    "subthemes": "Sous-thèmes",
+    "resultsTitle": "Documents du thème {label}",
+    "searchPlaceholder": "Rechercher dans ce thème…",
+    "allThemes": "Tous les thèmes",
+    "emptyThemeTitle": "Aucun document n'est encore rattaché à ce thème.",
+    "emptyThemeBody": "Explorez un autre thème ou lancez une recherche dans tout le catalogue."
   }
 }

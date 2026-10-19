@@ -1,4 +1,4 @@
-import { DOCUMENT_TYPES, type AccessReason, type DocumentDetail, type DocumentSummary, type LibraryStats } from '@/lib/api/types';
+import { DOCUMENT_TYPES, type AccessReason, type DocumentDetail, type DocumentSummary, type LibraryStats, type MotCle } from '@/lib/api/types';
 
 /*
  * Données entièrement fictives (titres, auteurs, identifiants) pour la page
@@ -140,3 +140,24 @@ export const DEMO_ACTIONS: DocumentDetail[] = [
 
 /** Statistiques d'un catalogue vide (avant l'import de l'ancienne bibliothèque). */
 export const DEMO_EMPTY_STATS: LibraryStats = { total: 0, by_type: {}, paid_count: 0, promotions_count: 0 };
+
+/** Thésaurus fictif, à la forme de `GET /v1/library/mots-cles` (API antérieure : sans comptes). */
+export const DEMO_THESAURUS: MotCle[] = [
+  { slug: 'themes', label: 'Thèmes', parent_slug: null },
+  { slug: 'demo-fiscalite', label: 'Fiscalité (démo)', parent_slug: 'themes' },
+  { slug: 'demo-budget', label: 'Gestion budgétaire (démo)', parent_slug: 'themes' },
+  { slug: 'demo-vide', label: 'Thème sans document (démo)', parent_slug: 'themes' },
+  { slug: 'institutions', label: 'Institutions', parent_slug: null },
+  { slug: 'demo-internationales', label: 'Institutions internationales (démo)', parent_slug: 'institutions' },
+  { slug: 'demo-fmi', label: 'Organisation fictive A', parent_slug: 'demo-internationales' },
+  { slug: 'types-de-textes', label: 'Types de textes', parent_slug: null },
+  { slug: 'demo-decrets', label: 'Décrets (démo)', parent_slug: 'types-de-textes' },
+];
+
+const DEMO_COUNTS: Record<string, number> = {
+  themes: 1540, 'demo-fiscalite': 1250, 'demo-budget': 290, 'demo-vide': 0,
+  institutions: 12, 'demo-internationales': 12, 'demo-fmi': 12, 'types-de-textes': 47, 'demo-decrets': 47,
+};
+
+/** Même thésaurus avec les comptes de l'API du plan 4. */
+export const DEMO_THESAURUS_COUNTED: MotCle[] = DEMO_THESAURUS.map((m) => ({ ...m, documents_count: DEMO_COUNTS[m.slug] ?? 0 }));

@@ -5,6 +5,7 @@ import { Suspense } from 'react';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { ActiveFilters } from '@/components/catalogue/ActiveFilters';
+import { CollectionThemes } from '@/components/catalogue/CollectionThemes';
 import { FilterPanel } from '@/components/catalogue/FilterPanel';
 import { Pagination } from '@/components/catalogue/Pagination';
 import { ResultsFocus } from '@/components/catalogue/ResultsFocus';
@@ -68,11 +69,13 @@ const RESULTS_GRID = 'grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-
  */
 export default async function CollectionPage(props: CollectionPageProps): Promise<JSX.Element> {
   const { type, filters, page } = readRequest(props);
-  const [listResult, motsClesResult] = await Promise.all([listDocuments(filters, page, COLLECTION_PER_PAGE), getMotsCles()]);
+  const [listResult, motsClesResult, typeMotsClesResult] = await Promise.all([listDocuments(filters, page, COLLECTION_PER_PAGE), getMotsCles(), getMotsCles({ type })]);
   const { data: docs, meta } = unwrapOrThrow(listResult);
   // Exception assumée à la règle `unwrapOrThrow` : les mots-clés ne servent qu'au filtre facultatif
   // « Mot-clé ». Sans eux, la page reste servie sans ce champ plutôt que de basculer en erreur.
   const motsCles = motsClesResult.ok ? motsClesResult.data.data : [];
+  // Thèmes de la collection : mêmes règles (facultatifs, masqués sans comptes ou en cas d'échec).
+  const typeMotsCles = typeMotsClesResult.ok ? typeMotsClesResult.data.data : [];
 
   const t = await getTranslations('collection');
   const tTypes = await getTranslations('types');
@@ -146,6 +149,7 @@ export default async function CollectionPage(props: CollectionPageProps): Promis
           <Suspense fallback={null}>
             <ResultsFocus targetId="results-title" />
           </Suspense>
+          <CollectionThemes type={type} filters={filters} motsCles={typeMotsCles} />
           <div className="flex flex-col gap-4 border-b border-pssfp-lavande/30 pb-4 sm:flex-row sm:items-center sm:justify-between">
             {/* Seule région vivante de la page : annonce le nouveau total après un retrait de filtre ou un changement de page (navigation client). */}
             <p role="status" data-testid="results-count" className="font-ui text-sm text-pssfp-graphite-light">

@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next';
-import { getStats, listDocuments } from '@/lib/api/library';
+import { getMotsCles, getStats, listDocuments } from '@/lib/api/library';
 import type { DocumentType } from '@/lib/api/types';
-import { collectionHref, documentHref } from '@/lib/routes';
+import { collectionHref, documentHref, themeHref, themesHref } from '@/lib/routes';
+import { hasCount } from '@/lib/themes';
 import { siteUrl } from '@/lib/site';
 
 /** Régénéré au plus toutes les heures (ISR). */
@@ -25,7 +26,9 @@ function warn(message: string): void {
 }
 
 /**
- * Accueil, à propos, collections non vides et fiches publiées (`lastModified` = `published_at`).
+ * Accueil, à propos, thèmes, collections non vides, thèmes comptant des documents publiés et fiches
+ * publiées (`lastModified` = `published_at`). Sans comptes de documents (API antérieure au plan 4),
+ * seule la page `/themes` figure : rien ne garantit qu'un thème ait des documents.
  * `/recherche` est exclu (pages non indexées). API indisponible (CI, panne) : sitemap réduit
  * aux pages fixes, et à ce qui a déjà été lu — jamais d'exception (le build ne doit pas échouer),
  * mais un avertissement journalisé.
@@ -36,10 +39,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const fixed: Entry[] = [
     { url: url('/'), changeFrequency: 'daily', priority: 1 },
     { url: url('/a-propos'), changeFrequency: 'yearly', priority: 0.3 },
+    { url: url(themesHref), changeFrequency: 'weekly', priority: 0.7 },
   ];
 
-  const [collections, documents] = await Promise.all([collectionEntries(url), documentEntries(url)]);
-  return [...fixed, ...collections, ...documents];
+  const [collections, themes, documents] = await Promise.all([collectionEntries(url), themeEntries(url), documentEntries(url)]);
+  return [...fixed, ...collections, ...themes, ...documents];
 }
 
 async function collectionEntries(url: (path: string) => string): Promise<Entry[]> {
@@ -54,6 +58,22 @@ async function collectionEntries(url: (path: string) => string): Promise<Entry[]
       .map(([type]) => ({ url: url(collectionHref(type as DocumentType)), changeFrequency: 'weekly', priority: 0.8 }));
   } catch (e) {
     warn(`statistiques inattendues (${e instanceof Error ? e.message : 'erreur'}) : collections absentes`);
+    return [];
+  }
+}
+
+async function themeEntries(url: (path: string) => string): Promise<Entry[]> {
+  try {
+    const r = await getMotsCles();
+    if (!r.ok) {
+      warn(`mots-clés indisponibles (${r.error.message}) : thèmes absents`);
+      return [];
+    }
+    return r.data.data
+      .filter((m) => hasCount(m) && m.documents_count > 0)
+      .map((m) => ({ url: url(themeHref(m.slug)), changeFrequency: 'weekly', priority: 0.6 }));
+  } catch (e) {
+    warn(`mots-clés inattendus (${e instanceof Error ? e.message : 'erreur'}) : thèmes absents`);
     return [];
   }
 }
