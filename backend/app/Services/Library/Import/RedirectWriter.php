@@ -20,7 +20,7 @@ final class RedirectWriter
     /** @var list<string> URL planifiées par l'élément en cours (annulées s'il échoue) */
     private array $pending = [];
 
-    public function __construct(private readonly ImportReport $report, private readonly bool $dryRun) {}
+    public function __construct(private readonly RedirectRecorder $report, private readonly bool $dryRun) {}
 
     /**
      * @param  list<LegacyPath>  $paths
