@@ -6,6 +6,7 @@ namespace App\Filament\Resources\DocumentResource\Pages;
 
 use App\Filament\Resources\DocumentResource;
 use App\Models\Document;
+use App\Services\Library\LibraryStatsCsvExport;
 use Filament\Actions;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
@@ -25,7 +26,24 @@ class ListDocuments extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [Actions\CreateAction::make()];
+        return [
+            Actions\Action::make('exportStats')
+                ->label('Exporter les statistiques (CSV)')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->visible(fn (): bool => $this->canExportStats())
+                ->action(function () {
+                    abort_unless($this->canExportStats(), 403);
+
+                    return app(LibraryStatsCsvExport::class)->download();
+                }),
+            Actions\CreateAction::make(),
+        ];
+    }
+
+    private function canExportStats(): bool
+    {
+        return (bool) auth()->user()?->can('library.stats_export');
     }
 
     public function getTabs(): array

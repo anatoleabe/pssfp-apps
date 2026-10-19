@@ -2,14 +2,20 @@
 
 declare(strict_types=1);
 
+use App\Filament\Resources\DocumentResource;
+use App\Filament\Resources\DocumentResource\Pages\ListDocuments;
 use App\Filament\Widgets\LibraryOverview;
+use App\Filament\Widgets\LibraryTopDownloadedDocuments;
+use App\Filament\Widgets\LibraryTopViewedDocuments;
 use App\Filament\Widgets\LibraryZeroResultSearches;
 use App\Models\Document;
 use App\Models\DocumentDownload;
 use App\Models\SearchLog;
 use App\Models\User;
+use App\Services\Library\LibraryStatsCsvExport;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Console\Scheduling\Schedule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 uses()->group('filament', 'module-3');
 
@@ -33,14 +39,20 @@ it('affiche les compteurs de la bibliothèque avec les valeurs exactes', functio
     Document::factory()->published()->create(['type' => 'memoire']);
     Document::factory()->published()->create(['type' => 'these']);
     Document::factory()->create(['status' => Document::STATUS_IN_REVIEW, 'type' => 'cours']);
+    Document::factory()->create(['status' => Document::STATUS_DRAFT]);
+    Document::factory()->create(['status' => Document::STATUS_DRAFT]);
+    Document::factory()->create(['status' => Document::STATUS_ARCHIVED]);
+    Document::factory()->create(['status' => Document::STATUS_ARCHIVED])->delete();
     DocumentDownload::create(['document_id' => $doc->id, 'downloaded_at' => now()->subDays(3)]);
     DocumentDownload::create(['document_id' => $doc->id, 'downloaded_at' => now()->subDays(40)]);
 
     $this->actingAs($this->librarian);
     $stats = overviewStats();
 
-    expect($stats['Documents publiés']->getValue())->toBe(3)
-        ->and($stats['En attente de validation']->getValue())->toBe(1)
+    expect($stats['Publiés']->getValue())->toBe(3)
+        ->and($stats['À valider']->getValue())->toBe(1)
+        ->and($stats['Brouillons']->getValue())->toBe(2)
+        ->and($stats['Archivés']->getValue())->toBe(1)
         ->and($stats['Téléchargements (30 j)']->getValue())->toBe(1)
         ->and($stats['Par type']->getValue())->toBe(2)
         ->and((string) $stats['Par type']->getDescription())->toBe('Mémoire 2 · Thèse 1');
@@ -85,8 +97,110 @@ it('masque les widgets aux rôles sans accès bibliothèque', function (): void 
     expect(LibraryOverview::canView())->toBeFalse()->and(LibraryZeroResultSearches::canView())->toBeFalse();
 });
 
-it('rafraîchit le tableau de bord bibliothèque toutes les minutes', function (): void {
+it('rafraîchit le tableau de bord bibliothèque toutes les cinq minutes', function (): void {
     $method = new ReflectionMethod(LibraryOverview::class, 'getPollingInterval');
 
-    expect($method->invoke(new LibraryOverview))->toBe('60s');
+    expect($method->invoke(new LibraryOverview))->toBe('300s');
+});
+
+dataset('widgets', [LibraryOverview::class, LibraryZeroResultSearches::class, LibraryTopViewedDocuments::class, LibraryTopDownloadedDocuments::class]);
+
+it('montre les widgets aux rôles bibliothèque et les cache aux autres', function (string $role, bool $sees): void {
+    $user = User::factory()->create();
+    $user->assignRole($role);
+    $this->actingAs($user);
+
+    foreach ([LibraryOverview::class, LibraryZeroResultSearches::class, LibraryTopViewedDocuments::class, LibraryTopDownloadedDocuments::class] as $w) {
+        expect($w::canView())->toBe($sees, "$role / $w");
+    }
+})->with([
+    ['librarian', true], ['library_manager', true], ['library_viewer', true],
+    ['library_contributor', false], ['caisse', false], ['editor', false],
+]);
+
+it('classe les 10 documents publiés les plus consultés avec lien vers la fiche', function (): void {
+    foreach (range(1, 12) as $i) {
+        Document::factory()->published()->create(['views_count' => $i * 10]);
+    }
+    Document::factory()->create(['views_count' => 9999]); // brouillon : exclu
+    $this->actingAs($this->librarian);
+
+    $component = $this->livewire(LibraryTopViewedDocuments::class);
+    $records = $component->instance()->getTableRecords();
+
+    expect($records)->toHaveCount(10)
+        ->and($records->pluck('views_count')->all())->toBe([120, 110, 100, 90, 80, 70, 60, 50, 40, 30]);
+    $component->assertSee(DocumentResource::recordUrl($records->first()));
+});
+
+it('classe les téléchargements des 30 derniers jours en une requête groupée', function (): void {
+    $a = Document::factory()->published()->create(['type' => 'these']);
+    $b = Document::factory()->published()->create(['type' => 'cours']);
+    $old = Document::factory()->published()->create();
+    foreach ([1, 2, 3] as $d) {
+        DocumentDownload::create(['document_id' => $b->id, 'downloaded_at' => now()->subDays($d)]);
+    }
+    DocumentDownload::create(['document_id' => $a->id, 'downloaded_at' => now()->subDay()]);
+    foreach (range(1, 5) as $d) {
+        DocumentDownload::create(['document_id' => $old->id, 'downloaded_at' => now()->subDays(40 + $d)]);
+    }
+    $this->actingAs($this->librarian);
+
+    $records = $this->livewire(LibraryTopDownloadedDocuments::class)->instance()->getTableRecords();
+
+    expect($records->map(fn ($r): array => [$r->id, (int) $r->downloads_30d])->all())->toBe([[$b->id, 3], [$a->id, 1]]);
+});
+
+it('limite le classement des téléchargements à 10 documents', function (): void {
+    foreach (Document::factory()->published()->count(12)->create() as $doc) {
+        DocumentDownload::create(['document_id' => $doc->id, 'downloaded_at' => now()->subDay()]);
+    }
+    $this->actingAs($this->librarian);
+
+    expect($this->livewire(LibraryTopDownloadedDocuments::class)->instance()->getTableRecords())->toHaveCount(10);
+});
+
+it('exporte les statistiques en CSV pour library.stats_export, sans donnée personnelle', function (): void {
+    $manager = User::factory()->create();
+    $manager->assignRole('library_viewer');
+    $doc = Document::factory()->published()->create(['type' => 'memoire', 'views_count' => 7, 'downloads_count' => 12, 'title' => ['fr' => '=Titre; piégé']]);
+    Document::factory()->published()->create()->delete();
+    DocumentDownload::create(['document_id' => $doc->id, 'user_id' => $manager->id, 'ip' => '203.0.113.9', 'user_agent' => 'SecretAgent/1', 'downloaded_at' => now()->subDay()]);
+    DocumentDownload::create(['document_id' => $doc->id, 'downloaded_at' => now()->subDays(60)]);
+    $this->actingAs($manager);
+
+    $response = app(LibraryStatsCsvExport::class)->download();
+    ob_start();
+    $response->sendContent();
+    $csv = ob_get_clean();
+
+    expect($response)->toBeInstanceOf(StreamedResponse::class)
+        ->and($response->headers->get('content-disposition'))->toContain('bibliotheque-statistiques-'.now()->toDateString().'.csv')
+        ->and(str_starts_with($csv, "\xEF\xBB\xBF"))->toBeTrue()
+        ->and($csv)->toContain('Titre;Type;Statut;Vues;"Téléchargements (30 j)";"Téléchargements (total)";"Date de publication"')
+        ->and($csv)->toContain("\"'=Titre; piégé\";Mémoire;Publié;7;1;12;")
+        ->and($csv)->not->toContain('203.0.113.9')->not->toContain('SecretAgent')
+        ->and(substr_count(trim($csv), "\n"))->toBe(1);
+});
+
+it('masque l\'export aux comptes sans library.stats_export et refuse l\'appel forgé', function (): void {
+    $contributor = User::factory()->create();
+    $contributor->assignRole('library_contributor');
+    $this->actingAs($contributor);
+
+    $this->livewire(ListDocuments::class)
+        ->assertActionHidden('exportStats')
+        ->call('mountAction', 'exportStats')
+        ->call('callMountedAction')
+        ->assertNoFileDownloaded();
+});
+
+it('montre l\'export à library_viewer', function (): void {
+    $viewer = User::factory()->create();
+    $viewer->assignRole('library_viewer');
+    $this->actingAs($viewer);
+
+    $this->livewire(ListDocuments::class)->assertActionVisible('exportStats')
+        ->callAction('exportStats')
+        ->assertFileDownloaded('bibliotheque-statistiques-'.now()->toDateString().'.csv');
 });

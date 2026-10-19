@@ -19,7 +19,7 @@ class LibraryOverview extends StatsOverviewWidget
 
     protected static ?int $sort = 40;
 
-    protected static ?string $pollingInterval = '60s';
+    protected static ?string $pollingInterval = '300s';
 
     public static function canView(): bool
     {
@@ -47,9 +47,16 @@ class LibraryOverview extends StatsOverviewWidget
             ->map(fn (int $n, string $type): string => (Document::TYPES[$type] ?? $type).' '.$n)
             ->implode(' · ');
 
+        $byStatus = Document::query()
+            ->selectRaw('status, COUNT(*) AS total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
         return [
-            Stat::make('Documents publiés', Document::query()->published()->count()),
-            Stat::make('En attente de validation', Document::query()->where('status', Document::STATUS_IN_REVIEW)->count()),
+            Stat::make('Brouillons', (int) ($byStatus[Document::STATUS_DRAFT] ?? 0)),
+            Stat::make('À valider', (int) ($byStatus[Document::STATUS_IN_REVIEW] ?? 0)),
+            Stat::make('Publiés', Document::query()->published()->count()),
+            Stat::make('Archivés', (int) ($byStatus[Document::STATUS_ARCHIVED] ?? 0)),
             Stat::make('Téléchargements (30 j)', DocumentDownload::query()->where('downloaded_at', '>=', now()->subDays(30))->count()),
             Stat::make('Par type', count($byType))->description($breakdown !== '' ? $breakdown : 'Aucun document publié'),
         ];

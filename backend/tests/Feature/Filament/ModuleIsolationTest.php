@@ -11,6 +11,8 @@ use App\Filament\Resources\LibraryRedirectResource;
 use App\Filament\Resources\MotCleResource;
 use App\Filament\Widgets\AvancementCampagneWidget;
 use App\Filament\Widgets\LibraryOverview;
+use App\Filament\Widgets\LibraryTopDownloadedDocuments;
+use App\Filament\Widgets\LibraryTopViewedDocuments;
 use App\Filament\Widgets\LibraryZeroResultSearches;
 use App\Jobs\ProcessDocumentFile;
 use App\Models\Role;
@@ -292,9 +294,9 @@ it('cantonne chaque rôle de la bibliothèque à la bibliothèque', function (st
     $this->get(CandidatureResource::getUrl('index'))->assertForbidden();
     $this->get(Parametres::getUrl())->assertForbidden();
 })->with([
-    'responsable' => ['library_manager', [DocumentResource::class, MotCleResource::class, LibraryRedirectResource::class], [LibraryOverview::class, LibraryZeroResultSearches::class]],
-    'bibliothécaire' => ['librarian', [DocumentResource::class, MotCleResource::class], [LibraryOverview::class, LibraryZeroResultSearches::class]],
-    'consultation' => ['library_viewer', [DocumentResource::class, MotCleResource::class], [LibraryOverview::class, LibraryZeroResultSearches::class]],
+    'responsable' => ['library_manager', [DocumentResource::class, MotCleResource::class, LibraryRedirectResource::class], [LibraryOverview::class, LibraryTopDownloadedDocuments::class, LibraryTopViewedDocuments::class, LibraryZeroResultSearches::class]],
+    'bibliothécaire' => ['librarian', [DocumentResource::class, MotCleResource::class], [LibraryOverview::class, LibraryTopDownloadedDocuments::class, LibraryTopViewedDocuments::class, LibraryZeroResultSearches::class]],
+    'consultation' => ['library_viewer', [DocumentResource::class, MotCleResource::class], [LibraryOverview::class, LibraryTopDownloadedDocuments::class, LibraryTopViewedDocuments::class, LibraryZeroResultSearches::class]],
     // Le contributeur n'ouvre que l'écran Documents (limité à ses dépôts) :
     // ni thésaurus, ni widgets du catalogue.
     'contributeur' => ['library_contributor', [DocumentResource::class], []],
