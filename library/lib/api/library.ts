@@ -1,5 +1,5 @@
 import { apiGet, API_BASE_URL } from './client';
-import type { ApiResult, CatalogueFilters, DocumentDetail, DocumentSummary, LibraryStats, MotCle, Paginated, SearchResponse } from './types';
+import type { ApiResult, CatalogueFilters, DocumentDetail, DocumentSummary, DocumentType, LibraryStats, MotCle, Paginated, SearchResponse } from './types';
 import { filtersToSearchParams } from '../routes';
 
 const ISR = 300;
@@ -37,8 +37,19 @@ export function getDocument(slug: string): Promise<ApiResult<{ data: DocumentDet
   return apiGet(`/library/documents/${encodeURIComponent(slug)}`, { revalidate: ISR });
 }
 
-export function getMotsCles(): Promise<ApiResult<{ data: MotCle[] }>> {
-  return apiGet('/library/mots-cles', { revalidate: 3600 });
+/** Compte de documents : entier ≥ 0, sinon inconnu (champ retiré). */
+function normalizeMotCle(m: MotCle): MotCle {
+  const { documents_count: count, ...rest } = m;
+  return typeof count === 'number' && Number.isInteger(count) && count >= 0 ? { ...rest, documents_count: count } : rest;
+}
+
+/** Thésaurus ; `type` restreint les comptes de documents à ce type (API du plan 4). */
+export async function getMotsCles(options: { type?: DocumentType } = {}): Promise<ApiResult<{ data: MotCle[] }>> {
+  const qs = options.type ? `?type=${encodeURIComponent(options.type)}` : '';
+  const r = await apiGet<{ data: MotCle[] }>(`/library/mots-cles${qs}`, { revalidate: 3600 });
+  if (!r.ok) return r;
+  const list = Array.isArray(r.data.data) ? r.data.data : [];
+  return { ok: true, data: { data: list.map(normalizeMotCle) } };
 }
 
 export function resolveLegacyPath(path: string): Promise<ApiResult<{ data: { to_path: string; status_code: number } }>> {

@@ -57,22 +57,30 @@
     "metaTitle": "Accueil",
     "metaDescription": "Mémoires, thèses, textes de loi, ouvrages et cours en finances publiques : consultez librement le fonds documentaire du PSSFP.",
     "hero": {
-      "eyebrow": "{count, plural, one {# document} other {# documents}} · finances publiques",
-      "title": "Le savoir des finances publiques, en libre consultation.",
+      "eyebrow": "La bibliothèque numérique du PSSFP",
+      "titleLead": "Le savoir public.",
+      "titleAccent": "À portée de tous.",
+      "lead": "Explorez les ouvrages, textes officiels, travaux et ressources de référence pour comprendre, enseigner et transformer les finances publiques.",
       "suggestionsLabel": "Suggestions :",
       "suggestions": ["marchés publics", "TVA", "décentralisation", "audit interne", "loi de finances"],
-      "typesLabel": "Parcourir par type",
-      "latestTitle": "Derniers arrivés"
+      "showcaseLabel": "Documents les plus consultés",
+      "showcaseTitle": "Les plus consultés",
+      "showcaseBody": "Une sélection tirée du catalogue"
+    },
+    "stats": {
+      "label": "La bibliothèque en chiffres",
+      "documents": "{count, plural, one {document référencé} other {documents référencés}}",
+      "collections": "{count, plural, one {collection documentaire} other {collections documentaires}}",
+      "themes": "{count, plural, one {thème de recherche} other {thèmes de recherche}}",
+      "promotions": "{count, plural, one {promotion d'auditeurs} other {promotions d'auditeurs}}"
     },
     "collections": {
-      "eyebrow": "Collections",
-      "title": "Explorer le fonds",
-      "intro": "Travaux des promotions, textes de référence et ressources d'enseignement : chaque collection s'ouvre sur son catalogue complet.",
-      "collection": "Collection",
+      "eyebrow": "Un savoir structuré, facile à explorer",
+      "title": "Explorez nos collections",
+      "intro": "Un accès direct aux grandes familles de ressources du PSSFP : chaque collection s'ouvre sur son catalogue complet.",
+      "themesLink": "Parcourir par thème",
       "emptyTitle": "Le catalogue est en cours de constitution",
       "emptyBody": "Les premiers documents seront publiés prochainement. Revenez bientôt pour parcourir les collections.",
-      "memoireMeta": "{count, plural, one {travail} other {travaux}}",
-      "memoireMetaPromotions": "{count, plural, one {travail} other {travaux}} · {promotions, plural, one {# promotion} other {# promotions}}",
       "documents": "{count, plural, one {document} other {documents}}",
       "premiumTitle": "Ouvrages premium",
       "premiumBody": "Bientôt disponibles",
@@ -94,7 +102,21 @@
     "latest": {
       "eyebrow": "Derniers ajouts au catalogue",
       "title": "Nouveautés",
+      "intro": "Les derniers documents publiés dans la bibliothèque.",
       "empty": "Aucune nouveauté pour le moment."
+    },
+    "legal": {
+      "eyebrow": "Un raccourci vers l'essentiel",
+      "title": "Les textes qui façonnent les finances publiques.",
+      "body": "Lois, décrets, circulaires, instructions : {count, plural, one {# texte de référence est réuni} other {# textes de référence sont réunis}} dans la collection Législation, à consulter et à citer.",
+      "typesLabel": "Types de textes",
+      "cta": "Explorer la législation"
+    },
+    "themes": {
+      "eyebrow": "Par domaine d'expertise",
+      "title": "Quel sujet vous intéresse ?",
+      "intro": "Accédez directement aux ressources de votre domaine.",
+      "all": "Tous les thèmes"
     },
     "mostRead": {
       "eyebrow": "Palmarès des consultations",
@@ -347,5 +369,8 @@
     "states": "États vide et erreur",
     "emptyCatalogue": "Accueil — catalogue vide",
     "collectionCards": "Cartes de collection"
+  },
+  "themes": {
+    "count": "{count, plural, =0 {Aucun document} one {# document} other {# documents}}"
   }
 }

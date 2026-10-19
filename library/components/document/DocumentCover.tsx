@@ -92,7 +92,7 @@ export function DocumentCover({ doc, size = 'md', priority = false, sizes, decor
           <span className={`font-heading font-semibold leading-tight ${s.title}`}>{doc.title}</span>
           <span className="flex items-center gap-2">
             <span className="block h-px w-6 bg-current opacity-60" />
-            {doc.year !== null && <span className={`font-ui tabular-nums opacity-90 ${s.type}`}>{doc.year}</span>}
+            {doc.year !== null && <span className={`font-ui [font-variant-numeric:lining-nums_tabular-nums] opacity-90 ${s.type}`}>{doc.year}</span>}
           </span>
         </span>
       )}

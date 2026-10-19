@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import { CollectionCard } from '@/components/home/CollectionCard';
-import { CollectionsMosaic } from '@/components/home/CollectionsMosaic';
+import { CollectionsGrid } from '@/components/home/CollectionsGrid';
 import { Pagination } from '@/components/catalogue/Pagination';
 import { StateMessage } from '@/components/catalogue/StateMessage';
 import { AccessAction } from '@/components/document/AccessAction';
@@ -136,7 +136,7 @@ function Demo(): JSX.Element {
       <section aria-labelledby="demo-empty-catalogue">
         <h2 id="demo-empty-catalogue" className={`mx-auto max-w-7xl px-4 sm:px-6 ${SECTION_TITLE}`}>{t('emptyCatalogue')}</h2>
         <div data-testid="demo-empty-catalogue">
-          <CollectionsMosaic stats={DEMO_EMPTY_STATS} />
+          <CollectionsGrid stats={DEMO_EMPTY_STATS} />
         </div>
       </section>
     </div>

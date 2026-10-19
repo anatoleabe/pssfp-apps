@@ -37,7 +37,14 @@ export interface LibraryStats {
   /** Promotions distinctes parmi les mémoires publiés (absent des anciennes API : 0). */
   promotions_count?: number;
 }
-export interface MotCle { slug: string; label: string; parent_slug: string | null }
+export interface MotCle {
+  slug: string; label: string; parent_slug: string | null;
+  /**
+   * Documents publiés distincts rattachés au mot-clé ou à l'un de ses descendants (restreint au type
+   * demandé). Absent des API antérieures au plan 4 : compte inconnu, jamais assimilé à 0.
+   */
+  documents_count?: number;
+}
 
 export interface SearchResponse {
   data: DocumentSummary[];

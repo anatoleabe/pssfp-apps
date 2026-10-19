@@ -39,7 +39,7 @@ export function CollectionCard({ type, count }: CollectionCardProps): JSX.Elemen
     <Link
       href={collectionHref(type)}
       data-testid={`collection-tile-${type}`}
-      className="group relative isolate flex h-full min-h-[11.5rem] flex-col overflow-hidden rounded-pssfp-card border border-pssfp-lavande/35 bg-white p-6 shadow-pssfp-soft transition duration-300 ease-pssfp-out-expo hover:border-pssfp-lavande hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 motion-safe:hover:-translate-y-1 motion-reduce:transition-none"
+      className="group relative isolate flex h-full flex-col overflow-hidden rounded-pssfp-card border border-pssfp-lavande/35 bg-white p-5 sm:min-h-[11.5rem] sm:p-6 shadow-pssfp-soft transition duration-300 ease-pssfp-out-expo hover:border-pssfp-lavande hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2 motion-safe:hover:-translate-y-1 motion-reduce:transition-none"
     >
       <span aria-hidden="true" className={`absolute -right-12 -top-12 -z-10 h-36 w-36 rounded-full transition-transform duration-500 ease-pssfp-out-expo motion-safe:group-hover:scale-110 ${halo}`} />
       <div className="flex items-start justify-between gap-4">
@@ -53,12 +53,12 @@ export function CollectionCard({ type, count }: CollectionCardProps): JSX.Elemen
           className="text-pssfp-prune-light transition-transform duration-300 ease-pssfp-out-expo motion-safe:group-hover:-translate-y-0.5 motion-safe:group-hover:translate-x-0.5"
         />
       </div>
-      <div className="mt-auto pt-8">
+      <div className="mt-auto pt-5 sm:pt-8">
         <h3 className="font-heading text-[1.75rem] font-semibold leading-tight text-pssfp-prune-dark [overflow-wrap:anywhere] group-hover:text-pssfp-prune">{tTypes(`${type}.other`)}</h3>
         <div className="mt-1.5 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
           <span className="text-sm text-pssfp-graphite-light">{t(`descriptions.${type}`)}</span>
           <span className="inline-flex items-baseline gap-1.5 rounded-full bg-pssfp-mist px-2.5 py-0.5 font-ui text-xs text-pssfp-prune-dark">
-            <span data-testid="collection-count" className="font-semibold tabular-nums">
+            <span data-testid="collection-count" className="font-semibold [font-variant-numeric:lining-nums_tabular-nums]">
               {format.number(count)}
             </span>
             <span>{t('documents', { count })}</span>

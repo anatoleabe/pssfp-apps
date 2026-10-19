@@ -32,7 +32,7 @@ function Kicker({ doc }: { doc: DocumentSummary }): JSX.Element {
   return (
     <p className="flex flex-wrap font-ui text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-pssfp-prune-light [&>span+span]:before:mx-1.5 [&>span+span]:before:content-['·']">
       <span>{t(`types.${doc.type}.one`)}</span>
-      {doc.year !== null && <span className="tabular-nums">{doc.year}</span>}
+      {doc.year !== null && <span className="[font-variant-numeric:lining-nums_tabular-nums]">{doc.year}</span>}
       {doc.promotion !== null && <span>{t('document.promotion', { n: doc.promotion })}</span>}
     </p>
   );

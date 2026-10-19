@@ -42,5 +42,7 @@ export const collectionHref = (type: DocumentType, f: CatalogueFilters = {}): st
 export const searchHref = (q: string, f: CatalogueFilters = {}): string => {
   const qs = filtersToSearchParams(f); qs.set('q', q); return `/recherche?${qs.toString()}`;
 };
+export const themesHref = '/themes';
+export const themeHref = (slug: string, page = 1): string => `/themes/${encodeURIComponent(slug)}${page > 1 ? `?page=${page}` : ''}`;
 export const documentHref = (slug: string): string => `/documents/${encodeURIComponent(slug)}`;
 export const downloadHref = (uuid: string): string => `${API_BASE_URL}/library/documents/${encodeURIComponent(uuid)}/download`;
