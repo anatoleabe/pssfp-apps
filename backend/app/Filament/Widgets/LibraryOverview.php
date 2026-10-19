@@ -52,10 +52,18 @@ class LibraryOverview extends StatsOverviewWidget
             ->groupBy('status')
             ->pluck('total', 'status');
 
+        // « Publiés » ne compte que les documents en ligne (scope published :
+        // date de publication passée ou absente). Ceux publiés à une date
+        // future n'y figurent pas encore : on les signale à part pour qu'ils
+        // ne disparaissent pas des compteurs jusqu'à leur mise en ligne.
+        $published = Document::query()->published()->count();
+        $scheduled = (int) ($byStatus[Document::STATUS_PUBLISHED] ?? 0) - $published;
+
         return [
             Stat::make('Brouillons', (int) ($byStatus[Document::STATUS_DRAFT] ?? 0)),
             Stat::make('À valider', (int) ($byStatus[Document::STATUS_IN_REVIEW] ?? 0)),
-            Stat::make('Publiés', Document::query()->published()->count()),
+            Stat::make('Publiés', $published)
+                ->description($scheduled > 0 ? '+ '.$scheduled.' programmé'.($scheduled > 1 ? 's' : '') : null),
             Stat::make('Archivés', (int) ($byStatus[Document::STATUS_ARCHIVED] ?? 0)),
             Stat::make('Téléchargements (30 j)', DocumentDownload::query()->where('downloaded_at', '>=', now()->subDays(30))->count()),
             Stat::make('Par type', count($byType))->description($breakdown !== '' ? $breakdown : 'Aucun document publié'),

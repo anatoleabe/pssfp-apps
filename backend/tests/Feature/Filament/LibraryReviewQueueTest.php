@@ -151,8 +151,15 @@ it('prévient les validateurs quand un document est soumis en revue, sauf l\'aut
     $mail->assertHasSubject('[Bibliothèque PSSFP] Document à valider — Mémoire de contrôle');
     $mail->assertSeeInHtml('Mémoire de contrôle');
     $mail->assertSeeInHtml(Document::TYPES['memoire']);
-    $mail->assertSeeInHtml(DocumentResource::getUrl('edit', ['record' => $draft]));
+    $url = DocumentResource::getUrl('view', ['record' => $draft]);
+    $mail->assertSeeInHtml($url);
+    $mail->assertDontSeeInHtml(DocumentResource::getUrl('edit', ['record' => $draft]));
     $mail->assertDontSeeInHtml($this->contributor->email);
+
+    // Le lien s'ouvre pour chaque validateur prévenu.
+    foreach ([$this->librarian, $manager] as $recipient) {
+        $this->actingAs($recipient)->get($url)->assertOk();
+    }
 });
 
 it('n\'envoie rien à la soumission quand aucun autre validateur n\'existe', function (): void {
@@ -178,7 +185,13 @@ it('prévient le contributeur quand son document est publié', function (): void
     expect($mail)->toBeInstanceOf(LibraryDocumentPublishedMail::class);
     $mail->assertHasSubject('[Bibliothèque PSSFP] Document publié — Rapport validé');
     $mail->assertSeeInHtml('Rapport validé');
-    $mail->assertSeeInHtml(DocumentResource::getUrl('edit', ['record' => $review]));
+
+    // Publié, le document n'est plus modifiable par son contributeur : le
+    // lien mène à la fiche, qu'il peut ouvrir, et non à l'édition (403).
+    $url = DocumentResource::getUrl('view', ['record' => $review]);
+    $mail->assertSeeInHtml($url);
+    $mail->assertDontSeeInHtml(DocumentResource::getUrl('edit', ['record' => $review]));
+    $this->actingAs($this->contributor)->get($url)->assertOk();
 });
 
 it('ne prévient pas le compte d\'import système ni l\'auteur de la publication', function (): void {
@@ -240,7 +253,11 @@ it('renvoie un document en revue au brouillon avec un motif tracé et transmis a
     $mail->assertSeeInHtml('Le résumé manque.');
     $mail->assertDontSeeInHtml('<b>', false);
     $mail->assertDontSeeInHtml('href="https://exemple.invalid"', false);
-    $mail->assertSeeInHtml(DocumentResource::getUrl('edit', ['record' => $review]));
+
+    // Redevenu brouillon, le document est de nouveau modifiable par son déposant.
+    $url = DocumentResource::getUrl('edit', ['record' => $review]);
+    $mail->assertSeeInHtml($url);
+    $this->actingAs($this->contributor)->get($url)->assertOk();
 });
 
 it('exige un motif pour renvoyer en brouillon', function (): void {

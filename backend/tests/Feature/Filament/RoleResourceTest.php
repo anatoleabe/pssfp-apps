@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Filament\Resources\RoleResource;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\ModuleAccess;
 use App\Support\ModulePermissionMap;
 use Database\Seeders\RolePermissionSeeder;
 
@@ -312,4 +313,34 @@ it('range les nouvelles actions de la bibliothèque parmi ses actions sensibles'
     expect(array_keys(ModulePermissionMap::modules()['bibliotheque']['sensitive']))->toBe([
         'document.publish', 'library.thesaurus', 'library.redirects', 'library.stats_export', 'document.contribute',
     ]);
+});
+
+it('affiche en lecture un module que le rôle ouvre par une seule permission de gestion', function (): void {
+    // Un rôle posé à la main avec une permission de gestion sans lecture ouvre
+    // le module (ModuleAccess) : l'écran des rôles ne doit pas l'afficher
+    // « Aucun accès », sinon un simple enregistrement retirerait l'accès.
+    $permissions = ['update_document', 'document.publish'];
+    $role = Role::findOrCreate('gestion-partielle', 'web');
+    $role->syncPermissions($permissions);
+    $user = User::factory()->create();
+    $user->assignRole($role);
+
+    expect(ModuleAccess::allows($user->fresh(), 'bibliotheque'))->toBeTrue();
+
+    $levels = ModulePermissionMap::toLevels($permissions);
+
+    expect($levels['bibliotheque'])->toBe(ModulePermissionMap::LEVEL_READ)
+        ->and($levels['admissions'])->toBe(ModulePermissionMap::LEVEL_NONE);
+
+    // Aller-retour : le niveau affiché, réenregistré, garde le module ouvert
+    // et l'action sensible cochée.
+    $saved = ModulePermissionMap::toPermissions($levels, ['document.publish']);
+
+    expect($saved)->toContain('view_any_document')->toContain('document.publish')
+        ->and(ModulePermissionMap::toLevels($saved))->toBe($levels);
+});
+
+it('garde « Aucun accès » pour un rôle qui ne porte qu\'une action autonome', function (): void {
+    expect(ModulePermissionMap::toLevels(['document.contribute'])['bibliotheque'])
+        ->toBe(ModulePermissionMap::LEVEL_NONE);
 });

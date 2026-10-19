@@ -16,6 +16,7 @@ use App\Services\Library\LibraryStatsCsvExport;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Console\Scheduling\Schedule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses()->group('filament', 'module-3');
 
@@ -203,4 +204,48 @@ it('montre l\'export à library_viewer', function (): void {
     $this->livewire(ListDocuments::class)->assertActionVisible('exportStats')
         ->callAction('exportStats')
         ->assertFileDownloaded('bibliotheque-statistiques-'.now()->toDateString().'.csv');
+});
+
+it('refuse l\'export des statistiques appelé hors de l\'écran sans library.stats_export', function (?string $role): void {
+    if ($role !== null) {
+        $user = User::factory()->create();
+        $user->assignRole($role);
+        $this->actingAs($user);
+    }
+
+    expect(fn () => app(LibraryStatsCsvExport::class)->download())
+        ->toThrow(HttpException::class);
+})->with([
+    'invité' => [null],
+    'contributeur' => ['library_contributor'],
+    'éditeur' => ['editor'],
+]);
+
+it('neutralise les formules précédées d\'une tabulation ou d\'un retour chariot', function (): void {
+    expect(LibraryStatsCsvExport::safe("\t=SOMME(A1:A2)"))->toBe("'\t=SOMME(A1:A2)")
+        ->and(LibraryStatsCsvExport::safe("\r=1+1"))->toBe("'\r=1+1")
+        ->and(LibraryStatsCsvExport::safe('-2'))->toBe("'-2")
+        ->and(LibraryStatsCsvExport::safe('Titre ordinaire'))->toBe('Titre ordinaire')
+        ->and(LibraryStatsCsvExport::safe(''))->toBe('')
+        ->and(LibraryStatsCsvExport::safe(12))->toBe(12);
+});
+
+it('signale les documents publiés à une date future sans les compter parmi les publiés', function (): void {
+    Document::factory()->published()->create();
+    Document::factory()->published()->create(['published_at' => now()->addWeek()]);
+    Document::factory()->published()->create(['published_at' => now()->addMonth()]);
+
+    $this->actingAs($this->librarian);
+    $stats = overviewStats();
+
+    expect($stats['Publiés']->getValue())->toBe(1)
+        ->and((string) $stats['Publiés']->getDescription())->toBe('+ 2 programmés');
+});
+
+it('n\'affiche aucune mention de programmation quand rien n\'est programmé', function (): void {
+    Document::factory()->published()->create();
+
+    $this->actingAs($this->librarian);
+
+    expect(overviewStats()['Publiés']->getDescription())->toBeNull();
 });

@@ -30,9 +30,10 @@ class DepotsCampagneWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        return static::moduleAllows() && (auth()->user()?->hasAnyRole([
-            'super_admin', 'admin', 'admission_committee', 'receptionniste',
-        ]) ?? false);
+        // Pour qui pointe les dossiers papier au guichet : permission et non
+        // noms de rôles, pour qu'un rôle créé depuis l'écran des rôles le voie.
+        return static::moduleAllows()
+            && (auth()->user()?->can('candidature.mark_depot_physique') ?? false);
     }
 
     protected function getStats(): array

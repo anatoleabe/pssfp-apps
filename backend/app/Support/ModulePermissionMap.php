@@ -266,11 +266,17 @@ final class ModulePermissionMap
             $hasRead = self::containsAll($permissions, $module['read']);
             $hasManage = $hasRead && self::containsAll($permissions, $module['manage']);
 
+            // Toute permission de lecture ou de gestion ouvre le module
+            // (ModuleAccess) : l'écran ne doit jamais l'afficher « Aucun
+            // accès », sinon un simple enregistrement le refermerait.
+            $opens = array_intersect($permissions, [...$module['read'], ...$module['manage']]) !== [];
+
             $levels[$key] = match (true) {
                 $hasManage => self::LEVEL_MANAGE,
-                // Lecture partielle (rôle historique seedé à la main) : on
-                // n'efface rien, on l'affiche comme lecture.
-                $hasRead || array_intersect($permissions, $module['read']) !== [] => self::LEVEL_READ,
+                // Accès partiel (rôle historique seedé à la main, permission
+                // de gestion sans lecture) : on n'efface rien, on l'affiche
+                // comme lecture.
+                $opens => self::LEVEL_READ,
                 default => self::LEVEL_NONE,
             };
         }

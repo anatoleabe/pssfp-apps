@@ -42,10 +42,19 @@ final class ProcessDocumentFile implements ShouldQueue
      */
     public int $timeout = 85;
 
+    /**
+     * Propriété classique avec valeur par défaut (et non promue `readonly`) :
+     * un job sérialisé avant son ajout, sans cette clé, se désérialise avec
+     * false au lieu d'une propriété non initialisée.
+     */
+    public bool $forceCover = false;
+
     public function __construct(
         public readonly int $documentId,
-        public readonly bool $forceCover = false,
-    ) {}
+        bool $forceCover = false,
+    ) {
+        $this->forceCover = $forceCover;
+    }
 
     public function handle(CoverRenderer $renderer): void
     {

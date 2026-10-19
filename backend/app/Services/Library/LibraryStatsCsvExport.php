@@ -19,8 +19,17 @@ class LibraryStatsCsvExport
         return 'bibliotheque-statistiques-'.now()->toDateString().'.csv';
     }
 
+    public const PERMISSION = 'library.stats_export';
+
+    /**
+     * L'autorisation est vérifiée ici aussi, et pas seulement par l'action
+     * de l'écran : le service ne doit rien produire pour un appelant qui
+     * n'a pas le droit d'exporter, d'où qu'il soit appelé.
+     */
     public function download(): StreamedResponse
     {
+        abort_unless((bool) auth()->user()?->can(self::PERMISSION), 403);
+
         return response()->streamDownload(function (): void {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");

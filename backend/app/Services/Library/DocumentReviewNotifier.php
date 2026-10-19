@@ -31,7 +31,7 @@ final class DocumentReviewNotifier
     /** Soumission en revue : un message à chaque validateur, sauf l'auteur de l'action. */
     public static function submitted(Document $document, ?User $actor): void
     {
-        $summary = self::summary($document);
+        $summary = self::summary($document, 'view');
 
         foreach (self::publisherEmails($actor) as $email) {
             SendThrottledMail::dispatch([$email], new LibraryDocumentSubmittedMail(
@@ -56,7 +56,7 @@ final class DocumentReviewNotifier
             return;
         }
 
-        $summaries = $documents->map(fn (Document $d): array => self::summary($d))->values()->all();
+        $summaries = $documents->map(fn (Document $d): array => self::summary($d, 'view'))->values()->all();
         $queueUrl = DocumentResource::getUrl('index', ['activeTab' => 'a_valider']);
 
         foreach (self::publisherEmails($actor) as $email) {
@@ -79,7 +79,7 @@ final class DocumentReviewNotifier
             ->each(function (Collection $own, int|string $userId) use ($depositors): void {
                 SendThrottledMail::dispatch(
                     [(string) $depositors->get($userId)->email],
-                    new LibraryDocumentPublishedMail($own->map(fn (Document $d): array => self::summary($d))->values()->all()),
+                    new LibraryDocumentPublishedMail($own->map(fn (Document $d): array => self::summary($d, 'view'))->values()->all()),
                 );
             });
     }
@@ -93,7 +93,8 @@ final class DocumentReviewNotifier
             return;
         }
 
-        $summary = self::summary($document);
+        // Le brouillon redevient modifiable par son déposant : lien vers l'édition.
+        $summary = self::summary($document, 'edit');
         SendThrottledMail::dispatch([(string) $depositor->email], new LibraryDocumentReturnedMail(
             documentTitle: $summary['title'],
             typeLabel: $summary['type'],
@@ -146,13 +147,21 @@ final class DocumentReviewNotifier
         return filled($email) && ! Str::endsWith(Str::lower(trim($email)), '.invalid');
     }
 
-    /** @return array{title: string, type: string, url: string} */
-    private static function summary(Document $document): array
+    /**
+     * Le lien pointe vers la page que le destinataire peut ouvrir : la fiche
+     * (`view`) pour les validateurs et pour un document publié (que son
+     * contributeur ne peut plus modifier), l'édition (`edit`) pour un
+     * brouillon rendu à son déposant.
+     *
+     * @param  'view'|'edit'  $page
+     * @return array{title: string, type: string, url: string}
+     */
+    private static function summary(Document $document, string $page): array
     {
         return [
             'title' => (string) ($document->getTranslation('title', 'fr', false) ?: $document->slug),
             'type' => Document::TYPES[$document->type] ?? (string) $document->type,
-            'url' => DocumentResource::getUrl('edit', ['record' => $document]),
+            'url' => DocumentResource::getUrl($page, ['record' => $document]),
         ];
     }
 }

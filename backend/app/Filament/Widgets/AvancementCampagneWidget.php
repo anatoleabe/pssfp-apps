@@ -26,7 +26,9 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  * - Taux frais payés
  * - Compte à rebours date de clôture (couleur conditionnelle)
  *
- * Visible aux comptes back-office qui ont accès au module des admissions.
+ * Visible aux comptes qui ont accès au module des admissions et qui gèrent
+ * les dossiers (`update_candidature`) ou encaissent les frais
+ * (`candidature.mark_paid`).
  */
 #[BelongsToModule('admissions')]
 class AvancementCampagneWidget extends BaseWidget
@@ -39,12 +41,14 @@ class AvancementCampagneWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        // Vue d'ensemble des admissions, pour les rôles qui lisent ce module.
-        // `librarian` et `editor` n'y ont plus accès (encaissement passé à
-        // `caisse`) : ils sont sortis de la liste.
-        return static::moduleAllows() && (auth()->user()?->hasAnyRole([
-            'super_admin', 'admin', 'admission_committee', 'caisse',
-        ]) ?? false);
+        // Vue d'ensemble de la campagne (statuts, frais payés) : pour qui gère
+        // les dossiers ou encaisse les frais. Permissions et non noms de
+        // rôles, pour qu'un rôle créé depuis l'écran des rôles la voie aussi ;
+        // le guichet (pointage seul) ne la voit pas.
+        $user = auth()->user();
+
+        return static::moduleAllows() && $user !== null
+            && ($user->can('update_candidature') || $user->can('candidature.mark_paid'));
     }
 
     protected function getStats(): array

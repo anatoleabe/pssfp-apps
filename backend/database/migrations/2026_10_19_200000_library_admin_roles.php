@@ -147,6 +147,14 @@ return new class extends Migration
      * lui a ajoutées (lecture admissions, `candidature.mark_paid`) : on ne
      * sait pas distinguer celles qu'il portait déjà. Aucun droit n'est donc
      * perdu ; à nettoyer à la main depuis l'écran Rôles si besoin.
+     *
+     * À l'inverse, un rôle `caisse` créé par up() (description inchangée) est
+     * supprimé avec **tous** ses titulaires, y compris ceux à qui on l'a
+     * donné après la migration sans être bibliothécaires : ceux-là perdent
+     * alors `candidature.mark_paid` et la lecture des admissions, que down()
+     * ne rend qu'à `librarian`. Avant un rollback, relever les titulaires de
+     * `caisse` qui ne sont pas bibliothécaires pour leur réattribuer ces
+     * droits.
      */
     public function down(): void
     {

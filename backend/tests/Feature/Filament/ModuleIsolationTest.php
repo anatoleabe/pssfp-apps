@@ -10,10 +10,12 @@ use App\Filament\Resources\DocumentResource;
 use App\Filament\Resources\LibraryRedirectResource;
 use App\Filament\Resources\MotCleResource;
 use App\Filament\Widgets\AvancementCampagneWidget;
+use App\Filament\Widgets\DepotsCampagneWidget;
 use App\Filament\Widgets\LibraryOverview;
 use App\Filament\Widgets\LibraryTopDownloadedDocuments;
 use App\Filament\Widgets\LibraryTopViewedDocuments;
 use App\Filament\Widgets\LibraryZeroResultSearches;
+use App\Filament\Widgets\QuotasRegionauxWidget;
 use App\Jobs\ProcessDocumentFile;
 use App\Models\Role;
 use App\Models\User;
@@ -373,4 +375,51 @@ it('ne montre aucun écran des admissions à un bibliothécaire doté d\'un expo
     expect(AvancementCampagneWidget::canView())->toBeFalse()
         ->and(CandidatureResource::canAccess())->toBeFalse()
         ->and(ModuleAccess::allows($librarian, 'bibliotheque'))->toBeTrue();
+});
+
+/*
+ * Widgets des admissions : la visibilité suit les permissions (accès au
+ * module + un droit du métier du widget), jamais les noms de rôles, pour
+ * qu'un rôle créé depuis l'écran des rôles les voie aussi.
+ */
+it('montre les widgets des admissions aux rôles seedés selon leurs droits', function (string $roleName, bool $avancement, bool $depots, bool $quotas): void {
+    $this->actingAs(isolationUser($roleName));
+
+    expect(AvancementCampagneWidget::canView())->toBe($avancement, "Avancement pour {$roleName}")
+        ->and(DepotsCampagneWidget::canView())->toBe($depots, "Dépôts pour {$roleName}")
+        ->and(QuotasRegionauxWidget::canView())->toBe($quotas, "Quotas pour {$roleName}");
+})->with([
+    'super_admin' => ['super_admin', true, true, true],
+    'admin' => ['admin', true, true, true],
+    'admission_committee' => ['admission_committee', true, true, true],
+    'receptionniste' => ['receptionniste', false, true, false],
+    'caisse' => ['caisse', true, false, false],
+    'editor' => ['editor', false, false, false],
+    'librarian' => ['librarian', false, false, false],
+    'library_manager' => ['library_manager', false, false, false],
+    'teacher' => ['teacher', false, false, false],
+    'auditor' => ['auditor', false, false, false],
+]);
+
+it('montre les widgets des admissions à un rôle créé depuis l\'écran des rôles', function (string $level, array $sensitive, bool $avancement, bool $depots, bool $quotas): void {
+    $role = Role::create(['name' => 'personnalise', 'label' => 'Personnalisé', 'guard_name' => 'web']);
+    $role->syncPermissions(ModulePermissionMap::toPermissions(['admissions' => $level], $sensitive));
+    $this->actingAs(isolationUser('personnalise'));
+
+    expect(AvancementCampagneWidget::canView())->toBe($avancement)
+        ->and(DepotsCampagneWidget::canView())->toBe($depots)
+        ->and(QuotasRegionauxWidget::canView())->toBe($quotas);
+})->with([
+    'gestion' => [ModulePermissionMap::LEVEL_MANAGE, [], true, false, true],
+    'lecture + guichet' => [ModulePermissionMap::LEVEL_READ, ['candidature.mark_depot_physique'], false, true, false],
+    'lecture + encaissement' => [ModulePermissionMap::LEVEL_READ, ['candidature.mark_paid'], true, false, false],
+    'lecture seule' => [ModulePermissionMap::LEVEL_READ, [], false, false, false],
+]);
+
+it('ne fonde la visibilité d\'aucun widget sur un nom de rôle', function (): void {
+    foreach (isolationScreens()['widget'] as $widget) {
+        $source = (string) file_get_contents((new ReflectionClass($widget))->getFileName());
+
+        expect($source)->not->toMatch('/->has(Any|All)?Roles?\(/', "{$widget} teste un nom de rôle");
+    }
 });
