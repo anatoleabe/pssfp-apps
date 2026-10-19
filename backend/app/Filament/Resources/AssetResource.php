@@ -8,7 +8,6 @@ use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Forms\Components\PrivateFileUpload;
 use App\Filament\Resources\AssetResource\Pages;
 use App\Models\Asset;
-use App\Services\AssetImportService;
 use App\Support\BelongsToModule;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -19,13 +18,15 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 /**
  * Resource Filament `Asset` — bibliothèque média (cf. spec sprint S5 PR V).
  *
  * Permet aux admins de browse, upload et tagger les logos / photos / documents
- * stockés sur MinIO. Trois disks supportés : minio_media (public),
- * minio_documents (privé).
+ * stockés sur MinIO. Deux disques, en liste fermée selon la catégorie
+ * (Asset::DISKS_BY_CATEGORY) : minio_media (public), minio_documents (privé).
+ * Disque et chemin ne se saisissent pas : ils viennent du dépôt.
  */
 #[BelongsToModule('site')]
 class AssetResource extends Resource
@@ -52,14 +53,17 @@ class AssetResource extends Resource
             Forms\Components\Section::make('Fichier')
                 ->columns(2)
                 ->schema([
+                    // La catégorie fixe le disque à la création : figée ensuite.
                     Forms\Components\Select::make('category')
                         ->required()
                         ->options(Asset::CATEGORIES)
+                        ->disabled(fn (string $operation): bool => $operation === 'edit')
                         ->live()
-                        ->afterStateUpdated(fn ($state, Forms\Set $set) => $set('subcategory', null)),
+                        ->afterStateUpdated(fn ($state, Forms\Set $set, string $operation) => $operation === 'edit' ? null : $set('subcategory', null)),
                     Forms\Components\Select::make('subcategory')
-                        ->options(function (Forms\Get $get): array {
-                            return match ($get('category')) {
+                        // À l'édition, la catégorie enregistrée fait foi (champ figé).
+                        ->options(function (Forms\Get $get, ?Asset $record): array {
+                            return match ($record?->category ?? $get('category')) {
                                 Asset::CATEGORY_LOGO => Asset::LOGO_SUBCATEGORIES,
                                 Asset::CATEGORY_PHOTO => Asset::PHOTO_SUBCATEGORIES,
                                 Asset::CATEGORY_DOCUMENT => Asset::DOCUMENT_SUBCATEGORIES,
@@ -67,36 +71,32 @@ class AssetResource extends Resource
                             };
                         })
                         ->required(),
-                    // Peut viser le disque privé des documents : pas de chemin forgé.
+                    // Seule source du disque et du chemin d'un média : le dépôt, à la
+                    // création. Ni disque ni chemin ne se saisissent (cf. CreateAsset).
                     PrivateFileUpload::make('upload')
                         ->label('Fichier (upload)')
-                        ->disk(fn (Forms\Get $get) => $get('category') === Asset::CATEGORY_DOCUMENT
-                            ? AssetImportService::DOCUMENTS_DISK
-                            : AssetImportService::MEDIA_DISK)
+                        ->required()
+                        ->hiddenOn('edit')
+                        ->disk(fn (Forms\Get $get): string => Asset::diskForCategory((string) $get('category')) ?? Asset::PUBLIC_DISK)
                         ->directory(fn (Forms\Get $get) => self::uploadDirectory((string) $get('category'), (string) $get('subcategory')))
                         ->visibility('public')
                         ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/svg+xml', 'image/webp', 'application/pdf'])
                         ->maxSize(20480)
                         ->columnSpanFull()
-                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get): void {
-                            if (! $state) {
+                        ->afterStateUpdated(function (mixed $state, Forms\Set $set): void {
+                            if (! $state instanceof TemporaryUploadedFile) {
                                 return;
                             }
-                            $path = is_string($state) ? $state : (method_exists($state, 'getRealPath') ? $state->getRealPath() : null);
-                            if ($path === null) {
-                                return;
-                            }
-                            $filename = basename($path);
-                            $set('filename', $filename);
-                            $set('original_filename', $filename);
-                            $set('path', $get('category') === Asset::CATEGORY_DOCUMENT
-                                ? self::uploadDirectory(Asset::CATEGORY_DOCUMENT, (string) $get('subcategory')).'/'.$filename
-                                : self::uploadDirectory((string) $get('category'), (string) $get('subcategory')).'/'.$filename);
-                            $set('disk', $get('category') === Asset::CATEGORY_DOCUMENT
-                                ? AssetImportService::DOCUMENTS_DISK
-                                : AssetImportService::MEDIA_DISK);
-                        })
-                        ->dehydrated(false),
+                            $set('filename', $state->getClientOriginalName());
+                            $set('original_filename', $state->getClientOriginalName());
+                            $set('mime', $state->getMimeType());
+                            $set('size', $state->getSize());
+                        }),
+                    Forms\Components\Placeholder::make('stored_file')
+                        ->label('Fichier enregistré')
+                        ->content(fn (?Asset $record): string => $record === null ? '' : "{$record->disk} : {$record->path}")
+                        ->visibleOn('edit')
+                        ->columnSpanFull(),
                 ]),
 
             Forms\Components\Section::make('Métadonnées')
@@ -104,8 +104,6 @@ class AssetResource extends Resource
                 ->schema([
                     Forms\Components\TextInput::make('filename')->required()->maxLength(200),
                     Forms\Components\TextInput::make('original_filename')->maxLength(255),
-                    Forms\Components\TextInput::make('disk')->required()->maxLength(30),
-                    Forms\Components\TextInput::make('path')->required()->maxLength(300)->columnSpanFull(),
                     Forms\Components\TextInput::make('mime')->required()->maxLength(100),
                     Forms\Components\TextInput::make('size')->numeric()->required(),
                     Forms\Components\TextInput::make('width')->numeric(),
@@ -126,7 +124,7 @@ class AssetResource extends Resource
                     ->label('Aperçu')
                     ->size(64)
                     ->getStateUsing(function (Asset $record): ?string {
-                        if (! $record->isImage()) {
+                        if (! $record->isImage() || ! $record->hasAllowedDisk()) {
                             return null;
                         }
                         $path = $record->variants['thumb'] ?? $record->path;
@@ -167,9 +165,9 @@ class AssetResource extends Resource
                 Tables\Actions\Action::make('open')
                     ->label('Ouvrir')
                     ->icon('heroicon-o-arrow-top-right-on-square')
-                    ->url(fn (Asset $record): string => $record->disk === AssetImportService::MEDIA_DISK
-                        ? (string) $record->publicUrl()
-                        : $record->signedUrl(30))
+                    // Jamais d'URL pour un disque hors liste (ligne héritée).
+                    ->visible(fn (Asset $record): bool => $record->hasAllowedDisk())
+                    ->url(fn (Asset $record): ?string => $record->openUrl(30))
                     ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
+use InvalidArgumentException;
 use Spatie\Translatable\HasTranslations;
 
 /**
@@ -67,6 +68,20 @@ class Asset extends Model
         'autre' => 'Autre',
     ];
 
+    /**
+     * Disque de chaque catégorie : liste fermée. Le disque d'un média ne se
+     * saisit jamais ; il découle de la catégorie à la création.
+     */
+    public const DISKS_BY_CATEGORY = [
+        self::CATEGORY_LOGO => 'minio_media',
+        self::CATEGORY_PHOTO => 'minio_media',
+        self::CATEGORY_DOCUMENT => 'minio_documents',
+    ];
+
+    public const PUBLIC_DISK = 'minio_media';
+
+    public const PRIVATE_DISK = 'minio_documents';
+
     protected $fillable = [
         'filename',
         'original_filename',
@@ -97,6 +112,45 @@ class Asset extends Model
         'width' => 'integer',
         'height' => 'integer',
     ];
+
+    /**
+     * Garde-fou : aucun enregistrement ne pose un disque hors de la liste
+     * (ex. `minio_candidatures`), quel que soit le chemin du code. Seul un
+     * disque modifié est contrôlé : une ligne héritée reste modifiable.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Asset $asset): void {
+            if ($asset->isDirty('disk') && ! in_array($asset->disk, self::allowedDisks(), true)) {
+                throw new InvalidArgumentException("Disque de média non autorisé : {$asset->disk}.");
+            }
+        });
+    }
+
+    /** @return list<string> */
+    public static function allowedDisks(): array
+    {
+        return array_values(array_unique(self::DISKS_BY_CATEGORY));
+    }
+
+    public static function diskForCategory(string $category): ?string
+    {
+        return self::DISKS_BY_CATEGORY[$category] ?? null;
+    }
+
+    public function hasAllowedDisk(): bool
+    {
+        return in_array($this->disk, self::allowedDisks(), true);
+    }
+
+    /**
+     * Lien « Ouvrir » : URL publique sur le disque média, URL signée de son
+     * propre chemin sur le disque privé, rien pour un disque hors liste.
+     */
+    public function openUrl(int $minutes = 30): ?string
+    {
+        return $this->disk === self::PUBLIC_DISK ? $this->publicUrl() : $this->signedUrl($minutes);
+    }
 
     public function uniqueIds(): array
     {
@@ -143,7 +197,7 @@ class Asset extends Model
      */
     public function publicUrl(): ?string
     {
-        if ($this->disk !== 'minio_media') {
+        if ($this->disk !== self::PUBLIC_DISK) {
             return null;
         }
 
@@ -151,10 +205,15 @@ class Asset extends Model
     }
 
     /**
-     * URL signée temporaire (pour fichiers privés type documents).
+     * URL signée temporaire (pour fichiers privés type documents), sur le
+     * seul disque privé de la médiathèque : jamais un autre bucket privé.
      */
-    public function signedUrl(int $minutes = 30): string
+    public function signedUrl(int $minutes = 30): ?string
     {
+        if ($this->disk !== self::PRIVATE_DISK) {
+            return null;
+        }
+
         return Storage::disk($this->disk)->temporaryUrl($this->path, now()->addMinutes($minutes));
     }
 
@@ -165,7 +224,7 @@ class Asset extends Model
     {
         $path = $this->variants[$size] ?? null;
 
-        if (! $path) {
+        if (! $path || ! $this->hasAllowedDisk()) {
             return $this->publicUrl();
         }
 

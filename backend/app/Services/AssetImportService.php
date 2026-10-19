@@ -42,9 +42,9 @@ class AssetImportService
         self::VARIANT_FULL => 1920,
     ];
 
-    public const MEDIA_DISK = 'minio_media';
+    public const MEDIA_DISK = Asset::PUBLIC_DISK;
 
-    public const DOCUMENTS_DISK = 'minio_documents';
+    public const DOCUMENTS_DISK = Asset::PRIVATE_DISK;
 
     /** @var array{imported: int, skipped: int, errors: int, files: array<int, array<string, mixed>>} */
     private array $report = [
