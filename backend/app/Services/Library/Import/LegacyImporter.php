@@ -5,12 +5,9 @@ declare(strict_types=1);
 namespace App\Services\Library\Import;
 
 use App\Models\Document;
-use App\Models\MotCle;
-use App\Models\User;
 use Closure;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
@@ -62,8 +59,7 @@ final class LegacyImporter
     /** @var array<string, array<int, MappedCategory|string>> correspondance, ou message d'erreur */
     private array $mapped = [];
 
-    /** @var array<string, int> slug du thésaurus → id */
-    private array $keywordIds = [];
+    private ImportCatalogSetup $catalog;
 
     private ?int $systemUserId = null;
 
@@ -149,7 +145,7 @@ final class LegacyImporter
         $this->redirects = new RedirectWriter($this->report, $options->dryRun);
         $this->slugs = new SlugAllocator;
         $this->mapped = [];
-        $this->keywordIds = [];
+        $this->catalog = new ImportCatalogSetup($this->mapping, $options->dryRun);
         $this->systemUserId = null;
         $this->checksums = [];
         $this->journal = $options->journalDirectory === null
@@ -185,36 +181,16 @@ final class LegacyImporter
 
     private function ensureSystemUser(): void
     {
-        $user = User::query()->where('email', self::SYSTEM_USER_EMAIL)->first();
-        if ($user === null && ! $this->options->dryRun) {
-            // Aucun rôle, e-mail non vérifié, mot de passe aléatoire jamais communiqué : compte inutilisable.
-            $user = User::query()->firstOrCreate(
-                ['email' => self::SYSTEM_USER_EMAIL],
-                ['name' => self::SYSTEM_USER_NAME, 'password' => Str::password(64)],
-            );
-        }
-        if ($user === null || $user->wasRecentlyCreated) {
+        if ($this->catalog->ensureSystemUser()) {
             $this->report->systemUserCreated();
         }
-        $this->systemUserId = $user?->id;
+        $this->systemUserId = $this->catalog->systemUserId();
     }
 
     private function ensureThesaurus(): void
     {
-        foreach ($this->mapping->thesaurus() as $ref) {
-            $keyword = MotCle::query()->where('slug', $ref->slug)->first();
-            if ($keyword === null && ! $this->options->dryRun) {
-                $keyword = MotCle::query()->firstOrCreate(['slug' => $ref->slug], [
-                    'label' => ['fr' => $ref->label],
-                    'parent_id' => $ref->parentSlug === null ? null : ($this->keywordIds[$ref->parentSlug] ?? null),
-                ]);
-            }
-            if ($keyword === null || $keyword->wasRecentlyCreated) {
-                $this->report->keywordCreated();
-            }
-            if ($keyword !== null) {
-                $this->keywordIds[$ref->slug] = $keyword->id;
-            }
+        for ($created = $this->catalog->ensureThesaurus(); $created > 0; $created--) {
+            $this->report->keywordCreated();
         }
     }
 
@@ -559,16 +535,7 @@ final class LegacyImporter
     /** Mots-clés de la correspondance ajoutés s'ils manquent ; aucun mot-clé n'est jamais retiré. */
     private function addKeywords(Document $document, MappedCategory $mapped): void
     {
-        $document->motsCles()->syncWithoutDetaching($this->keywordIdsFor($mapped));
-    }
-
-    /** @return list<int> */
-    private function keywordIdsFor(MappedCategory $mapped): array
-    {
-        return array_values(array_filter(array_map(
-            fn (KeywordRef $keyword): ?int => $this->keywordIds[$keyword->slug] ?? null,
-            $mapped->keywords,
-        )));
+        $document->motsCles()->syncWithoutDetaching($this->catalog->keywordIdsFor($mapped));
     }
 
     private function mappedCategory(string $source, ?int $categoryId): MappedCategory

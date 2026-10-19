@@ -44,19 +44,30 @@ final class ImportOrphanFiles extends Command
 
     private function runImport(OrphanFileImporter $importer): int
     {
+        // Arguments vérifiés avant le lancement : une erreur pendant le lancement, quelle qu'elle
+        // soit, passe par le rapport partiel ci-dessous.
         try {
             $limit = $this->option('limit');
             if ($limit !== null && ! ctype_digit((string) $limit)) {
                 throw new InvalidArgumentException('--limit attend un entier strictement positif.');
             }
+            $limit = $limit === null ? null : (int) $limit;
             $export = $this->readExport((string) $this->argument('export'));
+            $files = (string) $this->option('files');
+            OrphanFileImporter::validate($export, $files, $limit);
+        } catch (InvalidArgumentException|JsonException $e) {
+            $this->error($e->getMessage());
 
+            return self::FAILURE;
+        }
+
+        try {
             $bar = null;
             $report = $importer->import(
                 $export,
-                (string) $this->option('files'),
+                $files,
                 (bool) $this->option('dry-run'),
-                $limit === null ? null : (int) $limit,
+                $limit,
                 storage_path('logs'),
                 function (int $done, int $total) use (&$bar): void {
                     $bar ??= $this->output->createProgressBar($total);
@@ -65,10 +76,6 @@ final class ImportOrphanFiles extends Command
             );
             $bar instanceof ProgressBar && $bar->finish();
             $this->newLine();
-        } catch (InvalidArgumentException|JsonException $e) {
-            $this->error($e->getMessage());
-
-            return self::FAILURE;
         } catch (Throwable $e) {
             // Incident imprévu (préalable, base, MinIO…) : rapport partiel écrit malgré tout.
             $this->newLine();
@@ -138,6 +145,12 @@ final class ImportOrphanFiles extends Command
             $data['referenced'], $data['redirects']['created'], $data['redirects']['existing'], $data['redirects']['conflicts'],
             $data['redirects']['discarded'], $data['covers']['generated'], $data['covers']['failed'],
         ));
+        if ($data['pending_objects'] !== []) {
+            $this->warn(sprintf('%d objet(s) MinIO en attente d\'un import interrompu, qu\'aucun document ne référence — voir « pending_objects » dans le rapport ; biblio:import --clean-orphans pour les supprimer.', count($data['pending_objects'])));
+        }
+        if ($data['cover_failures'] !== []) {
+            $this->warn(sprintf('%d couverture(s) en échec — voir « cover_failures » dans le rapport.', count($data['cover_failures'])));
+        }
         if ($data['not_processed'] > 0) {
             $this->warn("Limite atteinte (--limit) : {$data['not_processed']} fichier(s) non traité(s).");
         }

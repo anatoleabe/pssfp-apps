@@ -7,6 +7,7 @@ use App\Models\LibraryRedirect;
 use App\Models\User;
 use App\Services\Library\Files\CoverRenderer;
 use App\Services\Library\Import\LegacyImporter;
+use App\Services\Library\Import\OrphanFileImporter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -375,4 +376,93 @@ it('ne démarre pas sans la migration de la source « serveur »', function (): 
         ->assertExitCode(1);
 
     expect(Document::count())->toBe(0)->and(Storage::disk('minio_documents')->allFiles())->toBe([]);
+});
+
+it('consigne la création de l\'utilisateur système et des mots-clés', function (): void {
+    $first = runOrphanImport($this);
+    $second = runOrphanImport($this);
+
+    expect($first['system_user_created'])->toBeTrue()
+        ->and($first['keywords_created'])->toBeGreaterThan(0)
+        ->and($second['system_user_created'])->toBeFalse()
+        ->and($second['keywords_created'])->toBe(0);
+});
+
+it('trace la couverture en échec du fichier concerné sans faire échouer la fiche', function (): void {
+    app()->instance(CoverRenderer::class, new class implements CoverRenderer
+    {
+        public function render(string $pdfPath): ?string
+        {
+            return null;
+        }
+    });
+
+    $report = runOrphanImport($this);
+
+    expect(serverDocument(ORPHAN_MANUEL)?->cover_path)->toBeNull()
+        ->and(orphanOutcomes($report)[ORPHAN_MANUEL])->toMatchArray(['outcome' => 'created', 'cover_failed' => true])
+        ->and($report['cover_failures'])->toContain(['path' => ORPHAN_MANUEL, 'reason' => 'génération de la couverture impossible'])
+        ->and($report['covers'])->toMatchArray(['generated' => 0, 'failed' => 2]);
+});
+
+it('ne prend pas une année en fin de nom pour un suffixe de copie', function (): void {
+    $this->export['alexandria']['books'][] = ['id' => 2, 'file' => 'Rapport annuel fictif.pdf'];
+    putOrphanFile($this->files, 'livres/Rapport annuel fictif.pdf', orphanPdf('rapport'));
+    putOrphanFile($this->files, 'livres/Rapport annuel fictif-2015.pdf', orphanPdf('rapport 2015'));
+    putOrphanFile($this->files, 'livres/Rapport annuel fictif-2.pdf', orphanPdf('rapport copie'));
+
+    $outcomes = orphanOutcomes(runOrphanImport($this));
+
+    expect($outcomes['livres/Rapport annuel fictif-2015.pdf']['outcome'])->toBe('created')
+        ->and($outcomes['livres/Rapport annuel fictif-2.pdf'])->toMatchArray(['outcome' => 'variant', 'of' => 'livres/Rapport annuel fictif.pdf']);
+});
+
+it('liste sans les supprimer les objets d\'un import interrompu', function (): void {
+    $journal = storage_path('logs/biblio-import-20261018-000000.journal');
+    file_put_contents($journal, "envoi\tminio_documents\tdocuments/reste-fictif.pdf\tserveur\t0\n");
+    Storage::disk('minio_documents')->put('documents/reste-fictif.pdf', 'reste');
+
+    try {
+        $path = $this->dir.'/export.json';
+        file_put_contents($path, json_encode($this->export, JSON_THROW_ON_ERROR));
+        $this->artisan('biblio:import-orphans', ['export' => $path, '--files' => $this->files])
+            ->expectsOutputToContain('objet(s) MinIO en attente')
+            ->assertExitCode(0);
+        $report = runOrphanImport($this);
+    } finally {
+        @unlink($journal);
+    }
+
+    expect($report['pending_objects'])->toBe([['disk' => 'minio_documents', 'key' => 'documents/reste-fictif.pdf', 'source' => 'serveur', 'id' => 0]])
+        ->and(Storage::disk('minio_documents')->get('documents/reste-fictif.pdf'))->toBe('reste');
+});
+
+it('ignore les liens symboliques vers un fichier ou un dossier', function (): void {
+    putOrphanFile($this->dir.'/ailleurs', 'dossier/hors-arborescence.pdf', orphanPdf('hors arborescence'));
+    symlink($this->dir.'/ailleurs/dossier/hors-arborescence.pdf', $this->files.'/livres/lien-fichier.pdf');
+    symlink($this->dir.'/ailleurs/dossier', $this->files.'/livres/lien-dossier');
+
+    $outcomes = orphanOutcomes(runOrphanImport($this));
+
+    expect(array_filter(array_keys($outcomes), fn (string $path): bool => str_contains($path, 'lien-')))->toBe([]);
+});
+
+it('convertit en UTF-8 un nom de fichier Windows-1252 avant d\'en faire un titre', function (): void {
+    expect(OrphanFileImporter::titleFromFileName("Arr\xEAt\xE9 fictif n\xB07.pdf"))->toBe('Arrêté fictif n°7')
+        ->and(OrphanFileImporter::titleFromFileName('Arrêté fictif n°7.pdf'))->toBe('Arrêté fictif n°7')
+        ->and(OrphanFileImporter::titleFromFileName('NOTE_FICTIVE.PDF'))->toBe('Note fictive');
+});
+
+it('n\'écrit aucun journal d\'objets en dry-run', function (): void {
+    runOrphanImport($this, ['--dry-run' => true]);
+
+    expect(array_diff(glob(storage_path('logs/biblio-import-*.journal')) ?: [], $this->logsBefore))->toBe([]);
+});
+
+it('écrit un rapport partiel quand un incident survient pendant le lancement', function (): void {
+    User::creating(fn () => throw new InvalidArgumentException('base fictive indisponible'));
+
+    $report = runOrphanImport($this, exitCode: 1);
+
+    expect($report['fatal'])->toContain('base fictive indisponible')->and(Document::count())->toBe(0);
 });

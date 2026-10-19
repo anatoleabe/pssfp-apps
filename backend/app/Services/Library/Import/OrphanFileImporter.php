@@ -5,14 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Library\Import;
 
 use App\Models\Document;
-use App\Models\MotCle;
-use App\Models\User;
 use Carbon\CarbonImmutable;
 use Closure;
 use FilesystemIterator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
@@ -43,8 +40,11 @@ final class OrphanFileImporter
 
     public const SERVEUR_MIGRATION = '2026_10_19_100000_add_serveur_to_documents_legacy_source_check';
 
-    /** Suffixes de copie retirés avant la comparaison des noms : « nom (2) », « nom-1 ». */
-    private const COPY_SUFFIXES = '/(?: \(\d+\)|-\d+)+$/';
+    /**
+     * Suffixes de copie retirés avant la comparaison des noms : « nom (2) », « nom-1 ». Un ou deux
+     * chiffres seulement après le tiret : « Rapport annuel-2015 » n'est pas une copie de « Rapport annuel ».
+     */
+    private const COPY_SUFFIXES = '/(?: \(\d+\)|-\d{1,2})+$/';
 
     private bool $dryRun = false;
 
@@ -56,10 +56,7 @@ final class OrphanFileImporter
 
     private SlugAllocator $slugs;
 
-    private ?int $systemUserId = null;
-
-    /** @var array<string, int> slug du thésaurus → id */
-    private array $keywordIds = [];
+    private ImportCatalogSetup $catalog;
 
     /** @var array<string, true> chemins absolus des fichiers référencés par l'export */
     private array $referenced = [];
@@ -80,25 +77,25 @@ final class OrphanFileImporter
     public function import(array $export, string $files, bool $dryRun = false, ?int $limit = null, ?string $journalDirectory = null, ?Closure $progress = null): OrphanImportReport
     {
         $this->report = null;
-        self::assertShape($export);
-        if ($limit !== null && $limit < 1) {
-            throw new InvalidArgumentException('--limit attend un entier strictement positif.');
-        }
-        if (! is_dir($files)) {
-            throw new InvalidArgumentException("Dossier des fichiers introuvable (--files) : {$files}");
-        }
+        self::validate($export, $files, $limit);
 
         $this->start($dryRun, $limit, $journalDirectory);
         if (! $dryRun) {
             ImportPreflight::check();
             self::checkServerSource();
+            if ($journalDirectory !== null) {
+                // Signalés seulement : biblio:import --clean-orphans les supprime.
+                $this->report->pendingObjects(ImportPreflight::pendingObjects($journalDirectory));
+            }
         }
         $this->indexReferenced($export, ImportSources::fromDirectory($files));
         $candidates = self::walk($files);
 
         $run = function () use ($candidates, $limit, $progress): void {
-            $this->ensureSystemUser();
-            $this->ensureThesaurus();
+            if ($this->catalog->ensureSystemUser()) {
+                $this->report->systemUserCreated();
+            }
+            $this->report->keywordsCreated($this->catalog->ensureThesaurus());
             $done = 0;
             foreach ($candidates as $relative => $absolute) {
                 if ($limit !== null && $this->report->totals()['created'] >= $limit) {
@@ -132,14 +129,35 @@ final class OrphanFileImporter
         return $this->report;
     }
 
-    /** @param  array<string, mixed>  $export */
-    private static function assertShape(array $export): void
+    /**
+     * Arguments du lancement : export (fiches DOCman et livres Alexandria), dossier des fichiers, limite.
+     *
+     * @param  array<string, mixed>  $export
+     *
+     * @throws InvalidArgumentException message lisible, rien n'a été lancé
+     */
+    public static function validate(array $export, string $files, ?int $limit): void
     {
         foreach (['docman.documents', 'alexandria.books'] as $key) {
             if (! is_array(data_get($export, $key))) {
                 throw new InvalidArgumentException("Export Joomla invalide : « {$key} » manquant ou mal formé.");
             }
         }
+        if ($limit !== null && $limit < 1) {
+            throw new InvalidArgumentException('--limit attend un entier strictement positif.');
+        }
+        if ($files === '' || ! is_dir($files)) {
+            throw new InvalidArgumentException("Dossier des fichiers introuvable (--files) : {$files}");
+        }
+    }
+
+    /** Titre tiré du nom de fichier (octets bruts, Windows-1252 converti en UTF-8), sans extension. */
+    public static function titleFromFileName(string $name): string
+    {
+        $stem = self::utf8(self::stem($name));
+        $title = LegacyText::title($stem);
+
+        return $title === '' ? $stem : $title;
     }
 
     private static function checkServerSource(): void
@@ -158,8 +176,7 @@ final class OrphanFileImporter
         $this->files = new ImportedFileStore($journalDirectory === null
             ? null
             : ImportJournal::inDirectory($journalDirectory, Carbon::now()->format('Ymd-His')));
-        $this->systemUserId = null;
-        $this->keywordIds = [];
+        $this->catalog = new ImportCatalogSetup($this->mapping, $dryRun);
         $this->referenced = [];
         $this->variants = [];
         $this->created = [];
@@ -308,6 +325,9 @@ final class OrphanFileImporter
             return;
         }
 
+        // Comparaison à sens unique : seuls les suffixes de l'orphelin sont retirés. Un orphelin
+        // « nom » dont le fichier référencé est « nom (2) » ou « nom-1 » n'est donc pas reconnu
+        // comme variante (il serait créé) : cas non observé sur l'ancien serveur, accepté.
         $skeleton = FileLocator::skeleton((string) preg_replace(self::COPY_SUFFIXES, '', $stem));
         if ($skeleton !== '' && isset($this->variants[$skeleton])) {
             $this->report->outcome($path, OrphanImportReport::VARIANT, ['of' => $this->variants[$skeleton]]);
@@ -329,11 +349,7 @@ final class OrphanFileImporter
     /** @param  array{md5: ?string, slug: ?string}  $pending */
     private function create(string $relative, string $absolute, string $path, MappedCategory $mapped, string $md5, array &$pending): void
     {
-        $stem = self::utf8(self::stem(self::fileName($relative)));
-        $title = LegacyText::title($stem);
-        if ($title === '') {
-            $title = $stem;
-        }
+        $title = self::titleFromFileName(self::fileName($relative));
         $slug = $this->slugs->allocate(LegacyText::slug('', $title));
         $pending['slug'] = $slug;
         $this->created[$md5] = ['slug' => $slug, 'path' => $path];
@@ -362,22 +378,25 @@ final class OrphanFileImporter
             'language' => LegacyText::language($title),
             'status' => Document::STATUS_PUBLISHED,
             'published_at' => CarbonImmutable::createFromTimestamp($modified, (string) config('app.timezone')),
-            'approved_by' => $this->systemUserId,
+            'approved_by' => $this->catalog->systemUserId(),
             'approved_at' => Carbon::now(),
-            'uploaded_by' => $this->systemUserId,
+            'uploaded_by' => $this->catalog->systemUserId(),
             'views_count' => 0,
             'legacy_source' => LegacyMapping::SOURCE_SERVER,
             'legacy_id' => null,
             'legacy_url' => $paths === [] ? null : $paths[0]->path,
         ]);
-        $document->motsCles()->syncWithoutDetaching($this->keywordIdsFor($mapped));
+        $document->motsCles()->syncWithoutDetaching($this->catalog->keywordIdsFor($mapped));
 
-        $cover = $this->files->store($document, $absolute, $md5, 'pdf');
-        $this->report->cover($cover === 'failed' ? 'failed' : 'generated');
+        $coverFailed = $this->files->store($document, $absolute, $md5, 'pdf') === 'failed';
+        $this->report->cover($coverFailed ? 'failed' : 'generated');
+        if ($coverFailed) {
+            $this->report->coverFailure($path, 'génération de la couverture impossible');
+        }
 
         $this->redirects->ensure($paths, '/documents/'.$slug);
         $document->refresh()->syncSearchIndex();
-        $this->report->created($path, $mapped->type, $slug);
+        $this->report->created($path, $mapped->type, $slug, $coverFailed);
     }
 
     /** @return list<LegacyPath> URL directe du fichier sur l'ancien serveur ; vide si trop longue */
@@ -391,45 +410,6 @@ final class OrphanFileImporter
         }
 
         return [new LegacyPath($path, self::REDIRECT_FORM)];
-    }
-
-    private function ensureSystemUser(): void
-    {
-        $user = User::query()->where('email', LegacyImporter::SYSTEM_USER_EMAIL)->first();
-        if ($user === null && ! $this->dryRun) {
-            // Même compte que biblio:import : aucun rôle, mot de passe aléatoire jamais communiqué.
-            $user = User::query()->firstOrCreate(
-                ['email' => LegacyImporter::SYSTEM_USER_EMAIL],
-                ['name' => LegacyImporter::SYSTEM_USER_NAME, 'password' => Str::password(64)],
-            );
-        }
-        $this->systemUserId = $user?->id;
-    }
-
-    /** Thésaurus de la correspondance créé s'il manque (comme biblio:import), parents d'abord. */
-    private function ensureThesaurus(): void
-    {
-        foreach ($this->mapping->thesaurus() as $ref) {
-            $keyword = MotCle::query()->where('slug', $ref->slug)->first();
-            if ($keyword === null && ! $this->dryRun) {
-                $keyword = MotCle::query()->firstOrCreate(['slug' => $ref->slug], [
-                    'label' => ['fr' => $ref->label],
-                    'parent_id' => $ref->parentSlug === null ? null : ($this->keywordIds[$ref->parentSlug] ?? null),
-                ]);
-            }
-            if ($keyword !== null) {
-                $this->keywordIds[$ref->slug] = $keyword->id;
-            }
-        }
-    }
-
-    /** @return list<int> */
-    private function keywordIdsFor(MappedCategory $mapped): array
-    {
-        return array_values(array_filter(array_map(
-            fn (KeywordRef $keyword): ?int => $this->keywordIds[$keyword->slug] ?? null,
-            $mapped->keywords,
-        )));
     }
 
     private static function hasPdfSignature(string $absolute): bool

@@ -53,8 +53,18 @@ final class OrphanImportReport implements RedirectRecorder
     /** @var list<array{from: string, wanted: string, kept: ?string}> */
     private array $redirectConflicts = [];
 
+    /** @var list<array{path: string, reason: string}> */
+    private array $coverFailures = [];
+
     /** @var list<array{disk: string, key: string}> */
     private array $cleanupFailures = [];
+
+    /** @var list<array{disk: string, key: string, source: string, id: int}> */
+    private array $pendingObjects = [];
+
+    private bool $systemUserCreated = false;
+
+    private int $keywordsCreated = 0;
 
     private int $referenced = 0;
 
@@ -79,7 +89,8 @@ final class OrphanImportReport implements RedirectRecorder
     {
         $this->checkpoint = [
             'totals' => $this->totals, 'files' => $this->files, 'createdByType' => $this->createdByType,
-            'covers' => $this->covers, 'redirects' => $this->redirects, 'redirectConflicts' => $this->redirectConflicts,
+            'covers' => $this->covers, 'coverFailures' => $this->coverFailures,
+            'redirects' => $this->redirects, 'redirectConflicts' => $this->redirectConflicts,
         ];
     }
 
@@ -98,9 +109,9 @@ final class OrphanImportReport implements RedirectRecorder
         $this->files[] = ['path' => $path, 'outcome' => $outcome] + $details;
     }
 
-    public function created(string $path, string $type, string $slug): void
+    public function created(string $path, string $type, string $slug, bool $coverFailed = false): void
     {
-        $this->outcome($path, self::CREATED, ['type' => $type, 'slug' => $slug]);
+        $this->outcome($path, self::CREATED, ['type' => $type, 'slug' => $slug] + ($coverFailed ? ['cover_failed' => true] : []));
         $this->createdByType[$type] = ($this->createdByType[$type] ?? 0) + 1;
     }
 
@@ -113,6 +124,27 @@ final class OrphanImportReport implements RedirectRecorder
     public function cover(string $outcome): void
     {
         $this->covers[$outcome]++;
+    }
+
+    public function coverFailure(string $path, string $reason): void
+    {
+        $this->coverFailures[] = ['path' => $path, 'reason' => $reason];
+    }
+
+    /** @param  list<array{disk: string, key: string, source: string, id: int}>  $entries */
+    public function pendingObjects(array $entries): void
+    {
+        $this->pendingObjects = $entries;
+    }
+
+    public function systemUserCreated(): void
+    {
+        $this->systemUserCreated = true;
+    }
+
+    public function keywordsCreated(int $count): void
+    {
+        $this->keywordsCreated += $count;
     }
 
     public function redirect(LegacyPath $path, string $outcome, string $target, ?string $existingTarget = null): void
@@ -175,9 +207,13 @@ final class OrphanImportReport implements RedirectRecorder
             'not_processed' => $this->notProcessed,
             'created_by_type' => $this->createdByType,
             'covers' => $this->covers,
+            'cover_failures' => $this->coverFailures,
+            'system_user_created' => $this->systemUserCreated,
+            'keywords_created' => $this->keywordsCreated,
             'redirects' => $this->redirects,
             'redirect_conflicts' => $this->redirectConflicts,
             'cleanup_failures' => $this->cleanupFailures,
+            'pending_objects' => $this->pendingObjects,
             'fatal' => $this->fatal,
             'files' => $this->files,
         ];
