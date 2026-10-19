@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
-import { Eyebrow } from '@/components/home/Eyebrow';
 import { SearchForm } from '@/components/home/SearchForm';
-import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { SearchExperience } from '@/components/search/SearchExperience';
 import { SearchScope } from '@/components/search/SearchScope';
 import { SearchSkeleton } from '@/components/search/SearchStates';
@@ -50,25 +49,20 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
 
   return (
     <>
-      <section aria-labelledby="search-title" className="relative isolate overflow-hidden border-b border-pssfp-lavande/30">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-40 -top-48 -z-10 h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(closest-side,rgba(165,146,189,0.26),transparent)]" />
-        <div className="mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6 sm:pb-12 lg:pt-10">
-          <Breadcrumbs items={[{ href: '/', label: tCrumbs('home') }, { label: t('title') }]} />
-          <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,40rem)] lg:items-end lg:gap-16">
-            <div className="min-w-0">
-              <Eyebrow tone="or">{t('eyebrow')}</Eyebrow>
-              <h1 id="search-title" className="mt-4 text-balance font-heading text-pssfp-h1 font-semibold text-pssfp-prune lg:text-[4rem] lg:leading-none">
-                {t('title')}
-              </h1>
-            </div>
-            <div className="min-w-0">
-              {/* `key` : remonté à chaque changement d'URL, le champ et les champs cachés reflètent toujours l'URL. */}
-              <SearchForm key={`${q}|${filtersToSearchParams(carried).toString()}`} size="hero" id="search-page-q" defaultQuery={q} filters={carried} />
-              <SearchScope q={q} filters={carried} motsCles={motsCles} />
-            </div>
-          </div>
-        </div>
-      </section>
+      <PageHeader
+        titleId="search-title"
+        title={t('title')}
+        eyebrow={t('eyebrow')}
+        breadcrumbs={[{ href: '/', label: tCrumbs('home') }, { label: t('title') }]}
+        asideWidth="wide"
+        aside={
+          <>
+            {/* `key` : remonté à chaque changement d'URL, le champ et les champs cachés reflètent toujours l'URL. */}
+            <SearchForm key={`${q}|${filtersToSearchParams(carried).toString()}`} size="hero" id="search-page-q" defaultQuery={q} filters={carried} tone="dark" />
+            <SearchScope q={q} filters={carried} motsCles={motsCles} />
+          </>
+        }
+      />
 
       <Suspense fallback={<SearchFallback />}>
         <SearchExperience />

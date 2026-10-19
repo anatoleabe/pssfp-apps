@@ -43,7 +43,9 @@
   },
   "breadcrumbs": {
     "label": "Fil d'Ariane",
-    "home": "Accueil"
+    "home": "Accueil",
+    "collections": "Collections",
+    "themes": "Thèmes"
   },
   "notFound": {
     "metaTitle": "Page introuvable",
