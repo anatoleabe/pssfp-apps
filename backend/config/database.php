@@ -95,6 +95,12 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            // Session PostgreSQL alignée sur le fuseau de l'application.
+            // Laravel écrit les dates sans décalage (« Y-m-d H:i:s ») : si le
+            // serveur est en Europe/Berlin, un `timestamptz` saisi en UTC est
+            // relu une à deux heures plus tôt — un code SMS valable 10 minutes
+            // naissait expiré (incident du 26/10/2026, PIN oublié).
+            'timezone' => env('DB_TIMEZONE', env('APP_TIMEZONE', 'UTC')),
         ],
 
         'sqlsrv' => [
