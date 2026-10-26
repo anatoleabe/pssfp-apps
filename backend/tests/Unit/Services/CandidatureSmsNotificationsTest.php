@@ -41,5 +41,5 @@ it('sends an SMS for every candidature lifecycle event', function (): void {
         ->and($messages[1])->toContain('soumise avec succes')
         ->and($messages[2])->toContain('decision est disponible')
         ->and($messages[3])->toContain('decision est disponible')
-        ->and($messages[0])->toContain('677 25 72 72');
+        ->and($messages[0])->not->toContain('677 25 72 72');
 });
