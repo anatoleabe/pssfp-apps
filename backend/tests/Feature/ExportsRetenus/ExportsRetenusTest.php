@@ -55,12 +55,22 @@ function feuilleExport(string $contenu): Worksheet
     return $feuille;
 }
 
-it('réserve matricules et exports à super_admin, admin et comité d\'admission', function (string $role, bool $autorise): void {
+it('ouvre les exports sans mot de passe à l\'administration et au comité d\'admission', function (string $role, bool $autorise): void {
     expect(($this->agent)($role)->can('campagne.export_retenus'))->toBe($autorise);
 })->with([
     ['super_admin', true],
     ['admin', true],
     ['admission_committee', true],
+    ['receptionniste', false],
+    ['librarian', false],
+]);
+
+it('réserve matricules et comptes Moodle à l\'administration', function (string $role, bool $autorise): void {
+    expect(($this->agent)($role)->can('candidature.matricules_moodle'))->toBe($autorise);
+})->with([
+    ['super_admin', true],
+    ['admin', true],
+    ['admission_committee', false],
     ['receptionniste', false],
     ['librarian', false],
 ]);
@@ -187,11 +197,16 @@ it('propose la cohorte Moodle et l\'année de matricule de la promotion', functi
 
 it('attribue puis télécharge depuis l\'admin, et journalise chaque export', function (): void {
     ($this->retenu)('Fouda', 'Eric');
-    $this->actingAs(($this->agent)('admission_committee'));
-
+    $this->actingAs(($this->agent)('admin'));
     $this->livewire(ListCampagneCandidatures::class)
         ->callTableAction('attribuerMatricules', $this->campagne, data: ['annee' => '26'])
-        ->assertHasNoTableActionErrors()
+        ->assertHasNoTableActionErrors();
+
+    // Le comité d'admission télécharge les données complètes, pas les comptes Moodle.
+    $this->actingAs(($this->agent)('admission_committee'));
+    $this->livewire(ListCampagneCandidatures::class)
+        ->assertTableActionHidden('attribuerMatricules', $this->campagne)
+        ->assertTableActionHidden('exportMoodle', $this->campagne)
         ->callTableAction('exportFullData', $this->campagne)
         ->assertFileDownloaded('PROMOTION 14 - Full Data.xlsx');
 
@@ -288,6 +303,8 @@ it('attribue le matricule d\'un seul retenu depuis la liste des candidatures', f
     $tardif = ($this->retenu)('Aaron', 'Paul');
     $autre = ($this->retenu)('Biya', 'Nina');
     $this->actingAs(($this->agent)('admission_committee'));
+    $this->livewire(ListCandidatures::class)->assertTableActionHidden('attribuerMatricule', $tardif);
+    $this->actingAs(($this->agent)('admin'));
 
     // Année saisie « 27 » ignorée : celle de la promotion est figée à « 26 ».
     $this->livewire(ListCandidatures::class)

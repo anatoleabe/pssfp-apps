@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Filament\Resources\CandidatureResource\Pages;
 
 use App\Filament\Resources\CandidatureResource;
+use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
 use App\Models\Candidature;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Database\Eloquent\Collection;
@@ -18,6 +20,8 @@ class ViewCandidature extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            IdentifiantsMoodleActions::consulter(Action::make('identifiantsMoodle')),
+            IdentifiantsMoodleActions::envoyer(Action::make('envoyerIdentifiantsMoodle')),
             EditAction::make(),
         ];
     }

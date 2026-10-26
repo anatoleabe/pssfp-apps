@@ -12,7 +12,12 @@ export interface SimpleResult {
   ok: boolean;
   errorKind?: 'invalid' | 'expired' | 'already_used' | 'throttled' | 'network';
   message?: string;
+  /** Secondes avant de pouvoir redemander un code (étape 1 uniquement). */
+  resendAfter?: number;
 }
+
+/** Repli si l'API ne précise pas le délai : même valeur que le cooldown serveur. */
+const RESEND_AFTER_DEFAUT = 60;
 
 /**
  * Étape 1 — toujours 202, anti-énumération.
@@ -23,7 +28,8 @@ export async function requestOtpAction(
 ): Promise<SimpleResult> {
   const r = await forgotPin({ phone_e164: phone, turnstile_token: turnstileToken });
   if (r.ok) {
-    return { ok: true };
+    const resendAfter = Number(r.data?.resend_after);
+    return { ok: true, resendAfter: Number.isFinite(resendAfter) ? resendAfter : RESEND_AFTER_DEFAUT };
   }
   if (r.status === 422) {
     return {

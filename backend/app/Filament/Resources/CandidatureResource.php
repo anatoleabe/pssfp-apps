@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Events\CandidatureAccepted;
 use App\Events\CandidatureRefused;
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
 use App\Filament\Resources\CandidatureResource\Pages;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
@@ -666,7 +667,7 @@ class CandidatureResource extends Resource
                         ->label('Attribuer le matricule')
                         ->icon('heroicon-o-identification')
                         ->color('success')
-                        ->visible(fn (Candidature $r): bool => auth()->user()?->can('campagne.export_retenus')
+                        ->visible(fn (Candidature $r): bool => auth()->user()?->can('candidature.matricules_moodle')
                             && $r->statut === Candidature::STATUT_ACCEPTE && $r->matricule === null && $r->withdrawn_at === null)
                         ->requiresConfirmation()
                         ->modalDescription('Rang suivant le dernier matricule attribué dans la promotion. Une fois attribué, le matricule ne change plus.')
@@ -679,11 +680,13 @@ class CandidatureResource extends Resource
                                 ->helperText('Laissée vide : année de la promotion. Ignorée si la promotion a déjà des matricules (année figée).'),
                         ])
                         ->action(fn (Candidature $r, array $data) => self::attribuerMatricules(collect([$r]), $data['annee'] ?? null)),
+                    IdentifiantsMoodleActions::consulter(Tables\Actions\Action::make('identifiantsMoodle')),
+                    IdentifiantsMoodleActions::envoyer(Tables\Actions\Action::make('envoyerIdentifiantsMoodle')),
                     Tables\Actions\Action::make('categorieMatricule')
                         ->label('Catégorie de matricule (EFP / EFSC)')
                         ->icon('heroicon-o-identification')
                         ->color('gray')
-                        ->visible(fn (Candidature $r): bool => auth()->user()?->can('campagne.export_retenus')
+                        ->visible(fn (Candidature $r): bool => auth()->user()?->can('candidature.matricules_moodle')
                             && $r->statut === Candidature::STATUT_ACCEPTE && $r->matricule === null)
                         ->fillForm(fn (Candidature $r): array => ['categorie' => $r->categorie_matricule])
                         ->form([
@@ -1056,7 +1059,7 @@ class CandidatureResource extends Resource
                     ->label('Attribuer les matricules')
                     ->icon('heroicon-o-identification')
                     ->color('success')
-                    ->visible(fn () => auth()->user()?->can('campagne.export_retenus'))
+                    ->visible(fn () => auth()->user()?->can('candidature.matricules_moodle'))
                     ->requiresConfirmation()
                     ->modalDescription('Seuls les retenus encore sans matricule sont numérotés, dans l\'ordre alphabétique, à la suite des matricules existants de leur promotion. Les autres dossiers sélectionnés sont ignorés.')
                     ->form([
@@ -1067,11 +1070,12 @@ class CandidatureResource extends Resource
                     ])
                     ->deselectRecordsAfterCompletion()
                     ->action(fn ($records, array $data) => self::attribuerMatricules($records, $data['annee'] ?? null)),
+                IdentifiantsMoodleActions::envoyerGroupe(Tables\Actions\BulkAction::make('envoyerIdentifiantsMoodleBulk')),
                 Tables\Actions\BulkAction::make('categorieMatriculeBulk')
                     ->label('Catégorie de matricule (EFP / EFSC)')
                     ->icon('heroicon-o-identification')
                     ->color('gray')
-                    ->visible(fn () => auth()->user()?->can('campagne.export_retenus'))
+                    ->visible(fn () => auth()->user()?->can('candidature.matricules_moodle'))
                     ->modalDescription('S\'applique aux seuls retenus encore sans matricule ; les autres dossiers sélectionnés sont ignorés.')
                     ->form([
                         Forms\Components\Radio::make('categorie')
@@ -1119,7 +1123,7 @@ class CandidatureResource extends Resource
     private static function attribuerMatricules(iterable $records, ?string $annee): void
     {
         $user = auth()->user();
-        abort_unless($user?->can('campagne.export_retenus'), 403);
+        abort_unless($user?->can('candidature.matricules_moodle'), 403);
 
         $attribues = 0;
         $erreurs = [];
@@ -1152,7 +1156,7 @@ class CandidatureResource extends Resource
      */
     private static function classerMatricule(iterable $records, string $categorie): void
     {
-        abort_unless(auth()->user()?->can('campagne.export_retenus'), 403);
+        abort_unless(auth()->user()?->can('candidature.matricules_moodle'), 403);
         abort_unless(in_array($categorie, [Candidature::CATEGORIE_EFP, Candidature::CATEGORIE_EFSC], true), 422);
 
         $classes = [];

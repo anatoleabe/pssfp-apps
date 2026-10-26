@@ -31,6 +31,9 @@ return [
     // Garde-fous OTP SMS (LOT B.4) : protègent le crédit SMS d'un numéro
     // ciblé depuis des IP tournantes (le throttle IP ne suffit pas, et le
     // Turnstile est fail-open sur panne Cloudflare).
+    // Plateforme FOAD (Moodle) : adresse rappelée aux auditeurs avec leurs identifiants.
+    'foad_url' => rtrim((string) env('FOAD_URL', 'https://foad.pssfp.net'), '/'),
+
     'otp' => [
         'cooldown_seconds' => (int) env('OTP_COOLDOWN_SECONDS', 60),
         'max_per_phone_per_hour' => (int) env('OTP_MAX_PER_PHONE_PER_HOUR', 5),

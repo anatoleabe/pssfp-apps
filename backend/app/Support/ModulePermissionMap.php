@@ -104,7 +104,8 @@ final class ModulePermissionMap
                     'candidature.delete_test' => 'Supprimer définitivement un compte de test',
                     'candidature.notify' => 'Notifier un groupe de candidats par SMS ou e-mail',
                     'campagne.download_resultats' => 'Télécharger le communiqué des résultats et le PV du jury (listes nominatives)',
-                    'campagne.export_retenus' => 'Attribuer les matricules des retenus et télécharger leurs exports (ACMA, Moodle, données complètes)',
+                    'campagne.export_retenus' => 'Télécharger les exports des retenus (données complètes, ACMA)',
+                    'candidature.matricules_moodle' => 'Attribuer les matricules, exporter les comptes Moodle, voir et envoyer le mot de passe Moodle d\'un auditeur',
                 ],
             ],
             'bibliotheque' => [
