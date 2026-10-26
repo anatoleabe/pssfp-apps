@@ -410,7 +410,11 @@
     "setPin": "Set my new PIN",
     "updating": "Updating…",
     "title": "Forgotten PIN",
-    "subtitle": "Regain access to your application in three guided steps."
+    "subtitle": "Regain access to your application in three guided steps.",
+    "resendIn": "New code available in {seconds} s",
+    "resendHint": "Nothing received? You can request a new code in {seconds} s.",
+    "resendReady": "Nothing received?",
+    "resendCta": "Request a new code"
   },
   "dossier": {
     "fields": {

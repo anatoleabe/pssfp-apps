@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Exceptions\OtpCooldownException;
 use App\Models\SmsOtp;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -41,6 +42,28 @@ final class OtpService
         int $ttlMinutes = 10,
         ?string $ip = null,
         ?string $userAgent = null,
+    ): string {
+        // Verrou par numéro : deux clics simultanés passeraient tous deux le
+        // contrôle de cooldown avant que l'un n'ait écrit son OTP, et
+        // consommeraient deux SMS. Le second est traité comme un cooldown.
+        $verrou = Cache::lock('otp:generate:'.$phone, 10);
+        if (! $verrou->get()) {
+            throw new OtpCooldownException(max(1, (int) config('pssfp.otp.cooldown_seconds', 60)), 'cooldown');
+        }
+
+        try {
+            return $this->generateSousVerrou($phone, $purpose, $ttlMinutes, $ip, $userAgent);
+        } finally {
+            $verrou->release();
+        }
+    }
+
+    private function generateSousVerrou(
+        string $phone,
+        string $purpose,
+        int $ttlMinutes,
+        ?string $ip,
+        ?string $userAgent,
     ): string {
         return $this->db->transaction(function () use ($phone, $purpose, $ttlMinutes, $ip, $userAgent): string {
             $this->assertNotThrottled($phone);

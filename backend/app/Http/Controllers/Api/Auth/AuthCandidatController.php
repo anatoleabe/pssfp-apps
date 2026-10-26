@@ -18,6 +18,7 @@ use App\Services\OtpService;
 use App\Services\Security\TurnstileVerifier;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\PhoneMasker;
+use App\Support\SecretRedactor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -179,13 +180,18 @@ final class AuthCandidatController extends Controller
                 ]);
             } catch (\Throwable $e) {
                 Log::channel('single')->error('Envoi SMS forgot-pin échoué — 202 silencieux.', [
-                    'error' => $e->getMessage(),
+                    // Une erreur réseau peut contenir l'URL du fournisseur et sa clé d'API.
+                    'error' => SecretRedactor::redact($e->getMessage()),
                 ]);
             }
         }
 
         return response()->json([
             'message' => 'Si ce numéro est enregistré, un code vient d\'être envoyé par SMS.',
+            // Délai avant de pouvoir redemander un code : identique pour tous
+            // les numéros (anti-énumération), il sert au compte à rebours de
+            // l'écran et évite de consommer des SMS par des clics répétés.
+            'resend_after' => max(0, (int) config('pssfp.otp.cooldown_seconds', 60)),
         ], 202);
     }
 

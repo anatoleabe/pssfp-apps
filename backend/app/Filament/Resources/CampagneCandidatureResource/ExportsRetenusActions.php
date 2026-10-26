@@ -22,7 +22,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class ExportsRetenusActions
 {
+    /** Données complètes et ACMA : administration et comité d'admission. */
     public const PERMISSION = 'campagne.export_retenus';
+
+    /** Matricules et comptes Moodle (mots de passe) : administration seule. */
+    public const PERMISSION_ADMIN = 'candidature.matricules_moodle';
 
     /**
      * @template T of MountableAction
@@ -32,7 +36,7 @@ final class ExportsRetenusActions
      */
     public static function attribuer(MountableAction $action): MountableAction
     {
-        return self::autorise($action)
+        return self::autorise($action, self::PERMISSION_ADMIN)
             ->label('Attribuer les matricules')
             ->icon('heroicon-o-identification')
             ->requiresConfirmation()
@@ -51,7 +55,7 @@ final class ExportsRetenusActions
             ])
             ->action(function (CampagneCandidature $record, array $data, MountableAction $action): void {
                 $user = auth()->user();
-                abort_unless($user?->can(self::PERMISSION) && $user->can('view', $record), 403);
+                abort_unless($user?->can(self::PERMISSION_ADMIN) && $user->can('view', $record), 403);
 
                 $annee = AttributionMatricules::anneeFigee($record) ?? (string) ($data['annee'] ?? '');
                 try {
@@ -107,11 +111,11 @@ final class ExportsRetenusActions
      */
     public static function moodle(MountableAction $action): MountableAction
     {
-        return self::telecharger($action, ExportsRetenusExcel::MOODLE)
+        return self::telecharger($action, ExportsRetenusExcel::MOODLE, self::PERMISSION_ADMIN)
             ->label('Comptes Moodle (Excel)')
             ->icon('heroicon-o-computer-desktop')
             ->modalDescription('Comptes de la plateforme FOAD : identifiant = matricule en minuscules, mot de passe initial figé à l\'attribution. '
-                .'Fichier sensible, à ne transmettre qu\'à l\'administrateur Moodle. À l\'import, cocher « Forcer le changement de mot de passe ». '
+                .'Fichier sensible, à ne transmettre qu\'à l\'administrateur Moodle. Les mots de passe sont définitifs : ne pas forcer leur changement à l\'import. '
                 .'Moodle importe du CSV : enregistrer le fichier en CSV UTF-8 sans le rouvrir ensuite dans un tableur.')
             ->form(fn (CampagneCandidature $record): array => [
                 Forms\Components\TextInput::make('cohorte')
@@ -128,14 +132,14 @@ final class ExportsRetenusActions
      * @param  T  $action
      * @return T
      */
-    private static function telecharger(MountableAction $action, string $type): MountableAction
+    private static function telecharger(MountableAction $action, string $type, string $permission = self::PERMISSION): MountableAction
     {
-        return self::autorise($action)
+        return self::autorise($action, $permission)
             ->modalHeading(fn (CampagneCandidature $record): string => ExportsRetenusExcel::nomFeuille($type, $record))
             ->modalSubmitActionLabel('Télécharger')
-            ->action(function (CampagneCandidature $record, array $data, MountableAction $action) use ($type): ?StreamedResponse {
+            ->action(function (CampagneCandidature $record, array $data, MountableAction $action) use ($type, $permission): ?StreamedResponse {
                 $user = auth()->user();
-                abort_unless($user?->can(self::PERMISSION) && $user->can('view', $record), 403);
+                abort_unless($user?->can($permission) && $user->can('view', $record), 403);
 
                 $manquants = ExportsRetenus::sansMatricule($record);
                 if ($manquants > 0) {
@@ -173,11 +177,11 @@ final class ExportsRetenusActions
      * @param  T  $action
      * @return T
      */
-    private static function autorise(MountableAction $action): MountableAction
+    private static function autorise(MountableAction $action, string $permission = self::PERMISSION): MountableAction
     {
         return $action
             ->color('gray')
-            ->visible(fn (CampagneCandidature $record): bool => (bool) auth()->user()?->can(self::PERMISSION)
+            ->visible(fn (CampagneCandidature $record): bool => (bool) auth()->user()?->can($permission)
                 && (bool) auth()->user()?->can('view', $record));
     }
 

@@ -37,7 +37,9 @@ final class FakeSmsProvider implements DescribesConfiguration, ReportsSmsDeliver
             // Masqué même en dev : ces logs finissent en pièce jointe de
             // ticket, et un numéro de candidat reste une donnée personnelle.
             'phone' => PhoneMasker::mask($phoneE164),
-            'message' => $message,
+            // Texte seulement en local et en test : ailleurs (préprod, prod mal
+            // configurée) il contiendrait des codes et des mots de passe Moodle.
+            'message' => app()->environment(['local', 'testing']) ? $message : '['.mb_strlen($message).' caractères masqués]',
         ]);
 
         // `fake` se décrit comme tel : un journal d'envoi ne doit jamais

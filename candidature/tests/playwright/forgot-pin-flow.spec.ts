@@ -29,6 +29,19 @@ test.describe('Forgot PIN — UI client', () => {
     await expect(page.getByTestId('forgot-submit-phone')).toBeDisabled();
   });
 
+  test('bloque un nouvel envoi tant que le délai anti-répétition court, même après rechargement', async ({ page }) => {
+    // Un code vient d'être demandé : l'échéance est en session (comme après l'étape 1).
+    await page.addInitScript(() => {
+      window.sessionStorage.setItem('pssfp_forgot_pin_resend_at', String(Date.now() + 45_000));
+    });
+    await page.goto('/forgot-pin');
+    await page.getByTestId('forgot-phone').fill('+237691234567');
+
+    const bouton = page.getByTestId('forgot-submit-phone');
+    await expect(bouton).toBeDisabled();
+    await expect(bouton).toHaveText(/Nouveau code possible dans \d+ s/);
+  });
+
   test('strips non-digits from phone input', async ({ page }) => {
     await page.goto('/forgot-pin');
     await page.getByTestId('forgot-phone').fill('+237 (691) 234-567');

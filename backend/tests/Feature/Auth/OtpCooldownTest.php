@@ -5,8 +5,11 @@ declare(strict_types=1);
 use App\Exceptions\OtpCooldownException;
 use App\Models\User;
 use App\Services\OtpService;
+use App\Services\Sms\FakeSmsProvider;
 use App\Services\Sms\SmsServiceInterface;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 uses()->group('auth', 'candidat', 'otp');
 
@@ -74,4 +77,38 @@ it('keeps forgot-pin at 202 when the SMS provider fails', function (): void {
 
     $this->postJson('/v1/auth/candidat/forgot-pin', ['phone_e164' => '+237699000666'])
         ->assertStatus(202);
+});
+
+it('refuse un second envoi simultané pour le même numéro (double clic)', function (): void {
+    config()->set('pssfp.otp.cooldown_seconds', 0);
+    // Un premier envoi est encore en cours : il détient le verrou du numéro.
+    $enCours = Cache::lock('otp:generate:+237699000333', 10);
+    $enCours->get();
+
+    try {
+        expect(fn () => app(OtpService::class)->generate('+237699000333', 'reset_pin'))
+            ->toThrow(OtpCooldownException::class);
+    } finally {
+        $enCours->release();
+    }
+
+    expect(app(OtpService::class)->generate('+237699000333', 'reset_pin'))->toMatch('/^\d{6}$/');
+});
+
+it('annonce le délai avant un nouvel envoi, identique que le numéro existe ou non', function (): void {
+    config()->set('pssfp.otp.cooldown_seconds', 90);
+    config()->set('services.turnstile.secret', null);
+
+    $this->postJson('/v1/auth/candidat/forgot-pin', ['phone_e164' => '+237699000444'])
+        ->assertStatus(202)
+        ->assertJsonPath('resend_after', 90);
+});
+
+it('ne journalise pas le texte des SMS factices hors local et test', function (): void {
+    $this->app['env'] = 'staging';
+    Log::shouldReceive('channel')->with('sms')->andReturnSelf();
+    Log::shouldReceive('info')->once()
+        ->withArgs(fn (string $msg, array $ctx): bool => ! str_contains((string) $ctx['message'], 'Secret123@'));
+
+    (new FakeSmsProvider)->send('+237699000555', 'mot de passe Secret123@');
 });

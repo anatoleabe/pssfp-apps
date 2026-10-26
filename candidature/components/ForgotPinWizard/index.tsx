@@ -21,6 +21,26 @@ const KNOWN_PIN_REASONS = new Set([
   'pin.matches_date_of_birth',
 ]);
 
+/** Échéance du prochain envoi autorisé, conservée si la page est rechargée. */
+const CLE_RENVOI = 'pssfp_forgot_pin_resend_at';
+
+function lireEcheance(): number | null {
+  try {
+    const valeur = Number(window.sessionStorage.getItem(CLE_RENVOI));
+    return Number.isFinite(valeur) && valeur > Date.now() ? valeur : null;
+  } catch {
+    return null;
+  }
+}
+
+function ecrireEcheance(echeance: number): void {
+  try {
+    window.sessionStorage.setItem(CLE_RENVOI, String(echeance));
+  } catch {
+    // Stockage indisponible (navigation privée) : le compte à rebours reste en mémoire.
+  }
+}
+
 export function ForgotPinWizard(): JSX.Element {
   const t = useTranslations('forgotPin');
   const tErr = useTranslations('errors');
@@ -37,6 +57,10 @@ export function ForgotPinWizard(): JSX.Element {
   const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Chaque envoi consomme un SMS : on impose un délai avant le suivant, même
+  // après « Précédent » ou un rechargement de la page.
+  const [renvoiPossibleA, setRenvoiPossibleA] = useState<number | null>(null);
+  const [maintenant, setMaintenant] = useState(() => Date.now());
   const stepHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const mountedRef = useRef(false);
 
@@ -58,6 +82,18 @@ export function ForgotPinWizard(): JSX.Element {
   const pinReasonLabel = (reason: string): string =>
     KNOWN_PIN_REASONS.has(reason) ? tPin(reason.replace('pin.', '')) : reason;
 
+  useEffect(() => {
+    setRenvoiPossibleA(lireEcheance());
+  }, []);
+
+  useEffect(() => {
+    if (renvoiPossibleA === null) return undefined;
+    const minuteur = window.setInterval(() => setMaintenant(Date.now()), 1000);
+    return () => window.clearInterval(minuteur);
+  }, [renvoiPossibleA]);
+
+  const secondesAvantRenvoi = renvoiPossibleA === null ? 0 : Math.max(0, Math.ceil((renvoiPossibleA - maintenant) / 1000));
+
   // Focus programmé sur le titre de l'étape après transition (WCAG 2.4.3).
   useEffect(() => {
     if (!mountedRef.current) {
@@ -68,7 +104,7 @@ export function ForgotPinWizard(): JSX.Element {
   }, [step]);
 
   const submitPhone = (): void => {
-    if (!phoneValid || !turnstileOk) return;
+    if (!phoneValid || !turnstileOk || secondesAvantRenvoi > 0) return;
     setServerError(null);
     startTransition(async () => {
       const r = await requestOtpAction(phone, turnstileToken);
@@ -81,6 +117,10 @@ export function ForgotPinWizard(): JSX.Element {
         setTurnstileResetKey((k) => k + 1);
         return;
       }
+      const echeance = Date.now() + (r.resendAfter ?? 60) * 1000;
+      ecrireEcheance(echeance);
+      setMaintenant(Date.now());
+      setRenvoiPossibleA(echeance);
       setStep(2);
     });
   };
@@ -211,11 +251,15 @@ export function ForgotPinWizard(): JSX.Element {
           <button
             type="button"
             data-testid="forgot-submit-phone"
-            disabled={!phoneValid || !turnstileOk || pending}
+            disabled={!phoneValid || !turnstileOk || pending || secondesAvantRenvoi > 0}
             onClick={submitPhone}
             className="h-11 w-full rounded-md bg-[#4A2E67] text-sm font-medium text-white hover:bg-[#5C3A7E] disabled:cursor-not-allowed disabled:bg-gray-300"
           >
-            {pending ? t('sending') : t('sendCode')}
+            {pending
+              ? t('sending')
+              : secondesAvantRenvoi > 0
+              ? t('resendIn', { seconds: secondesAvantRenvoi })
+              : t('sendCode')}
           </button>
         </div>
       )}
@@ -258,6 +302,29 @@ export function ForgotPinWizard(): JSX.Element {
               {pending ? t('verifying') : t('verifyCode')}
             </button>
           </div>
+          <p className="text-sm text-[#595959]" data-testid="forgot-resend">
+            {secondesAvantRenvoi > 0 ? (
+              t('resendHint', { seconds: secondesAvantRenvoi })
+            ) : (
+              <>
+                {t('resendReady')}{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Nouveau défi anti-robot obligatoire : retour à l'étape 1.
+                    setStep(1);
+                    setServerError(null);
+                    setCode('');
+                    setTurnstileToken('');
+                    setTurnstileResetKey((k) => k + 1);
+                  }}
+                  className="font-medium text-[#4A2E67] underline underline-offset-2 hover:text-[#3A2452] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67]"
+                >
+                  {t('resendCta')}
+                </button>
+              </>
+            )}
+          </p>
         </div>
       )}
 

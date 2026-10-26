@@ -410,7 +410,11 @@
     "setPin": "Définir mon nouveau PIN",
     "updating": "Mise à jour…",
     "title": "PIN oublié",
-    "subtitle": "Récupérez l'accès à votre dossier en trois étapes guidées."
+    "subtitle": "Récupérez l'accès à votre dossier en trois étapes guidées.",
+    "resendIn": "Nouveau code possible dans {seconds} s",
+    "resendHint": "Vous n'avez rien reçu ? Vous pourrez demander un nouveau code dans {seconds} s.",
+    "resendReady": "Vous n'avez rien reçu ?",
+    "resendCta": "Demander un nouveau code"
   },
   "dossier": {
     "fields": {
