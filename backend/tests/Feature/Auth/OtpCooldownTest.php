@@ -5,9 +5,11 @@ declare(strict_types=1);
 use App\Exceptions\OtpCooldownException;
 use App\Models\User;
 use App\Services\OtpService;
+use App\Services\Sms\FakeSmsProvider;
 use App\Services\Sms\SmsServiceInterface;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 uses()->group('auth', 'candidat', 'otp');
 
@@ -100,4 +102,13 @@ it('annonce le délai avant un nouvel envoi, identique que le numéro existe ou 
     $this->postJson('/v1/auth/candidat/forgot-pin', ['phone_e164' => '+237699000444'])
         ->assertStatus(202)
         ->assertJsonPath('resend_after', 90);
+});
+
+it('ne journalise pas le texte des SMS factices hors local et test', function (): void {
+    $this->app['env'] = 'staging';
+    Log::shouldReceive('channel')->with('sms')->andReturnSelf();
+    Log::shouldReceive('info')->once()
+        ->withArgs(fn (string $msg, array $ctx): bool => ! str_contains((string) $ctx['message'], 'Secret123@'));
+
+    (new FakeSmsProvider)->send('+237699000555', 'mot de passe Secret123@');
 });

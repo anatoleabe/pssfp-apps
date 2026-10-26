@@ -18,6 +18,7 @@ use App\Services\OtpService;
 use App\Services\Security\TurnstileVerifier;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\PhoneMasker;
+use App\Support\SecretRedactor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -179,7 +180,8 @@ final class AuthCandidatController extends Controller
                 ]);
             } catch (\Throwable $e) {
                 Log::channel('single')->error('Envoi SMS forgot-pin échoué — 202 silencieux.', [
-                    'error' => $e->getMessage(),
+                    // Une erreur réseau peut contenir l'URL du fournisseur et sa clé d'API.
+                    'error' => SecretRedactor::redact($e->getMessage()),
                 ]);
             }
         }

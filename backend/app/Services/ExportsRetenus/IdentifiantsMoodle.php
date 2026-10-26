@@ -30,11 +30,20 @@ final class IdentifiantsMoodle
 
     public const CANAL_LES_DEUX = 'sms_email';
 
+    public const PERMISSION = 'candidature.matricules_moodle';
+
+    /** Envoi groupé synchrone (le mot de passe ne passe pas par la file) : sélection plafonnée. */
+    public const ENVOI_GROUPE_MAX = 50;
+
     public function __construct(private readonly SmsServiceInterface $sms) {}
 
+    /** Retenu, non retiré, matricule attribué : la même règle pour tous les chemins. */
     public static function disponibles(Candidature $c): bool
     {
-        return $c->matricule !== null && filled($c->moodle_password);
+        return $c->statut === Candidature::STATUT_ACCEPTE
+            && $c->withdrawn_at === null
+            && $c->matricule !== null
+            && filled($c->moodle_password);
     }
 
     public static function identifiant(Candidature $c): string
@@ -70,8 +79,11 @@ final class IdentifiantsMoodle
         if (! in_array($canal, [self::CANAL_SMS, self::CANAL_EMAIL, self::CANAL_LES_DEUX], true)) {
             throw new InvalidArgumentException("Canal inconnu : {$canal}");
         }
+        // Contrôle ici aussi : un futur appelant (commande, API) ne doit pas
+        // pouvoir contourner la permission vérifiée par l'admin.
+        abort_unless($auteur->can(self::PERMISSION), 403);
         if (! self::disponibles($c)) {
-            throw new InvalidArgumentException("Le dossier {$c->numero_dossier} n'a pas encore de matricule.");
+            throw new InvalidArgumentException("Le dossier {$c->numero_dossier} n'est pas un retenu doté d'un matricule.");
         }
 
         $resultat = ['sms' => null, 'email' => null];
@@ -94,6 +106,7 @@ final class IdentifiantsMoodle
 
     public function journaliserConsultation(Candidature $c, User $auteur): void
     {
+        abort_unless($auteur->can(self::PERMISSION), 403);
         activity('candidatures')->causedBy($auteur)->performedOn($c)
             ->event('moodle_identifiants_consultes')
             ->log('Identifiants Moodle consultés');

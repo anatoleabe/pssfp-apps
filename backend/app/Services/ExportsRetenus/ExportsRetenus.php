@@ -37,6 +37,11 @@ final class ExportsRetenus
         if (! in_array($type, ExportsRetenusExcel::TYPES, true)) {
             throw new RuntimeException("Export inconnu : {$type}");
         }
+        // Le fichier Moodle contient les mots de passe : administration seule,
+        // quel que soit l'appelant.
+        if ($type === ExportsRetenusExcel::MOODLE) {
+            abort_unless($auteur->can(IdentifiantsMoodle::PERMISSION), 403);
+        }
         if (self::sansMatricule($campagne) > 0) {
             throw new RuntimeException('Des retenus n\'ont pas encore de matricule : attribuez les matricules avant d\'exporter.');
         }

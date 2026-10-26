@@ -79,14 +79,24 @@ final class IdentifiantsMoodleActions
             ->visible(fn (): bool => (bool) auth()->user()?->can(self::PERMISSION))
             ->requiresConfirmation()
             ->modalHeading('Envoyer leurs identifiants Moodle aux candidats sélectionnés')
-            ->modalDescription('Seuls les retenus dotés d\'un matricule les reçoivent ; les autres dossiers sélectionnés sont ignorés. Un SMS par candidat.')
+            ->modalDescription('Seuls les retenus dotés d\'un matricule les reçoivent ; les autres dossiers sélectionnés sont ignorés. Un SMS par candidat. '
+                .'Au plus '.IdentifiantsMoodle::ENVOI_GROUPE_MAX.' dossiers par envoi : procédez par lots.')
             ->form([self::canal()])
             ->deselectRecordsAfterCompletion()
-            ->action(function (Collection $records, array $data): void {
+            ->action(function (Collection $records, array $data, BulkAction $action): void {
                 abort_unless(auth()->user()?->can(self::PERMISSION), 403);
+                if ($records->count() > IdentifiantsMoodle::ENVOI_GROUPE_MAX) {
+                    Notification::make()->warning()
+                        ->title('Sélection trop large')
+                        ->body('Au plus '.IdentifiantsMoodle::ENVOI_GROUPE_MAX.' dossiers par envoi ('.$records->count().' sélectionnés) : la requête dépasserait le délai du serveur. Procédez par lots.')
+                        ->send();
+                    $action->halt();
+
+                    return;
+                }
                 $service = app(IdentifiantsMoodle::class);
                 self::notifier($records
-                    ->filter(fn (Candidature $c): bool => $c->statut === Candidature::STATUT_ACCEPTE && IdentifiantsMoodle::disponibles($c))
+                    ->filter(fn (Candidature $c): bool => IdentifiantsMoodle::disponibles($c))
                     ->map(fn (Candidature $c): array => $service->envoyer($c, (string) $data['canal'], auth()->user()))
                     ->values());
             });

@@ -10,6 +10,8 @@ use App\Models\Candidature;
 use App\Models\CandidatureRelance;
 use App\Models\User;
 use App\Services\ExportsRetenus\AttributionMatricules;
+use App\Services\ExportsRetenus\ExportsRetenus;
+use App\Services\ExportsRetenus\ExportsRetenusExcel;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use App\Services\Sms\SmsServiceInterface;
 use Database\Seeders\DepartementsCamerounSeeder;
@@ -19,6 +21,7 @@ use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses()->group('filament', 'exports-retenus');
 
@@ -121,4 +124,35 @@ it('envoie en groupe aux seuls retenus dotés d\'un matricule', function (): voi
 
     expect($this->sms)->toHaveCount(1);
     Mail::assertNothingSent();
+});
+
+it('n\'envoie rien à un auditeur retiré après l\'attribution', function (): void {
+    $this->auditeur->forceFill(['withdrawn_at' => now()])->save();
+    $this->actingAs(($this->agent)('admin'));
+
+    $this->livewire(ListCandidatures::class)
+        ->assertTableActionHidden('envoyerIdentifiantsMoodle', $this->auditeur->fresh());
+    expect(fn () => app(IdentifiantsMoodle::class)->envoyer($this->auditeur->fresh(), IdentifiantsMoodle::CANAL_SMS, ($this->agent)('admin')))
+        ->toThrow(InvalidArgumentException::class);
+    expect($this->sms)->toBe([]);
+});
+
+it('refuse l\'envoi et l\'export Moodle à qui n\'a pas la permission, même hors de l\'admin', function (): void {
+    expect(fn () => app(IdentifiantsMoodle::class)->envoyer($this->auditeur, IdentifiantsMoodle::CANAL_SMS, ($this->agent)('admission_committee')))
+        ->toThrow(HttpException::class);
+    expect(fn () => app(ExportsRetenus::class)
+        ->generer($this->auditeur->campagne, ExportsRetenusExcel::MOODLE, ($this->agent)('admission_committee')))
+        ->toThrow(HttpException::class);
+    expect($this->sms)->toBe([]);
+});
+
+it('plafonne l\'envoi groupé pour rester sous le délai du serveur', function (): void {
+    $selection = Candidature::factory()->count(IdentifiantsMoodle::ENVOI_GROUPE_MAX)
+        ->forCampagne($this->auditeur->campagne)->submitted()->create()->push($this->auditeur);
+    $this->actingAs(($this->agent)('admin'));
+
+    $this->livewire(ListCandidatures::class)
+        ->callTableBulkAction('envoyerIdentifiantsMoodleBulk', $selection, data: ['canal' => IdentifiantsMoodle::CANAL_SMS]);
+
+    expect($this->sms)->toBe([]);
 });
