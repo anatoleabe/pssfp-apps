@@ -200,14 +200,7 @@ final class ResultatsSelectionService
      */
     private function anneeAcademique(CampagneCandidature $campagne): string
     {
-        $nom = (string) $campagne->getTranslation('nom', 'fr', true);
-        if (preg_match('/(\d{4})\s*[-–\/]\s*(\d{4})/u', $nom, $m) === 1) {
-            return $m[1].'-'.$m[2];
-        }
-
-        $debut = ($campagne->opens_at ?? now())->year;
-
-        return $debut.'-'.($debut + 1);
+        return $campagne->anneeAcademique();
     }
 
     private function majuscules(?string $texte): string

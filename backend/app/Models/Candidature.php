@@ -26,6 +26,11 @@ class Candidature extends Model
 
     public const STATUT_REFUSE = 'refuse';
 
+    /** Catégories de matricule des retenus (ex. 26EFP001, 26EFSC002). */
+    public const CATEGORIE_EFP = 'EFP';
+
+    public const CATEGORIE_EFSC = 'EFSC';
+
     protected $fillable = [
         'campagne_id',
         'user_id',
@@ -111,6 +116,11 @@ class Candidature extends Model
         'formations_professionnelles' => 'array',
         // Champ système : jamais dans $fillable, valorisé par le DEFAULT Postgres.
         'form_version' => 'integer',
+        // Matricule et identifiants Moodle : hors $fillable, posés par
+        // AttributionMatricules uniquement. Mot de passe chiffré au repos.
+        'rang_retenu' => 'integer',
+        'moodle_password' => 'encrypted',
+        'matricule_attribue_at' => 'datetime',
     ];
 
     /** Le `id` reste BIGSERIAL ; HasUuids génère uniquement le champ `uuid`. */

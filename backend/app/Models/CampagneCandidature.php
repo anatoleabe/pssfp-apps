@@ -56,6 +56,22 @@ class CampagneCandidature extends Model
         'max_voeux' => 'integer',
     ];
 
+    /**
+     * « 2026-2027 » : lue dans le nom de la campagne quand il la porte, sinon
+     * déduite de l'année d'ouverture.
+     */
+    public function anneeAcademique(): string
+    {
+        $nom = (string) $this->getTranslation('nom', 'fr', true);
+        if (preg_match('/(\d{4})\s*[-–\/]\s*(\d{4})/u', $nom, $m) === 1) {
+            return $m[1].'-'.$m[2];
+        }
+
+        $debut = ($this->opens_at ?? now())->year;
+
+        return $debut.'-'.($debut + 1);
+    }
+
     public function candidatures(): HasMany
     {
         return $this->hasMany(Candidature::class, 'campagne_id');
