@@ -281,3 +281,49 @@ it('refuse le classement EFP / EFSC à un rôle non autorisé', function (): voi
         ->assertTableBulkActionHidden('categorieMatriculeBulk');
     expect($c->fresh()->categorie_matricule)->toBe('EFP');
 });
+
+it('attribue le matricule d\'un seul retenu depuis la liste des candidatures', function (): void {
+    $premier = ($this->retenu)('Abessolo', 'Jean');
+    app(AttributionMatricules::class)->attribuer($this->campagne, '26', ($this->agent)('admin'));
+    $tardif = ($this->retenu)('Aaron', 'Paul');
+    $autre = ($this->retenu)('Biya', 'Nina');
+    $this->actingAs(($this->agent)('admission_committee'));
+
+    // Année saisie « 27 » ignorée : celle de la promotion est figée à « 26 ».
+    $this->livewire(ListCandidatures::class)
+        ->callTableAction('attribuerMatricule', $tardif, data: ['annee' => '27'])
+        ->assertHasNoTableActionErrors();
+
+    expect($tardif->fresh()->matricule)->toBe('26EFP002')
+        ->and($autre->fresh()->matricule)->toBeNull()
+        ->and($premier->fresh()->matricule)->toBe('26EFP001');
+});
+
+it('attribue les matricules d\'une sélection, dans l\'ordre alphabétique, en ignorant les autres dossiers', function (): void {
+    $numerote = ($this->retenu)('Mvondo', 'Eve');
+    $numerote->forceFill(['matricule' => '26EFP005', 'rang_retenu' => 5])->save();
+    $zang = ($this->retenu)('Zang', 'Rene');
+    $atem = ($this->retenu)('Atem', 'Joel');
+    $horsSelection = ($this->retenu)('Bello', 'Ida');
+    $candidat = Candidature::factory()->forCampagne($this->campagne)->submitted()->create();
+    $this->actingAs(($this->agent)('admin'));
+
+    $this->livewire(ListCandidatures::class)
+        ->callTableBulkAction('attribuerMatriculesBulk', [$zang, $atem, $numerote, $candidat], data: ['annee' => null])
+        ->assertHasNoTableBulkActionErrors();
+
+    expect($atem->fresh()->matricule)->toBe('26EFP006')
+        ->and($zang->fresh()->matricule)->toBe('26EFP007')
+        ->and($numerote->fresh()->matricule)->toBe('26EFP005')
+        ->and($horsSelection->fresh()->matricule)->toBeNull()
+        ->and($candidat->fresh()->matricule)->toBeNull();
+});
+
+it('masque l\'attribution individuelle et groupée aux rôles non autorisés', function (): void {
+    $c = ($this->retenu)('Ondoa', 'Max');
+    $this->actingAs(($this->agent)('receptionniste'));
+
+    $this->livewire(ListCandidatures::class)
+        ->assertTableActionHidden('attribuerMatricule', $c)
+        ->assertTableBulkActionHidden('attribuerMatriculesBulk');
+});

@@ -58,9 +58,11 @@ final class AttributionMatricules
     }
 
     /**
+     * @param  list<int>|null  $seulement  ids des dossiers à numéroter (sélection
+     *                                     faite dans l'admin) ; null = tous les retenus
      * @return array{attribues: int, deja: int}
      */
-    public function attribuer(CampagneCandidature $campagne, string $annee, User $auteur): array
+    public function attribuer(CampagneCandidature $campagne, string $annee, User $auteur, ?array $seulement = null): array
     {
         if (preg_match('/^\d{2}$/', $annee) !== 1) {
             throw new InvalidArgumentException('L\'année du matricule doit compter deux chiffres.');
@@ -70,7 +72,7 @@ final class AttributionMatricules
             throw new InvalidArgumentException("Les matricules de cette promotion commencent déjà par « {$figee} » : l'année ne peut plus changer.");
         }
 
-        $resultat = $this->db->transaction(function () use ($campagne, $annee): array {
+        $resultat = $this->db->transaction(function () use ($campagne, $annee, $seulement): array {
             // Verrou sur la campagne : deux clics simultanés ne doivent pas
             // distribuer deux fois le même rang.
             CampagneCandidature::query()->whereKey($campagne->id)->lockForUpdate()->first();
@@ -80,7 +82,13 @@ final class AttributionMatricules
             // (les index uniques le couvrent aussi).
             $rang = (int) Candidature::withTrashed()->forCampagne($campagne->id)->max('rang_retenu');
 
-            $nouveaux = $this->parOrdreAlphabetique(self::retenus($campagne)->whereNull('matricule')->get());
+            $aNumeroter = self::retenus($campagne)->whereNull('matricule');
+            if ($seulement !== null) {
+                // Sélection : rang suivant le dernier attribué, ordre alphabétique
+                // au sein de la sélection. Les non-retenus sont ignorés.
+                $aNumeroter->whereIn('id', $seulement);
+            }
+            $nouveaux = $this->parOrdreAlphabetique($aNumeroter->get());
             foreach ($nouveaux as $candidature) {
                 $rang++;
                 $matricule = $annee.$candidature->categorie_matricule.str_pad((string) $rang, 3, '0', STR_PAD_LEFT);
@@ -102,7 +110,7 @@ final class AttributionMatricules
 
         activity('candidatures')->causedBy($auteur)->performedOn($campagne)
             ->event('matricules_attribues')
-            ->withProperties($resultat + ['annee' => $annee])
+            ->withProperties($resultat + ['annee' => $annee, 'selection' => $seulement !== null])
             ->log('Matricules des retenus attribués');
 
         return $resultat;
