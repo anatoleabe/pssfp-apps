@@ -303,6 +303,16 @@ class CandidatureResource extends Resource
                         'refuse' => 'danger',
                         default => 'gray',
                     }),
+                // Retenus seulement : matricule attribué, ou catégorie en attente.
+                Tables\Columns\TextColumn::make('matricule')
+                    ->label('Matricule')
+                    ->state(fn (Candidature $r): ?string => $r->statut !== Candidature::STATUT_ACCEPTE ? null
+                        : ($r->matricule ?? $r->categorie_matricule.' · à attribuer'))
+                    ->color(fn (Candidature $r): string => $r->matricule === null ? 'gray' : 'success')
+                    ->badge()
+                    ->copyable()
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\IconColumn::make('frais_paye')->label('Frais')
                     ->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle')
                     ->tooltip(fn (Candidature $r): string => $r->frais_paye ? 'Frais payés' : 'Frais non payés'),
@@ -649,6 +659,21 @@ class CandidatureResource extends Resource
                                 ->withProperties(['motif' => $data['motif']])
                                 ->log('Candidature refusée');
                         }),
+                    Tables\Actions\Action::make('categorieMatricule')
+                        ->label('Catégorie de matricule (EFP / EFSC)')
+                        ->icon('heroicon-o-identification')
+                        ->color('gray')
+                        ->visible(fn (Candidature $r): bool => auth()->user()?->can('campagne.export_retenus')
+                            && $r->statut === Candidature::STATUT_ACCEPTE && $r->matricule === null)
+                        ->fillForm(fn (Candidature $r): array => ['categorie' => $r->categorie_matricule])
+                        ->form([
+                            Forms\Components\Radio::make('categorie')
+                                ->label('Catégorie')
+                                ->options([Candidature::CATEGORIE_EFP => 'EFP', Candidature::CATEGORIE_EFSC => 'EFSC'])
+                                ->inline()
+                                ->required(),
+                        ])
+                        ->action(fn (Candidature $r, array $data) => self::classerMatricule(collect([$r]), $data['categorie'])),
                     Tables\Actions\Action::make('markPaid')
                         ->label('Marquer frais payés')
                         ->icon('heroicon-o-banknotes')
@@ -1007,6 +1032,20 @@ class CandidatureResource extends Resource
                             ->withProperties(['count' => count($accepted), 'numeros' => $accepted])
                             ->log('Acceptation en bulk');
                     }),
+                Tables\Actions\BulkAction::make('categorieMatriculeBulk')
+                    ->label('Catégorie de matricule (EFP / EFSC)')
+                    ->icon('heroicon-o-identification')
+                    ->color('gray')
+                    ->visible(fn () => auth()->user()?->can('campagne.export_retenus'))
+                    ->modalDescription('S\'applique aux seuls retenus encore sans matricule ; les autres dossiers sélectionnés sont ignorés.')
+                    ->form([
+                        Forms\Components\Radio::make('categorie')
+                            ->label('Catégorie')
+                            ->options([Candidature::CATEGORIE_EFP => 'EFP', Candidature::CATEGORIE_EFSC => 'EFSC'])
+                            ->inline()
+                            ->required(),
+                    ])
+                    ->action(fn ($records, array $data) => self::classerMatricule($records, $data['categorie'])),
                 Tables\Actions\BulkAction::make('refuseBulk')
                     ->label('Refuser en bulk')
                     ->icon('heroicon-o-x-circle')
@@ -1033,6 +1072,45 @@ class CandidatureResource extends Resource
                             ->log('Refus en bulk');
                     }),
             ]);
+    }
+
+    /**
+     * Classe des retenus en EFP ou EFSC avant l'attribution des matricules.
+     * Un matricule attribué ne change plus : ces dossiers-là sont ignorés.
+     *
+     * @param  iterable<Candidature>  $records
+     */
+    private static function classerMatricule(iterable $records, string $categorie): void
+    {
+        abort_unless(auth()->user()?->can('campagne.export_retenus'), 403);
+        abort_unless(in_array($categorie, [Candidature::CATEGORIE_EFP, Candidature::CATEGORIE_EFSC], true), 422);
+
+        $classes = [];
+        foreach ($records as $r) {
+            // Mise à jour conditionnelle : si l'attribution vient de passer, le
+            // matricule n'est plus nul et la catégorie ne bouge pas.
+            $modifie = Candidature::query()->whereKey($r->getKey())
+                ->where('statut', Candidature::STATUT_ACCEPTE)
+                ->whereNull('matricule')
+                ->update(['categorie_matricule' => $categorie]);
+            if ($modifie > 0) {
+                $classes[] = $r;
+            }
+        }
+
+        if ($classes !== []) {
+            $journal = activity('candidatures')->causedBy(auth()->user())
+                ->event('categorie_matricule')
+                ->withProperties(['categorie' => $categorie, 'numeros' => array_map(fn (Candidature $c): string => (string) $c->numero_dossier, $classes)]);
+            if (count($classes) === 1) {
+                $journal->performedOn($classes[0]);
+            }
+            $journal->log("Catégorie de matricule {$categorie}");
+        }
+
+        Notification::make()->success()
+            ->title(count($classes).' retenu(s) classé(s) '.$categorie)
+            ->send();
     }
 
     /**

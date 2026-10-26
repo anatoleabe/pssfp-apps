@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Resources\CampagneCandidatureResource\ExportsRetenusActions;
 use App\Filament\Resources\CampagneCandidatureResource\Pages;
 use App\Filament\Resources\CampagneCandidatureResource\ResultatsSelectionActions;
 use App\Filament\Tables\TranslatedColumn;
@@ -171,6 +172,16 @@ class CampagneCandidatureResource extends Resource
                 ])
                     ->label('Résultats de sélection')
                     ->icon('heroicon-o-trophy')
+                    ->button()
+                    ->color('gray'),
+                Tables\Actions\ActionGroup::make([
+                    ExportsRetenusActions::attribuer(Tables\Actions\Action::make('attribuerMatricules')),
+                    ExportsRetenusActions::fullData(Tables\Actions\Action::make('exportFullData')),
+                    ExportsRetenusActions::acma(Tables\Actions\Action::make('exportAcma')),
+                    ExportsRetenusActions::moodle(Tables\Actions\Action::make('exportMoodle')),
+                ])
+                    ->label('Retenus : matricules et exports')
+                    ->icon('heroicon-o-identification')
                     ->button()
                     ->color('gray'),
             ]);

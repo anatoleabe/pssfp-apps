@@ -84,6 +84,7 @@ final class RolePermissionSeeder extends Seeder
                     // réservé à admin et super_admin (arbitrage 3 sept. 2026).
                     'candidature.notify',
                     'campagne.download_resultats',
+                    'campagne.export_retenus',
                     'document.publish',
                     'library.thesaurus',
                     'library.redirects',
@@ -109,6 +110,7 @@ final class RolePermissionSeeder extends Seeder
                     'candidature.mark_depot_physique',
                     'candidature.regenerate_recipisse',
                     'campagne.download_resultats',
+                    'campagne.export_retenus',
                 ],
             ],
             // Guichet de la scolarité (Yaoundé-Messa, porte 231) : consulter
