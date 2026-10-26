@@ -1087,17 +1087,26 @@ class CandidatureResource extends Resource
 
         $classes = [];
         foreach ($records as $r) {
-            if ($r->statut !== Candidature::STATUT_ACCEPTE || $r->matricule !== null) {
-                continue;
+            // Mise à jour conditionnelle : si l'attribution vient de passer, le
+            // matricule n'est plus nul et la catégorie ne bouge pas.
+            $modifie = Candidature::query()->whereKey($r->getKey())
+                ->where('statut', Candidature::STATUT_ACCEPTE)
+                ->whereNull('matricule')
+                ->update(['categorie_matricule' => $categorie]);
+            if ($modifie > 0) {
+                $classes[] = $r;
             }
-            $r->forceFill(['categorie_matricule' => $categorie])->save();
-            $classes[] = $r->numero_dossier;
         }
 
-        activity('candidatures')->causedBy(auth()->user())
-            ->event('categorie_matricule')
-            ->withProperties(['categorie' => $categorie, 'numeros' => $classes])
-            ->log("Catégorie de matricule {$categorie}");
+        if ($classes !== []) {
+            $journal = activity('candidatures')->causedBy(auth()->user())
+                ->event('categorie_matricule')
+                ->withProperties(['categorie' => $categorie, 'numeros' => array_map(fn (Candidature $c): string => (string) $c->numero_dossier, $classes)]);
+            if (count($classes) === 1) {
+                $journal->performedOn($classes[0]);
+            }
+            $journal->log("Catégorie de matricule {$categorie}");
+        }
 
         Notification::make()->success()
             ->title(count($classes).' retenu(s) classé(s) '.$categorie)

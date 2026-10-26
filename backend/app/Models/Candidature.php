@@ -101,6 +101,9 @@ class Candidature extends Model
         'recipisse_hash_sha256',
     ];
 
+    /** Jamais dans une sérialisation (toArray, JSON) : seul l'export Moodle le lit. */
+    protected $hidden = ['moodle_password'];
+
     protected $casts = [
         'date_naissance' => 'date',
         'submitted_at' => 'datetime',

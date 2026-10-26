@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Filament\Resources\CampagneCandidatureResource\Pages\EditCampagneCandidature;
 use App\Filament\Resources\CampagneCandidatureResource\Pages\ListCampagneCandidatures;
 use App\Filament\Resources\CandidatureResource\Pages\ListCandidatures;
+use App\Filament\Resources\CandidatureResource\Pages\ViewCandidature;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\User;
@@ -101,7 +102,7 @@ it('chiffre le mot de passe Moodle en base et le génère conforme à la politiq
     $clair = $c->fresh()->moodle_password;
     $brut = DB::table('candidatures')->where('id', $c->id)->value('moodle_password');
 
-    expect($clair)->toMatch('/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*@).{8}$/')
+    expect($clair)->toMatch('/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*@).{10}$/')
         ->and($clair)->not->toMatch('/[IlO01]/')
         ->and($brut)->not->toContain($clair);
 });
@@ -168,7 +169,9 @@ it('remplit les colonnes clés et garde les saisies en texte', function (): void
     expect($moodle->getCell('A2')->getValue())->toBe('26efp001')
         ->and($moodle->getCell('D2')->getValue())->toBe($c->fresh()->moodle_password)
         ->and($moodle->getCell('H2')->getValue())->toBe('PROMO14_TC_2026_2027')
-        ->and($moodle->getCell('I2')->getValue())->toBe('PSSFP');
+        ->and($moodle->getCell('I2')->getValue())->toBe('PSSFP')
+        ->and($moodle->getCell('B2')->getDataType())->toBe('s')
+        ->and($acma->getCell('C2')->getDataType())->toBe('s');
 });
 
 it('refuse d\'exporter tant que des retenus n\'ont pas de matricule', function (): void {
@@ -224,4 +227,57 @@ it('classe en EFSC les retenus sans matricule et ignore les autres', function ()
     expect($libre->fresh()->categorie_matricule)->toBe('EFSC')
         ->and($attribue->fresh()->categorie_matricule)->toBe('EFP')
         ->and($candidat->fresh()->categorie_matricule)->toBe('EFP');
+});
+
+it('ne sérialise jamais le mot de passe Moodle, ni dans la fiche Filament du dossier', function (): void {
+    $c = ($this->retenu)('Nkoulou', 'Ines');
+    app(AttributionMatricules::class)->attribuer($this->campagne, '26', ($this->agent)('admin'));
+    $clair = $c->fresh()->moodle_password;
+
+    expect($c->fresh()->toArray())->not->toHaveKey('moodle_password');
+
+    $this->actingAs(($this->agent)('admin'));
+    $this->livewire(ViewCandidature::class, ['record' => $c->getRouteKey()])
+        ->assertDontSee($clair, false);
+});
+
+it('ne réutilise pas le rang d\'un retenu supprimé', function (): void {
+    $premier = ($this->retenu)('Abega', 'Leo');
+    $service = app(AttributionMatricules::class);
+    $service->attribuer($this->campagne, '26', ($this->agent)('admin'));
+    $premier->delete();
+
+    $suivant = ($this->retenu)('Bekono', 'Lise');
+    $service->attribuer($this->campagne, '26', ($this->agent)('admin'));
+
+    expect($suivant->fresh()->matricule)->toBe('26EFP002');
+});
+
+it('fige l\'année des matricules d\'une promotion après la première attribution', function (): void {
+    ($this->retenu)('Edzoa', 'Tom');
+    $service = app(AttributionMatricules::class);
+    $service->attribuer($this->campagne, '26', ($this->agent)('admin'));
+    ($this->retenu)('Fanta', 'Lea');
+
+    $service->attribuer($this->campagne, '27', ($this->agent)('admin'));
+})->throws(InvalidArgumentException::class);
+
+it('refuse un matricule déjà distribué par une autre campagne, sans rien écrire', function (): void {
+    $autre = CampagneCandidature::factory()->create(['nom' => ['fr' => 'Session complémentaire 2026-2027'], 'promotion_numero' => 14]);
+    $ancien = Candidature::factory()->forCampagne($autre)->submitted()->create(['statut' => Candidature::STATUT_ACCEPTE]);
+    $ancien->forceFill(['matricule' => '26EFP001', 'rang_retenu' => 1])->save();
+    $nouveau = ($this->retenu)('Gweth', 'Ali');
+
+    expect(fn () => app(AttributionMatricules::class)->attribuer($this->campagne, '26', ($this->agent)('admin')))
+        ->toThrow(RuntimeException::class);
+    expect($nouveau->fresh()->matricule)->toBeNull();
+});
+
+it('refuse le classement EFP / EFSC à un rôle non autorisé', function (): void {
+    $c = ($this->retenu)('Hamadou', 'Sali');
+    $this->actingAs(($this->agent)('receptionniste'));
+
+    $this->livewire(ListCandidatures::class)
+        ->assertTableBulkActionHidden('categorieMatriculeBulk');
+    expect($c->fresh()->categorie_matricule)->toBe('EFP');
 });

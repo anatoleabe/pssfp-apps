@@ -12,6 +12,8 @@ use App\Services\ExportsRetenus\ExportsRetenusExcel;
 use Filament\Actions\MountableAction;
 use Filament\Forms;
 use Filament\Notifications\Notification;
+use InvalidArgumentException;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -40,16 +42,26 @@ final class ExportsRetenusActions
             ->form(fn (CampagneCandidature $record): array => [
                 Forms\Components\TextInput::make('annee')
                     ->label('Année du matricule (deux chiffres)')
-                    ->default(AttributionMatricules::anneeParDefaut($record))
+                    ->default(AttributionMatricules::anneeFigee($record) ?? AttributionMatricules::anneeParDefaut($record))
+                    // Figée dès le premier matricule : une promotion ne mélange pas deux années.
+                    ->disabled(AttributionMatricules::anneeFigee($record) !== null)
                     ->required()
                     ->regex('/^\d{2}$/')
                     ->helperText('« 26 » donne 26EFP001, 26EFSC002… Les matricules déjà attribués ne changent pas.'),
             ])
-            ->action(function (CampagneCandidature $record, array $data): void {
+            ->action(function (CampagneCandidature $record, array $data, MountableAction $action): void {
                 $user = auth()->user();
                 abort_unless($user?->can(self::PERMISSION) && $user->can('view', $record), 403);
 
-                $r = app(AttributionMatricules::class)->attribuer($record, (string) $data['annee'], $user);
+                $annee = AttributionMatricules::anneeFigee($record) ?? (string) ($data['annee'] ?? '');
+                try {
+                    $r = app(AttributionMatricules::class)->attribuer($record, $annee, $user);
+                } catch (InvalidArgumentException|RuntimeException $e) {
+                    Notification::make()->danger()->title('Attribution impossible')->body($e->getMessage())->send();
+                    $action->halt();
+
+                    return;
+                }
 
                 Notification::make()
                     ->success()
@@ -98,7 +110,9 @@ final class ExportsRetenusActions
         return self::telecharger($action, ExportsRetenusExcel::MOODLE)
             ->label('Comptes Moodle (Excel)')
             ->icon('heroicon-o-computer-desktop')
-            ->modalDescription('Comptes de la plateforme FOAD : identifiant = matricule en minuscules, mot de passe initial figé à l\'attribution. Fichier sensible : à ne transmettre qu\'à l\'administrateur Moodle.')
+            ->modalDescription('Comptes de la plateforme FOAD : identifiant = matricule en minuscules, mot de passe initial figé à l\'attribution. '
+                .'Fichier sensible, à ne transmettre qu\'à l\'administrateur Moodle. À l\'import, cocher « Forcer le changement de mot de passe ». '
+                .'Moodle importe du CSV : enregistrer le fichier en CSV UTF-8 sans le rouvrir ensuite dans un tableur.')
             ->form(fn (CampagneCandidature $record): array => [
                 Forms\Components\TextInput::make('cohorte')
                     ->label('Cohorte Moodle (cohort1)')
@@ -134,7 +148,14 @@ final class ExportsRetenusActions
                     return null;
                 }
 
-                $fichier = app(ExportsRetenus::class)->generer($record, $type, $user, (string) ($data['cohorte'] ?? ''));
+                try {
+                    $fichier = app(ExportsRetenus::class)->generer($record, $type, $user, (string) ($data['cohorte'] ?? ''));
+                } catch (RuntimeException $e) {
+                    Notification::make()->danger()->title('Export impossible')->body($e->getMessage())->send();
+                    $action->halt();
+
+                    return null;
+                }
 
                 return response()->streamDownload(
                     function () use ($fichier): void {

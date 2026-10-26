@@ -41,7 +41,9 @@ final class ExportsRetenus
             throw new RuntimeException('Des retenus n\'ont pas encore de matricule : attribuez les matricules avant d\'exporter.');
         }
 
-        $retenus = AttributionMatricules::retenus($campagne)->orderBy('rang_retenu')->get();
+        // whereNotNull : un dossier accepté entre la vérification et la lecture
+        // n'apparaît pas à moitié rempli.
+        $retenus = AttributionMatricules::retenus($campagne)->whereNotNull('matricule')->orderBy('rang_retenu')->get();
         $contenu = $this->excel->generer($type, $campagne, $retenus, trim($cohorteMoodle));
 
         activity('candidatures')->causedBy($auteur)->performedOn($campagne)

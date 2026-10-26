@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * Attribue matricule, rang et mot de passe Moodle initial aux retenus d'une
@@ -37,6 +38,19 @@ final class AttributionMatricules
             ->whereNull('withdrawn_at');
     }
 
+    /**
+     * Année des matricules déjà attribués dans la campagne : une promotion ne
+     * mélange pas deux années. Les dossiers supprimés comptent, leur matricule
+     * reste réservé.
+     */
+    public static function anneeFigee(CampagneCandidature $campagne): ?string
+    {
+        $matricule = Candidature::withTrashed()->forCampagne($campagne->id)
+            ->whereNotNull('matricule')->orderBy('rang_retenu')->value('matricule');
+
+        return $matricule === null ? null : substr((string) $matricule, 0, 2);
+    }
+
     /** « 26 » pour l'année académique 2026-2027. */
     public static function anneeParDefaut(CampagneCandidature $campagne): string
     {
@@ -51,6 +65,10 @@ final class AttributionMatricules
         if (preg_match('/^\d{2}$/', $annee) !== 1) {
             throw new InvalidArgumentException('L\'année du matricule doit compter deux chiffres.');
         }
+        $figee = self::anneeFigee($campagne);
+        if ($figee !== null && $figee !== $annee) {
+            throw new InvalidArgumentException("Les matricules de cette promotion commencent déjà par « {$figee} » : l'année ne peut plus changer.");
+        }
 
         $resultat = $this->db->transaction(function () use ($campagne, $annee): array {
             // Verrou sur la campagne : deux clics simultanés ne doivent pas
@@ -58,14 +76,22 @@ final class AttributionMatricules
             CampagneCandidature::query()->whereKey($campagne->id)->lockForUpdate()->first();
 
             $deja = self::retenus($campagne)->whereNotNull('matricule')->count();
-            $rang = (int) Candidature::query()->forCampagne($campagne->id)->max('rang_retenu');
+            // withTrashed : un rang porté par un dossier supprimé reste pris
+            // (les index uniques le couvrent aussi).
+            $rang = (int) Candidature::withTrashed()->forCampagne($campagne->id)->max('rang_retenu');
 
             $nouveaux = $this->parOrdreAlphabetique(self::retenus($campagne)->whereNull('matricule')->get());
             foreach ($nouveaux as $candidature) {
                 $rang++;
+                $matricule = $annee.$candidature->categorie_matricule.str_pad((string) $rang, 3, '0', STR_PAD_LEFT);
+                // Unicité sur toute la table : une autre campagne de la même
+                // année aurait déjà pu le distribuer.
+                if (Candidature::withTrashed()->where('matricule', $matricule)->exists()) {
+                    throw new RuntimeException("Le matricule {$matricule} existe déjà dans une autre campagne : vérifiez l'année saisie.");
+                }
                 $candidature->forceFill([
                     'rang_retenu' => $rang,
-                    'matricule' => $annee.$candidature->categorie_matricule.str_pad((string) $rang, 3, '0', STR_PAD_LEFT),
+                    'matricule' => $matricule,
                     'moodle_password' => self::motDePasse(),
                     'matricule_attribue_at' => now(),
                 ])->save();
@@ -83,8 +109,9 @@ final class AttributionMatricules
     }
 
     /**
-     * Mot de passe Moodle initial : majuscule, minuscules, chiffres et « @ »,
-     * pour passer la politique par défaut de Moodle. Sans caractères ambigus
+     * Mot de passe Moodle initial de 10 caractères : au moins une majuscule,
+     * une minuscule, un chiffre et « @ » (politique par défaut de Moodle), le
+     * reste tiré au hasard, puis l'ordre mélangé. Sans caractères ambigus
      * (I, l, O, 0, 1), puisqu'il est recopié à la main par le candidat.
      */
     public static function motDePasse(): string
@@ -92,10 +119,20 @@ final class AttributionMatricules
         $majuscules = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
         $minuscules = 'abcdefghijkmnpqrstuvwxyz';
         $chiffres = '23456789';
+        $tous = $majuscules.$minuscules.$chiffres;
         $tirer = fn (string $alphabet): string => $alphabet[random_int(0, strlen($alphabet) - 1)];
 
-        return $tirer($majuscules).$tirer($minuscules).$tirer($minuscules)
-            .$tirer($chiffres).$tirer($minuscules).$tirer($chiffres).$tirer($majuscules).'@';
+        $caracteres = [$tirer($majuscules), $tirer($minuscules), $tirer($chiffres), '@'];
+        while (count($caracteres) < 10) {
+            $caracteres[] = $tirer($tous);
+        }
+        // Mélange de Fisher-Yates sur random_int : shuffle() n'est pas cryptographique.
+        for ($i = count($caracteres) - 1; $i > 0; $i--) {
+            $j = random_int(0, $i);
+            [$caracteres[$i], $caracteres[$j]] = [$caracteres[$j], $caracteres[$i]];
+        }
+
+        return implode('', $caracteres);
     }
 
     /**
