@@ -16,6 +16,7 @@ use App\Models\RegionCameroun;
 use App\Services\CandidatureService;
 use App\Services\DepotPhysiqueService;
 use App\Services\DocumentUploadService;
+use App\Services\ExportsRetenus\AttributionMatricules;
 use App\Services\NotificationCandidatsService;
 use App\Services\RecipisseService;
 use App\Services\TestCandidaturePurgeService;
@@ -36,6 +37,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -659,6 +662,23 @@ class CandidatureResource extends Resource
                                 ->withProperties(['motif' => $data['motif']])
                                 ->log('Candidature refusée');
                         }),
+                    Tables\Actions\Action::make('attribuerMatricule')
+                        ->label('Attribuer le matricule')
+                        ->icon('heroicon-o-identification')
+                        ->color('success')
+                        ->visible(fn (Candidature $r): bool => auth()->user()?->can('campagne.export_retenus')
+                            && $r->statut === Candidature::STATUT_ACCEPTE && $r->matricule === null && $r->withdrawn_at === null)
+                        ->requiresConfirmation()
+                        ->modalDescription('Rang suivant le dernier matricule attribué dans la promotion. Une fois attribué, le matricule ne change plus.')
+                        ->fillForm(fn (Candidature $r): array => ['annee' => $r->campagne === null ? null
+                            : (AttributionMatricules::anneeFigee($r->campagne) ?? AttributionMatricules::anneeParDefaut($r->campagne))])
+                        ->form([
+                            Forms\Components\TextInput::make('annee')
+                                ->label('Année du matricule (deux chiffres)')
+                                ->regex('/^\d{2}$/')
+                                ->helperText('Laissée vide : année de la promotion. Ignorée si la promotion a déjà des matricules (année figée).'),
+                        ])
+                        ->action(fn (Candidature $r, array $data) => self::attribuerMatricules(collect([$r]), $data['annee'] ?? null)),
                     Tables\Actions\Action::make('categorieMatricule')
                         ->label('Catégorie de matricule (EFP / EFSC)')
                         ->icon('heroicon-o-identification')
@@ -1032,6 +1052,21 @@ class CandidatureResource extends Resource
                             ->withProperties(['count' => count($accepted), 'numeros' => $accepted])
                             ->log('Acceptation en bulk');
                     }),
+                Tables\Actions\BulkAction::make('attribuerMatriculesBulk')
+                    ->label('Attribuer les matricules')
+                    ->icon('heroicon-o-identification')
+                    ->color('success')
+                    ->visible(fn () => auth()->user()?->can('campagne.export_retenus'))
+                    ->requiresConfirmation()
+                    ->modalDescription('Seuls les retenus encore sans matricule sont numérotés, dans l\'ordre alphabétique, à la suite des matricules existants de leur promotion. Les autres dossiers sélectionnés sont ignorés.')
+                    ->form([
+                        Forms\Components\TextInput::make('annee')
+                            ->label('Année du matricule (deux chiffres)')
+                            ->regex('/^\d{2}$/')
+                            ->helperText('Laissée vide : année de la promotion. Ignorée si la promotion a déjà des matricules (année figée).'),
+                    ])
+                    ->deselectRecordsAfterCompletion()
+                    ->action(fn ($records, array $data) => self::attribuerMatricules($records, $data['annee'] ?? null)),
                 Tables\Actions\BulkAction::make('categorieMatriculeBulk')
                     ->label('Catégorie de matricule (EFP / EFSC)')
                     ->icon('heroicon-o-identification')
@@ -1072,6 +1107,41 @@ class CandidatureResource extends Resource
                             ->log('Refus en bulk');
                     }),
             ]);
+    }
+
+    /**
+     * Attribue un matricule aux dossiers choisis dans l'admin, campagne par
+     * campagne, par le même service que l'attribution globale (verrou,
+     * unicité, journal). Année figée de la promotion si elle existe.
+     *
+     * @param  iterable<Candidature>  $records
+     */
+    private static function attribuerMatricules(iterable $records, ?string $annee): void
+    {
+        $user = auth()->user();
+        abort_unless($user?->can('campagne.export_retenus'), 403);
+
+        $attribues = 0;
+        $erreurs = [];
+        foreach (collect($records)->groupBy('campagne_id') as $dossiers) {
+            $campagne = CampagneCandidature::query()->find($dossiers->first()->campagne_id);
+            if ($campagne === null || ! $user->can('view', $campagne)) {
+                continue;
+            }
+            $anneeCampagne = AttributionMatricules::anneeFigee($campagne)
+                ?? (filled($annee) ? (string) $annee : AttributionMatricules::anneeParDefaut($campagne));
+            try {
+                $attribues += app(AttributionMatricules::class)
+                    ->attribuer($campagne, $anneeCampagne, $user, $dossiers->pluck('id')->map(fn ($id): int => (int) $id)->all())['attribues'];
+            } catch (InvalidArgumentException|RuntimeException $e) {
+                $erreurs[] = $e->getMessage();
+            }
+        }
+
+        $notification = Notification::make()
+            ->title($attribues === 0 ? 'Aucun matricule attribué' : "{$attribues} matricule(s) attribué(s)")
+            ->body($erreurs === [] ? 'Les dossiers non retenus ou déjà numérotés sont ignorés.' : implode(' ', $erreurs));
+        ($erreurs === [] ? $notification->success() : $notification->danger())->send();
     }
 
     /**
