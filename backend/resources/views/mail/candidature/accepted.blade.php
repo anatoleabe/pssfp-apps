@@ -16,7 +16,7 @@
 > {{ $internalComment }}
 @endif
 
-@component('mail::button', ['url' => url("/v1/c/{$candidature->uuid}/qr")])
+@component('mail::button', ['url' => $dossierUrl])
 {{ __('mail.candidature.accepted.cta_check') }}
 @endcomponent
 

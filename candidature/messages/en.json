@@ -504,7 +504,10 @@
       "recipisseNotReady": "Your acknowledgement of receipt is not available yet — it is generated when you submit your application.",
       "recipisseFailed": "The download failed. Please try again in a moment.",
       "lockedTitle": "Application locked",
-      "lockedBody": "Your application has already been submitted (or withdrawn) and can no longer be edited. Check your progress page for details."
+      "lockedBody": "Your application has already been submitted (or withdrawn) and can no longer be edited. Check your progress page for details.",
+      "campaignClosedBody": "Your account has been created. Come back when the next intake opens to build your application.",
+      "notInitialisedBody": "This can happen if the connection was interrupted during sign-up. Your account already exists — simply initialise your application to continue.",
+      "loadError": "Your application could not be loaded: {message}. Please try again in a moment."
     },
     "summary": {
       "eyebrow": "Saved information",
@@ -515,7 +518,8 @@
       "sectionFormation": "Programme applied for",
       "sectionParcours": "Academic background",
       "sectionProfession": "Professional situation",
-      "editLink": "Edit"
+      "editLink": "Edit",
+      "editableIntro": "Review your information regularly. You can make corrections until your application is finally submitted."
     },
     "statut": {
       "eyebrow": "My application status",
@@ -612,7 +616,9 @@
       "back": "Back to my application",
       "steps": "Steps",
       "dangerZone": "Sensitive area",
-      "breadcrumbCurrent": "Progress"
+      "breadcrumbCurrent": "Progress",
+      "loadError": "Loading error: {message}",
+      "withdrawBody": "You can permanently withdraw your application for the current intake. This cannot be undone, but you will be able to apply to a future intake."
     },
     "piecesPage": {
       "breadcrumbRoot": "My application",
@@ -628,6 +634,59 @@
       "back": "← Back to my application",
       "breadcrumbAria": "Breadcrumb",
       "title": "Passport photograph"
+    },
+    "statutBadge": {
+      "postulant": "Draft",
+      "candidat": "Applicant",
+      "accepte": "Selected",
+      "refuse": "Not selected",
+      "retire": "Withdrawn"
+    },
+    "decision": {
+      "eyebrow": "Selection results",
+      "numero": "File number",
+      "decidedOn": "Decision dated",
+      "specialite": "Specialisation",
+      "recipisse": "Download my receipt",
+      "retenuTitle": "Congratulations, you have been selected!",
+      "retenuLead": "The selection board has accepted your application to the Advanced Program of Specialisation in Public Finance.",
+      "nextStepsTitle": "Next steps",
+      "nextStepsDefault": "You will receive a notice by SMS and email with the final enrolment procedure and the start-of-year calendar. Keep your phone reachable and check this page regularly.",
+      "commentTitle": "Note from the admissions committee",
+      "nonRetenuTitle": "Your application was not selected",
+      "nonRetenuLead": "After careful review of your file, the selection board did not select your application for this intake.",
+      "motifTitle": "Reason given by the committee",
+      "encouragement": "This decision is no judgement on the quality of your background. You are welcome to apply again in future intakes, announced on the PSSFP website.",
+      "nonRetenuCta": "Explore PSSFP programmes",
+      "enExamenTitle": "Your application is under review",
+      "enExamenLead": "The intake is closed. The selection board is reviewing submitted applications; the decision will be sent to you by SMS and email, and shown on this page.",
+      "resultsOn": "Results are expected on {date}.",
+      "nonSoumisTitle": "The intake is closed",
+      "nonSoumisLead": "Your application was not submitted before the deadline and therefore could not be reviewed. You will be able to apply in the next intake."
+    },
+    "messages": {
+      "eyebrow": "Correspondence",
+      "title": "Messages from PSSFP",
+      "intro": "Information sent to you by SMS or email, most recent first.",
+      "defaultSubject": "Message from PSSFP",
+      "viaEmail": "By email",
+      "viaSms": "By SMS"
+    },
+    "timeline": {
+      "inscription": "Online registration",
+      "soumission": "Application submitted",
+      "frais": "Fees paid",
+      "examen": "Review by the selection board",
+      "decision": "Decision issued",
+      "retenu": "Selected — see the next steps in your space.",
+      "nonRetenu": "Not selected for this intake.",
+      "retrait": "Application withdrawn",
+      "state": {
+        "done": "completed",
+        "current": "in progress",
+        "pending": "upcoming",
+        "cancelled": "closed"
+      }
     }
   },
   "legal": {

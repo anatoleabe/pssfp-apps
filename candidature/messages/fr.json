@@ -504,7 +504,10 @@
       "recipisseNotReady": "Votre récépissé n'est pas encore disponible — il est généré à la soumission de votre candidature.",
       "recipisseFailed": "Le téléchargement du récépissé a échoué. Réessayez dans quelques instants.",
       "lockedTitle": "Dossier verrouillé",
-      "lockedBody": "Votre dossier a déjà été soumis (ou retiré) et ne peut plus être modifié. Consultez votre suivi pour plus d'informations."
+      "lockedBody": "Votre dossier a déjà été soumis (ou retiré) et ne peut plus être modifié. Consultez votre suivi pour plus d'informations.",
+      "campaignClosedBody": "Votre compte est bien créé. Revenez dès l'ouverture de la prochaine campagne pour constituer votre dossier.",
+      "notInitialisedBody": "Cela peut arriver si la connexion a été interrompue à l'inscription. Votre compte existe déjà — il suffit d'initialiser votre dossier pour continuer.",
+      "loadError": "Erreur de chargement du dossier : {message}. Réessayez dans quelques instants."
     },
     "summary": {
       "eyebrow": "Informations enregistrées",
@@ -515,7 +518,8 @@
       "sectionFormation": "Formation demandée",
       "sectionParcours": "Parcours académique",
       "sectionProfession": "Situation professionnelle",
-      "editLink": "Modifier"
+      "editLink": "Modifier",
+      "editableIntro": "Relisez régulièrement vos informations. Les corrections restent possibles jusqu'à la soumission définitive de la candidature."
     },
     "statut": {
       "eyebrow": "État de mon dossier",
@@ -612,7 +616,9 @@
       "back": "Retour au dossier",
       "steps": "Étapes",
       "dangerZone": "Zone sensible",
-      "breadcrumbCurrent": "Suivi"
+      "breadcrumbCurrent": "Suivi",
+      "loadError": "Erreur de chargement : {message}",
+      "withdrawBody": "Vous pouvez retirer définitivement votre candidature pour la campagne courante. Cette action est irréversible mais vous pourrez postuler à une campagne future."
     },
     "piecesPage": {
       "breadcrumbRoot": "Mon dossier",
@@ -628,6 +634,59 @@
       "back": "← Retour au dossier",
       "breadcrumbAria": "Fil d'Ariane",
       "title": "Photo identité"
+    },
+    "statutBadge": {
+      "postulant": "Postulant",
+      "candidat": "Candidat",
+      "accepte": "Retenu(e)",
+      "refuse": "Non retenu(e)",
+      "retire": "Retiré"
+    },
+    "decision": {
+      "eyebrow": "Résultats de la sélection",
+      "numero": "N° de dossier",
+      "decidedOn": "Décision du",
+      "specialite": "Spécialité retenue",
+      "recipisse": "Télécharger mon récépissé",
+      "retenuTitle": "Félicitations, vous êtes retenu(e) !",
+      "retenuLead": "Le jury de sélection a retenu votre candidature au Programme Supérieur de Spécialisation en Finances Publiques.",
+      "nextStepsTitle": "Prochaines étapes",
+      "nextStepsDefault": "Vous recevrez une convocation par SMS et par e-mail précisant les modalités d'inscription définitive et le calendrier de la rentrée. Gardez votre téléphone joignable et revenez régulièrement sur cet espace.",
+      "commentTitle": "Mot du comité d'admission",
+      "nonRetenuTitle": "Votre candidature n'a pas été retenue",
+      "nonRetenuLead": "Après examen attentif de votre dossier, le jury de sélection n'a pas retenu votre candidature pour cette promotion.",
+      "motifTitle": "Motif communiqué par le comité",
+      "encouragement": "Cette décision ne préjuge pas de la qualité de votre parcours. Vous pourrez de nouveau postuler lors des prochaines campagnes, annoncées sur le site du PSSFP.",
+      "nonRetenuCta": "Découvrir les formations du PSSFP",
+      "enExamenTitle": "Votre dossier est en cours d'examen",
+      "enExamenLead": "La campagne est close. Le jury de sélection examine les dossiers soumis ; la décision vous sera communiquée par SMS et par e-mail, et affichée sur cette page.",
+      "resultsOn": "Publication des résultats prévue le {date}.",
+      "nonSoumisTitle": "La campagne est close",
+      "nonSoumisLead": "Votre dossier n'a pas été soumis avant la date limite et n'a donc pas pu être examiné. Vous pourrez postuler lors de la prochaine campagne."
+    },
+    "messages": {
+      "eyebrow": "Correspondance",
+      "title": "Messages du PSSFP",
+      "intro": "Les informations qui vous ont été envoyées par SMS ou par e-mail, de la plus récente à la plus ancienne.",
+      "defaultSubject": "Message du PSSFP",
+      "viaEmail": "Par e-mail",
+      "viaSms": "Par SMS"
+    },
+    "timeline": {
+      "inscription": "Inscription en ligne",
+      "soumission": "Dossier soumis",
+      "frais": "Frais réglés",
+      "examen": "Examen par le jury de sélection",
+      "decision": "Décision rendue",
+      "retenu": "Retenu(e) — consultez les prochaines étapes dans votre espace.",
+      "nonRetenu": "Non retenu(e) pour cette promotion.",
+      "retrait": "Candidature retirée",
+      "state": {
+        "done": "étape franchie",
+        "current": "étape en cours",
+        "pending": "étape à venir",
+        "cancelled": "étape close"
+      }
     }
   },
   "legal": {

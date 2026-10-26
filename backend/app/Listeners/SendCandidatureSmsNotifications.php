@@ -19,7 +19,7 @@ final class SendCandidatureSmsNotifications
     public function handleCreated(CandidatureCreated $event): void
     {
         $this->send($event->candidature->phone_e164, sprintf(
-            'PSSFP : votre compte candidat est cree. Dossier %s. Conservez votre PIN, completez photo et pieces puis soumettez. Infos 677 25 72 72',
+            'PSSFP : votre compte candidat est cree. Dossier %s. Conservez votre PIN, completez photo et pieces puis soumettez.',
             $event->candidature->numero_dossier,
         ), $event->candidature->uuid);
     }
@@ -27,7 +27,7 @@ final class SendCandidatureSmsNotifications
     public function handleSubmitted(CandidatureSubmitted $event): void
     {
         $this->send($event->candidature->phone_e164, sprintf(
-            'PSSFP : candidature %s soumise avec succes. Consultez votre espace candidat pour le suivi et le recepisse. Infos 677 25 72 72',
+            'PSSFP : candidature %s soumise avec succes. Consultez votre espace candidat pour le suivi et le recepisse.',
             $event->candidature->numero_dossier,
         ), $event->candidature->uuid);
     }
@@ -35,7 +35,7 @@ final class SendCandidatureSmsNotifications
     public function handleAccepted(CandidatureAccepted $event): void
     {
         $this->send($event->candidature->phone_e164, sprintf(
-            'PSSFP : une decision est disponible pour le dossier %s. Connectez-vous a apply.pssfp.org pour la consulter. Infos 677 25 72 72',
+            'PSSFP : une decision est disponible pour le dossier %s. Connectez-vous a apply.pssfp.org pour la consulter.',
             $event->candidature->numero_dossier,
         ), $event->candidature->uuid);
     }
@@ -43,7 +43,7 @@ final class SendCandidatureSmsNotifications
     public function handleRefused(CandidatureRefused $event): void
     {
         $this->send($event->candidature->phone_e164, sprintf(
-            'PSSFP : une decision est disponible pour le dossier %s. Connectez-vous a apply.pssfp.org pour la consulter. Infos 677 25 72 72',
+            'PSSFP : une decision est disponible pour le dossier %s. Connectez-vous a apply.pssfp.org pour la consulter.',
             $event->candidature->numero_dossier,
         ), $event->candidature->uuid);
     }

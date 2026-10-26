@@ -60,13 +60,15 @@ it('garde chaque gabarit SMS sous la limite d\'un segment', function (): void {
     expect($trop_longs)->toBe([]);
 });
 
-it('indique le numéro de contact dans les messages aux candidats', function (): void {
-    $sans_numero = [];
+it('n\'affiche plus de numéro de téléphone dans les messages aux candidats', function (): void {
+    // Retiré le 26/10/2026 à la demande du chef de projet : le candidat est
+    // renvoyé vers son espace en ligne, pas vers une ligne téléphonique.
+    $avec_numero = [];
     foreach (gabaritsSms() as $nom => $texte) {
-        if (! str_contains($texte, '677 25 72 72')) {
-            $sans_numero[] = $nom;
+        if (preg_match('/\d{3} ?\d{2} ?\d{2} ?\d{2}/', $texte) === 1) {
+            $avec_numero[] = $nom;
         }
     }
 
-    expect($sans_numero)->toBe([]);
+    expect($avec_numero)->toBe([]);
 });

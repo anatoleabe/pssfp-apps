@@ -43,6 +43,8 @@ class CampagneCandidature extends Model
         'communique_pdf_path_en',
         'communique_reference',
         'communique_signed_at',
+        // Consignes affichées aux candidats retenus dans leur espace.
+        'consignes_retenus',
     ];
 
     protected $casts = [

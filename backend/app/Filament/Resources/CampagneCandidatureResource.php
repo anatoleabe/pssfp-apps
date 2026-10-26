@@ -118,6 +118,16 @@ class CampagneCandidatureResource extends Resource
                         ->native(false)
                         ->displayFormat('d/m/Y'),
                 ])->columns(2),
+
+            Forms\Components\Section::make('Après la sélection')
+                ->description('Affiché dans l\'espace privé des candidats retenus, sous l\'annonce de leur admission.')
+                ->schema([
+                    Forms\Components\Textarea::make('consignes_retenus')
+                        ->label('Consignes aux candidats retenus')
+                        ->rows(6)
+                        ->maxLength(3000)
+                        ->helperText('Inscription, pièces à apporter, date de rentrée… Texte simple, un paragraphe par ligne. Sans valeur, un message générique invite à attendre la convocation.'),
+                ]),
         ]);
     }
 

@@ -84,6 +84,9 @@ class Candidature extends Model
         'depot_physique_observation',
         'reviewed_at',
         'decided_at',
+        // Textes transmis au candidat avec la décision, réaffichés dans son espace.
+        'decision_motif',
+        'decision_commentaire',
         'withdrawn_at',
         'frais_paye',
         'mode_paiement',
@@ -151,6 +154,20 @@ class Candidature extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(CandidatureDocument::class);
+    }
+
+    /**
+     * Messages rédigés depuis l'admin et effectivement partis vers ce candidat.
+     * Les relances automatiques (texte figé en configuration) en sont exclues.
+     */
+    public function messagesRecus(): HasMany
+    {
+        return $this->hasMany(CandidatureRelance::class)
+            ->where('cause', CandidatureRelance::CAUSE_MANUELLE)
+            ->where('statut', CandidatureRelance::STATUT_ENVOYE)
+            ->whereNotNull('message')
+            ->orderByDesc('sent_at')
+            ->orderByDesc('id');
     }
 
     /** Agent de la scolarité ayant réceptionné le dossier papier. */

@@ -588,6 +588,9 @@ class CandidatureResource extends Resource
                             $r->update([
                                 'statut' => Candidature::STATUT_CANDIDAT,
                                 'submitted_at' => $r->submitted_at ?? now(),
+                                // La décision annulée ne doit plus s'afficher au candidat.
+                                'decision_motif' => null,
+                                'decision_commentaire' => null,
                             ]);
                             activity('candidatures')->causedBy(auth()->user())->performedOn($r)
                                 ->withProperties(['from' => $previous, 'to' => 'candidat', 'motif' => $data['motif']])
@@ -602,14 +605,17 @@ class CandidatureResource extends Resource
                             && $r->statut === Candidature::STATUT_CANDIDAT)
                         ->requiresConfirmation()
                         ->form([
+                            // Repris dans l'e-mail et dans l'espace du candidat : pas un
+                            // commentaire interne, malgré le nom historique du champ.
                             Forms\Components\Textarea::make('internal_comment')
-                                ->label('Commentaire interne (optionnel)')
+                                ->label('Commentaire transmis au candidat (optionnel)')
                                 ->maxLength(500),
                         ])
                         ->action(function (Candidature $r, array $data): void {
                             $r->update([
                                 'statut' => Candidature::STATUT_ACCEPTE,
                                 'decided_at' => now(),
+                                'decision_commentaire' => filled($data['internal_comment'] ?? null) ? $data['internal_comment'] : null,
                             ]);
                             CandidatureAccepted::dispatch($r->fresh(), $data['internal_comment'] ?? null);
                             activity('candidatures')->causedBy(auth()->user())->performedOn($r)
@@ -635,6 +641,7 @@ class CandidatureResource extends Resource
                             $r->update([
                                 'statut' => Candidature::STATUT_REFUSE,
                                 'decided_at' => now(),
+                                'decision_motif' => $data['motif'],
                             ]);
                             CandidatureRefused::dispatch($r->fresh(), $data['motif']);
                             activity('candidatures')->causedBy(auth()->user())->performedOn($r)
@@ -991,7 +998,7 @@ class CandidatureResource extends Resource
                             if ($r->statut !== Candidature::STATUT_CANDIDAT) {
                                 continue;
                             }
-                            $r->update(['statut' => Candidature::STATUT_ACCEPTE, 'decided_at' => now()]);
+                            $r->update(['statut' => Candidature::STATUT_ACCEPTE, 'decided_at' => now(), 'decision_commentaire' => null]);
                             CandidatureAccepted::dispatch($r->fresh(), null);
                             $accepted[] = $r->numero_dossier;
                         }
@@ -1016,7 +1023,7 @@ class CandidatureResource extends Resource
                             if ($r->statut !== Candidature::STATUT_CANDIDAT) {
                                 continue;
                             }
-                            $r->update(['statut' => Candidature::STATUT_REFUSE, 'decided_at' => now()]);
+                            $r->update(['statut' => Candidature::STATUT_REFUSE, 'decided_at' => now(), 'decision_motif' => $data['motif']]);
                             CandidatureRefused::dispatch($r->fresh(), $data['motif']);
                             $refused[] = $r->numero_dossier;
                         }

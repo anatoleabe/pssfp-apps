@@ -285,7 +285,22 @@ export interface MyCandidature extends CandidatureProfile {
   has_photo: boolean;
   photo_url: string | null;
   documents: CandidatureDocumentItem[];
-  campagne: { slug: string; nom: string; closes_at: string | null } | null;
+  campagne: Pick<Campagne, 'slug' | 'nom' | 'closes_at' | 'results_at' | 'is_currently_open'> | null;
+  /** Présent une fois la décision rendue, null avant. */
+  decision: CandidatureDecision | null;
+  /** Messages rédigés depuis l'admin et reçus par le candidat, du plus récent au plus ancien. */
+  messages?: CandidatureMessage[];
+}
+
+export type CandidatureDecision =
+  | { resultat: 'retenu'; commentaire: string | null; consignes: string | null }
+  | { resultat: 'non_retenu'; motif: string | null };
+
+export interface CandidatureMessage {
+  sujet: string | null;
+  message: string;
+  canal: 'sms' | 'email';
+  sent_at: string | null;
 }
 
 export function getMyCandidature(token: string): Promise<ApiResult<MyCandidature>> {

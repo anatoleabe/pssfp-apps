@@ -1,11 +1,13 @@
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { CheckCircle2, Clock, XCircle, FileCheck, Ban } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
-import { formatDateFr } from '@/lib/format/date';
+import { formatDateLong } from '@/lib/format/date';
+
+type BadgeKey = 'postulant' | 'candidat' | 'accepte' | 'refuse' | 'retire';
 
 interface StatutInfo {
-  label: string;
+  label: BadgeKey;
   badge: string;
   Icon: LucideIcon;
   iconColor: string;
@@ -13,47 +15,50 @@ interface StatutInfo {
 
 const STATUT_INFO: Record<string, StatutInfo> = {
   postulant: {
-    label: 'Postulant',
+    label: 'postulant',
     badge: 'bg-amber-50 text-amber-800 border-amber-200',
     Icon: Clock,
     iconColor: 'text-amber-600 bg-amber-100',
   },
   candidat: {
-    label: 'Candidat',
+    label: 'candidat',
     badge: 'bg-violet-50 text-violet-800 border-violet-200',
     Icon: FileCheck,
     iconColor: 'text-violet-600 bg-violet-100',
   },
   accepte: {
-    label: 'Accepté',
+    label: 'accepte',
     badge: 'bg-emerald-50 text-emerald-800 border-emerald-200',
     Icon: CheckCircle2,
     iconColor: 'text-emerald-600 bg-emerald-100',
   },
   refuse: {
-    label: 'Refusé',
-    badge: 'bg-red-50 text-red-800 border-red-200',
+    label: 'refuse',
+    // Ton sobre plutôt qu'alarmant : une non-sélection n'est pas une erreur.
+    badge: 'bg-[#F4EFFA] text-[#3A2452] border-[#A592BD]/50',
     Icon: XCircle,
-    iconColor: 'text-red-600 bg-red-100',
+    iconColor: 'text-[#4A2E67] bg-white',
   },
 };
 
 const FALLBACK_INFO: StatutInfo = {
-  label: 'Postulant',
+  label: 'postulant',
   badge: 'bg-amber-50 text-amber-800 border-amber-200',
   Icon: Clock,
   iconColor: 'text-amber-600 bg-amber-100',
 };
 
 const WITHDRAWN_INFO: StatutInfo = {
-  label: 'Retiré',
+  label: 'retire',
   badge: 'bg-gray-50 text-gray-800 border-gray-200',
   Icon: Ban,
   iconColor: 'text-gray-600 bg-gray-100',
 };
 
 export function DossierStatutCard({ candidature }: { candidature: MyCandidature }): JSX.Element {
+  const locale = useLocale();
   const ts = useTranslations('dossier.statut');
+  const tb = useTranslations('dossier.statutBadge');
   const isWithdrawn = candidature.withdrawn_at !== null;
   const info = isWithdrawn
     ? WITHDRAWN_INFO
@@ -88,12 +93,12 @@ export function DossierStatutCard({ candidature }: { candidature: MyCandidature 
           <span aria-hidden="true" className={`inline-flex h-7 w-7 items-center justify-center rounded-full ${info.iconColor}`}>
             <Icon size={14} />
           </span>
-          {info.label}
+          {tb(info.label)}
         </span>
       </div>
 
       <div className="relative mt-5 inline-flex items-center gap-2 rounded-pssfp-button bg-[#FAF7FF] px-3 py-2 font-mono text-sm text-[#4A2E67]">
-        <span className="text-xs uppercase tracking-wider text-[#888]">N°</span>
+        <span className="text-xs uppercase tracking-wider text-[#5C5C5C]">N°</span>
         {candidature.numero_dossier}
       </div>
 
@@ -101,26 +106,26 @@ export function DossierStatutCard({ candidature }: { candidature: MyCandidature 
         <dl className="relative mt-6 grid gap-4 border-t border-[#F4EFFA] pt-6 text-sm sm:grid-cols-2">
           {candidature.campagne && (
             <div>
-              <dt className="text-xs uppercase tracking-wider text-[#888]">{ts('campagne')}</dt>
+              <dt className="text-xs uppercase tracking-wider text-[#5C5C5C]">{ts('campagne')}</dt>
               <dd className="mt-1 font-heading font-bold text-[#4A2E67]">{candidature.campagne.nom}</dd>
             </div>
           )}
           {candidature.submitted_at && (
             <div>
-              <dt className="text-xs uppercase tracking-wider text-[#888]">{ts('submittedOn')}</dt>
-              <dd className="mt-1 font-medium text-[#333]">{formatDateFr(candidature.submitted_at)}</dd>
+              <dt className="text-xs uppercase tracking-wider text-[#5C5C5C]">{ts('submittedOn')}</dt>
+              <dd className="mt-1 font-medium text-[#333]">{formatDateLong(candidature.submitted_at, locale)}</dd>
             </div>
           )}
           {candidature.decided_at && (
             <div>
-              <dt className="text-xs uppercase tracking-wider text-[#888]">{ts('decidedOn')}</dt>
-              <dd className="mt-1 font-medium text-[#333]">{formatDateFr(candidature.decided_at)}</dd>
+              <dt className="text-xs uppercase tracking-wider text-[#5C5C5C]">{ts('decidedOn')}</dt>
+              <dd className="mt-1 font-medium text-[#333]">{formatDateLong(candidature.decided_at, locale)}</dd>
             </div>
           )}
           {candidature.withdrawn_at && (
             <div>
-              <dt className="text-xs uppercase tracking-wider text-[#888]">{ts('withdrawnOn')}</dt>
-              <dd className="mt-1 font-medium text-[#333]">{formatDateFr(candidature.withdrawn_at)}</dd>
+              <dt className="text-xs uppercase tracking-wider text-[#5C5C5C]">{ts('withdrawnOn')}</dt>
+              <dd className="mt-1 font-medium text-[#333]">{formatDateLong(candidature.withdrawn_at, locale)}</dd>
             </div>
           )}
         </dl>

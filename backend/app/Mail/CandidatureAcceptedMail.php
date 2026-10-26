@@ -52,6 +52,8 @@ final class CandidatureAcceptedMail extends Mailable implements ShouldQueue
             with: [
                 'candidature' => $this->candidature,
                 'internalComment' => $this->internalComment,
+                // L'espace candidat, pas la page QR de vérification réservée aux agents.
+                'dossierUrl' => config('pssfp.candidature_app_url').'/dossier',
             ],
         );
     }

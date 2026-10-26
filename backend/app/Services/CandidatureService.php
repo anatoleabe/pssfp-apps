@@ -11,6 +11,7 @@ use App\Models\Candidature;
 use App\Models\User;
 use App\Support\CandidatureDiplomeBlocks;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -59,6 +60,35 @@ final class CandidatureService
             ->where('user_id', $user->id)
             ->where('campagne_id', $campagne->id)
             ->first();
+    }
+
+    /**
+     * Dossier que le candidat consulte : celui de la campagne ouverte, ou, hors
+     * campagne, son dossier le plus récent. Un retenu doit retrouver sa décision
+     * et son récépissé une fois la campagne close. Lecture seule : les écritures
+     * continuent d'exiger une campagne ouverte.
+     */
+    public function findReadableForUser(User $user): ?Candidature
+    {
+        $campagne = $this->currentCampagne();
+        if ($campagne === null) {
+            return $this->latestForUser($user)->first();
+        }
+
+        // Campagne ouverte sans dossier : un retenu d'une promotion précédente
+        // garde l'accès à son admission plutôt que d'être invité à postuler de
+        // nouveau. Les autres reçoivent `candidature_missing` et initialisent.
+        return $this->findForUser($user, $campagne)
+            ?? $this->latestForUser($user)->where('statut', Candidature::STATUT_ACCEPTE)->first();
+    }
+
+    /** @return Builder<Candidature> */
+    private function latestForUser(User $user): Builder
+    {
+        return Candidature::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
     }
 
     /**
@@ -117,6 +147,7 @@ final class CandidatureService
         // Empêche la modification de champs systèmes via le body PUT.
         $forbidden = ['id', 'uuid', 'numero_dossier', 'campagne_id', 'user_id',
             'statut', 'form_version', 'submitted_at', 'reviewed_at', 'decided_at', 'withdrawn_at',
+            'decision_motif', 'decision_commentaire',
             'frais_paye', 'mode_paiement', 'reference_paiement', 'date_paiement',
             'recipisse_pdf_path', 'recipisse_hash_sha256',
             'created_at', 'updated_at', 'deleted_at',
