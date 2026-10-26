@@ -29,7 +29,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Endpoints /v1/applications/* (cf. spec module 5 §3, §M5).
  *
  * - currentCampaign : campagne ouverte ou null (public).
- * - me              : récupère le dossier du candidat authentifié pour la campagne courante.
+ * - me              : dossier du candidat authentifié (campagne ouverte, sinon le plus récent).
  * - update          : upsert + partial update tant que statut == postulant.
  * - submit          : transition vers candidat, génère PDF, retourne URL signée.
  * - recipisse       : redirige vers URL signée 30 min (re-signée à chaque appel).
@@ -56,23 +56,23 @@ final class CandidatureController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $campagne = $this->service->currentCampagne();
-        if ($campagne === null) {
-            return response()->json([
-                'message' => 'Aucune campagne de candidature n\'est ouverte actuellement.',
-                'code' => 'campaign_closed',
-            ], Response::HTTP_NOT_FOUND);
-        }
-
-        $candidature = $this->service->findForUser($request->user(), $campagne);
+        $candidature = $this->service->findReadableForUser($request->user());
         if ($candidature === null) {
+            // Sans campagne ouverte, aucun dossier : le compte n'a jamais postulé.
+            if ($this->service->currentCampagne() === null) {
+                return response()->json([
+                    'message' => 'Aucune campagne de candidature n\'est ouverte actuellement.',
+                    'code' => 'campaign_closed',
+                ], Response::HTTP_NOT_FOUND);
+            }
+
             return response()->json([
                 'message' => 'Aucune candidature n\'a encore été créée pour cette campagne.',
                 'code' => 'candidature_missing',
             ], Response::HTTP_NOT_FOUND);
         }
 
-        $candidature->load(['campagne', 'paysNationalite', 'regionRel', 'departementRel', 'documents']);
+        $candidature->load(['campagne', 'paysNationalite', 'regionRel', 'departementRel', 'documents', 'messagesRecus']);
 
         return CandidatureResource::make($candidature)->response();
     }
@@ -146,14 +146,7 @@ final class CandidatureController extends Controller
 
     public function recipisse(Request $request): RedirectResponse|JsonResponse
     {
-        $campagne = $this->service->currentCampagne();
-        if ($campagne === null) {
-            return response()->json([
-                'message' => 'Aucune campagne ouverte.',
-            ], Response::HTTP_NOT_FOUND);
-        }
-
-        $candidature = $this->service->findForUser($request->user(), $campagne);
+        $candidature = $this->service->findReadableForUser($request->user());
         if ($candidature === null || $candidature->recipisse_pdf_path === null) {
             return response()->json([
                 'message' => 'Aucun récépissé disponible — la candidature n\'a pas encore été soumise.',
@@ -219,14 +212,7 @@ final class CandidatureController extends Controller
 
     public function showPhoto(Request $request): RedirectResponse|JsonResponse
     {
-        $campagne = $this->service->currentCampagne();
-        if ($campagne === null) {
-            return response()->json([
-                'message' => 'Aucune campagne ouverte.',
-            ], Response::HTTP_NOT_FOUND);
-        }
-
-        $candidature = $this->service->findForUser($request->user(), $campagne);
+        $candidature = $this->service->findReadableForUser($request->user());
         if ($candidature === null || $candidature->photo_path === null) {
             return response()->json([
                 'message' => 'Aucune photo disponible.',

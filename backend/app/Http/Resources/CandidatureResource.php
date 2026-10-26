@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\Candidature;
+use App\Models\CandidatureRelance;
 use App\Services\PhotoUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -95,6 +96,10 @@ final class CandidatureResource extends JsonResource
             // Frais (informatif candidat)
             'frais_paye' => (bool) $this->frais_paye,
 
+            // Décision et échanges : ce que le candidat a reçu, réaffiché dans son espace.
+            'decision' => $this->decision(),
+            'messages' => $this->whenLoaded('messagesRecus', fn (): array => $this->messages()),
+
             // Timeline
             'submitted_at' => optional($this->submitted_at)->toIso8601String(),
             'reviewed_at' => optional($this->reviewed_at)->toIso8601String(),
@@ -104,5 +109,51 @@ final class CandidatureResource extends JsonResource
             'created_at' => optional($this->created_at)->toIso8601String(),
             'updated_at' => optional($this->updated_at)->toIso8601String(),
         ];
+    }
+
+    /**
+     * Rien avant la décision. Après : le résultat, et seulement le texte qui
+     * lui correspond — un retenu ne voit pas de champ « motif », et inversement.
+     *
+     * @return array{resultat: string, commentaire?: ?string, consignes?: ?string, motif?: ?string}|null
+     */
+    private function decision(): ?array
+    {
+        return match ($this->statut) {
+            Candidature::STATUT_ACCEPTE => [
+                'resultat' => 'retenu',
+                'commentaire' => $this->decision_commentaire,
+                'consignes' => $this->relationLoaded('campagne') ? $this->campagne?->consignes_retenus : null,
+            ],
+            Candidature::STATUT_REFUSE => [
+                'resultat' => 'non_retenu',
+                'motif' => $this->decision_motif,
+            ],
+            default => null,
+        };
+    }
+
+    /**
+     * Un même envoi « SMS + e-mail » laisse deux lignes au même texte : on n'en
+     * garde qu'une, de préférence l'e-mail, seul à porter un sujet.
+     *
+     * @return list<array{sujet: ?string, message: string, canal: string, sent_at: ?string}>
+     */
+    private function messages(): array
+    {
+        return $this->messagesRecus
+            // Même texte ET même jour : un message renvoyé plus tard reste distinct.
+            ->groupBy(fn (CandidatureRelance $m): string => trim((string) $m->message).'|'.optional($m->sent_at)->toDateString())
+            ->map(fn ($envois): CandidatureRelance => $envois->firstWhere('canal', CandidatureRelance::CANAL_EMAIL) ?? $envois->first())
+            ->sortByDesc(fn (CandidatureRelance $m): int => (int) optional($m->sent_at)->getTimestamp())
+            ->take(20)
+            ->map(fn (CandidatureRelance $m): array => [
+                'sujet' => $m->sujet,
+                'message' => (string) $m->message,
+                'canal' => $m->canal,
+                'sent_at' => optional($m->sent_at)->toIso8601String(),
+            ])
+            ->values()
+            ->all();
     }
 }

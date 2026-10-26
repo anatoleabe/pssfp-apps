@@ -5,6 +5,7 @@ import { StatusTimeline } from '@/components/StatusTimeline';
 import { WithdrawDialog } from '@/components/WithdrawDialog';
 import { getMyCandidature } from '@/lib/api/client';
 import { getCandidatToken } from '@/lib/auth/session';
+import { getDossierPhase } from '@/lib/dossier/phase';
 
 export const metadata = {
   // Page d'authentification ou espace candidat : hors index (audit A-32).
@@ -29,17 +30,16 @@ export default async function SuiviPage(): Promise<JSX.Element> {
       <div className="mx-auto max-w-3xl px-6 py-16">
         <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">{tsp('breadcrumbCurrent')}</h1>
         <div role="alert" className="mt-6 rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-700">
-          Erreur de chargement : {result.message}
+          {tsp('loadError', { message: result.message })}
         </div>
       </div>
     );
   }
 
   const candidature = result.data;
-  const canWithdraw =
-    candidature.withdrawn_at === null
-    && candidature.statut !== 'accepte'
-    && candidature.statut !== 'refuse';
+  // Retrait possible tant que le dossier est en constitution : après la
+  // clôture ou la décision, l'API le refuserait de toute façon.
+  const canWithdraw = getDossierPhase(candidature) === 'constitution';
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">
@@ -63,10 +63,7 @@ export default async function SuiviPage(): Promise<JSX.Element> {
       {canWithdraw && (
         <section className="mt-8 rounded-lg border border-red-200 bg-red-50 p-6">
           <h2 className="font-heading text-base font-bold text-red-700">{tsp('dangerZone')}</h2>
-          <p className="mt-2 text-sm text-red-900">
-            Vous pouvez retirer définitivement votre candidature pour la campagne courante.
-            Cette action est irréversible mais vous pourrez postuler à une campagne future.
-          </p>
+          <p className="mt-2 text-sm text-red-900">{tsp('withdrawBody')}</p>
           <div className="mt-4">
             <WithdrawDialog />
           </div>

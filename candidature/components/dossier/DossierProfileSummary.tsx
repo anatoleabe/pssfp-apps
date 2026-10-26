@@ -8,6 +8,7 @@ import {
   isDiplomeRequisValue,
   isDomaineDiplomeValue,
 } from '@/lib/dossier/options';
+import { getDossierPhase } from '@/lib/dossier/phase';
 
 export function DossierProfileSummary({
   candidature,
@@ -17,7 +18,8 @@ export function DossierProfileSummary({
   const ts = useTranslations('dossier.summary');
   const tf = useTranslations('dossier.fields');
   const to = useTranslations('options');
-  const canEdit = candidature.statut === 'postulant' && candidature.withdrawn_at === null;
+  // Même règle que l'API : modifiable en brouillon, tant que la campagne est ouverte.
+  const canEdit = getDossierPhase(candidature) === 'constitution' && candidature.statut === 'postulant';
   const statusLabel =
     STATUT_ACTUEL_OPTIONS.find((option) => option.value === candidature.statut_actuel)?.label ??
     candidature.statut_actuel;
@@ -49,10 +51,9 @@ export function DossierProfileSummary({
           >
             {ts('view')}
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#595959]">
-            Relisez régulièrement vos informations. Les corrections restent possibles jusqu’à la
-            soumission définitive de la candidature.
-          </p>
+          {canEdit && (
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#595959]">{ts('editableIntro')}</p>
+          )}
         </div>
         {canEdit && (
           <Link
@@ -171,7 +172,7 @@ function ProfileGroup({
       <dl className="mt-3 space-y-2 text-sm">
         {rows.map(([label, value]) => (
           <div key={label} className="grid gap-0.5 sm:grid-cols-[9rem_1fr] sm:gap-3">
-            <dt className="text-[#777]">{label}</dt>
+            <dt className="text-[#5C5C5C]">{label}</dt>
             <dd className="break-words font-medium text-[#292929]">{value || 'Non renseigné'}</dd>
           </div>
         ))}

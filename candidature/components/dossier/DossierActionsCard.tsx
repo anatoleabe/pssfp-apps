@@ -3,7 +3,13 @@ import { Link } from '@/navigation';
 import { Pencil, ListChecks, FileDown, ArrowRight } from 'lucide-react';
 import type { MyCandidature } from '@/lib/api/client';
 
-export function DossierActionsCard({ candidature }: { candidature: MyCandidature }): JSX.Element {
+interface DossierActionsCardProps {
+  candidature: MyCandidature;
+  /** Faux une fois la campagne close : le lien d'édition mènerait à un refus. */
+  canEdit: boolean;
+}
+
+export function DossierActionsCard({ candidature, canEdit }: DossierActionsCardProps): JSX.Element {
   const ta = useTranslations('dossier.actions');
   // Passe par une route Next.js (et non l'API directement) : le token est un
   // cookie httpOnly côté apply.pssfp.org, jamais envoyé en Bearer vers l'API
@@ -24,7 +30,7 @@ export function DossierActionsCard({ candidature }: { candidature: MyCandidature
         {ta('title')}
       </h2>
       <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-        {candidature.statut === 'postulant' && candidature.withdrawn_at === null && (
+        {canEdit && candidature.statut === 'postulant' && candidature.withdrawn_at === null && (
           <li className="sm:col-span-2">
             <Link
               href="/dossier/edition"
@@ -66,7 +72,7 @@ export function DossierActionsCard({ candidature }: { candidature: MyCandidature
               href={recipisseUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex h-14 items-center gap-3 rounded-pssfp-button border border-[#F4EFFA] bg-white px-5 font-semibold text-[#333] transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:border-[#D4AF6A] hover:text-[#D4AF6A] hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2"
+              className="group flex h-14 items-center gap-3 rounded-pssfp-button border border-[#F4EFFA] bg-white px-5 font-semibold text-[#333] transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:border-[#D4AF6A] hover:text-[#4A2E67] hover:shadow-pssfp-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A] focus-visible:ring-offset-2"
             >
               <span aria-hidden="true" className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFF6E0] text-[#D4AF6A] transition-colors group-hover:bg-[#D4AF6A] group-hover:text-white">
                 <FileDown size={18} />

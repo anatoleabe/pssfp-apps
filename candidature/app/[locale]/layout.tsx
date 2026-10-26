@@ -101,10 +101,11 @@ async function CandidatureHeader() {
                 <button
                   type="submit"
                   data-testid="nav-logout"
-                  className="inline-flex h-10 items-center gap-1.5 rounded-pssfp-button border border-[var(--pssfp-border)] bg-white px-3 text-pssfp-graphite transition-all duration-200 hover:border-pssfp-prune hover:text-pssfp-prune hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2"
+                  className="inline-flex h-10 items-center gap-1.5 rounded-pssfp-button border border-[var(--pssfp-border)] bg-white px-2.5 text-pssfp-graphite max-sm:h-11 max-sm:min-w-11 max-sm:justify-center sm:px-3 transition-all duration-200 hover:border-pssfp-prune hover:text-pssfp-prune hover:shadow-pssfp-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pssfp-prune focus-visible:ring-offset-2"
                 >
                   <LogOut size={14} aria-hidden="true" />
-                  {t('logout')}
+                  {/* Icône seule sous 640 px : à 375 px, le libellé faisait déborder l'en-tête. */}
+                  <span className="sr-only sm:not-sr-only">{t('logout')}</span>
                 </button>
               </form>
             </>

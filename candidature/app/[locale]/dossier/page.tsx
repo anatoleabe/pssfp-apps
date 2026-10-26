@@ -1,16 +1,19 @@
 import { getTranslations } from 'next-intl/server';
 import { redirect } from '@/navigation';
-import { AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
+import { AlertCircle, ArrowRight } from 'lucide-react';
 import { DossierActionsCard } from '@/components/dossier/DossierActionsCard';
 import { DossierCompleteness } from '@/components/dossier/DossierCompleteness';
+import { DossierDecisionCard } from '@/components/dossier/DossierDecisionCard';
 import { DossierEtapesRestantes } from '@/components/dossier/DossierEtapesRestantes';
 import { DossierFraisCard } from '@/components/dossier/DossierFraisCard';
+import { DossierMessages } from '@/components/dossier/DossierMessages';
 import { DossierPhotoCard } from '@/components/dossier/DossierPhotoCard';
 import { DossierPiecesCard } from '@/components/dossier/DossierPiecesCard';
 import { DossierProfileSummary } from '@/components/dossier/DossierProfileSummary';
 import { DossierStatutCard } from '@/components/dossier/DossierStatutCard';
 import { getMyCandidature } from '@/lib/api/client';
 import { getCandidatToken } from '@/lib/auth/session';
+import { getDossierPhase, isDossierFige } from '@/lib/dossier/phase';
 import { initDossierAction } from './actions';
 
 export const metadata = {
@@ -66,8 +69,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
                   {t('noCampaign')}
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-amber-900/90">
-                  Votre compte est bien créé. Revenez dès l&apos;ouverture de la prochaine
-                  campagne pour constituer votre dossier.
+                  {t('campaignClosedBody')}
                 </p>
               </div>
             </div>
@@ -93,8 +95,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
                   {t('notInitialised')}
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-amber-900/90">
-                  Cela peut arriver si la connexion a été interrompue à l&apos;inscription. Votre
-                  compte existe déjà — il suffit d&apos;initialiser votre dossier pour continuer.
+                  {t('notInitialisedBody')}
                 </p>
                 {init_error === '1' && (
                   <p role="alert" className="mt-3 text-sm font-medium text-red-700">
@@ -123,7 +124,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
           role="alert"
           className="mt-8 rounded-pssfp-card border border-red-200 bg-red-50/80 p-5 text-sm text-red-800 shadow-pssfp-soft"
         >
-          Erreur de chargement du dossier : {result.message}. Réessayez dans quelques instants.
+          {t('loadError', { message: result.message })}
         </div>
       </div>
     );
@@ -132,6 +133,8 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
   const candidature = result.data;
   const initials = getInitials(candidature.prenom, candidature.nom);
   const fullName = `${candidature.prenom ?? ''} ${candidature.nom ?? ''}`.trim();
+  const phase = getDossierPhase(candidature);
+  const fige = isDossierFige(phase);
 
   return (
     <div className="relative isolate min-h-[60vh]">
@@ -161,10 +164,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
             </span>
           </div>
           <div className="flex-1">
-            <p className="pssfp-eyebrow inline-flex items-center gap-2">
-              <Sparkles size={12} aria-hidden="true" />
-              {t('eyebrow')}
-            </p>
+            <p className="pssfp-eyebrow">{t('eyebrow')}</p>
             <h1 className="mt-1 font-heading text-2xl font-bold text-[#1A1A1A] md:text-3xl">
               {t('greeting')} <span className="text-[#4A2E67]">{candidature.prenom || t('applicantFallback')}</span>
               <span aria-hidden="true">,</span>
@@ -238,20 +238,33 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
           </div>
         )}
 
-        <div className="grid gap-6">
-          <DossierStatutCard candidature={candidature} />
-          <DossierProfileSummary candidature={candidature} />
-          {candidature.statut !== 'postulant' && (
-            <DossierEtapesRestantes candidature={candidature} />
-          )}
-          <div className="grid gap-6 md:grid-cols-2">
-            <DossierCompleteness candidature={candidature} />
-            <DossierPhotoCard candidature={candidature} />
+        {fige ? (
+          // Campagne close ou décision rendue : plus rien à compléter. On mène
+          // avec la décision, puis ce que le candidat peut encore consulter.
+          <div className="grid gap-6">
+            <DossierDecisionCard candidature={candidature} phase={phase} />
+            <DossierMessages messages={candidature.messages} />
+            <DossierStatutCard candidature={candidature} />
+            <DossierActionsCard candidature={candidature} canEdit={false} />
+            <DossierProfileSummary candidature={candidature} />
           </div>
-          <DossierPiecesCard candidature={candidature} />
-          <DossierFraisCard candidature={candidature} />
-          <DossierActionsCard candidature={candidature} />
-        </div>
+        ) : (
+          <div className="grid gap-6">
+            <DossierMessages messages={candidature.messages} />
+            <DossierStatutCard candidature={candidature} />
+            <DossierProfileSummary candidature={candidature} />
+            {candidature.statut !== 'postulant' && (
+              <DossierEtapesRestantes candidature={candidature} />
+            )}
+            <div className="grid gap-6 md:grid-cols-2">
+              <DossierCompleteness candidature={candidature} />
+              <DossierPhotoCard candidature={candidature} />
+            </div>
+            <DossierPiecesCard candidature={candidature} />
+            <DossierFraisCard candidature={candidature} />
+            <DossierActionsCard candidature={candidature} canEdit />
+          </div>
+        )}
       </div>
     </div>
   );

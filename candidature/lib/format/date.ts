@@ -36,6 +36,19 @@ export function computeCountdown(targetIso: string): CountdownParts {
   return { totalSeconds, days, hours, minutes, seconds, status };
 }
 
+/** Date longue dans la langue de l'interface (« 26 octobre 2026 » / « 26 October 2026 »). */
+export function formatDateLong(iso: string, locale: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  return new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(date);
+}
+
 export function formatDateFr(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {
