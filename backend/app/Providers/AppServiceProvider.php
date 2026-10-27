@@ -19,6 +19,7 @@ use App\Services\Sms\EchoSmsProvider;
 use App\Services\Sms\FakeSmsProvider;
 use App\Services\Sms\SmsServiceInterface;
 use App\Services\Sms\TechSoftProvider;
+use App\Support\JournalModificationsAdmin;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -66,6 +67,9 @@ class AppServiceProvider extends ServiceProvider
         $this->configureLibraryRateLimits();
 
         Candidature::observe(CandidatureObserver::class);
+
+        // Journal d'activité : toute modification faite depuis le back-office.
+        JournalModificationsAdmin::enregistrer();
 
         // Listeners email candidature (soumission + décisions) : enregistrés
         // par l'auto-découverte Laravel 11 (app/Listeners, méthodes handle*).

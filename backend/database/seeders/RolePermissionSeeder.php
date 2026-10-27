@@ -86,6 +86,7 @@ final class RolePermissionSeeder extends Seeder
                     'campagne.download_resultats',
                     'campagne.export_retenus',
                     'candidature.matricules_moodle',
+                    'journal.view',
                     'document.publish',
                     'library.thesaurus',
                     'library.redirects',
