@@ -141,7 +141,9 @@ final class ModulePermissionMap
                     'create_role', 'update_role', 'delete_role',
                     'settings.manage',
                 ],
-                'sensitive' => [],
+                'sensitive' => [
+                    'journal.view' => 'Consulter le journal d\'activité de toute l\'application (qui a fait quoi, quand)',
+                ],
             ],
         ];
     }
