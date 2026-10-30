@@ -6,8 +6,10 @@ import { PssfpLogo } from '@pssfp/ui';
 import { LogOut, FileText, Home } from 'lucide-react';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
+import { ConsultationBanner } from '@/components/ConsultationBanner';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES, isSupportedLocale } from '@/i18n';
+import { isConsultation } from '@/lib/auth/session';
 import { Link } from '@/navigation';
 import { logoutAction } from './dossier/actions';
 import '../globals.css';
@@ -56,6 +58,7 @@ async function CandidatureHeader() {
   // Le middleware a validé le token auprès de Sanctum. Le header ne se fie
   // jamais à la simple présence d'un cookie potentiellement révoqué.
   const isLoggedIn = (await headers()).get('x-candidat-session-valid') === '1';
+  const consultation = isLoggedIn && (await isConsultation());
 
   return (
     <>
@@ -64,6 +67,7 @@ async function CandidatureHeader() {
       <span aria-hidden="true">/</span>{' '}
       <span lang="en">Republic of Cameroon — Ministry of Finance</span>
     </div>
+    {consultation && <ConsultationBanner />}
     <header className="sticky top-0 z-40 w-full border-b border-[var(--pssfp-border)] bg-white/80 shadow-pssfp-soft backdrop-blur-2xl">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
         <Link

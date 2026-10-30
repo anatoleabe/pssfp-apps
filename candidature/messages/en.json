@@ -155,7 +155,15 @@
     "forgotPin": "Forgotten your PIN?",
     "todoNotice": "Live authentication implemented during Module 5 development (see ADR-0007).",
     "phoneInvalid": "Enter a valid number, for example 6XXXXXXXX for Cameroon.",
-    "pinInvalid": "Enter the 6 digits of your PIN."
+    "pinInvalid": "Enter the 6 digits of your PIN.",
+    "reasons": {
+      "logged_out": "You have been signed out.",
+      "session_expired": "Your session has expired. Please sign in again.",
+      "service_unavailable": "The sign-in service is temporarily unavailable. Please try again in a few moments.",
+      "pin_reset": "Your PIN has been reset. Sign in with your new PIN.",
+      "consultation_ended": "Viewing ended. You can close this tab and return to the administration.",
+      "consultation_expired": "This viewing link has expired or was already used. Click « Voir son espace » again in the administration."
+    }
   },
   "inscription": {
     "title": "Create my applicant account",
@@ -969,5 +977,10 @@
     "howTo": "To create another applicant account or sign in with a different number, sign out first. On a shared computer, remember to sign out before you leave.",
     "continue": "Continue to my application",
     "logout": "Sign out"
+  },
+  "consultation": {
+    "title": "Viewing mode (read-only).",
+    "body": "You are seeing this applicant's space with their details, decision and messages. No changes can be made.",
+    "quit": "Leave viewing mode"
   }
 }

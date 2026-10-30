@@ -4,6 +4,7 @@ const COOKIES = [
   { name: 'pssfp_candidat_token', httpOnly: true },
   { name: 'pssfp_candidat_expires', httpOnly: false },
   { name: 'pssfp_candidat_pin_reset', httpOnly: true },
+  { name: 'pssfp_candidat_consultation', httpOnly: true },
 ] as const;
 
 /**

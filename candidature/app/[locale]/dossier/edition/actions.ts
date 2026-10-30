@@ -3,7 +3,7 @@
 import { redirect } from '@/navigation';
 import { revalidatePath } from 'next/cache';
 import { putApplicationsMe } from '@/lib/api/client';
-import { getCandidatToken } from '@/lib/auth/session';
+import { getCandidatToken, isConsultation } from '@/lib/auth/session';
 import type { EditableFields } from '@/lib/dossier/editableFields';
 
 export interface SaveResult {
@@ -26,6 +26,10 @@ export async function saveDossierFieldsAction(diff: EditableFields): Promise<Sav
   const token = await getCandidatToken();
   if (!token) {
     redirect('/login?reason=session_expired');
+  }
+  // Consultation par un agent : lecture seule (l'API refuserait aussi l'écriture).
+  if (await isConsultation()) {
+    redirect('/dossier');
   }
 
   if (Object.keys(diff).length === 0) {

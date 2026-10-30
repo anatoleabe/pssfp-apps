@@ -155,7 +155,15 @@
     "forgotPin": "PIN oublié ?",
     "todoNotice": "Authentification réelle implémentée lors du dev Module 5 (cf. ADR-0007).",
     "phoneInvalid": "Saisissez un numéro valide, par exemple 6XXXXXXXX pour le Cameroun.",
-    "pinInvalid": "Saisissez les 6 chiffres de votre PIN."
+    "pinInvalid": "Saisissez les 6 chiffres de votre PIN.",
+    "reasons": {
+      "logged_out": "Vous avez été déconnecté(e).",
+      "session_expired": "Votre session a expiré. Reconnectez-vous.",
+      "service_unavailable": "Le service de connexion est momentanément indisponible. Réessayez dans quelques instants.",
+      "pin_reset": "Votre PIN a été réinitialisé. Connectez-vous avec votre nouveau PIN.",
+      "consultation_ended": "Consultation terminée. Vous pouvez fermer cet onglet et revenir à l'administration.",
+      "consultation_expired": "Lien de consultation expiré ou déjà utilisé. Relancez « Voir son espace » depuis l'administration."
+    }
   },
   "inscription": {
     "title": "Créer mon compte candidat",
@@ -969,5 +977,10 @@
     "howTo": "Pour créer un nouveau compte candidat ou vous connecter avec un autre numéro, déconnectez-vous d'abord. Sur un poste partagé, pensez à vous déconnecter en partant.",
     "continue": "Continuer sur mon dossier",
     "logout": "Se déconnecter"
+  },
+  "consultation": {
+    "title": "Mode consultation (lecture seule).",
+    "body": "Vous voyez l'espace de ce candidat avec ses informations, sa décision et ses messages. Aucune modification n'est possible.",
+    "quit": "Quitter la consultation"
   }
 }

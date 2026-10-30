@@ -4,7 +4,7 @@ import { redirect } from '@/navigation';
 import { StatusTimeline } from '@/components/StatusTimeline';
 import { WithdrawDialog } from '@/components/WithdrawDialog';
 import { getMyCandidature } from '@/lib/api/client';
-import { getCandidatToken } from '@/lib/auth/session';
+import { getCandidatToken, isConsultation } from '@/lib/auth/session';
 import { getDossierPhase } from '@/lib/dossier/phase';
 
 export const metadata = {
@@ -39,7 +39,8 @@ export default async function SuiviPage(): Promise<JSX.Element> {
   const candidature = result.data;
   // Retrait possible tant que le dossier est en constitution : après la
   // clôture ou la décision, l'API le refuserait de toute façon.
-  const canWithdraw = getDossierPhase(candidature) === 'constitution';
+  // Jamais en consultation par un agent : lecture seule.
+  const canWithdraw = getDossierPhase(candidature) === 'constitution' && !(await isConsultation());
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10 md:py-16">

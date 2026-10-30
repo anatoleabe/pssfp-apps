@@ -106,6 +106,7 @@ final class ModulePermissionMap
                     'campagne.download_resultats' => 'Télécharger le communiqué des résultats et le PV du jury (listes nominatives)',
                     'campagne.export_retenus' => 'Télécharger les exports des retenus (données complètes, ACMA)',
                     'candidature.matricules_moodle' => 'Attribuer les matricules, exporter les comptes Moodle, voir et envoyer le mot de passe Moodle d\'un auditeur',
+                    'candidature.espace_candidat' => 'Donner un nouveau code de connexion à un candidat et voir son espace (lecture seule)',
                 ],
             ],
             'bibliotheque' => [

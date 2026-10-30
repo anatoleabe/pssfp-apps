@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\CandidatureResource\Pages;
 
 use App\Filament\Resources\CandidatureResource;
+use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
 use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
 use App\Models\Candidature;
 use Filament\Actions\Action;
@@ -20,6 +21,8 @@ class ViewCandidature extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            EspaceCandidatActions::voirEspace(Action::make('voirEspace')),
+            EspaceCandidatActions::nouveauCode(Action::make('nouveauCode')),
             IdentifiantsMoodleActions::consulter(Action::make('identifiantsMoodle')),
             IdentifiantsMoodleActions::envoyer(Action::make('envoyerIdentifiantsMoodle')),
             EditAction::make(),

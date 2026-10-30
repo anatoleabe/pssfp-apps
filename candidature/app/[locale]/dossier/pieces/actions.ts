@@ -8,7 +8,7 @@ import {
   type CandidatureDocumentItem,
   type CandidatureDocumentType,
 } from '@/lib/api/client';
-import { getCandidatToken } from '@/lib/auth/session';
+import { getCandidatToken, isConsultation } from '@/lib/auth/session';
 
 export interface UploadDocumentActionResult {
   ok: boolean;
@@ -20,6 +20,10 @@ export async function uploadDocumentAction(formData: FormData): Promise<UploadDo
   const token = await getCandidatToken();
   if (!token) {
     redirect('/login?reason=session_expired');
+  }
+  // Consultation par un agent : lecture seule (l'API refuserait aussi l'écriture).
+  if (await isConsultation()) {
+    redirect('/dossier');
   }
 
   const fichier = formData.get('fichier');
@@ -59,6 +63,10 @@ export async function deleteDocumentAction(uuid: string): Promise<DeleteDocument
   const token = await getCandidatToken();
   if (!token) {
     redirect('/login?reason=session_expired');
+  }
+  // Consultation par un agent : lecture seule (l'API refuserait aussi l'écriture).
+  if (await isConsultation()) {
+    redirect('/dossier');
   }
 
   const r = await deleteCandidatureDocument(uuid, token);

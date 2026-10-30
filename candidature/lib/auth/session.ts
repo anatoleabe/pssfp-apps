@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 const COOKIE_NAME = 'pssfp_candidat_token';
 const COOKIE_EXPIRES_AT = 'pssfp_candidat_expires';
 const COOKIE_PIN_RESET = 'pssfp_candidat_pin_reset';
+const COOKIE_CONSULTATION = 'pssfp_candidat_consultation';
 
 function cookieBaseOptions(httpOnly = true) {
   const isProd = process.env.NODE_ENV === 'production';
@@ -43,6 +44,8 @@ export async function setCandidatToken(token: string, expiresAt: string | null):
   };
 
   store.set(COOKIE_NAME, token, baseOptions);
+  // Une connexion normale met fin à toute consultation en cours dans ce navigateur.
+  store.set(COOKIE_CONSULTATION, '', { ...cookieBaseOptions(), expires: new Date(0), maxAge: 0 });
   // Le cookie expires_at est lu côté client pour afficher un compteur ;
   // pas httpOnly volontairement (lisible JS pour permettre un toast « session expire »).
   if (expiresAt) {
@@ -71,6 +74,22 @@ export async function clearCandidatToken(): Promise<void> {
     expires: new Date(0),
     maxAge: 0,
   });
+  store.set(COOKIE_CONSULTATION, '', {
+    ...cookieBaseOptions(),
+    expires: new Date(0),
+    maxAge: 0,
+  });
+}
+
+/**
+ * Session ouverte par un agent du PSSFP depuis l'administration (« Voir son
+ * espace ») : jeton en lecture seule, posé par /auth/consultation. Le portail
+ * affiche alors le bandeau de consultation et masque toute modification ; l'API
+ * refuse de toute façon les écritures à ce jeton.
+ */
+export async function isConsultation(): Promise<boolean> {
+  const store = await cookies();
+  return store.get(COOKIE_CONSULTATION)?.value === '1';
 }
 
 /**

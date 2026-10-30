@@ -89,6 +89,12 @@ final class CandidatAuthThrottle
         RateLimiter::clear($this->otpPhoneKey($phoneE164));
     }
 
+    /** Lève le verrouillage du numéro après un nouveau code donné par l'administration. */
+    public function clearLoginPhoneLock(string $phoneE164): void
+    {
+        RateLimiter::clear($this->loginPhoneKey($phoneE164));
+    }
+
     private function loginIpKey(string $ip): string
     {
         return "candidat:login:ip:{$ip}";

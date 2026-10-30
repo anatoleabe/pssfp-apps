@@ -12,7 +12,7 @@ import { DossierPiecesCard } from '@/components/dossier/DossierPiecesCard';
 import { DossierProfileSummary } from '@/components/dossier/DossierProfileSummary';
 import { DossierStatutCard } from '@/components/dossier/DossierStatutCard';
 import { getMyCandidature } from '@/lib/api/client';
-import { getCandidatToken } from '@/lib/auth/session';
+import { getCandidatToken, isConsultation } from '@/lib/auth/session';
 import { getDossierPhase, isDossierFige } from '@/lib/dossier/phase';
 import { initDossierAction } from './actions';
 
@@ -47,6 +47,8 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
 
   const { profile_pending, reason, init_error, recipisse_error, welcome } = await searchParams;
   const result = await getMyCandidature(token);
+  // Un agent qui consulte l'espace voit le dossier en lecture, sans aucune action.
+  const consultation = await isConsultation();
 
   if (!result.ok) {
     if (result.status === 401) {
@@ -102,15 +104,17 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
                     {t('initError')}
                   </p>
                 )}
-                <form action={initDossierAction}>
-                  <button
-                    type="submit"
-                    className="mt-5 inline-flex items-center gap-2 rounded-pssfp-button bg-[#4A2E67] px-5 py-2.5 text-sm font-semibold text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#3A2452] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
-                  >
-                    {t('initCta')}
-                    <ArrowRight size={14} aria-hidden="true" />
-                  </button>
-                </form>
+                {!consultation && (
+                  <form action={initDossierAction}>
+                    <button
+                      type="submit"
+                      className="mt-5 inline-flex items-center gap-2 rounded-pssfp-button bg-[#4A2E67] px-5 py-2.5 text-sm font-semibold text-white shadow-pssfp-elevated transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#3A2452] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
+                    >
+                      {t('initCta')}
+                      <ArrowRight size={14} aria-hidden="true" />
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
           </div>
@@ -134,7 +138,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
   const initials = getInitials(candidature.prenom, candidature.nom);
   const fullName = `${candidature.prenom ?? ''} ${candidature.nom ?? ''}`.trim();
   const phase = getDossierPhase(candidature);
-  const fige = isDossierFige(phase);
+  const fige = isDossierFige(phase) || consultation;
 
   return (
     <div className="relative isolate min-h-[60vh]">
@@ -179,7 +183,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
           </div>
         </header>
 
-        {welcome === '1' && (
+        {welcome === '1' && !consultation && (
           <section role="status" data-testid="welcome-account" className="mb-6 rounded-pssfp-card border border-[#D4AF6A]/50 bg-[#FFFBEA] p-6 shadow-pssfp-soft">
             <p className="pssfp-eyebrow">{t('accountCreated')}</p>
             <h2 className="mt-1 font-heading text-2xl font-bold text-[#4A2E67]">Bienvenue {candidature.prenom || 'au PSSFP'} !</h2>
@@ -246,7 +250,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
             <DossierMessages messages={candidature.messages} />
             <DossierStatutCard candidature={candidature} />
             <DossierActionsCard candidature={candidature} canEdit={false} />
-            <DossierProfileSummary candidature={candidature} />
+            <DossierProfileSummary candidature={candidature} readOnly={consultation} />
           </div>
         ) : (
           <div className="grid gap-6">

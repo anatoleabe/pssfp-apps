@@ -3,7 +3,7 @@ import { Link } from '@/navigation';
 import { redirect } from '@/navigation';
 import { PhotoUploader } from '@/components/PhotoUploader';
 import { getMyCandidature } from '@/lib/api/client';
-import { getCandidatToken } from '@/lib/auth/session';
+import { getCandidatToken, isConsultation } from '@/lib/auth/session';
 
 export const metadata = {
   // Page d'authentification ou espace candidat : hors index (audit A-32).
@@ -16,6 +16,10 @@ export default async function PhotoPage(): Promise<JSX.Element> {
   const token = await getCandidatToken();
   if (!token) {
     redirect('/login?reason=session_expired');
+  }
+  // Consultation par un agent : lecture seule, aucune page de modification.
+  if (await isConsultation()) {
+    redirect('/dossier');
   }
 
   const result = await getMyCandidature(token);

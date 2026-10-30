@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Applications\CandidatureController;
 use App\Http\Controllers\Api\Applications\QrCandidatureController;
 use App\Http\Controllers\Api\Articles\ArticleController;
 use App\Http\Controllers\Api\Auth\AuthCandidatController;
+use App\Http\Controllers\Api\Auth\ConsultationEspaceController;
 use App\Http\Controllers\Api\Contact\ContactController;
 use App\Http\Controllers\Api\Library\CatalogueController;
 use App\Http\Controllers\Api\Library\DocumentController as LibraryDocumentController;
@@ -56,6 +57,10 @@ Route::prefix('auth/candidat')->name('auth.candidat.')->group(function (): void 
     Route::post('/logout', [AuthCandidatController::class, 'logout'])
         ->middleware('auth:sanctum')
         ->name('logout');
+    // Échange du lien « Voir son espace » de l'administration (usage unique, 1 min).
+    Route::post('/consultation', ConsultationEspaceController::class)
+        ->middleware('throttle:consultation-espace')
+        ->name('consultation');
 });
 
 /*

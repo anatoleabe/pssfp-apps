@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from '@/navigation';
 import { deleteMyPhoto, uploadPhoto } from '@/lib/api/client';
-import { getCandidatToken } from '@/lib/auth/session';
+import { getCandidatToken, isConsultation } from '@/lib/auth/session';
 
 export interface UploadActionResult {
   ok: boolean;
@@ -15,6 +15,10 @@ export async function uploadPhotoAction(formData: FormData): Promise<UploadActio
   const token = await getCandidatToken();
   if (!token) {
     redirect('/login?reason=session_expired');
+  }
+  // Consultation par un agent : lecture seule (l'API refuserait aussi l'écriture).
+  if (await isConsultation()) {
+    redirect('/dossier');
   }
 
   const photo = formData.get('photo');
@@ -54,6 +58,10 @@ export async function deletePhotoAction(): Promise<DeleteActionResult> {
   const token = await getCandidatToken();
   if (!token) {
     redirect('/login?reason=session_expired');
+  }
+  // Consultation par un agent : lecture seule (l'API refuserait aussi l'écriture).
+  if (await isConsultation()) {
+    redirect('/dossier');
   }
 
   const r = await deleteMyPhoto(token);
