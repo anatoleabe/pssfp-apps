@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { redirectTo } from '@/lib/http/redirect';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/v1';
 const CODE_PATTERN = /^[A-Za-z0-9]{64}$/;
 
@@ -23,10 +25,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const session = CODE_PATTERN.test(code) ? await echanger(code) : null;
 
   if (session === null) {
-    return withHeaders(NextResponse.redirect(new URL('/login?reason=consultation_expired', request.url)));
+    return withHeaders(redirectTo('/login?reason=consultation_expired'));
   }
 
-  const response = NextResponse.redirect(new URL('/dossier', request.url));
+  const response = redirectTo('/dossier');
   const isProd = process.env.NODE_ENV === 'production';
   const maxAge = Math.max(60, Math.floor((new Date(session.expires_at).getTime() - Date.now()) / 1000));
   const base = {

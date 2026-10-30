@@ -35,3 +35,15 @@ test.describe('Routes techniques hors langue', () => {
     });
   }
 });
+
+test.describe('Redirections des routes techniques', () => {
+  // Régression : derrière nginx, une Location absolue construite depuis
+  // request.url pointait vers l'hôte interne (https://localhost:6003).
+  for (const path of ['/auth/session-expired', '/auth/consultation?code=invalide']) {
+    test(`${path} redirige avec une adresse relative`, async ({ request }) => {
+      const response = await request.get(path, { maxRedirects: 0 });
+      expect(response.status()).toBe(307);
+      expect(response.headers().location).toMatch(/^\/login\?reason=/);
+    });
+  }
+});
