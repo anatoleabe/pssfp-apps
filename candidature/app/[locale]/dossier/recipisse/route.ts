@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+
+import { redirectTo } from '@/lib/http/redirect';
 import { getCandidatToken } from '@/lib/auth/session';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/v1';
@@ -19,7 +21,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/v
 export async function GET(request: Request): Promise<NextResponse> {
   const token = await getCandidatToken();
   if (!token) {
-    return NextResponse.redirect(new URL('/login?reason=session_expired', request.url));
+    return redirectTo('/login?reason=session_expired');
   }
 
   let apiResponse: Response;
@@ -35,7 +37,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       cache: 'no-store',
     });
   } catch {
-    return NextResponse.redirect(new URL('/dossier?recipisse_error=unreachable', request.url));
+    return redirectTo('/dossier?recipisse_error=unreachable');
   }
 
   // L'API répond par une redirection (302/301) vers l'URL signée MinIO.
@@ -45,10 +47,10 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
 
   if (apiResponse.status === 401) {
-    return NextResponse.redirect(new URL('/login?reason=session_expired', request.url));
+    return redirectTo('/login?reason=session_expired');
   }
 
   // 404 : récépissé pas encore généré (candidature non soumise) ; autre : erreur.
   const kind = apiResponse.status === 404 ? 'not_ready' : 'server';
-  return NextResponse.redirect(new URL(`/dossier?recipisse_error=${kind}`, request.url));
+  return redirectTo(`/dossier?recipisse_error=${kind}`);
 }
