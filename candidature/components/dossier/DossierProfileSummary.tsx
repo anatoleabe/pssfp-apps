@@ -12,14 +12,17 @@ import { getDossierPhase } from '@/lib/dossier/phase';
 
 export function DossierProfileSummary({
   candidature,
+  readOnly = false,
 }: {
   candidature: MyCandidature;
+  /** Consultation par un agent du PSSFP : jamais de lien de modification. */
+  readOnly?: boolean;
 }): JSX.Element {
   const ts = useTranslations('dossier.summary');
   const tf = useTranslations('dossier.fields');
   const to = useTranslations('options');
   // Même règle que l'API : modifiable en brouillon, tant que la campagne est ouverte.
-  const canEdit = getDossierPhase(candidature) === 'constitution' && candidature.statut === 'postulant';
+  const canEdit = !readOnly && getDossierPhase(candidature) === 'constitution' && candidature.statut === 'postulant';
   const statusLabel =
     STATUT_ACTUEL_OPTIONS.find((option) => option.value === candidature.statut_actuel)?.label ??
     candidature.statut_actuel;

@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Events\CandidatureAccepted;
 use App\Events\CandidatureRefused;
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
 use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
 use App\Filament\Resources\CandidatureResource\Pages;
 use App\Models\CampagneCandidature;
@@ -262,7 +263,8 @@ class CandidatureResource extends Resource
             // liste s'ouvrait sur les dossiers jamais soumis.
             ->defaultSort('submitted_at', 'desc')
             ->modifyQueryUsing(fn (Builder $query): Builder => $query
-                ->with('campagne')
+                // user.roles : visibilité des boutons « Voir son espace » et « Nouveau code ».
+                ->with(['campagne', 'user.roles'])
                 ->withCount('documents'))
             ->columns([
                 Tables\Columns\TextColumn::make('submitted_at')
@@ -682,6 +684,8 @@ class CandidatureResource extends Resource
                         ->action(fn (Candidature $r, array $data) => self::attribuerMatricules(collect([$r]), $data['annee'] ?? null)),
                     IdentifiantsMoodleActions::consulter(Tables\Actions\Action::make('identifiantsMoodle')),
                     IdentifiantsMoodleActions::envoyer(Tables\Actions\Action::make('envoyerIdentifiantsMoodle')),
+                    EspaceCandidatActions::voirEspace(Tables\Actions\Action::make('voirEspace')),
+                    EspaceCandidatActions::nouveauCode(Tables\Actions\Action::make('nouveauCode')),
                     Tables\Actions\Action::make('categorieMatricule')
                         ->label('Catégorie de matricule (EFP / EFSC)')
                         ->icon('heroicon-o-identification')

@@ -3,7 +3,7 @@ import { Link } from '@/navigation';
 import { redirect } from '@/navigation';
 import { DossierEditionForm } from '@/components/DossierEditionForm';
 import { getDiplomes, getEmployeursPublics, getMyCandidature, getPays, getSpecialites, getUniversites } from '@/lib/api/client';
-import { getCandidatToken } from '@/lib/auth/session';
+import { getCandidatToken, isConsultation } from '@/lib/auth/session';
 import { EDITABLE_FIELDS, type EditableField } from '@/lib/dossier/editableFields';
 import {
   FALLBACK_DIPLOMES,
@@ -31,6 +31,10 @@ export default async function DossierEditionPage({
   const token = await getCandidatToken();
   if (!token) {
     redirect('/login?reason=session_expired');
+  }
+  // Consultation par un agent : lecture seule, aucune page de modification.
+  if (await isConsultation()) {
+    redirect('/dossier');
   }
 
   const { focus } = await searchParams;

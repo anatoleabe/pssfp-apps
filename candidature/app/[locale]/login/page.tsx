@@ -16,12 +16,21 @@ interface LoginPageProps {
   searchParams: Promise<{ phone?: string; reason?: string }>;
 }
 
-const REASON_MESSAGES: Record<string, string> = {
-  logged_out: 'Vous avez été déconnecté(e).',
-  session_expired: 'Votre session a expiré. Reconnectez-vous.',
-  service_unavailable: 'Le service de connexion est momentanément indisponible. Réessayez dans quelques instants.',
-  pin_reset: 'Votre PIN a été réinitialisé. Connectez-vous avec votre nouveau PIN.',
-};
+/** Motifs affichés au-dessus du formulaire (`?reason=`), traduits sous `login.reasons`. */
+const REASONS = [
+  'logged_out',
+  'session_expired',
+  'service_unavailable',
+  'pin_reset',
+  'consultation_ended',
+  'consultation_expired',
+] as const;
+
+type Reason = (typeof REASONS)[number];
+
+function isReason(value: string): value is Reason {
+  return (REASONS as readonly string[]).includes(value);
+}
 
 export default async function LoginPage({ searchParams }: LoginPageProps): Promise<JSX.Element> {
   // Session déjà ouverte : on l'annonce au lieu de rediriger en silence
@@ -40,7 +49,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps): Promi
   const paysResult = await getPays();
   const pays = paysResult.ok && paysResult.data.length > 0 ? paysResult.data : [...FALLBACK_PAYS];
   const { phone, reason } = await searchParams;
-  const reasonMessage = reason ? REASON_MESSAGES[reason] ?? null : null;
+  const reasonMessage = reason && isReason(reason) ? t(`reasons.${reason}`) : null;
 
   return (
     <div className="mx-auto max-w-md px-6 py-16">

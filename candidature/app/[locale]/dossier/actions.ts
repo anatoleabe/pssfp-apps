@@ -8,7 +8,7 @@ import {
   submitMyCandidature,
   withdrawMyCandidature,
 } from '@/lib/api/client';
-import { clearCandidatToken, getCandidatToken } from '@/lib/auth/session';
+import { clearCandidatToken, getCandidatToken, isConsultation } from '@/lib/auth/session';
 
 export interface DossierActionResult {
   ok: boolean;
@@ -33,6 +33,10 @@ export async function initDossierAction(): Promise<void> {
   if (!token) {
     redirect('/login?reason=session_expired');
   }
+  // Consultation par un agent : lecture seule (l'API refuserait aussi l'écriture).
+  if (await isConsultation()) {
+    redirect('/dossier');
+  }
 
   const r = await putApplicationsMe({}, token);
   if (r.ok) {
@@ -49,6 +53,10 @@ export async function submitDossierAction(
   const token = await getCandidatToken();
   if (!token) {
     return { ok: false, errorKind: 'unauthenticated' };
+  }
+  // Consultation par un agent : lecture seule (l'API refuserait aussi l'écriture).
+  if (await isConsultation()) {
+    redirect('/dossier');
   }
 
   const r = await submitMyCandidature(token, idempotencyKey);
@@ -84,6 +92,10 @@ export async function withdrawDossierAction(): Promise<DossierActionResult> {
   if (!token) {
     return { ok: false, errorKind: 'unauthenticated' };
   }
+  // Consultation par un agent : lecture seule (l'API refuserait aussi l'écriture).
+  if (await isConsultation()) {
+    redirect('/dossier');
+  }
 
   const r = await withdrawMyCandidature(token);
   if (r.ok) {
@@ -103,6 +115,7 @@ export async function withdrawDossierAction(): Promise<DossierActionResult> {
 
 export async function logoutAction(): Promise<void> {
   const token = await getCandidatToken();
+  const consultation = await isConsultation();
   if (token) {
     // L'effacement local doit toujours avoir lieu, même si l'API est en panne.
     // L'appel serveur révoque le token Sanctum lorsqu'elle est disponible.
@@ -113,5 +126,5 @@ export async function logoutAction(): Promise<void> {
     }
   }
   await clearCandidatToken();
-  redirect('/login?reason=logged_out');
+  redirect(consultation ? '/login?reason=consultation_ended' : '/login?reason=logged_out');
 }

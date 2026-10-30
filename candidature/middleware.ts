@@ -6,6 +6,7 @@ import { localePrefix } from './navigation';
 
 const TOKEN_COOKIE = 'pssfp_candidat_token';
 const EXPIRES_COOKIE = 'pssfp_candidat_expires';
+const CONSULTATION_COOKIE = 'pssfp_candidat_consultation';
 const PROTECTED_PREFIXES = ['/dossier'];
 
 /**
@@ -51,6 +52,7 @@ function expireSessionCookies(response: NextResponse): void {
   };
   response.cookies.set(TOKEN_COOKIE, '', { ...shared, httpOnly: true });
   response.cookies.set(EXPIRES_COOKIE, '', { ...shared, httpOnly: false });
+  response.cookies.set(CONSULTATION_COOKIE, '', { ...shared, httpOnly: true });
 }
 
 async function sessionIsValid(token: string): Promise<'valid' | 'invalid' | 'unknown'> {
@@ -100,6 +102,14 @@ function withSessionHeader(request: NextRequest, sessionValid: boolean): NextRes
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { locale, pathWithoutLocale } = splitLocale(request.nextUrl.pathname);
+
+  // Route Handlers hors locale (app/auth/*) : next-intl les réécrirait en
+  // /fr/auth/*, qui n'existe pas (404). Ils gèrent eux-mêmes les cookies.
+  if (pathWithoutLocale.startsWith('/auth/')) {
+    return pathWithoutLocale === request.nextUrl.pathname
+      ? NextResponse.next()
+      : NextResponse.rewrite(new URL(`${pathWithoutLocale}${request.nextUrl.search}`, request.url));
+  }
 
   const protectedRoute = PROTECTED_PREFIXES.some((prefix) => pathWithoutLocale.startsWith(prefix));
   const token = request.cookies.get(TOKEN_COOKIE)?.value;
