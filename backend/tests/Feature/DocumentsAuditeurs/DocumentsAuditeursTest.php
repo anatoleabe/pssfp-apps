@@ -86,7 +86,7 @@ it('réunit les accès FOAD de toute la promotion, une page par retenu, dans l\'
         ->and($word['texte'])->toContain('ATEBA Bruno')->toContain('MENGUE Alice')
         ->toContain($this->alice->moodle_password)->toContain(mb_strtolower($this->alice->matricule))
         ->toContain('foad.pssfp.org')->toContain('3 novembre 2026')
-        ->toContain('VOTRE ESPACE AUDITEUR')->toContain('apply.pssfp.org')->not->toContain('FMI')
+        ->toContain('VOTRE ESPACE AUDITEUR')->toContain('apply.pssfp.org')->toContain('Matricule')->not->toContain('FMI')
         ->not->toContain('ZANG')
         ->and(strpos($word['texte'], 'ATEBA'))->toBeLessThan(strpos($word['texte'], 'MENGUE'));
 });

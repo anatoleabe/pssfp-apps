@@ -97,6 +97,9 @@ final class NouveauCodeCandidat
         $this->otp->invalidatePending($telephone, 'reset_pin');
         $this->throttle->clearOtpCounters($telephone);
         $this->throttle->clearLoginPhoneLock($telephone);
+        if (filled($c->matricule)) {
+            $this->throttle->clearLoginPhoneLock('matricule:'.mb_strtoupper((string) $c->matricule));
+        }
 
         $resultat = ['sms' => null, 'email' => null];
         if (in_array($canal, [self::CANAL_SMS, self::CANAL_LES_DEUX], true)) {

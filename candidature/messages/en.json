@@ -145,7 +145,7 @@
   },
   "login": {
     "title": "Applicant sign-in",
-    "subtitle": "Sign in with your phone number and your PIN.",
+    "subtitle": "Sign in with your phone number and code, or with your student ID if you have been admitted.",
     "phoneLabel": "Phone number — sign-in and SMS",
     "phonePlaceholder": "691234567",
     "phoneHelp": "Select the country code, then enter the local number, for example 6XXXXXXXX in Cameroon.",
@@ -163,6 +163,31 @@
       "pin_reset": "Your PIN has been reset. Sign in with your new PIN.",
       "consultation_ended": "Viewing ended. You can close this tab and return to the administration.",
       "consultation_expired": "This viewing link has expired or was already used. Click « Voir son espace » again in the administration."
+    },
+    "tabs": {
+      "aria": "Sign-in method",
+      "telephone": "Phone and code",
+      "matricule": "Student ID (admitted students)",
+      "matriculeNote": "Admitted students: use the username and password from your distance-learning platform (FOAD) access letter."
+    },
+    "matricule": {
+      "identifiantLabel": "Student ID (FOAD username)",
+      "identifiantHelp": "For example 26efp001, as shown on your access letter.",
+      "identifiantInvalid": "Enter your student ID, for example 26efp001.",
+      "motDePasseLabel": "FOAD password",
+      "motDePasseHelp": "The password from your access letter: upper and lower case matter.",
+      "motDePasseRequired": "Enter your password.",
+      "afficher": "Show password",
+      "masquer": "Hide password",
+      "submit": "Sign in",
+      "pending": "Signing in…",
+      "oubli": "Lost your password? Sign in with your phone and code, or contact the registrar's office.",
+      "errors": {
+        "invalid": "Incorrect student ID or password.",
+        "locked": "Account temporarily locked after too many failed attempts. Try again in 30 minutes.",
+        "throttled": "Too many attempts. Try again in a few minutes.",
+        "network": "A network error occurred. Please try again."
+      }
     }
   },
   "inscription": {

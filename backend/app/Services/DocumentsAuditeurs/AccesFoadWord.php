@@ -90,7 +90,8 @@ final class AccesFoadWord
     {
         G::rubrique($s, 'Votre espace auditeur');
         $this->point($s, 'Adresse'.self::NB.': ', preg_replace('#^https?://#', '', (string) config('pssfp.candidature_app_url')));
-        $this->point($s, 'Connexion'.self::NB.': ', 'votre numéro de téléphone et votre code personnel à 6 chiffres.');
+        $this->point($s, 'Connexion'.self::NB.': ', 'avec les identifiants ci-dessus (onglet «'.self::NB.'Matricule'.self::NB.'»), '
+            .'ou avec votre numéro de téléphone et votre code personnel à 6 chiffres.');
         $s->addText('Vous y retrouvez votre dossier, les messages du PSSFP et vos documents administratifs.',
             G::police(G::LIBELLE, 8.5, italic: true, color: G::GRIS), ['spaceAfter' => 0, 'indentation' => ['left' => 280]]);
     }

@@ -46,6 +46,10 @@ Route::prefix('auth/candidat')->name('auth.candidat.')->middleware('ip.portail')
     Route::post('/login', [AuthCandidatController::class, 'login'])
         ->middleware('throttle.candidat.login')
         ->name('login');
+    // Auditeurs : identifiants FOAD (compteurs anti-bruteforce dans le contrôleur).
+    Route::post('/login-matricule', [AuthCandidatController::class, 'loginMatricule'])
+        ->middleware('throttle:30,1')
+        ->name('login-matricule');
     Route::post('/forgot-pin', [AuthCandidatController::class, 'forgotPin'])
         ->middleware('throttle:10,1')
         ->name('forgot-pin');

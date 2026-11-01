@@ -1,6 +1,6 @@
 'use server';
 
-import { loginCandidat } from '@/lib/api/client';
+import { loginCandidat, loginMatricule } from '@/lib/api/client';
 import { setCandidatToken } from '@/lib/auth/session';
 import { visiteurHeaders } from '@/lib/api/visiteur';
 
@@ -52,4 +52,33 @@ export async function loginAction(phone: string, pin: string): Promise<LoginResu
     errorKind: 'network',
     message: response.message ?? 'Une erreur réseau est survenue. Réessayez.',
   };
+}
+
+export type LoginMatriculeErreur = 'invalid' | 'locked' | 'throttled' | 'network';
+
+/**
+ * Connexion d'un auditeur avec ses identifiants FOAD. Les messages sont
+ * traduits par le formulaire (`login.matricule.errors.*`) à partir du type
+ * d'erreur ; 401 reste générique (anti-énumération des matricules).
+ */
+export async function loginMatriculeAction(
+  identifiant: string,
+  motDePasse: string,
+): Promise<{ ok: true; redirectTo: string } | { ok: false; errorKind: LoginMatriculeErreur }> {
+  const response = await loginMatricule({ identifiant, mot_de_passe: motDePasse }, await visiteurHeaders());
+
+  if (response.ok) {
+    await setCandidatToken(response.data.token, response.data.expires_at);
+    return { ok: true, redirectTo: '/dossier' };
+  }
+
+  const errorKind: LoginMatriculeErreur = response.status === 401 || response.status === 422
+    ? 'invalid'
+    : response.status === 423
+      ? 'locked'
+      : response.status === 429
+        ? 'throttled'
+        : 'network';
+
+  return { ok: false, errorKind };
 }

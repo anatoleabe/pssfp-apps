@@ -20,7 +20,8 @@ export async function visiteurHeaders(): Promise<Record<string, string>> {
 
   try {
     const entrants = await headers();
-    const ip = (entrants.get('x-real-ip') ?? entrants.get('x-forwarded-for')?.split(',')[0] ?? '').trim();
+    // X-Real-IP seul : nginx le réécrit toujours ; X-Forwarded-For peut venir du visiteur.
+    const ip = (entrants.get('x-real-ip') ?? '').trim();
     if (!IPV4.test(ip) && !(ip.includes(':') && IPV6.test(ip))) return {};
 
     return { 'X-PSSFP-Client-IP': ip, 'X-PSSFP-Portail': secret };

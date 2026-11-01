@@ -145,7 +145,7 @@
   },
   "login": {
     "title": "Connexion candidat",
-    "subtitle": "Identifiez-vous avec votre numéro de téléphone et votre PIN.",
+    "subtitle": "Identifiez-vous avec votre numéro de téléphone et votre code, ou avec votre matricule si vous êtes auditeur.",
     "phoneLabel": "Numéro de téléphone — connexion et SMS",
     "phonePlaceholder": "691234567",
     "phoneHelp": "Choisissez l'indicatif puis saisissez le numéro local, par exemple 6XXXXXXXX au Cameroun.",
@@ -163,6 +163,31 @@
       "pin_reset": "Votre PIN a été réinitialisé. Connectez-vous avec votre nouveau PIN.",
       "consultation_ended": "Consultation terminée. Vous pouvez fermer cet onglet et revenir à l'administration.",
       "consultation_expired": "Lien de consultation expiré ou déjà utilisé. Relancez « Voir son espace » depuis l'administration."
+    },
+    "tabs": {
+      "aria": "Mode de connexion",
+      "telephone": "Téléphone et code",
+      "matricule": "Matricule (auditeurs)",
+      "matriculeNote": "Auditeurs : utilisez l'identifiant et le mot de passe de votre lettre d'accès à la plateforme de formation à distance (FOAD)."
+    },
+    "matricule": {
+      "identifiantLabel": "Matricule (identifiant FOAD)",
+      "identifiantHelp": "Par exemple 26efp001, tel qu'indiqué sur votre lettre d'accès.",
+      "identifiantInvalid": "Saisissez votre matricule, par exemple 26efp001.",
+      "motDePasseLabel": "Mot de passe FOAD",
+      "motDePasseHelp": "Le mot de passe de votre lettre d'accès : majuscules et minuscules comptent.",
+      "motDePasseRequired": "Saisissez votre mot de passe.",
+      "afficher": "Afficher le mot de passe",
+      "masquer": "Masquer le mot de passe",
+      "submit": "Se connecter",
+      "pending": "Connexion…",
+      "oubli": "Mot de passe perdu ? Connectez-vous avec votre téléphone et votre code, ou adressez-vous à la scolarité.",
+      "errors": {
+        "invalid": "Matricule ou mot de passe incorrect.",
+        "locked": "Compte temporairement bloqué après trop d'échecs. Réessayez dans 30 minutes.",
+        "throttled": "Trop de tentatives. Réessayez dans quelques minutes.",
+        "network": "Une erreur réseau est survenue. Réessayez."
+      }
     }
   },
   "inscription": {
