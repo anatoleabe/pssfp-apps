@@ -112,6 +112,8 @@ class Candidature extends Model
         'decided_at' => 'datetime',
         'withdrawn_at' => 'datetime',
         'date_paiement' => 'date',
+        // Pointés par un agent (forceFill), jamais remplis en masse.
+        'frais_inscription_payes_at' => 'datetime',
         'frais_paye' => 'boolean',
         'annee_diplome' => 'integer',
         'annee_diplome_requis' => 'integer',

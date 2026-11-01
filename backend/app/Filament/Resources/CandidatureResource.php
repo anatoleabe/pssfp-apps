@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Events\CandidatureAccepted;
 use App\Events\CandidatureRefused;
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
 use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
 use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
 use App\Filament\Resources\CandidatureResource\Pages;
@@ -17,6 +18,7 @@ use App\Models\Pays;
 use App\Models\RegionCameroun;
 use App\Services\CandidatureService;
 use App\Services\DepotPhysiqueService;
+use App\Services\DocumentsAuditeurs\ParametresLettres;
 use App\Services\DocumentUploadService;
 use App\Services\ExportsRetenus\AttributionMatricules;
 use App\Services\NotificationCandidatsService;
@@ -322,6 +324,17 @@ class CandidatureResource extends Resource
                 Tables\Columns\IconColumn::make('frais_paye')->label('Frais')
                     ->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle')
                     ->tooltip(fn (Candidature $r): string => $r->frais_paye ? 'Frais payés' : 'Frais non payés'),
+                // Frais d'inscription des retenus (distincts des frais de dossier) :
+                // condition de la lettre d'admission dans l'espace de l'auditeur.
+                Tables\Columns\IconColumn::make('frais_inscription_payes_at')->label('Inscription')
+                    ->boolean()
+                    ->state(fn (Candidature $r): bool => $r->frais_inscription_payes_at !== null)
+                    ->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-minus-circle')
+                    ->trueColor('success')->falseColor('gray')
+                    ->tooltip(fn (Candidature $r): string => $r->frais_inscription_payes_at !== null
+                        ? 'Frais d\'inscription payés (pointés le '.$r->frais_inscription_payes_at->timezone('Africa/Douala')->format('d/m/Y').')'
+                        : 'Frais d\'inscription non pointés')
+                    ->toggleable(),
                 // ADR-0009 : rendre l'absence de photo lisible d'un coup d'œil
                 // sur la liste, et pas seulement derrière un filtre.
                 Tables\Columns\IconColumn::make('photo_path')
@@ -384,6 +397,16 @@ class CandidatureResource extends Resource
                     ->placeholder('Tous')
                     ->trueLabel('Payés uniquement')
                     ->falseLabel('Non payés uniquement'),
+                Tables\Filters\TernaryFilter::make('frais_inscription')
+                    ->label('Frais d\'inscription')
+                    ->placeholder('Tous')
+                    ->trueLabel('Payés uniquement')
+                    ->falseLabel('Non payés uniquement')
+                    // Paramètres nommés `$query` : Filament injecte par nom.
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query->whereNotNull('frais_inscription_payes_at'),
+                        false: fn (Builder $query): Builder => $query->whereNull('frais_inscription_payes_at'),
+                    ),
                 // ADR-0009 : la photo ne bloquant plus la soumission, des
                 // dossiers soumis circulent sans photo. Ce filtre est le seul
                 // moyen pour la scolarité de voir qui relancer — sans lui, la
@@ -686,6 +709,10 @@ class CandidatureResource extends Resource
                     IdentifiantsMoodleActions::envoyer(Tables\Actions\Action::make('envoyerIdentifiantsMoodle')),
                     EspaceCandidatActions::voirEspace(Tables\Actions\Action::make('voirEspace')),
                     EspaceCandidatActions::nouveauCode(Tables\Actions\Action::make('nouveauCode')),
+                    DocumentsAuditeursActions::dossier(Tables\Actions\Action::make('lettreAccesFoad'), ParametresLettres::DOCUMENT_ACCES),
+                    DocumentsAuditeursActions::dossier(Tables\Actions\Action::make('lettreAdmission'), ParametresLettres::DOCUMENT_ADMISSION),
+                    DocumentsAuditeursActions::fraisPayes(Tables\Actions\Action::make('fraisInscriptionPayes'), true),
+                    DocumentsAuditeursActions::fraisPayes(Tables\Actions\Action::make('fraisInscriptionAnnules'), false),
                     Tables\Actions\Action::make('categorieMatricule')
                         ->label('Catégorie de matricule (EFP / EFSC)')
                         ->icon('heroicon-o-identification')
@@ -1075,6 +1102,10 @@ class CandidatureResource extends Resource
                     ->deselectRecordsAfterCompletion()
                     ->action(fn ($records, array $data) => self::attribuerMatricules($records, $data['annee'] ?? null)),
                 IdentifiantsMoodleActions::envoyerGroupe(Tables\Actions\BulkAction::make('envoyerIdentifiantsMoodleBulk')),
+                DocumentsAuditeursActions::selection(Tables\Actions\BulkAction::make('accesFoadBulk'), ParametresLettres::DOCUMENT_ACCES),
+                DocumentsAuditeursActions::selection(Tables\Actions\BulkAction::make('lettresAdmissionBulk'), ParametresLettres::DOCUMENT_ADMISSION),
+                DocumentsAuditeursActions::fraisPayesGroupe(Tables\Actions\BulkAction::make('fraisInscriptionPayesBulk'), true),
+                DocumentsAuditeursActions::fraisPayesGroupe(Tables\Actions\BulkAction::make('fraisInscriptionAnnulesBulk'), false),
                 Tables\Actions\BulkAction::make('categorieMatriculeBulk')
                     ->label('Catégorie de matricule (EFP / EFSC)')
                     ->icon('heroicon-o-identification')
