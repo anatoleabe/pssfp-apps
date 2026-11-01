@@ -12,6 +12,7 @@ import {
   step3Schema,
   step4Schema,
 } from '@/lib/validation/schemas';
+import { visiteurHeaders } from '@/lib/api/visiteur';
 
 /**
  * Server Action de soumission finale du wizard.
@@ -69,7 +70,7 @@ export async function submitInscription(payload: WizardData): Promise<WizardServ
     date_naissance: payload.date_naissance,
     cgu: payload.cgu,
     turnstile_token: payload.turnstile_token,
-  });
+  }, await visiteurHeaders());
 
   if (!register.ok) {
     if (register.status === 409) {

@@ -38,7 +38,8 @@ Route::get('/health', HealthController::class)->name('api.health');
  * notamment le crédit SMS OTP (spec §M13). Un cooldown par numéro dans
  * OtpService est à ajouter au branchement du vrai fournisseur SMS (LOT B).
  */
-Route::prefix('auth/candidat')->name('auth.candidat.')->group(function (): void {
+// ip.portail en tête : les limites « par IP » doivent voir le visiteur, pas le serveur du portail.
+Route::prefix('auth/candidat')->name('auth.candidat.')->middleware('ip.portail')->group(function (): void {
     Route::post('/register', [AuthCandidatController::class, 'register'])
         ->middleware('throttle:20,1')
         ->name('register');

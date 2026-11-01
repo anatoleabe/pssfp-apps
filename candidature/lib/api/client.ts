@@ -204,31 +204,38 @@ export function getEmployeursPublics(): Promise<ApiResult<EmployeurPublicGroup[]
   return apiGet<EmployeurPublicGroup[]>('/reference/employeurs-publics', { revalidate: 86400 });
 }
 
+/*
+ * Authentification : `visiteur` = en-têtes de lib/api/visiteur.ts, lus par
+ * l'action serveur appelante (l'IP réelle du visiteur pour les limites de l'API).
+ */
 export function registerCandidat(
   payload: RegisterCandidatPayload,
+  visiteur: Record<string, string> = {},
 ): Promise<ApiResult<RegisterCandidatResponse>> {
-  return apiPost<RegisterCandidatResponse>('/auth/candidat/register', payload);
+  return apiPost<RegisterCandidatResponse>('/auth/candidat/register', payload, { headers: visiteur });
 }
 
-export function loginCandidat(payload: {
-  phone_e164: string;
-  pin: string;
-}): Promise<ApiResult<RegisterCandidatResponse>> {
-  return apiPost<RegisterCandidatResponse>('/auth/candidat/login', payload);
+export function loginCandidat(
+  payload: { phone_e164: string; pin: string },
+  visiteur: Record<string, string> = {},
+): Promise<ApiResult<RegisterCandidatResponse>> {
+  return apiPost<RegisterCandidatResponse>('/auth/candidat/login', payload, { headers: visiteur });
 }
 
-export function forgotPin(payload: {
-  phone_e164: string;
-  turnstile_token?: string;
-}): Promise<ApiResult<{ message?: string; resend_after?: number }>> {
-  return apiPost<{ message?: string; resend_after?: number }>('/auth/candidat/forgot-pin', payload);
+export function forgotPin(
+  payload: { phone_e164: string; turnstile_token?: string },
+  visiteur: Record<string, string> = {},
+): Promise<ApiResult<{ message?: string; resend_after?: number }>> {
+  return apiPost<{ message?: string; resend_after?: number }>('/auth/candidat/forgot-pin', payload, {
+    headers: visiteur,
+  });
 }
 
-export function verifyOtp(payload: {
-  phone_e164: string;
-  code: string;
-}): Promise<ApiResult<{ pin_reset_token: string; expires_at: string | null }>> {
-  return apiPost('/auth/candidat/verify-otp', payload);
+export function verifyOtp(
+  payload: { phone_e164: string; code: string },
+  visiteur: Record<string, string> = {},
+): Promise<ApiResult<{ pin_reset_token: string; expires_at: string | null }>> {
+  return apiPost('/auth/candidat/verify-otp', payload, { headers: visiteur });
 }
 
 export function resetPin(

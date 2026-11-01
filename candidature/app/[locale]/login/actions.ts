@@ -2,6 +2,7 @@
 
 import { loginCandidat } from '@/lib/api/client';
 import { setCandidatToken } from '@/lib/auth/session';
+import { visiteurHeaders } from '@/lib/api/visiteur';
 
 export interface LoginResult {
   ok: boolean;
@@ -21,7 +22,7 @@ export interface LoginResult {
  * - 429 -> rate limit IP (3/10min) ou ban (50/24h)
  */
 export async function loginAction(phone: string, pin: string): Promise<LoginResult> {
-  const response = await loginCandidat({ phone_e164: phone, pin });
+  const response = await loginCandidat({ phone_e164: phone, pin }, await visiteurHeaders());
 
   if (response.ok) {
     await setCandidatToken(response.data.token, response.data.expires_at);
