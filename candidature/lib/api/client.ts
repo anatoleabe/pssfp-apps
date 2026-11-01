@@ -222,6 +222,14 @@ export function loginCandidat(
   return apiPost<RegisterCandidatResponse>('/auth/candidat/login', payload, { headers: visiteur });
 }
 
+/** Auditeurs : matricule et mot de passe FOAD. */
+export function loginMatricule(
+  payload: { identifiant: string; mot_de_passe: string },
+  visiteur: Record<string, string> = {},
+): Promise<ApiResult<RegisterCandidatResponse>> {
+  return apiPost<RegisterCandidatResponse>('/auth/candidat/login-matricule', payload, { headers: visiteur });
+}
+
 export function forgotPin(
   payload: { phone_e164: string; turnstile_token?: string },
   visiteur: Record<string, string> = {},

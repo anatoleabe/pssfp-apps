@@ -3,6 +3,8 @@ import { SessionAlreadyOpen } from '@/components/SessionAlreadyOpen';
 import { getCandidatToken } from '@/lib/auth/session';
 import { getTranslations } from 'next-intl/server';
 import { LoginForm } from '@/components/LoginForm';
+import { LoginMatriculeForm } from '@/components/LoginMatriculeForm';
+import { LoginTabs } from '@/components/LoginTabs';
 import { getPays, getMyCandidature } from '@/lib/api/client';
 import { FALLBACK_PAYS } from '@/lib/api/fallbacks';
 
@@ -13,7 +15,7 @@ export const metadata = {
 };
 
 interface LoginPageProps {
-  searchParams: Promise<{ phone?: string; reason?: string }>;
+  searchParams: Promise<{ phone?: string; reason?: string; mode?: string }>;
 }
 
 /** Motifs affichés au-dessus du formulaire (`?reason=`), traduits sous `login.reasons`. */
@@ -48,7 +50,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps): Promi
   const t = await getTranslations('login');
   const paysResult = await getPays();
   const pays = paysResult.ok && paysResult.data.length > 0 ? paysResult.data : [...FALLBACK_PAYS];
-  const { phone, reason } = await searchParams;
+  const { phone, reason, mode } = await searchParams;
   const reasonMessage = reason && isReason(reason) ? t(`reasons.${reason}`) : null;
 
   return (
@@ -56,19 +58,25 @@ export default async function LoginPage({ searchParams }: LoginPageProps): Promi
       <h1 className="font-heading text-3xl font-bold text-[#4A2E67]">{t('title')}</h1>
       <p className="mt-2 text-base text-[#666666]">{t('subtitle')}</p>
 
-      <LoginForm
-        initialPhone={phone}
-        reasonMessage={reasonMessage}
-        pays={pays}
-        labels={{
-          phoneLabel: t('phoneLabel'),
-          phonePlaceholder: t('phonePlaceholder'),
-          phoneHelp: t('phoneHelp'),
-          pinLabel: t('pinLabel'),
-          pinHelp: t('pinHelp'),
-          submit: t('submit'),
-          forgotPin: t('forgotPin'),
-        }}
+      <LoginTabs
+        initialMode={mode === 'matricule' ? 'matricule' : 'telephone'}
+        telephone={
+          <LoginForm
+            initialPhone={phone}
+            reasonMessage={reasonMessage}
+            pays={pays}
+            labels={{
+              phoneLabel: t('phoneLabel'),
+              phonePlaceholder: t('phonePlaceholder'),
+              phoneHelp: t('phoneHelp'),
+              pinLabel: t('pinLabel'),
+              pinHelp: t('pinHelp'),
+              submit: t('submit'),
+              forgotPin: t('forgotPin'),
+            }}
+          />
+        }
+        matricule={<LoginMatriculeForm />}
       />
     </div>
   );

@@ -8,22 +8,28 @@ use App\Exceptions\OtpCooldownException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ForgotPinRequest;
 use App\Http\Requests\Auth\LoginCandidatRequest;
+use App\Http\Requests\Auth\LoginMatriculeRequest;
 use App\Http\Requests\Auth\RegisterCandidatRequest;
 use App\Http\Requests\Auth\ResetPinRequest;
 use App\Http\Requests\Auth\VerifyOtpRequest;
+use App\Models\Candidature;
 use App\Models\User;
 use App\Services\CandidatAuthThrottle;
 use App\Services\CandidatUserService;
+use App\Services\EspaceCandidat\NouveauCodeCandidat;
+use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use App\Services\OtpService;
 use App\Services\Security\TurnstileVerifier;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\PhoneMasker;
 use App\Support\SecretRedactor;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Endpoints /v1/auth/candidat/*.
@@ -31,6 +37,7 @@ use Illuminate\Support\Facades\Log;
  * Cf. spec module 5 §M4 et ADR-0007. Découpage exact :
  * - register      : crée User candidat + Sanctum token candidat (ttl 7j).
  * - login         : valide phone+PIN, retourne token candidat.
+ * - loginMatricule: valide matricule + mot de passe FOAD (auditeurs), même token.
  * - forgotPin     : génère OTP, envoie via SmsService, toujours 202.
  * - verifyOtp     : valide code, retourne token court ability `pin:reset`.
  * - resetPin      : nécessite token court, met à jour PIN, révoque tous les tokens.
@@ -55,6 +62,11 @@ final class AuthCandidatController extends Controller
         'application:read',
         'application:submit',
     ];
+
+    /** Connexion par identifiants FOAD : consultation de l'espace, sans écriture. */
+    private const MATRICULE_ABILITIES = ['profile:read', 'application:read'];
+
+    public const NOM_JETON_MATRICULE = 'candidat-matricule';
 
     private const CANDIDAT_TOKEN_TTL_DAYS = 7;
 
@@ -143,6 +155,71 @@ final class AuthCandidatController extends Controller
             'user' => $this->presentUser($user),
             'token' => $token->plainTextToken,
             'abilities' => self::CANDIDAT_ABILITIES,
+            'expires_at' => $token->accessToken->expires_at?->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * Connexion d'un auditeur avec ses identifiants FOAD : matricule et mot de
+     * passe Moodle (attribués une fois, jamais régénérés). Mêmes protections
+     * que le PIN : compteurs par visiteur et par matricule, message identique
+     * que le matricule existe ou non, comparaison en temps constant.
+     */
+    public function loginMatricule(LoginMatriculeRequest $request): JsonResponse
+    {
+        $matricule = mb_strtoupper((string) $request->input('identifiant'));
+        $motDePasse = (string) $request->input('mot_de_passe');
+        $ip = (string) $request->ip();
+        $cle = 'matricule:'.$matricule;
+
+        if (($bloque = $this->throttle->checkLogin($cle, $ip)) !== null) {
+            return response()->json([
+                'message' => $bloque['kind'] === 'phone_locked'
+                    ? 'Compte temporairement bloqué après trop d\'échecs. Réessayez plus tard.'
+                    : 'Trop de tentatives. Réessayez dans quelques minutes.',
+                'kind' => $bloque['kind'],
+                'retry_after' => $bloque['retry_after'],
+            ], $bloque['kind'] === 'phone_locked' ? 423 : 429, ['Retry-After' => (string) $bloque['retry_after']]);
+        }
+
+        $candidature = Candidature::query()->with('user.roles')->where('matricule', $matricule)->first();
+        try {
+            $compte = $candidature !== null && IdentifiantsMoodle::disponibles($candidature)
+                ? NouveauCodeCandidat::compteCandidat($candidature)
+                : null;
+            $attendu = $compte !== null ? (string) $candidature->moodle_password : Str::random(32);
+        } catch (DecryptException) {
+            // Valeur illisible (clé d'application changée) : un échec ordinaire, jamais une 500 révélatrice.
+            Log::channel('single')->error('Mot de passe FOAD illisible à la connexion.', ['matricule' => $matricule]);
+            $compte = null;
+            $attendu = Str::random(32);
+        }
+
+        // Toujours une comparaison, à longueur fixe : ni l'existence du compte ni
+        // la longueur du mot de passe ne se lisent dans le temps de réponse.
+        if (! hash_equals(hash('sha256', $attendu), hash('sha256', $motDePasse)) || $compte === null) {
+            $this->throttle->recordLoginFailure($cle, $ip);
+            activity('auth.candidat')
+                ->withProperties(['matricule' => $matricule, 'ip' => $ip, 'reason' => $compte === null ? 'unknown_matricule' : 'wrong_password'])
+                ->event('login_failed')
+                ->log('Candidate login failed (matricule)');
+
+            return response()->json(['message' => 'Matricule ou mot de passe incorrect.'], 401);
+        }
+
+        $this->throttle->clearLoginOnSuccess($cle, $ip);
+        // Lecture seule : ce mot de passe est connu de l'administration et ne
+        // change jamais. Modifier ou soumettre un dossier exige téléphone + PIN.
+        $token = $compte->createToken(self::NOM_JETON_MATRICULE, self::MATRICULE_ABILITIES, now()->addDays(self::CANDIDAT_TOKEN_TTL_DAYS));
+        activity('auth.candidat')->causedBy($compte)->performedOn($candidature)
+            ->withProperties(['methode' => 'matricule', 'ip' => $ip])
+            ->event('login')
+            ->log('Connexion à l\'espace par matricule');
+
+        return response()->json([
+            'user' => $this->presentUser($compte),
+            'token' => $token->plainTextToken,
+            'abilities' => self::MATRICULE_ABILITIES,
             'expires_at' => $token->accessToken->expires_at?->toIso8601String(),
         ]);
     }
