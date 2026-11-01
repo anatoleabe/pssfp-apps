@@ -7,6 +7,7 @@ import {
   getPinResetToken,
   setPinResetToken,
 } from '@/lib/auth/session';
+import { visiteurHeaders } from '@/lib/api/visiteur';
 
 export interface SimpleResult {
   ok: boolean;
@@ -26,7 +27,7 @@ export async function requestOtpAction(
   phone: string,
   turnstileToken?: string,
 ): Promise<SimpleResult> {
-  const r = await forgotPin({ phone_e164: phone, turnstile_token: turnstileToken });
+  const r = await forgotPin({ phone_e164: phone, turnstile_token: turnstileToken }, await visiteurHeaders());
   if (r.ok) {
     const resendAfter = Number(r.data?.resend_after);
     return { ok: true, resendAfter: Number.isFinite(resendAfter) ? resendAfter : RESEND_AFTER_DEFAUT };
@@ -46,7 +47,7 @@ export async function requestOtpAction(
  * Étape 2 — verify OTP. Set le cookie pin_reset_token sur succès.
  */
 export async function verifyOtpAction(phone: string, code: string): Promise<SimpleResult> {
-  const r = await verifyOtp({ phone_e164: phone, code });
+  const r = await verifyOtp({ phone_e164: phone, code }, await visiteurHeaders());
   if (r.ok) {
     await setPinResetToken(r.data.pin_reset_token, r.data.expires_at);
     return { ok: true };

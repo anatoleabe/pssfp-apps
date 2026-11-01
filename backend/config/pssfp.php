@@ -34,6 +34,10 @@ return [
     // Plateforme FOAD (Moodle) : adresse rappelée aux auditeurs avec leurs identifiants.
     'foad_url' => rtrim((string) env('FOAD_URL', 'https://foad.pssfp.net'), '/'),
 
+    // Secret partagé avec le portail candidature : authentifie l'en-tête qui
+    // porte l'adresse IP réelle du visiteur (cf. IpVisiteurDuPortail).
+    'portail_secret' => (string) env('PSSFP_PORTAIL_SECRET', ''),
+
     'otp' => [
         'cooldown_seconds' => (int) env('OTP_COOLDOWN_SECONDS', 60),
         'max_per_phone_per_hour' => (int) env('OTP_MAX_PER_PHONE_PER_HOUR', 5),

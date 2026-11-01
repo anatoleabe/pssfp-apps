@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Console\Commands\PurgeExpiredOtps;
+use App\Http\Middleware\IpVisiteurDuPortail;
 use App\Http\Middleware\SetLocaleFromRequest;
 use App\Http\Middleware\ThrottleCandidatLogin;
 use Illuminate\Console\Scheduling\Schedule;
@@ -38,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'throttle.candidat.login' => ThrottleCandidatLogin::class,
+            'ip.portail' => IpVisiteurDuPortail::class,
             // Sanctum abilities — alias par défaut Laravel 10 absents en Laravel 11.
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
