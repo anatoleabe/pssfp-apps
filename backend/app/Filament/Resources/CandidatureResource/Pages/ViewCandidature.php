@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Filament\Resources\CandidatureResource\Pages;
 
 use App\Filament\Resources\CandidatureResource;
+use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
 use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
 use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
 use App\Models\Candidature;
+use App\Services\DocumentsAuditeurs\ParametresLettres;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Database\Eloquent\Collection;
@@ -23,6 +26,12 @@ class ViewCandidature extends ViewRecord
         return [
             EspaceCandidatActions::voirEspace(Action::make('voirEspace')),
             EspaceCandidatActions::nouveauCode(Action::make('nouveauCode')),
+            ActionGroup::make([
+                DocumentsAuditeursActions::dossier(Action::make('lettreAccesFoad'), ParametresLettres::DOCUMENT_ACCES),
+                DocumentsAuditeursActions::dossier(Action::make('lettreAdmission'), ParametresLettres::DOCUMENT_ADMISSION),
+                DocumentsAuditeursActions::fraisPayes(Action::make('fraisInscriptionPayes'), true),
+                DocumentsAuditeursActions::fraisPayes(Action::make('fraisInscriptionAnnules'), false),
+            ])->label('Documents')->icon('heroicon-o-document-text')->button()->color('gray'),
             IdentifiantsMoodleActions::consulter(Action::make('identifiantsMoodle')),
             IdentifiantsMoodleActions::envoyer(Action::make('envoyerIdentifiantsMoodle')),
             EditAction::make(),

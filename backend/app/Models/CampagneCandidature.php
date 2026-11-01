@@ -45,6 +45,9 @@ class CampagneCandidature extends Model
         'communique_signed_at',
         // Consignes affichées aux candidats retenus dans leur espace.
         'consignes_retenus',
+        // Variables des documents remis aux auditeurs (cf. ParametresLettres).
+        'parametres_lettres',
+        'signature_lettres_path',
     ];
 
     protected $casts = [
@@ -54,6 +57,7 @@ class CampagneCandidature extends Model
         'communique_signed_at' => 'date',
         'promotion_numero' => 'integer',
         'max_voeux' => 'integer',
+        'parametres_lettres' => 'array',
     ];
 
     /**

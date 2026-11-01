@@ -7,6 +7,8 @@ namespace App\Filament\Resources\CampagneCandidatureResource\Pages;
 use App\Filament\Resources\CampagneCandidatureResource;
 use App\Filament\Resources\CampagneCandidatureResource\ExportsRetenusActions;
 use App\Filament\Resources\CampagneCandidatureResource\ResultatsSelectionActions;
+use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
+use App\Services\DocumentsAuditeurs\ParametresLettres;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
@@ -35,6 +37,14 @@ class EditCampagneCandidature extends EditRecord
             ])
                 ->label('Retenus : matricules et exports')
                 ->icon('heroicon-o-identification')
+                ->button()
+                ->color('gray'),
+            Actions\ActionGroup::make([
+                DocumentsAuditeursActions::campagne(Actions\Action::make('accesFoad'), ParametresLettres::DOCUMENT_ACCES),
+                DocumentsAuditeursActions::campagne(Actions\Action::make('lettresAdmission'), ParametresLettres::DOCUMENT_ADMISSION),
+            ])
+                ->label('Documents des auditeurs')
+                ->icon('heroicon-o-document-text')
                 ->button()
                 ->color('gray'),
         ];
