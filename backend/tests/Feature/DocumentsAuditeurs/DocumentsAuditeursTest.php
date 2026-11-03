@@ -100,7 +100,9 @@ it('accorde la lettre d\'admission au genre et reprend rentrée, frais et total'
         ->toContain('Monsieur ATEBA Bruno')->toContain('vous êtes admis en première année')
         ->toContain('le 17 novembre 2026 dès 08:00 heures précise')->toContain('à l\'Auditorium 300 du MINEPAT')
         ->toContain("185\u{00A0}000")->toContain("1\u{00A0}185\u{00A0}000")->toContain('15 décembre 2026')
-        ->toContain('14e promotion, année académique 2026-2027')
+        ->toContain('Votre admission au cycle de Master Professionnel en Finances Publiques au titre de l’année académique 2026 – 2027.')
+        ->toContain('J\'ai le plaisir de vous informer')->not->toContain('l\'honneur')
+        ->toContain('règlement des frais de votre première année de formation.')
         ->toContain('N° 26/ '.$this->alice->rang_retenu.' L/MINFI/SG/PSSFP/PCP/UAAF')
         ->not->toContain($this->alice->moodle_password);
 });
