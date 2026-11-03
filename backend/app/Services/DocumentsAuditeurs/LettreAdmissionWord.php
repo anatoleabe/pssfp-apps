@@ -16,7 +16,8 @@ use ZipArchive;
  * La mise en page (en-tête, polices, marges, tableau des frais) est celle du
  * modèle officiel resources/lettres/lettre-admission.docx, enregistré depuis
  * Word : pour la changer, modifier ce fichier en gardant ses repères ${…}. Seuls
- * ces repères sont remplacés, par les paramètres de la campagne.
+ * ces repères sont remplacés, par les paramètres de la campagne. Après un
+ * enregistrement dans Word, relancer les tests : Word peut découper un repère.
  */
 final class LettreAdmissionWord
 {
@@ -38,13 +39,15 @@ final class LettreAdmissionWord
     {
         $fichier = (string) tempnam(sys_get_temp_dir(), 'lettre-admission-');
         try {
-            copy(resource_path(self::MODELE), $fichier);
             $zip = new ZipArchive;
-            if ($zip->open($fichier) !== true) {
+            if (! copy(resource_path(self::MODELE), $fichier) || $zip->open($fichier) !== true) {
                 throw new RuntimeException('Modèle de lettre d\'admission illisible.');
             }
             $this->remplir($zip, $p, $auditeurs, $signature);
-            $zip->close();
+            // Sans ce contrôle, un échec à l'écriture renverrait le modèle non rempli.
+            if (! $zip->close()) {
+                throw new RuntimeException('Écriture du fichier de lettres impossible.');
+            }
 
             return (string) file_get_contents($fichier);
         } finally {
@@ -60,11 +63,15 @@ final class LettreAdmissionWord
         }
         [, $debut, $modele, $section, $fin] = $document;
         $image = $signature === null ? '' : $this->integrerSignature($zip, $signature);
-        $modele = (string) preg_replace_callback(self::COPIE, fn (array $m): string => $this->copies($m[0], $p), $modele);
+        if (preg_match(self::COPIE, $modele, $ligneCopie) !== 1) {
+            throw new RuntimeException('Modèle de lettre d\'admission : ligne de copie introuvable.');
+        }
+        // Dans le même strtr que les repères : une valeur saisie n'est jamais relue comme un repère.
+        $copies = [$ligneCopie[0] => $this->copies($ligneCopie[0], $p)];
 
         $lettres = [];
         foreach ($auditeurs as $c) {
-            $lettres[] = strtr($modele, $this->variables($p, $c));
+            $lettres[] = strtr($modele, $copies + $this->variables($p, $c));
         }
         $dernier = array_key_last($lettres);
         $corps = '';
@@ -143,7 +150,7 @@ final class LettreAdmissionWord
     {
         $taille = @getimagesize($chemin);
         if ($taille === false || $taille[1] === 0) {
-            throw new RuntimeException('Signature illisible : image attendue.');
+            throw new DocumentsIncomplets(['Signature et cachet (image illisible : déposez-la à nouveau)']);
         }
         $extension = (string) image_type_to_extension($taille[2], false);
         $zip->addFile($chemin, 'word/media/signature.'.$extension);
@@ -175,8 +182,11 @@ final class LettreAdmissionWord
             .'</pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>';
     }
 
+    /** Échappe pour le XML et retire ce que XML 1.0 interdit : un seul caractère de contrôle rendrait tout le fichier illisible. */
     private static function xml(string $texte): string
     {
-        return htmlspecialchars($texte, ENT_XML1 | ENT_NOQUOTES, 'UTF-8');
+        $propre = (string) preg_replace('/[^\x{9}\x{A}\x{D}\x{20}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', '', mb_scrub($texte, 'UTF-8'));
+
+        return htmlspecialchars($propre, ENT_XML1 | ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 }

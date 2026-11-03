@@ -18,7 +18,7 @@ use InvalidArgumentException;
  *
  * Seuls les retenus non retirés dotés d'un matricule y figurent, dans l'ordre
  * des matricules. La génération est refusée tant qu'un paramètre de la
- * campagne ou la signature manque. Chaque téléchargement est journalisé, sans
+ * campagne manque ; le scan de signature est facultatif. Chaque téléchargement est journalisé, sans
  * contenu (les accès FOAD contiennent des mots de passe).
  */
 final class DocumentsAuditeurs

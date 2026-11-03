@@ -144,18 +144,12 @@ final class GabaritLettre
         $run->addText("\t".$objet, self::police(self::TEXTE, 11.5, italic: true));
     }
 
-    /** Copies à gauche ; titre du signataire et signature scannée à droite. */
-    public static function signature(Section $section, ParametresLettres $p, ?string $image, bool $copies = true): void
+    /** Titre du signataire et signature scannée, s'il y en a une, dans la moitié droite. */
+    public static function signature(Section $section, ?string $image): void
     {
         $table = self::tableau($section);
         $table->addRow();
-        $gauche = $table->addCell(intdiv(self::LARGEUR, 2), ['valign' => 'bottom']);
-        if ($copies && $p->copies() !== []) {
-            $gauche->addText('Copies :', self::police(self::LIBELLE, 8, bold: true, color: self::GRIS), ['spaceAfter' => 0]);
-            foreach ($p->copies() as $copie) {
-                $gauche->addText('– '.$copie, self::police(self::LIBELLE, 8, color: self::GRIS), ['spaceAfter' => 0]);
-            }
-        }
+        $table->addCell(intdiv(self::LARGEUR, 2));
         $droite = $table->addCell(intdiv(self::LARGEUR, 2))->addTextRun(['alignment' => Jc::CENTER, 'spaceBefore' => 80, 'spaceAfter' => 20]);
         $droite->addText((string) config('documents_auditeurs.signataire'), self::police(self::TEXTE, 11, bold: true));
         if ($image !== null) {

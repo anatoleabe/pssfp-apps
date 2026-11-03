@@ -64,6 +64,19 @@ beforeEach(function (): void {
 });
 
 /** Texte du document Word, sections comptées. */
+function lireXmlLettres(CampagneCandidature $campagne, Closure $agent): SimpleXMLElement|false
+{
+    $fichier = tempnam(sys_get_temp_dir(), 'test-docx-');
+    file_put_contents($fichier, app(DocumentsAuditeurs::class)->generer($campagne, ParametresLettres::DOCUMENT_ADMISSION, $agent('admin'))['contenu']);
+    $zip = new ZipArchive;
+    $zip->open($fichier);
+    $xml = (string) $zip->getFromName('word/document.xml');
+    $zip->close();
+    unlink($fichier);
+
+    return simplexml_load_string($xml);
+}
+
 function lireWord(string $contenu): array
 {
     $fichier = tempnam(sys_get_temp_dir(), 'test-docx-');
@@ -335,19 +348,69 @@ it('reproduit toutes les copies et échappe les caractères spéciaux des param�
     expect($word['texte'])->toContain('– Doyen & Vice-Doyen')->toContain('– Scolarité')->toContain('– Archives');
 });
 
-it('refuse de produire une lettre avec une signature qui n\'est pas une image', function (): void {
-    $p = ParametresLettres::pour($this->campagne);
+it('demande de redéposer une signature qui n\'est pas une image', function (): void {
     $texte = tempnam(sys_get_temp_dir(), 'pas-une-image-');
     file_put_contents($texte, 'texte');
 
     try {
-        app(LettreAdmissionWord::class)->generer($p, [], $texte);
+        app(LettreAdmissionWord::class)->generer(ParametresLettres::pour($this->campagne), [], $texte);
         $this->fail('La signature invalide aurait dû être refusée.');
-    } catch (RuntimeException $e) {
-        expect($e->getMessage())->toContain('Signature illisible');
+    } catch (DocumentsIncomplets $e) {
+        expect($e->manquants)->toContain('Signature et cachet (image illisible : déposez-la à nouveau)');
     } finally {
         unlink($texte);
     }
+});
+
+it('garde un fichier Word valide malgré un caractère de contrôle collé dans un nom', function (): void {
+    $this->alice->update(['prenom' => "Alice\x0BMarie\x08"]);
+
+    $word = lireWord(app(DocumentsAuditeurs::class)->generer($this->campagne, ParametresLettres::DOCUMENT_ADMISSION, ($this->agent)('admin'))['contenu']);
+
+    expect($word['texte'])->toContain('MENGUE AliceMarie');
+    expect(lireXmlLettres($this->campagne, $this->agent))->not->toBeFalse();
+});
+
+it('ne relit jamais une copie saisie comme un repère du modèle, avec une ou plusieurs copies', function (array $copies, array $attendus): void {
+    $this->campagne->update(['parametres_lettres' => array_merge($this->campagne->parametres_lettres, ['copies' => $copies])]);
+
+    $texte = lireWord(app(DocumentsAuditeurs::class)->generer($this->campagne->fresh(), ParametresLettres::DOCUMENT_ADMISSION, ($this->agent)('admin'))['contenu'])['texte'];
+
+    expect($texte)->toContain(...$attendus);
+})->with([
+    'une seule' => [['Archives'], ['– Archives']],
+    'avec repère' => [['Dossier ${matricule}', 'Archives'], ['– Dossier ${matricule}', '– Archives']],
+]);
+
+it('intègre un scan JPEG en déclarant son type', function (): void {
+    $jpeg = tempnam(sys_get_temp_dir(), 'scan-');
+    $image = imagecreatetruecolor(4, 2);
+    imagejpeg($image, $jpeg);
+    imagedestroy($image);
+
+    $contenu = app(LettreAdmissionWord::class)->generer(ParametresLettres::pour($this->campagne), [$this->alice], $jpeg);
+    unlink($jpeg);
+    $fichier = tempnam(sys_get_temp_dir(), 'test-docx-');
+    file_put_contents($fichier, $contenu);
+    $zip = new ZipArchive;
+    $zip->open($fichier);
+    $types = (string) $zip->getFromName('[Content_Types].xml');
+    $present = $zip->getFromName('word/media/signature.jpeg');
+    $zip->close();
+    unlink($fichier);
+
+    expect($types)->toContain('Extension="jpeg"')->and($present)->not->toBeFalse();
+});
+
+it('ne laisse aucun chemin local ni nom dans le modèle du dépôt public', function (): void {
+    $zip = new ZipArchive;
+    $zip->open(resource_path('lettres/lettre-admission.docx'));
+    $document = (string) $zip->getFromName('word/document.xml');
+    $proprietes = (string) $zip->getFromName('docProps/core.xml');
+    $zip->close();
+
+    expect($document)->not->toContain('C:\\')->not->toContain('Users')->toContain('descr="Logo du PSSFP"')
+        ->and($proprietes)->toContain('<dc:creator>PSSFP</dc:creator>')->toContain('<cp:lastModifiedBy>PSSFP</cp:lastModifiedBy>');
 });
 
 it('garde contact@pssfp.org comme adresse officielle dans le pied des lettres d\'accès', function (): void {
