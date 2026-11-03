@@ -16,7 +16,7 @@ class core_renderer extends \theme_boost\output\core_renderer {
     private const LIBRARY_URL = 'https://library.pssfp.org';
     private const AUDITOR_URL = 'https://apply.pssfp.org/login?mode=matricule';
     private const CONTACT_URL = 'https://pssfp.org/contact';
-    private const CONTACT_EMAIL = 'admissions@pssfp.org';
+    private const CONTACT_EMAIL = 'contact@pssfp.org';
 
     public function get_logo_url($maxwidth = null, $maxheight = 200) {
         return $this->image_url('logo', 'theme_pssfp');
