@@ -21,7 +21,7 @@ return [
         // « {numero} » : rang du matricule dans la promotion.
         'reference_acces' => 'N° {annee}/ {numero} L/MINFI/SG/PSSFP/PCP/USI',
         'reference_admission' => 'N° {annee}/ {numero} L/MINFI/SG/PSSFP/PCP/UAAF',
-        'rentree_heure' => '08:00 heures précise',
+        'rentree_heure' => '08:00 heures précises',
         'frais_inscription_montant' => 185000,
         'frais_inscription_echeance' => 'Dès réception de la notification (avant la rentrée)',
         'frais_tranche1_montant' => 500000,

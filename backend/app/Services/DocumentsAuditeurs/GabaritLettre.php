@@ -15,12 +15,13 @@ use PhpOffice\PhpWord\SimpleType\Jc;
 use PhpOffice\PhpWord\Style\Image;
 
 /**
- * Mise en page des lettres aux auditeurs : sobre et aérée, dans l'esprit des
- * correspondances des grandes écoles.
+ * Mise en page des lettres aux auditeurs : une correspondance administrative
+ * aux caractéristiques constantes, comme le modèle de la lettre d'admission.
  *
- * - Garamond pour le texte, Calibri pour les libellés, Consolas pour les
- *   identifiants : polices livrées avec Microsoft Office sur Windows et Mac,
- *   le document restant modifiable avant impression.
+ * - Garamond partout, sans italique ; Tahoma pour le seul en-tête administratif.
+ * - Consolas pour le seul identifiant et le mot de passe, où il faut distinguer
+ *   le l du 1 et le O du 0. Polices livrées avec Microsoft Office sur Windows et
+ *   Mac, le document restant modifiable avant impression.
  * - Prune PSSFP pour le nom du destinataire et les titres, filets or
  *   champagne, le reste en noir et gris.
  * - Une lettre par section : chacune commence sur une nouvelle page, et un
@@ -29,8 +30,6 @@ use PhpOffice\PhpWord\Style\Image;
 final class GabaritLettre
 {
     public const TEXTE = 'Garamond';
-
-    public const LIBELLE = 'Calibri';
 
     public const CODE = 'Consolas';
 
@@ -85,7 +84,7 @@ final class GabaritLettre
             'footerHeight' => Converter::cmToTwip(0.7),
         ]);
         $section->addFooter()->addText((string) config('documents_auditeurs.pied_de_page'),
-            self::police(self::LIBELLE, 7.5, color: self::GRIS),
+            self::police(self::TEXTE, 7.5, color: self::GRIS),
             ['alignment' => Jc::CENTER, 'spaceAfter' => 0, 'borderTopSize' => 4, 'borderTopColor' => self::OR]);
 
         self::enTete($section);
@@ -120,8 +119,8 @@ final class GabaritLettre
     {
         $table = self::tableau($section);
         $table->addRow();
-        $table->addCell(5200)->addText($reference, self::police(self::LIBELLE, 9, color: self::GRIS), ['spaceAfter' => 0]);
-        $table->addCell(4212)->addText('Yaoundé, le '.$date, self::police(self::TEXTE, 11.5, italic: true),
+        $table->addCell(5200)->addText($reference, self::police(self::TEXTE, 9, color: self::GRIS), ['spaceAfter' => 0]);
+        $table->addCell(4212)->addText('Yaoundé, le '.$date, self::police(self::TEXTE, 11.5),
             ['alignment' => Jc::END, 'spaceAfter' => 0]);
     }
 
@@ -131,17 +130,18 @@ final class GabaritLettre
         $droite = ['alignment' => Jc::END, 'spaceAfter' => 0];
         $section->addText('', ['size' => 6], ['spaceAfter' => 60]);
         $section->addText(mb_strtoupper((string) config('documents_auditeurs.signataire')),
-            self::police(self::LIBELLE, 8.5, bold: true, color: self::GRIS, espacement: 20), $droite);
-        $section->addText('à', self::police(self::TEXTE, 11, italic: true, color: self::GRIS), $droite + ['spaceBefore' => 40, 'spaceAfter' => 40]);
-        $section->addText(self::appellation($c), self::police(self::TEXTE, 14, bold: true, color: self::PRUNE), $droite);
-        $section->addText('Matricule '.$c->matricule, self::police(self::LIBELLE, 9.5, color: self::GRIS), $droite + ['spaceAfter' => 140]);
+            self::police(self::TEXTE, 13, bold: true), $droite);
+        $section->addText('à', self::police(self::TEXTE, 11, bold: true, color: self::GRIS), $droite + ['spaceBefore' => 40, 'spaceAfter' => 40]);
+        $section->addText(self::appellation($c), self::police(self::TEXTE, 12, bold: true, color: self::PRUNE), $droite);
+        $section->addText("Matricule\u{00A0}: ".$c->matricule, self::police(self::TEXTE, 10, bold: true, color: self::GRIS), $droite + ['spaceAfter' => 140]);
     }
 
     public static function objet(Section $section, string $objet): void
     {
         $run = $section->addTextRun(['spaceAfter' => 240, 'indentation' => ['left' => 1000, 'hanging' => 1000]]);
-        $run->addText('Objet :', self::police(self::TEXTE, 11.5, bold: true));
-        $run->addText("\t".$objet, self::police(self::TEXTE, 11.5, italic: true));
+        $run->addText('Objet', self::police(self::TEXTE, 11.5, bold: true) + ['underline' => 'single']);
+        $run->addText("\u{00A0}:", self::police(self::TEXTE, 11.5, bold: true));
+        $run->addText("\t".$objet, self::police(self::TEXTE, 11));
     }
 
     /** Titre du signataire et signature scannée, s'il y en a une, dans la moitié droite. */
@@ -150,12 +150,12 @@ final class GabaritLettre
         $table = self::tableau($section);
         $table->addRow();
         $table->addCell(intdiv(self::LARGEUR, 2));
-        $droite = $table->addCell(intdiv(self::LARGEUR, 2))->addTextRun(['alignment' => Jc::CENTER, 'spaceBefore' => 80, 'spaceAfter' => 20]);
+        $droite = $table->addCell(intdiv(self::LARGEUR, 2))->addTextRun(['alignment' => Jc::END, 'spaceBefore' => 80, 'spaceAfter' => 20]);
         $droite->addText((string) config('documents_auditeurs.signataire'), self::police(self::TEXTE, 11, bold: true));
         if ($image !== null) {
             // Flottante, derrière le texte : l'en-tête officiel est haut et le scan ne doit pas créer une seconde page.
-            $droite->addImage($image, ['height' => Converter::cmToPoint(2.0), 'marginTop' => 14, 'positioning' => Image::POSITION_RELATIVE,
-                'posHorizontal' => Image::POSITION_HORIZONTAL_CENTER, 'posHorizontalRel' => Image::POSITION_RELATIVE_TO_COLUMN,
+            $droite->addImage($image, ['height' => Converter::cmToPoint(2.0), 'marginTop' => 16, 'positioning' => Image::POSITION_RELATIVE,
+                'posHorizontal' => Image::POSITION_HORIZONTAL_RIGHT, 'posHorizontalRel' => Image::POSITION_RELATIVE_TO_COLUMN,
                 'posVerticalRel' => Image::POSITION_RELATIVE_TO_LINE, 'wrappingStyle' => Image::WRAPPING_STYLE_BEHIND]);
         }
     }
@@ -163,7 +163,7 @@ final class GabaritLettre
     /** Titre de rubrique : petites capitales prune, filet or fin. */
     public static function rubrique(Section $section, string $titre): void
     {
-        $section->addText(mb_strtoupper($titre), self::police(self::LIBELLE, 9, bold: true, color: self::PRUNE, espacement: 30),
+        $section->addText(mb_strtoupper($titre), self::police(self::TEXTE, 9, bold: true, color: self::PRUNE, espacement: 30),
             ['spaceBefore' => 160, 'spaceAfter' => 80, 'keepNext' => true, 'borderBottomSize' => 4, 'borderBottomColor' => self::OR]);
     }
 
@@ -180,10 +180,10 @@ final class GabaritLettre
     }
 
     /** @return array<string, mixed> */
-    public static function police(string $nom, float $taille, bool $bold = false, bool $italic = false,
+    public static function police(string $nom, float $taille, bool $bold = false,
         string $color = self::ENCRE, int $espacement = 0): array
     {
-        return array_filter(['name' => $nom, 'size' => $taille, 'bold' => $bold, 'italic' => $italic,
+        return array_filter(['name' => $nom, 'size' => $taille, 'bold' => $bold,
             'color' => $color, 'spacing' => $espacement], fn ($v): bool => $v !== 0);
     }
 
