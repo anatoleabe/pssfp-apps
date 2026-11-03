@@ -16,7 +16,7 @@ export default async function NotFound(): Promise<JSX.Element> {
       >
         {tnf('backHome')}
       </Link>
-      <p className="mt-7 text-sm text-[#595959]">{tnf('needHelp')} <a className="underline" href="mailto:admissions@pssfp.org">{tnf('contact')}</a>.</p>
+      <p className="mt-7 text-sm text-[#595959]">{tnf('needHelp')} <a className="underline" href="mailto:contact@pssfp.org">{tnf('contact')}</a>.</p>
     </div>
   );
 }

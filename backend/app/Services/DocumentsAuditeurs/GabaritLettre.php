@@ -126,7 +126,7 @@ final class GabaritLettre
         $section->addText(mb_strtoupper((string) config('documents_auditeurs.signataire')),
             self::police(self::LIBELLE, 8.5, bold: true, color: self::GRIS, espacement: 20), $droite);
         $section->addText('à', self::police(self::TEXTE, 11, italic: true, color: self::GRIS), $droite + ['spaceBefore' => 40, 'spaceAfter' => 40]);
-        $section->addText(trim((self::civiliteConnue($c) ?? '').' '.self::nomComplet($c)), self::police(self::TEXTE, 14, bold: true, color: self::PRUNE), $droite);
+        $section->addText(self::appellation($c), self::police(self::TEXTE, 14, bold: true, color: self::PRUNE), $droite);
         $section->addText('Matricule '.$c->matricule, self::police(self::LIBELLE, 9.5, color: self::GRIS), $droite + ['spaceAfter' => 140]);
     }
 
@@ -188,6 +188,12 @@ final class GabaritLettre
     public static function civilite(Candidature $c): string
     {
         return self::civiliteConnue($c) ?? 'Madame, Monsieur';
+    }
+
+    /** « Madame MENGUE Alice » : le destinataire, avec sa civilité si elle est connue. */
+    public static function appellation(Candidature $c): string
+    {
+        return trim((self::civiliteConnue($c) ?? '').' '.self::nomComplet($c));
     }
 
     private static function civiliteConnue(Candidature $c): ?string

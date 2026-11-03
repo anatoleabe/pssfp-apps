@@ -6,88 +6,177 @@ namespace App\Services\DocumentsAuditeurs;
 
 use App\Models\Candidature;
 use App\Services\DocumentsAuditeurs\GabaritLettre as G;
-use App\Services\ResultatsSelection\WordGabarit;
-use PhpOffice\PhpWord\Element\Section;
-use PhpOffice\PhpWord\Element\Table;
-use PhpOffice\PhpWord\SimpleType\Jc;
+use RuntimeException;
+use ZipArchive;
 
 /**
  * Lettre d'admission en première année du Master Professionnel en Finances
- * Publiques : une page par auditeur. Texte repris du modèle de la 13e
- * promotion ; dates, rentrée et frais lus dans les paramètres de la campagne.
+ * Publiques : une page par auditeur.
+ *
+ * La mise en page (en-tête, polices, marges, tableau des frais) est celle du
+ * modèle officiel resources/lettres/lettre-admission.docx, enregistré depuis
+ * Word : pour la changer, modifier ce fichier en gardant ses repères ${…}. Seuls
+ * ces repères sont remplacés, par les paramètres de la campagne.
  */
 final class LettreAdmissionWord
 {
+    private const MODELE = 'lettres/lettre-admission.docx';
+
+    private const CORPS = '~^(.*<w:body>)(.*)(<w:sectPr.*</w:sectPr>)(</w:body></w:document>\s*)$~s';
+
+    private const COPIE = '~<w:p(?: [^>]*)?>(?:(?!</w:p>).)*?\$\{copie\}.*?</w:p>~s';
+
+    private const REPERE_SIGNATURE = '</w:pPr><w:r><w:t>${signature}</w:t></w:r>';
+
+    /** 2,3 cm, en unités Word (EMU). */
+    private const HAUTEUR_SIGNATURE = 828000;
+
+    private const ID_SIGNATURE = 'rIdSignature';
+
     /** @param  iterable<Candidature>  $auditeurs  retenus dotés d'un matricule */
     public function generer(ParametresLettres $p, iterable $auditeurs, ?string $signature): string
     {
-        $word = G::document('Lettres d\'admission — '.$p->promotionCourte().' promotion');
+        $fichier = (string) tempnam(sys_get_temp_dir(), 'lettre-admission-');
+        try {
+            copy(resource_path(self::MODELE), $fichier);
+            $zip = new ZipArchive;
+            if ($zip->open($fichier) !== true) {
+                throw new RuntimeException('Modèle de lettre d\'admission illisible.');
+            }
+            $this->remplir($zip, $p, $auditeurs, $signature);
+            $zip->close();
+
+            return (string) file_get_contents($fichier);
+        } finally {
+            @unlink($fichier);
+        }
+    }
+
+    /** @param  iterable<Candidature>  $auditeurs */
+    private function remplir(ZipArchive $zip, ParametresLettres $p, iterable $auditeurs, ?string $signature): void
+    {
+        if (preg_match(self::CORPS, (string) $zip->getFromName('word/document.xml'), $document) !== 1) {
+            throw new RuntimeException('Modèle de lettre d\'admission : corps introuvable.');
+        }
+        [, $debut, $modele, $section, $fin] = $document;
+        $image = $signature === null ? '' : $this->integrerSignature($zip, $signature);
+        $modele = (string) preg_replace_callback(self::COPIE, fn (array $m): string => $this->copies($m[0], $p), $modele);
+
+        $lettres = [];
         foreach ($auditeurs as $c) {
-            $this->page(G::lettre($word), $p, $c, $signature);
+            $lettres[] = strtr($modele, $this->variables($p, $c));
+        }
+        $dernier = array_key_last($lettres);
+        $corps = '';
+        // Une section par lettre : chacune commence sur sa page, sans saut de page qui pourrait en créer une vide.
+        foreach ($lettres as $i => $lettre) {
+            $corps .= str_replace(self::REPERE_SIGNATURE, ($i === $dernier ? '' : $section).'</w:pPr>'.$image, $lettre);
+        }
+        $numero = 0;
+        $corps = (string) preg_replace_callback('~<wp:docPr id="\d+"~', function () use (&$numero): string {
+            return '<wp:docPr id="'.++$numero.'"';
+        }, $corps);
+
+        $zip->addFromString('word/document.xml', $debut.$corps.$section.$fin);
+        $zip->addFromString('word/footer1.xml', str_replace('${pied_de_page}',
+            self::xml((string) config('documents_auditeurs.pied_de_page')), (string) $zip->getFromName('word/footer1.xml')));
+        $zip->addFromString('docProps/core.xml', (string) preg_replace('~<dc:title>[^<]*</dc:title>~',
+            '<dc:title>'.self::xml('Lettres d\'admission — '.$p->promotionCourte().' promotion').'</dc:title>',
+            (string) $zip->getFromName('docProps/core.xml')));
+    }
+
+    /** @return array<string, string> repères du modèle et leur valeur, échappée pour le XML */
+    private function variables(ParametresLettres $p, Candidature $c): array
+    {
+        [$article, $periode] = $p->periodeRentree();
+        $feminin = G::feminin($c);
+        [$refDebut, $refNumero, $refFin] = $this->reference($p->reference('reference_admission', (int) $c->rang_retenu));
+
+        return array_map(self::xml(...), [
+            '${ref_debut}' => $refDebut,
+            '${ref_numero}' => $refNumero,
+            '${ref_fin}' => $refFin,
+            '${date_lettres}' => $p->date('date_lettres'),
+            '${destinataire}' => G::appellation($c),
+            '${matricule}' => (string) $c->matricule,
+            '${promotion}' => $p->promotionCourte(),
+            '${annee}' => $p->anneeAcademique(),
+            '${civilite}' => G::civilite($c),
+            '${admis}' => $feminin ? 'admise' : 'admis',
+            '${invite}' => $feminin ? 'invitée' : 'invité',
+            '${rentree_article}' => $article,
+            '${rentree_periode}' => $periode,
+            '${rentree_heure}' => $p->texte('rentree_heure'),
+            '${rentree_lieu}' => rtrim($p->texte('rentree_lieu'), ' .'),
+            '${inscription_echeance}' => $p->texte('frais_inscription_echeance'),
+            '${inscription_montant}' => $p->montant('frais_inscription_montant'),
+            '${tranche1_date}' => $p->date('frais_tranche1_date'),
+            '${tranche1_montant}' => $p->montant('frais_tranche1_montant'),
+            '${tranche2_date}' => $p->date('frais_tranche2_date'),
+            '${tranche2_montant}' => $p->montant('frais_tranche2_montant'),
+            '${total}' => $p->totalFrais(),
+            '${copie_derniere}' => (string) (array_slice($p->copies(), -1)[0] ?? ''),
+        ]);
+    }
+
+    /**
+     * « N° », le numéro de la lettre (en rouge dans le modèle), puis le service émetteur.
+     *
+     * @return array{0: string, 1: string, 2: string}
+     */
+    private function reference(string $reference): array
+    {
+        return preg_match('~^(N°\s*)(.*?L)(/.*)$~u', $reference, $m) === 1
+            ? [$m[1], $m[2], $m[3]]
+            : [$reference, '', ''];
+    }
+
+    /** Une ligne par copie, sauf la dernière que le modèle porte déjà avec son propre espacement. */
+    private function copies(string $ligne, ParametresLettres $p): string
+    {
+        return implode('', array_map(fn (string $copie): string => str_replace('${copie}', self::xml($copie), $ligne),
+            array_slice($p->copies(), 0, -1)));
+    }
+
+    /** Ajoute l'image au fichier et renvoie le dessin à placer sous le titre du signataire. */
+    private function integrerSignature(ZipArchive $zip, string $chemin): string
+    {
+        $taille = @getimagesize($chemin);
+        if ($taille === false || $taille[1] === 0) {
+            throw new RuntimeException('Signature illisible : image attendue.');
+        }
+        $extension = (string) image_type_to_extension($taille[2], false);
+        $zip->addFile($chemin, 'word/media/signature.'.$extension);
+        $zip->addFromString('word/_rels/document.xml.rels', str_replace('</Relationships>',
+            '<Relationship Id="'.self::ID_SIGNATURE.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/signature.'.$extension.'"/></Relationships>',
+            (string) $zip->getFromName('word/_rels/document.xml.rels')));
+        $types = (string) $zip->getFromName('[Content_Types].xml');
+        if (! str_contains($types, 'Extension="'.$extension.'"')) {
+            $zip->addFromString('[Content_Types].xml', str_replace('</Types>',
+                '<Default Extension="'.$extension.'" ContentType="'.$taille['mime'].'"/></Types>', $types));
         }
 
-        return WordGabarit::enBinaire($word);
+        return $this->dessin((int) round(self::HAUTEUR_SIGNATURE * $taille[0] / $taille[1]));
     }
 
-    private function page(Section $s, ParametresLettres $p, Candidature $c, ?string $signature): void
+    /** Image flottante, derrière le texte : le scan ne décale rien et la lettre tient toujours sur sa page. */
+    private function dessin(int $largeur): string
     {
-        $annee = $p->anneeAcademique();
-        G::reference($s, $p->reference('reference_admission', (int) $c->rang_retenu), $p->date('date_lettres'));
-        G::destinataire($s, $c);
-        G::objet($s, 'Votre admission au Master Professionnel en Finances Publiques ('.$p->promotionCourte()
-            .' promotion, année académique '.$annee.')');
+        $hauteur = self::HAUTEUR_SIGNATURE;
 
-        G::paragraphe($s, G::civilite($c).',');
-        G::paragraphe($s, 'J\'ai l\'honneur de vous informer que vous êtes '.(G::feminin($c) ? 'admise' : 'admis')
-            .' en première année du cycle de Master Professionnel en Finances Publiques, au sein du Programme Supérieur '
-            .'de Spécialisation en Finances Publiques (PSSFP), au titre de l\'année académique '.$annee.'.');
-        G::paragraphe($s, 'Le PSSFP a été mis sur pied par une convention entre le Ministère des Finances et '
-            .'l\'Université de Yaoundé II.');
-
-        $rentree = $s->addTextRun(G::CORPS);
-        $rentree->addText('En vous adressant mes sincères félicitations, je vous informe que la rentrée solennelle, qui marque '
-            .'le début effectif de votre cursus, aura lieu le ', G::police(G::TEXTE, 11));
-        $rentree->addText($p->date('rentree_date').' à '.$p->texte('rentree_heure'), G::police(G::TEXTE, 11, bold: true));
-        $rentree->addText(', '.rtrim($p->texte('rentree_lieu'), ' .').'.', G::police(G::TEXTE, 11));
-
-        G::paragraphe($s, 'Au préalable, vous êtes invité'.(G::feminin($c) ? 'e' : '').' à accomplir les formalités '
-            .'administratives et financières au campus de Messa, sis en face du Camp SIC. Le tableau ci-dessous précise '
-            .'les modalités de règlement des frais de formation.');
-
-        $this->frais($s, $p);
-
-        G::paragraphe($s, 'Le calendrier académique, qui précise les étapes et les rendez-vous essentiels de votre parcours, '
-            .'vous sera communiqué lors de votre inscription.');
-        G::paragraphe($s, 'Veuillez agréer, '.G::civilite($c).', l\'expression de ma parfaite considération.');
-        G::signature($s, $p, $signature);
+        return '<w:r><w:drawing><wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="251658240" behindDoc="1" locked="0" layoutInCell="1" allowOverlap="1">'
+            .'<wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:align>right</wp:align></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>0</wp:posOffset></wp:positionV>'
+            .'<wp:extent cx="'.$largeur.'" cy="'.$hauteur.'"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/>'
+            .'<wp:docPr id="1" name="Signature" descr="Signature et cachet du Président du Comité de Pilotage"/><wp:cNvGraphicFramePr/>'
+            .'<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+            .'<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="Signature"/><pic:cNvPicPr/></pic:nvPicPr>'
+            .'<pic:blipFill><a:blip r:embed="'.self::ID_SIGNATURE.'"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+            .'<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'.$largeur.'" cy="'.$hauteur.'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
+            .'</pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>';
     }
 
-    /** Tableau épuré : filets horizontaux seuls, total souligné d'un filet prune. */
-    private function frais(Section $s, ParametresLettres $p): void
+    private static function xml(string $texte): string
     {
-        G::rubrique($s, 'Frais de formation — première année de Master');
-        $table = G::tableau($s, ['cellMarginTop' => 60, 'cellMarginBottom' => 60, 'cellMarginLeft' => 100, 'cellMarginRight' => 100]);
-        $this->ligne($table, ['Nature', 'Échéance', 'Montant (FCFA)'], entete: true);
-        $this->ligne($table, ['Frais d\'inscription et péri-académiques', $p->texte('frais_inscription_echeance'), $p->montant('frais_inscription_montant')]);
-        $this->ligne($table, ['1re tranche', $p->date('frais_tranche1_date'), $p->montant('frais_tranche1_montant')]);
-        $this->ligne($table, ['2e tranche', $p->date('frais_tranche2_date'), $p->montant('frais_tranche2_montant')]);
-        $this->ligne($table, ['Total', '', $p->totalFrais()], total: true);
-        $s->addText('', ['size' => 4], ['spaceAfter' => 120]);
-    }
-
-    /** @param  array{0: string, 1: string, 2: string}  $cellules */
-    private function ligne(Table $table, array $cellules, bool $entete = false, bool $total = false): void
-    {
-        $table->addRow(null, ['cantSplit' => true, 'tblHeader' => $entete]);
-        $filet = $entete
-            ? ['borderBottomSize' => 8, 'borderBottomColor' => G::OR]
-            : ($total ? ['borderTopSize' => 10, 'borderTopColor' => G::PRUNE] : ['borderBottomSize' => 2, 'borderBottomColor' => 'D9D4CC']);
-        $police = $entete
-            ? G::police(G::LIBELLE, 8.5, bold: true, color: G::GRIS, espacement: 15)
-            : G::police(G::TEXTE, 11, bold: $total, color: $total ? G::PRUNE : G::ENCRE);
-        foreach ([[4300, Jc::START], [3112, Jc::START], [2000, Jc::END]] as $i => [$largeur, $alignement]) {
-            $texte = $entete ? mb_strtoupper($cellules[$i]) : $cellules[$i];
-            $table->addCell($largeur, $filet + ['valign' => 'center'])->addText($texte, $police, ['alignment' => $alignement, 'spaceAfter' => 0]);
-        }
+        return htmlspecialchars($texte, ENT_XML1 | ENT_NOQUOTES, 'UTF-8');
     }
 }

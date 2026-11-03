@@ -7,7 +7,7 @@ declare(strict_types=1);
  * plateforme de formation à distance (FOAD) et lettre d'admission.
  *
  * Textes repris des modèles de la scolarité (accès FOAD de la 12e promotion,
- * lettre d'admission de la 13e). Ce qui change d'une promotion à l'autre
+ * lettre d'admission de la 14e). Ce qui change d'une promotion à l'autre
  * (références, dates, rentrée, frais) se saisit dans l'admin, sur la campagne
  * (champ `parametres_lettres`) ; les valeurs ci-dessous n'en sont que les
  * valeurs par défaut.
@@ -15,13 +15,13 @@ declare(strict_types=1);
 return [
     'signataire' => 'Le Président du Comité de Pilotage',
 
-    'pied_de_page' => 'Programme Supérieur de Spécialisation en Finances Publiques · B.P. 2332 Yaoundé – Messa · www.pssfp.org · admissions@pssfp.org',
+    'pied_de_page' => 'Programme Supérieur de Spécialisation en Finances Publiques · B.P. 2332 Yaoundé – Messa · www.pssfp.org · contact@pssfp.org',
 
     'defauts' => [
         // « {numero} » : rang du matricule dans la promotion.
         'reference_acces' => 'N° {annee}/ {numero} L/MINFI/SG/PSSFP/PCP/USI',
         'reference_admission' => 'N° {annee}/ {numero} L/MINFI/SG/PSSFP/PCP/UAAF',
-        'rentree_heure' => '8 heures',
+        'rentree_heure' => '08:00 heures précise',
         'frais_inscription_montant' => 185000,
         'frais_inscription_echeance' => 'Dès réception de la notification (avant la rentrée)',
         'frais_tranche1_montant' => 500000,

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\DocumentsAuditeurs\DocumentsAuditeurs;
 use App\Services\DocumentsAuditeurs\DocumentsIncomplets;
 use App\Services\DocumentsAuditeurs\FraisInscription;
+use App\Services\DocumentsAuditeurs\LettreAdmissionWord;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
 use App\Services\ExportsRetenus\AttributionMatricules;
 use App\Support\CandidatureObjectStorage;
@@ -85,7 +86,7 @@ it('réunit les accès FOAD de toute la promotion, une page par retenu, dans l\'
         ->and($word['pages'])->toBe(2)
         ->and($word['texte'])->toContain('ATEBA Bruno')->toContain('MENGUE Alice')
         ->toContain($this->alice->moodle_password)->toContain(mb_strtolower($this->alice->matricule))
-        ->toContain('foad.pssfp.org')->toContain('3 novembre 2026')
+        ->toContain('foad.pssfp.org')->toContain('03 novembre 2026')
         ->toContain('VOTRE ESPACE AUDITEUR')->toContain('apply.pssfp.org')->toContain('Matricule')->not->toContain('FMI')
         ->not->toContain('ZANG')
         ->and(strpos($word['texte'], 'ATEBA'))->toBeLessThan(strpos($word['texte'], 'MENGUE'));
@@ -97,7 +98,7 @@ it('accorde la lettre d\'admission au genre et reprend rentrée, frais et total'
 
     expect($texte)->toContain('Madame MENGUE Alice')->toContain('vous êtes admise en première année')
         ->toContain('Monsieur ATEBA Bruno')->toContain('vous êtes admis en première année')
-        ->toContain('17 novembre 2026 à 8 heures')->toContain('à l\'Auditorium 300 du MINEPAT')
+        ->toContain('le 17 novembre 2026 dès 08:00 heures précise')->toContain('à l\'Auditorium 300 du MINEPAT')
         ->toContain("185\u{00A0}000")->toContain("1\u{00A0}185\u{00A0}000")->toContain('15 décembre 2026')
         ->toContain('14e promotion, année académique 2026-2027')
         ->toContain('N° 26/ '.$this->alice->rang_retenu.' L/MINFI/SG/PSSFP/PCP/UAAF')
@@ -235,6 +236,89 @@ it('demande de redéposer une signature introuvable ou hors de son dossier', fun
     expect(fn () => app(DocumentsAuditeurs::class)->generer($this->campagne->fresh(), ParametresLettres::DOCUMENT_ADMISSION, ($this->agent)('admin')))
         ->toThrow(DocumentsIncomplets::class);
 })->with(['signatures/absente.png', 'candidatures/piece-identite.png', 'signatures/../candidatures/x.png']);
+
+it('reprend le modèle officiel de la 14e promotion : rentrée sur deux jours, sans paragraphe sur la convention', function (): void {
+    $this->campagne->update(['parametres_lettres' => array_merge($this->campagne->parametres_lettres, [
+        'rentree_date' => '2026-11-10', 'rentree_date_fin' => '2026-11-11', 'frais_tranche1_date' => '2026-11-09',
+    ])]);
+
+    $texte = lireWord(app(DocumentsAuditeurs::class)->generer($this->campagne->fresh(), ParametresLettres::DOCUMENT_ADMISSION, ($this->agent)('admin'))['contenu'])['texte'];
+
+    expect($texte)->toContain('aura lieu du 10 au 11 novembre 2026 dès 08:00 heures précise')
+        ->toContain('09 novembre 2026')->toContain('03 novembre 2026')
+        ->not->toContain('mis sur pied');
+});
+
+it('écrit une rentrée à cheval sur deux mois et ignore une date de fin qui ne suit pas le début', function (string $debut, ?string $fin, array $attendu): void {
+    $this->campagne->update(['parametres_lettres' => array_merge($this->campagne->parametres_lettres, [
+        'rentree_date' => $debut, 'rentree_date_fin' => $fin,
+    ])]);
+
+    expect(ParametresLettres::pour($this->campagne->fresh())->periodeRentree())->toBe($attendu);
+})->with([
+    'même mois' => ['2026-11-10', '2026-11-11', ['du', '10 au 11 novembre 2026']],
+    'deux mois' => ['2026-11-30', '2026-12-01', ['du', '30 novembre au 1er décembre 2026']],
+    'deux années' => ['2026-12-31', '2027-01-02', ['du', '31 décembre 2026 au 02 janvier 2027']],
+    'sans fin' => ['2026-11-10', null, ['le', '10 novembre 2026']],
+    'fin identique' => ['2026-11-10', '2026-11-10', ['le', '10 novembre 2026']],
+    'fin antérieure' => ['2026-11-10', '2026-11-09', ['le', '10 novembre 2026']],
+]);
+
+it('génère la lettre depuis le modèle officiel : en-tête, polices, une section par auditeur, aucun repère oublié', function (): void {
+    $contenu = app(DocumentsAuditeurs::class)->generer($this->campagne, ParametresLettres::DOCUMENT_ADMISSION, ($this->agent)('admin'))['contenu'];
+    $fichier = tempnam(sys_get_temp_dir(), 'test-docx-');
+    file_put_contents($fichier, $contenu);
+    $zip = new ZipArchive;
+    $zip->open($fichier);
+    $document = (string) $zip->getFromName('word/document.xml');
+    $pied = (string) $zip->getFromName('word/footer1.xml');
+    $relations = (string) $zip->getFromName('word/_rels/document.xml.rels');
+    $signature = $zip->getFromName('word/media/signature.png');
+    $zip->close();
+    unlink($fichier);
+
+    preg_match_all('~<wp:docPr id="(\d+)"~', $document, $images);
+
+    expect($document)->toContain('w:ascii="Tahoma"')->toContain('REPUBLIQUE DU CAMEROUN')->toContain('Paix- Travail- Patrie')
+        ->toContain('w:color w:val="FF0000"')->toContain('w:top="566"')
+        ->not->toContain('${')
+        ->and(substr_count($document, '<w:sectPr'))->toBe(2)
+        // Deux lettres : logo et signature chacune, identifiants d'image tous distincts.
+        ->and($images[1])->toHaveCount(4)->and(array_unique($images[1]))->toHaveCount(4)
+        ->and(simplexml_load_string($document))->not->toBeFalse()
+        ->and($pied)->toContain('contact@pssfp.org')->not->toContain('admissions@')->not->toContain('${')
+        ->and($relations)->toContain('media/signature.png')
+        ->and($signature)->not->toBeFalse();
+});
+
+it('reproduit toutes les copies et échappe les caractères spéciaux des paramètres', function (): void {
+    $this->campagne->update(['parametres_lettres' => array_merge($this->campagne->parametres_lettres, [
+        'copies' => ['Doyen & Vice-Doyen', 'Intéressé(e)', 'Scolarité', 'Archives'],
+    ])]);
+
+    $word = lireWord(app(DocumentsAuditeurs::class)->generer($this->campagne->fresh(), ParametresLettres::DOCUMENT_ADMISSION, ($this->agent)('admin'))['contenu']);
+
+    expect($word['texte'])->toContain('– Doyen & Vice-Doyen')->toContain('– Scolarité')->toContain('– Archives');
+});
+
+it('refuse de produire une lettre avec une signature qui n\'est pas une image', function (): void {
+    $p = ParametresLettres::pour($this->campagne);
+    $texte = tempnam(sys_get_temp_dir(), 'pas-une-image-');
+    file_put_contents($texte, 'texte');
+
+    try {
+        app(LettreAdmissionWord::class)->generer($p, [], $texte);
+        $this->fail('La signature invalide aurait dû être refusée.');
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->toContain('Signature illisible');
+    } finally {
+        unlink($texte);
+    }
+});
+
+it('garde contact@pssfp.org comme adresse officielle dans le pied des lettres d\'accès', function (): void {
+    expect(config('documents_auditeurs.pied_de_page'))->toContain('contact@pssfp.org')->not->toContain('admissions@');
+});
 
 it('accorde au genre quand la civilité manque, et écrit le 1er du mois', function (): void {
     $this->alice->update(['civilite' => null, 'genre' => 'F']);

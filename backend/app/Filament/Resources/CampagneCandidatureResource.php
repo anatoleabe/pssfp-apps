@@ -160,10 +160,12 @@ class CampagneCandidatureResource extends Resource
                     ->placeholder($defaut('reference_admission'))->maxLength(120),
                 Forms\Components\DatePicker::make('parametres_lettres.date_lettres')->label('Date des lettres')->native(false)->displayFormat('d/m/Y'),
                 Forms\Components\DatePicker::make('parametres_lettres.rentree_date')->label('Date de la rentrée solennelle')->native(false)->displayFormat('d/m/Y'),
+                Forms\Components\DatePicker::make('parametres_lettres.rentree_date_fin')->label('Dernier jour de la rentrée (facultatif)')->native(false)->displayFormat('d/m/Y')
+                    ->afterOrEqual('parametres_lettres.rentree_date')->helperText('Pour une rentrée sur plusieurs jours : « du 10 au 11 novembre 2026 ».'),
                 Forms\Components\TextInput::make('parametres_lettres.rentree_heure')->label('Heure de la rentrée')->placeholder($defaut('rentree_heure'))->maxLength(40),
                 Forms\Components\TextInput::make('parametres_lettres.rentree_lieu')->label('Lieu de la rentrée')->maxLength(250)
                     ->placeholder('à l\'Auditorium 300 de l\'immeuble principal du MINEPAT, boulevard du 20 mai')
-                    ->helperText('Complète la phrase « aura lieu le … à 08 heures, … ».'),
+                    ->helperText('Complète la phrase « aura lieu le … dès 08:00 heures précise, … ».'),
                 $montant('frais_inscription_montant', 'Frais d\'inscription et péri-académiques'),
                 Forms\Components\TextInput::make('parametres_lettres.frais_inscription_echeance')->label('Échéance des frais d\'inscription')
                     ->placeholder($defaut('frais_inscription_echeance'))->maxLength(120),
