@@ -1,0 +1,56 @@
+{{!
+    @template theme_pssfp/homesections
+
+    Bas de l'accueil : premiere connexion pour un visiteur, parcours pour un compte connecte, puis services.
+}}
+<div class="pssfp-home">
+    {{^loggedin}}
+    <section class="pssfp-steps" aria-labelledby="pssfp-steps-title">
+        <div class="pssfp-section-head">
+            <p class="pssfp-eyebrow pssfp-eyebrow-dark">{{#str}}stepseyebrow, theme_pssfp{{/str}}</p>
+            <h2 id="pssfp-steps-title">{{#str}}stepstitle, theme_pssfp{{/str}}</h2>
+        </div>
+        <ol>
+            <li><strong>{{#str}}step1title, theme_pssfp{{/str}}</strong><span>{{#str}}step1desc, theme_pssfp{{/str}}</span></li>
+            <li><strong>{{#str}}step2title, theme_pssfp{{/str}}</strong><span>{{#str}}step2desc, theme_pssfp{{/str}}</span></li>
+            <li><strong>{{#str}}step3title, theme_pssfp{{/str}}</strong><span>{{#str}}step3desc, theme_pssfp{{/str}}</span></li>
+        </ol>
+    </section>
+    {{/loggedin}}
+
+    {{#loggedin}}
+    <section class="pssfp-programmes" id="pssfp-programmes" aria-labelledby="pssfp-programmes-title">
+        <div class="pssfp-section-head">
+            <p class="pssfp-eyebrow pssfp-eyebrow-dark">{{#str}}programmeseyebrow, theme_pssfp{{/str}}</p>
+            <h2 id="pssfp-programmes-title">{{#str}}programmestitle, theme_pssfp{{/str}}</h2>
+        </div>
+        <div class="pssfp-programmes-list">
+            {{#programmes}}
+                <div class="pssfp-programme">
+                    <h3>{{{name}}}</h3>
+                    <ul>
+                        {{#items}}
+                            <li>
+                                <a href="{{url}}">
+                                    <span>{{{name}}}</span>
+                                    <span class="pssfp-count">{{#str}}coursescount, theme_pssfp, {{count}}{{/str}}</span>
+                                </a>
+                            </li>
+                        {{/items}}
+                    </ul>
+                </div>
+            {{/programmes}}
+        </div>
+    </section>
+    {{/loggedin}}
+
+    <section class="pssfp-access" aria-labelledby="pssfp-access-title">
+        <h2 id="pssfp-access-title">{{#str}}accesstitle, theme_pssfp{{/str}}</h2>
+        <ul>
+            <li><a href="{{auditorurl}}"><strong>{{#str}}auditor, theme_pssfp{{/str}}</strong><span>{{#str}}auditordesc, theme_pssfp{{/str}}</span></a></li>
+            <li><a href="{{libraryurl}}"><strong>{{#str}}library, theme_pssfp{{/str}}</strong><span>{{#str}}librarydesc, theme_pssfp{{/str}}</span></a></li>
+            <li><a href="{{siteurl}}"><strong>{{#str}}website, theme_pssfp{{/str}}</strong><span>{{#str}}websitedesc, theme_pssfp{{/str}}</span></a></li>
+            <li><a href="{{contacturl}}"><strong>{{#str}}help, theme_pssfp{{/str}}</strong><span>{{#str}}helpdesc, theme_pssfp{{/str}}</span></a></li>
+        </ul>
+    </section>
+</div>

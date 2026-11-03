@@ -1,0 +1,53 @@
+{{!
+    @template theme_pssfp/hero
+
+    Haut de l'accueil de eCampus PSSFP : presentation, chiffres et annonce.
+}}
+<div class="pssfp-home">
+    <section class="pssfp-hero" aria-labelledby="pssfp-hero-title">
+        <div class="pssfp-hero-text">
+            <p class="pssfp-eyebrow">{{#str}}eyebrow, theme_pssfp{{/str}}</p>
+            <h1 id="pssfp-hero-title">{{#str}}tagline, theme_pssfp{{/str}}</h1>
+            <p class="pssfp-hero-lead">{{#str}}lead, theme_pssfp{{/str}}</p>
+            <div class="pssfp-hero-actions">
+                {{#loggedin}}
+                    <a class="pssfp-btn pssfp-btn-gold" href="{{mycoursesurl}}">{{#str}}gotocourses, theme_pssfp{{/str}}</a>
+                    <a class="pssfp-btn pssfp-btn-ghost" href="#pssfp-programmes">{{#str}}seeprogrammes, theme_pssfp{{/str}}</a>
+                {{/loggedin}}
+                {{^loggedin}}
+                    <a class="pssfp-btn pssfp-btn-gold" href="{{loginurl}}">{{#str}}login, theme_pssfp{{/str}}</a>
+                    <a class="pssfp-btn pssfp-btn-ghost" href="{{formationsurl}}">{{#str}}seeformations, theme_pssfp{{/str}}</a>
+                {{/loggedin}}
+            </div>
+            {{#loggedin}}<p class="pssfp-hero-hello">{{#str}}hello, theme_pssfp, {{firstname}}{{/str}}</p>{{/loggedin}}
+        </div>
+        <figure class="pssfp-hero-photo">
+            <img src="{{photourl}}" width="900" height="900" alt="{{#str}}photoalt, theme_pssfp{{/str}}" fetchpriority="high">
+        </figure>
+    </section>
+
+    <ul class="pssfp-facts">
+        <li><strong>{{auditorcount}}</strong> {{#str}}factauditors, theme_pssfp{{/str}}</li>
+        <li><strong>{{coursecount}}</strong> {{#str}}factcourses, theme_pssfp{{/str}}</li>
+        <li><strong>5</strong> {{#str}}factspecialities, theme_pssfp{{/str}}</li>
+        <li><strong>24 h/24</strong> {{#str}}factaccess, theme_pssfp{{/str}}</li>
+    </ul>
+
+    {{#announcement}}
+    <div class="pssfp-announce-wrap">
+        <section class="pssfp-announce" aria-labelledby="pssfp-announce-title">
+            <div class="pssfp-section-head">
+                <p class="pssfp-eyebrow pssfp-eyebrow-dark">{{#str}}announceeyebrow, theme_pssfp{{/str}}</p>
+                <h2 id="pssfp-announce-title">{{title}}</h2>
+            </div>
+            <div class="pssfp-announce-body">
+                <dl>
+                    <div><dt>{{#str}}announcewhen, theme_pssfp{{/str}}</dt><dd>{{when}}</dd></div>
+                    <div><dt>{{#str}}announcewhere, theme_pssfp{{/str}}</dt><dd>{{where}}</dd></div>
+                </dl>
+                {{#note}}<p>{{note}}</p>{{/note}}
+            </div>
+        </section>
+    </div>
+    {{/announcement}}
+</div>

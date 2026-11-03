@@ -1,0 +1,16 @@
+// Charte PSSFP (ADR-0008) appliquee aux variables de Boost.
+$pssfp-prune: #4A2E67;
+$pssfp-prune-dark: #3A2452;
+$pssfp-graphite: #3C3C3C;
+$pssfp-ivoire: #FAF7F2;
+
+$primary: $pssfp-prune;
+$body-bg: $pssfp-ivoire;
+$body-color: $pssfp-graphite;
+$font-family-sans-serif: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+$headings-font-family: "Cormorant Garamond", Georgia, serif;
+$headings-font-weight: 600;
+$border-radius: .25rem;
+$border-radius-lg: .375rem;
+$border-radius-sm: .2rem;
+$login-layout-left-bg: $pssfp-prune;

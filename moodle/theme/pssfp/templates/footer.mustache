@@ -1,0 +1,24 @@
+{{!
+    @template theme_pssfp/footer
+
+    Pied de page institutionnel.
+}}
+<footer class="pssfp-footer" aria-label="{{#str}}footerlabel, theme_pssfp{{/str}}">
+    <div class="pssfp-footer-inner">
+        <div class="pssfp-footer-brand">
+            <span class="pssfp-logo-plate"><img src="{{logourl}}" width="96" height="75" alt="PSSFP" loading="lazy"></span>
+            <p class="pssfp-footer-tagline">{{#str}}tagline, theme_pssfp{{/str}}</p>
+            <p>{{#str}}fullname, theme_pssfp{{/str}}<br>{{#str}}campus, theme_pssfp{{/str}}</p>
+        </div>
+        <nav aria-label="{{#str}}footernav, theme_pssfp{{/str}}">
+            <ul>
+                <li><a href="{{siteurl}}">{{#str}}website, theme_pssfp{{/str}}</a></li>
+                <li><a href="{{libraryurl}}">{{#str}}library, theme_pssfp{{/str}}</a></li>
+                <li><a href="{{auditorurl}}">{{#str}}auditor, theme_pssfp{{/str}}</a></li>
+                <li><a href="{{contacturl}}">{{#str}}help, theme_pssfp{{/str}}</a></li>
+                <li><a href="mailto:{{contactemail}}">{{contactemail}}</a></li>
+            </ul>
+        </nav>
+    </div>
+    <p class="pssfp-footer-legal">&copy; {{year}} PSSFP</p>
+</footer>
