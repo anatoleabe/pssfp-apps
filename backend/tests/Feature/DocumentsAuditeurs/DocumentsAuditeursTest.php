@@ -111,9 +111,9 @@ it('accorde la lettre d\'admission au genre et reprend rentrée, frais et total'
 
     expect($texte)->toContain('Madame MENGUE Alice')->toContain('vous êtes admise en première année')
         ->toContain('Monsieur ATEBA Bruno')->toContain('vous êtes admis en première année')
-        ->toContain('le 17 novembre 2026 dès 08:00 heures précise')->toContain('à l\'Auditorium 300 du MINEPAT')
+        ->toContain('le 17 novembre 2026 à 08:00 heures précises')->toContain('à l\'Auditorium 300 du MINEPAT')
         ->toContain("185\u{00A0}000")->toContain("1\u{00A0}185\u{00A0}000")->toContain('15 décembre 2026')
-        ->toContain('Votre admission au cycle de Master Professionnel en Finances Publiques au titre de l’année académique 2026 – 2027.')
+        ->toContain('Votre admission au cycle de Master Professionnel en Finances Publiques au titre de l’année académique 2026 - 2027.')
         ->toContain('J\'ai le plaisir de vous informer')->not->toContain('l\'honneur')
         ->toContain('règlement des frais de votre première année de formation.')
         ->toContain('N° 26/ '.$this->alice->rang_retenu.' L/MINFI/SG/PSSFP/PCP/UAAF')
@@ -259,7 +259,7 @@ it('reprend le modèle officiel de la 14e promotion : rentrée sur deux jours, s
 
     $texte = lireWord(app(DocumentsAuditeurs::class)->generer($this->campagne->fresh(), ParametresLettres::DOCUMENT_ADMISSION, ($this->agent)('admin'))['contenu'])['texte'];
 
-    expect($texte)->toContain('aura lieu du 10 au 11 novembre 2026 dès 08:00 heures précise')
+    expect($texte)->toContain('aura lieu du 10 au 11 novembre 2026 à 08:00 heures précises')
         ->toContain('09 novembre 2026')->toContain('03 novembre 2026')
         ->not->toContain('mis sur pied');
 });
@@ -400,6 +400,22 @@ it('intègre un scan JPEG en déclarant son type', function (): void {
     unlink($fichier);
 
     expect($types)->toContain('Extension="jpeg"')->and($present)->not->toBeFalse();
+});
+
+it('garde des caractéristiques constantes : corps en Garamond, sans italique ni révision', function (): void {
+    $contenu = app(DocumentsAuditeurs::class)->generer($this->campagne, ParametresLettres::DOCUMENT_ADMISSION, ($this->agent)('admin'))['contenu'];
+    $fichier = tempnam(sys_get_temp_dir(), 'test-docx-');
+    file_put_contents($fichier, $contenu);
+    $zip = new ZipArchive;
+    $zip->open($fichier);
+    $document = (string) $zip->getFromName('word/document.xml');
+    $reglages = (string) $zip->getFromName('word/settings.xml');
+    $zip->close();
+    unlink($fichier);
+
+    expect($document)->not->toContain('<w:i/>')->not->toContain('<w:ins ')->not->toContain('<w:del ')->not->toContain('w:author=')
+        ->not->toContain('Times New Roman')
+        ->and($reglages)->not->toContain('trackRevisions');
 });
 
 it('ne laisse aucun chemin local ni nom dans le modèle du dépôt public', function (): void {

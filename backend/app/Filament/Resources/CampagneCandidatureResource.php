@@ -165,7 +165,7 @@ class CampagneCandidatureResource extends Resource
                 Forms\Components\TextInput::make('parametres_lettres.rentree_heure')->label('Heure de la rentrée')->placeholder($defaut('rentree_heure'))->maxLength(40),
                 Forms\Components\TextInput::make('parametres_lettres.rentree_lieu')->label('Lieu de la rentrée')->maxLength(250)
                     ->placeholder('à l\'Auditorium 300 de l\'immeuble principal du MINEPAT, boulevard du 20 mai')
-                    ->helperText('Complète la phrase « aura lieu le … dès 08:00 heures précise, … ».'),
+                    ->helperText('Complète la phrase « aura lieu le … à 08:00 heures précises, … ».'),
                 $montant('frais_inscription_montant', 'Frais d\'inscription et péri-académiques'),
                 Forms\Components\TextInput::make('parametres_lettres.frais_inscription_echeance')->label('Échéance des frais d\'inscription')
                     ->placeholder($defaut('frais_inscription_echeance'))->maxLength(120),

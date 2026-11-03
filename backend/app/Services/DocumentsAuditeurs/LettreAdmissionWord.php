@@ -106,7 +106,7 @@ final class LettreAdmissionWord
             '${date_lettres}' => $p->date('date_lettres'),
             '${destinataire}' => G::appellation($c),
             '${matricule}' => (string) $c->matricule,
-            '${annee_espacee}' => str_replace('-', ' – ', $p->anneeAcademique()),
+            '${annee_objet}' => str_replace('-', ' - ', $p->anneeAcademique()),
             '${annee}' => $p->anneeAcademique(),
             '${civilite}' => G::civilite($c),
             '${admis}' => $feminin ? 'admise' : 'admis',
