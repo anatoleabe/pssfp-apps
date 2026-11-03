@@ -12,6 +12,7 @@ use PhpOffice\PhpWord\Element\Table;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Shared\Converter;
 use PhpOffice\PhpWord\SimpleType\Jc;
+use PhpOffice\PhpWord\Style\Image;
 
 /**
  * Mise en page des lettres aux auditeurs : sobre et aérée, dans l'esprit des
@@ -48,11 +49,19 @@ final class GabaritLettre
 
     public const CORPS = ['alignment' => Jc::BOTH, 'spaceAfter' => 100, 'lineHeight' => 1.15];
 
-    private const EN_TETE_FR = ['RÉPUBLIQUE DU CAMEROUN', 'Paix – Travail – Patrie', 'MINISTÈRE DES FINANCES',
-        'SECRÉTARIAT GÉNÉRAL', 'PROGRAMME SUPÉRIEUR DE SPÉCIALISATION EN FINANCES PUBLIQUES'];
+    /** Police de l'en-tête administratif, celle du modèle officiel de lettre d'admission. */
+    public const EN_TETE = 'Tahoma';
 
-    private const EN_TETE_EN = ['REPUBLIC OF CAMEROON', 'Peace – Work – Fatherland', 'MINISTRY OF FINANCE',
-        'GENERAL SECRETARIAT', 'ADVANCED PROGRAM OF SPECIALISATION IN PUBLIC FINANCE'];
+    private const SEPARATEUR = '--------------';
+
+    /** [texte, taille, gras], dans l'ordre et les tailles du modèle officiel. */
+    private const EN_TETE_FR = [['REPUBLIQUE DU CAMEROUN', 10, false], ['Paix- Travail- Patrie', 7, true], [self::SEPARATEUR, 10, false],
+        ['MINISTERE DES FINANCES', 10, false], [self::SEPARATEUR, 10, false], ['SECRETARIAT GENERAL', 10, false], [self::SEPARATEUR, 10, false],
+        ['PROGRAMME SUPERIEUR DE SPECIALISATION EN FINANCES PUBLIQUES', 9, false], [self::SEPARATEUR, 10, false]];
+
+    private const EN_TETE_EN = [['REPUBLIC OF CAMEROON', 10, false], ['Peace- Work- Fatherland', 7, true], [self::SEPARATEUR, 10, false],
+        ['MINISTRY OF FINANCE', 10, false], ['----------------', 10, false], ['GENERAL SECRETARIAT', 10, false], [self::SEPARATEUR, 10, false],
+        ['ADVANCED PROGRAM OF SPECIALISATION IN PUBLIC FINANCE', 9, false], [self::SEPARATEUR, 10, false]];
 
     public static function document(string $titre): PhpWord
     {
@@ -84,27 +93,25 @@ final class GabaritLettre
         return $section;
     }
 
-    /** En-tête bilingue de l'administration, logo au centre, filet or dessous. */
+    /** En-tête bilingue du modèle officiel : tableau flottant centré sur la page, plus large que le texte, logo au centre. */
     private static function enTete(Section $section): void
     {
-        $table = self::tableau($section);
-        $table->addRow();
-        self::colonneEnTete($table->addCell(3900, ['valign' => 'center']), self::EN_TETE_FR);
-        $table->addCell(1612, ['valign' => 'center'])->addImage(WordGabarit::image('logo.png'),
-            ['width' => Converter::cmToPoint(2.1), 'alignment' => Jc::CENTER]);
-        self::colonneEnTete($table->addCell(3900, ['valign' => 'center']), self::EN_TETE_EN);
-
-        $section->addText('', ['size' => 4], ['spaceAfter' => 160, 'borderBottomSize' => 6, 'borderBottomColor' => self::OR]);
+        $table = $section->addTable(['width' => 10740, 'unit' => 'dxa', 'layout' => 'fixed', 'cellMarginTop' => 142, 'cellMarginLeft' => 108, 'cellMarginRight' => 108, 'position' => [
+            'vertAnchor' => 'page', 'horzAnchor' => 'margin', 'tblpXSpec' => 'center', 'tblpY' => 205,
+            'leftFromText' => 141, 'rightFromText' => 141, 'bottomFromText' => 200,
+        ]]);
+        $table->addRow(2010);
+        self::colonneEnTete($table->addCell(4139), self::EN_TETE_FR);
+        $table->addCell(2835)->addImage(WordGabarit::image('logo.png'), ['width' => 129.75, 'height' => 102, 'alignment' => Jc::CENTER]);
+        self::colonneEnTete($table->addCell(3766), self::EN_TETE_EN);
     }
 
-    /** @param  list<string>  $lignes */
+    /** @param  list<array{0: string, 1: int, 2: bool}>  $lignes */
     private static function colonneEnTete(Cell $cellule, array $lignes): void
     {
-        $centre = ['alignment' => Jc::CENTER, 'spaceAfter' => 0, 'lineHeight' => 1.0];
-        foreach ($lignes as $i => $ligne) {
-            $devise = $i === 1;
-            $cellule->addText($ligne, self::police(self::LIBELLE, $devise ? 7 : 7.5, bold: ! $devise && $i !== 4,
-                italic: $devise, color: self::ENCRE), $centre + ['spaceAfter' => in_array($i, [1, 2, 3], true) ? 40 : 0]);
+        foreach ($lignes as [$ligne, $taille, $gras]) {
+            $cellule->addText($ligne, self::police(self::EN_TETE, $taille, bold: $gras, color: '000000'),
+                ['alignment' => Jc::CENTER, 'spaceAfter' => 0, 'lineHeight' => 1.0]);
         }
     }
 
@@ -126,7 +133,7 @@ final class GabaritLettre
         $section->addText(mb_strtoupper((string) config('documents_auditeurs.signataire')),
             self::police(self::LIBELLE, 8.5, bold: true, color: self::GRIS, espacement: 20), $droite);
         $section->addText('à', self::police(self::TEXTE, 11, italic: true, color: self::GRIS), $droite + ['spaceBefore' => 40, 'spaceAfter' => 40]);
-        $section->addText(trim((self::civiliteConnue($c) ?? '').' '.self::nomComplet($c)), self::police(self::TEXTE, 14, bold: true, color: self::PRUNE), $droite);
+        $section->addText(self::appellation($c), self::police(self::TEXTE, 14, bold: true, color: self::PRUNE), $droite);
         $section->addText('Matricule '.$c->matricule, self::police(self::LIBELLE, 9.5, color: self::GRIS), $droite + ['spaceAfter' => 140]);
     }
 
@@ -137,23 +144,19 @@ final class GabaritLettre
         $run->addText("\t".$objet, self::police(self::TEXTE, 11.5, italic: true));
     }
 
-    /** Copies à gauche ; titre du signataire et signature scannée à droite. */
-    public static function signature(Section $section, ParametresLettres $p, ?string $image, bool $copies = true): void
+    /** Titre du signataire et signature scannée, s'il y en a une, dans la moitié droite. */
+    public static function signature(Section $section, ?string $image): void
     {
         $table = self::tableau($section);
         $table->addRow();
-        $gauche = $table->addCell(intdiv(self::LARGEUR, 2), ['valign' => 'bottom']);
-        if ($copies && $p->copies() !== []) {
-            $gauche->addText('Copies :', self::police(self::LIBELLE, 8, bold: true, color: self::GRIS), ['spaceAfter' => 0]);
-            foreach ($p->copies() as $copie) {
-                $gauche->addText('– '.$copie, self::police(self::LIBELLE, 8, color: self::GRIS), ['spaceAfter' => 0]);
-            }
-        }
-        $droite = $table->addCell(intdiv(self::LARGEUR, 2));
-        $droite->addText((string) config('documents_auditeurs.signataire'), self::police(self::TEXTE, 11, bold: true),
-            ['alignment' => Jc::CENTER, 'spaceBefore' => 80, 'spaceAfter' => 20]);
+        $table->addCell(intdiv(self::LARGEUR, 2));
+        $droite = $table->addCell(intdiv(self::LARGEUR, 2))->addTextRun(['alignment' => Jc::CENTER, 'spaceBefore' => 80, 'spaceAfter' => 20]);
+        $droite->addText((string) config('documents_auditeurs.signataire'), self::police(self::TEXTE, 11, bold: true));
         if ($image !== null) {
-            $droite->addImage($image, ['height' => Converter::cmToPoint(2.3), 'alignment' => Jc::CENTER]);
+            // Flottante, derrière le texte : l'en-tête officiel est haut et le scan ne doit pas créer une seconde page.
+            $droite->addImage($image, ['height' => Converter::cmToPoint(2.0), 'marginTop' => 14, 'positioning' => Image::POSITION_RELATIVE,
+                'posHorizontal' => Image::POSITION_HORIZONTAL_CENTER, 'posHorizontalRel' => Image::POSITION_RELATIVE_TO_COLUMN,
+                'posVerticalRel' => Image::POSITION_RELATIVE_TO_LINE, 'wrappingStyle' => Image::WRAPPING_STYLE_BEHIND]);
         }
     }
 
@@ -188,6 +191,12 @@ final class GabaritLettre
     public static function civilite(Candidature $c): string
     {
         return self::civiliteConnue($c) ?? 'Madame, Monsieur';
+    }
+
+    /** « Madame MENGUE Alice » : le destinataire, avec sa civilité si elle est connue. */
+    public static function appellation(Candidature $c): string
+    {
+        return trim((self::civiliteConnue($c) ?? '').' '.self::nomComplet($c));
     }
 
     private static function civiliteConnue(Candidature $c): ?string

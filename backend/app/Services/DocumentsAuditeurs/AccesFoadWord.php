@@ -51,7 +51,7 @@ final class AccesFoadWord
 
         G::paragraphe($s, 'Je vous souhaite la bienvenue au PSSFP ; la scolarité reste à votre disposition pour toute assistance.');
         G::paragraphe($s, 'Veuillez agréer, '.G::civilite($c).', l\'expression de mes salutations distinguées.');
-        G::signature($s, $p, $signature, copies: false);
+        G::signature($s, $signature);
     }
 
     /** Encadré ivoire, filet prune à gauche : ce que l'auditeur doit retrouver d'un coup d'œil. */

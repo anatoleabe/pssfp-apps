@@ -145,7 +145,7 @@ async function InstitutionalFooter(): Promise<JSX.Element> {
           <address className="mt-2 space-y-1 not-italic">
             <p>{t('address')}</p>
             <p><a className="underline hover:text-white" href="tel:+237222234567">+237 222 23 45 67</a></p>
-            <p><a className="underline hover:text-white" href="mailto:admissions@pssfp.org">admissions@pssfp.org</a></p>
+            <p><a className="underline hover:text-white" href="mailto:contact@pssfp.org">contact@pssfp.org</a></p>
           </address>
         </div>
         <nav aria-label={t('linksAria')} className="flex flex-col items-start gap-2 text-sm">
