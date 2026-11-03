@@ -1,0 +1,19 @@
+{{!
+    @template core/login_panel
+
+    Panneau d'accueil de la page de connexion de eCampus PSSFP.
+}}
+<div class="login-layout-left-content pssfp-login-panel">
+    {{#leftinstructions}}
+        <div>{{{leftinstructions}}}</div>
+    {{/leftinstructions}}
+    {{^leftinstructions}}
+        <p class="pssfp-eyebrow">{{#str}}eyebrow, theme_pssfp{{/str}}</p>
+        <p class="pssfp-login-title">{{#str}}tagline, theme_pssfp{{/str}}</p>
+        <div class="pssfp-login-hint">
+            <p><strong>{{#str}}loginhinttitle, theme_pssfp{{/str}}</strong></p>
+            <p>{{#str}}loginhint, theme_pssfp{{/str}}</p>
+        </div>
+        <p class="pssfp-login-foot">{{#str}}fullname, theme_pssfp{{/str}}</p>
+    {{/leftinstructions}}
+</div>
