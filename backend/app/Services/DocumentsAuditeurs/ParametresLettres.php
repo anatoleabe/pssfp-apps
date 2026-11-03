@@ -13,7 +13,8 @@ use Carbon\CarbonImmutable;
  *
  * Aucune date n'a de valeur par défaut : une lettre datée de l'an passé ou
  * annonçant la mauvaise rentrée ne doit jamais partir. `manquants()` liste ce
- * qu'il reste à saisir avant de pouvoir générer un document.
+ * qu'il reste à saisir avant de pouvoir générer un document. La signature n'en
+ * fait pas partie : sans scan déposé, les lettres se signent à la main.
  */
 final class ParametresLettres
 {
@@ -68,9 +69,6 @@ final class ParametresLettres
             if (blank($this->valeurs[$cle] ?? null)) {
                 $manquants[] = $libelle;
             }
-        }
-        if ($this->signature === null) {
-            $manquants[] = 'Signature et cachet';
         }
 
         return $manquants;

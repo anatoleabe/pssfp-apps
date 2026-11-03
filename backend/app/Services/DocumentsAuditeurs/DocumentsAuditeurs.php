@@ -49,13 +49,15 @@ final class DocumentsAuditeurs
             throw new DocumentImpossible('Aucun auditeur concerné : les documents ne concernent que les retenus dotés d\'un matricule.');
         }
 
-        $signature = $this->signatureLocale((string) $parametres->signature);
+        $signature = $parametres->signature === null ? null : $this->signatureLocale($parametres->signature);
         try {
             $contenu = $document === ParametresLettres::DOCUMENT_ACCES
                 ? $this->acces->generer($parametres, $auditeurs, $signature)
                 : $this->admission->generer($parametres, $auditeurs, $signature);
         } finally {
-            @unlink($signature);
+            if ($signature !== null) {
+                @unlink($signature);
+            }
         }
 
         activity('candidatures')->causedBy($auteur)->performedOn($campagne)

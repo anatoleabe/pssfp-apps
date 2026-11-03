@@ -105,15 +105,15 @@ it('accorde la lettre d\'admission au genre et reprend rentrée, frais et total'
         ->not->toContain($this->alice->moodle_password);
 });
 
-it('refuse de générer tant qu\'une date ou la signature manque, sans rien journaliser', function (): void {
+it('refuse de générer tant qu\'une date manque, sans rien journaliser', function (): void {
     $this->campagne->update(['parametres_lettres' => ['date_lettres' => '2026-11-03'], 'signature_lettres_path' => null]);
 
     try {
         app(DocumentsAuditeurs::class)->generer($this->campagne->fresh(), ParametresLettres::DOCUMENT_ADMISSION, ($this->agent)('admin'));
         $this->fail('Génération attendue en échec.');
     } catch (DocumentsIncomplets $e) {
-        expect($e->manquants)->toContain('Date de la rentrée solennelle', 'Lieu de la rentrée', 'Échéance de la 1re tranche', 'Signature et cachet')
-            ->not->toContain('Date des lettres', 'Montant de la 1re tranche');
+        expect($e->manquants)->toContain('Date de la rentrée solennelle', 'Lieu de la rentrée', 'Échéance de la 1re tranche')
+            ->not->toContain('Date des lettres', 'Montant de la 1re tranche', 'Signature et cachet');
     }
     expect(Activity::query()->where('event', 'documents_auditeurs')->count())->toBe(0);
 });
@@ -157,7 +157,7 @@ it('télécharge depuis la liste des candidatures et refuse une sélection de de
 });
 
 it('signale depuis la campagne ce qu\'il reste à saisir', function (): void {
-    $this->campagne->update(['signature_lettres_path' => null]);
+    $this->campagne->update(['parametres_lettres' => ['date_lettres' => '2026-11-03']]);
     $this->actingAs(($this->agent)('admin'));
 
     $this->livewire(EditCampagneCandidature::class, ['record' => $this->campagne->getRouteKey()])
@@ -263,6 +263,38 @@ it('écrit une rentrée à cheval sur deux mois et ignore une date de fin qui ne
     'fin identique' => ['2026-11-10', '2026-11-10', ['le', '10 novembre 2026']],
     'fin antérieure' => ['2026-11-10', '2026-11-09', ['le', '10 novembre 2026']],
 ]);
+
+it('génère les deux documents sans scan de signature, pour une signature à la main', function (string $document): void {
+    $this->campagne->update(['signature_lettres_path' => null]);
+
+    $contenu = app(DocumentsAuditeurs::class)->generer($this->campagne->fresh(), $document, ($this->agent)('admin'))['contenu'];
+    $fichier = tempnam(sys_get_temp_dir(), 'test-docx-');
+    file_put_contents($fichier, $contenu);
+    $zip = new ZipArchive;
+    $zip->open($fichier);
+    $documentXml = (string) $zip->getFromName('word/document.xml');
+    $relations = (string) $zip->getFromName('word/_rels/document.xml.rels');
+    $zip->close();
+    unlink($fichier);
+
+    expect($documentXml)->toContain('Le Président du Comité de Pilotage')->not->toContain('${')->not->toContain('name="Signature"')
+        ->and($relations)->not->toContain('signature')
+        ->and(simplexml_load_string($documentXml))->not->toBeFalse();
+})->with([ParametresLettres::DOCUMENT_ADMISSION, ParametresLettres::DOCUMENT_ACCES]);
+
+it('donne à la lettre d\'accès le même en-tête que le modèle officiel', function (): void {
+    $contenu = app(DocumentsAuditeurs::class)->generer($this->campagne, ParametresLettres::DOCUMENT_ACCES, ($this->agent)('admin'))['contenu'];
+    $fichier = tempnam(sys_get_temp_dir(), 'test-docx-');
+    file_put_contents($fichier, $contenu);
+    $zip = new ZipArchive;
+    $zip->open($fichier);
+    $documentXml = (string) $zip->getFromName('word/document.xml');
+    $zip->close();
+    unlink($fichier);
+
+    expect($documentXml)->toContain('w:ascii="Tahoma"')->toContain('REPUBLIQUE DU CAMEROUN')->toContain('Peace- Work- Fatherland')
+        ->toContain('w:tblpPr')->toContain('w:vertAnchor="page"')->not->toContain('RÉPUBLIQUE DU CAMEROUN');
+});
 
 it('génère la lettre depuis le modèle officiel : en-tête, polices, une section par auditeur, aucun repère oublié', function (): void {
     $contenu = app(DocumentsAuditeurs::class)->generer($this->campagne, ParametresLettres::DOCUMENT_ADMISSION, ($this->agent)('admin'))['contenu'];

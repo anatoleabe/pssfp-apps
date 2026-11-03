@@ -176,7 +176,7 @@ class CampagneCandidatureResource extends Resource
                 Forms\Components\TagsInput::make('parametres_lettres.copies')->label('Copies (lettres d\'admission)')
                     ->placeholder(implode(', ', (array) config('documents_auditeurs.defauts.copies'))),
                 Forms\Components\FileUpload::make('signature_lettres_path')
-                    ->label('Signature et cachet du Président du Comité de Pilotage')
+                    ->label('Signature et cachet du Président du Comité de Pilotage (facultatif)')
                     ->disk(CandidatureObjectStorage::DISK)
                     // Stockage privé ; pas de HeadObject à l'ouverture (refusé par la clé MinIO de prod).
                     ->fetchFileInformation(false)
@@ -187,7 +187,7 @@ class CampagneCandidatureResource extends Resource
                     ->image()
                     ->acceptedFileTypes(['image/png', 'image/jpeg'])
                     ->maxSize(2048)
-                    ->helperText('PNG à fond transparent de préférence, 2 Mo maximum. Apposée sur chaque lettre.')
+                    ->helperText('Sans scan déposé, les lettres sortent sans signature, pour être signées à la main. PNG à fond transparent de préférence, 2 Mo maximum.')
                     ->columnSpanFull(),
             ])->columns(2);
     }
