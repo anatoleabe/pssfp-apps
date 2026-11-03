@@ -32,7 +32,7 @@ return [
     // ciblé depuis des IP tournantes (le throttle IP ne suffit pas, et le
     // Turnstile est fail-open sur panne Cloudflare).
     // Plateforme FOAD (Moodle) : adresse rappelée aux auditeurs avec leurs identifiants.
-    'foad_url' => rtrim((string) env('FOAD_URL', 'https://foad.pssfp.net'), '/'),
+    'foad_url' => rtrim((string) env('FOAD_URL', 'https://ecampus.pssfp.org'), '/'),
 
     // Secret partagé avec le portail candidature : authentifie l'en-tête qui
     // porte l'adresse IP réelle du visiteur (cf. IpVisiteurDuPortail).

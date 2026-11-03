@@ -52,7 +52,7 @@ export default function GlobalError({ reset }: { reset: () => void }): JSX.Eleme
 
             <p style={{ marginTop: 24, color: '#595959' }}>
               Scolarité <span lang="en">/ Registrar&apos;s Office</span> : +237 222 23 45 67 ·
-              admissions@pssfp.org
+              contact@pssfp.org
             </p>
           </div>
         </main>

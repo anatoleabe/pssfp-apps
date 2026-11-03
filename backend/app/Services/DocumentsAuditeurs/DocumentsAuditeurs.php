@@ -18,7 +18,7 @@ use InvalidArgumentException;
  *
  * Seuls les retenus non retirés dotés d'un matricule y figurent, dans l'ordre
  * des matricules. La génération est refusée tant qu'un paramètre de la
- * campagne ou la signature manque. Chaque téléchargement est journalisé, sans
+ * campagne manque ; le scan de signature est facultatif. Chaque téléchargement est journalisé, sans
  * contenu (les accès FOAD contiennent des mots de passe).
  */
 final class DocumentsAuditeurs
@@ -49,13 +49,15 @@ final class DocumentsAuditeurs
             throw new DocumentImpossible('Aucun auditeur concerné : les documents ne concernent que les retenus dotés d\'un matricule.');
         }
 
-        $signature = $this->signatureLocale((string) $parametres->signature);
+        $signature = $parametres->signature === null ? null : $this->signatureLocale($parametres->signature);
         try {
             $contenu = $document === ParametresLettres::DOCUMENT_ACCES
                 ? $this->acces->generer($parametres, $auditeurs, $signature)
                 : $this->admission->generer($parametres, $auditeurs, $signature);
         } finally {
-            @unlink($signature);
+            if ($signature !== null) {
+                @unlink($signature);
+            }
         }
 
         activity('candidatures')->causedBy($auteur)->performedOn($campagne)

@@ -12,7 +12,7 @@ jobs:
   # ===========================================================================
   backend:
     name: Backend (Laravel + Pest)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     services:
       postgres:
@@ -105,7 +105,7 @@ jobs:
   # ===========================================================================
   frontends:
     name: ${{ matrix.app }} (Next.js + Playwright)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:

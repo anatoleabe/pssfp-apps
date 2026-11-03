@@ -26,7 +26,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
         <Link href="/" className="rounded-md border border-[#4A2E67] px-5 py-3 text-sm font-semibold text-[#4A2E67] hover:bg-[#F4EFFA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2">{tep('backHome')}</Link>
       </div>
       <p className="mt-7 text-sm text-[#595959]">
-        {tep('registrarLabel')} <a className="underline" href="tel:+237222234567">+237 222 234 567</a>{' · '}<a className="underline" href="mailto:admissions@pssfp.org">admissions@pssfp.org</a>
+        {tep('registrarLabel')} <a className="underline" href="tel:+237222234567">+237 222 234 567</a>{' · '}<a className="underline" href="mailto:contact@pssfp.org">contact@pssfp.org</a>
       </p>
     </div>
   );
