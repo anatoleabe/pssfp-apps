@@ -67,13 +67,13 @@ final class AccesFoadWord
         foreach ($lignes as [$libelle, $valeur, $code]) {
             $table->addRow(null, ['cantSplit' => true]);
             $style = ['bgColor' => G::IVOIRE, 'valign' => 'center', 'borderLeftSize' => 24, 'borderLeftColor' => G::PRUNE];
-            $table->addCell(2600, $style)->addText($libelle, G::police(G::LIBELLE, 9.5, color: G::GRIS), ['spaceAfter' => 0]);
+            $table->addCell(2600, $style)->addText($libelle, G::police(G::TEXTE, 9.5, color: G::GRIS), ['spaceAfter' => 0]);
             $table->addCell(6812, ['bgColor' => G::IVOIRE, 'valign' => 'center'])->addText($valeur,
                 $code ? G::police(G::CODE, 13, bold: true, color: G::PRUNE) : G::police(G::TEXTE, 12.5, bold: true),
                 ['spaceAfter' => 0]);
         }
         $s->addText('Ces identifiants vous sont personnels et vous sont attribués pour toute la durée de votre formation. '
-            .'Ne communiquez jamais votre mot de passe.', G::police(G::LIBELLE, 8.5, italic: true, color: G::GRIS),
+            .'Ne communiquez jamais votre mot de passe.', G::police(G::TEXTE, 9.5, color: G::GRIS),
             ['spaceBefore' => 80, 'spaceAfter' => 0]);
     }
 
@@ -93,7 +93,7 @@ final class AccesFoadWord
         $this->point($s, 'Connexion'.self::NB.': ', 'avec les identifiants ci-dessus (onglet «'.self::NB.'Matricule'.self::NB.'»), '
             .'ou avec votre numéro de téléphone et votre code personnel à 6 chiffres.');
         $s->addText('Vous y retrouvez votre dossier, les messages du PSSFP et vos documents administratifs.',
-            G::police(G::LIBELLE, 8.5, italic: true, color: G::GRIS), ['spaceAfter' => 0, 'indentation' => ['left' => 280]]);
+            G::police(G::TEXTE, 9.5, color: G::GRIS), ['spaceAfter' => 0, 'indentation' => ['left' => 280]]);
     }
 
     /** Coordonnées enregistrées : l'auditeur signale une erreur avant qu'un message ne se perde. */
@@ -108,7 +108,7 @@ final class AccesFoadWord
         ))) ?: array_filter([(string) $c->phone_e164]);
         $this->point($s, 'Téléphone : ', $telephones === [] ? '—' : implode('   ·   ', $telephones));
         $this->point($s, 'E-mail : ', (string) ($c->email ?: '—'));
-        $s->addText('Une erreur ? Signalez-la à la scolarité.', G::police(G::LIBELLE, 8.5, italic: true, color: G::GRIS),
+        $s->addText('Une erreur ? Signalez-la à la scolarité.', G::police(G::TEXTE, 9.5, color: G::GRIS),
             ['spaceAfter' => 160, 'indentation' => ['left' => 280]]);
     }
 

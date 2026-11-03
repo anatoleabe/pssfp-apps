@@ -418,6 +418,27 @@ it('garde des caractéristiques constantes : corps en Garamond, sans italique ni
         ->and($reglages)->not->toContain('trackRevisions');
 });
 
+it('écrit les deux documents en Garamond, sans Calibri ni italique, y compris le pied de page', function (string $document): void {
+    $contenu = app(DocumentsAuditeurs::class)->generer($this->campagne, $document, ($this->agent)('admin'))['contenu'];
+    $fichier = tempnam(sys_get_temp_dir(), 'test-docx-');
+    file_put_contents($fichier, $contenu);
+    $zip = new ZipArchive;
+    $zip->open($fichier);
+    $parties = [(string) $zip->getFromName('word/document.xml')];
+    for ($i = 0; $i < $zip->numFiles; $i++) {
+        if (preg_match('~^word/footer\d*\.xml$~', (string) $zip->getNameIndex($i)) === 1) {
+            $parties[] = (string) $zip->getFromIndex($i);
+        }
+    }
+    $zip->close();
+    unlink($fichier);
+
+    expect(count($parties))->toBeGreaterThan(1);
+    foreach ($parties as $partie) {
+        expect($partie)->not->toContain('Calibri')->not->toContain('<w:i/>')->not->toContain('<w:i ');
+    }
+})->with([ParametresLettres::DOCUMENT_ADMISSION, ParametresLettres::DOCUMENT_ACCES]);
+
 it('ne laisse aucun chemin local ni nom dans le modèle du dépôt public', function (): void {
     $zip = new ZipArchive;
     $zip->open(resource_path('lettres/lettre-admission.docx'));
