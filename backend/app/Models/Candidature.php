@@ -126,6 +126,8 @@ class Candidature extends Model
         'rang_retenu' => 'integer',
         'moodle_password' => 'encrypted',
         'matricule_attribue_at' => 'datetime',
+        // Hors $fillable : posé par AjoutRetenu uniquement.
+        'ajoute_par' => 'integer',
     ];
 
     /** Le `id` reste BIGSERIAL ; HasUuids génère uniquement le champ `uuid`. */
@@ -189,6 +191,12 @@ class Candidature extends Model
     public function depotPhysiquePar(): BelongsTo
     {
         return $this->belongsTo(User::class, 'depot_physique_by');
+    }
+
+    /** Agent ayant ajouté ce retenu depuis l'admin ; null pour un dossier déposé en ligne. */
+    public function ajoutePar(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'ajoute_par');
     }
 
     public function scopeForCampagne(Builder $query, int $campagneId): Builder

@@ -14,6 +14,9 @@ type Translate = ReturnType<typeof useTranslations<'dossier.timeline'>>;
 
 function buildEvents(candidature: MyCandidature, t: Translate): TimelineEvent[] {
   const isWithdrawn = candidature.withdrawn_at !== null;
+  // Un retenu ajouté par l'administration n'a ni soumission en ligne ni frais de
+  // dossier : ces étapes sont closes par la décision, rien ne reste à faire.
+  const retenuSansDepot = candidature.statut === 'accepte' && candidature.submitted_at === null;
   const events: TimelineEvent[] = [
     {
       id: 'inscription',
@@ -25,7 +28,7 @@ function buildEvents(candidature: MyCandidature, t: Translate): TimelineEvent[] 
       id: 'soumission',
       label: t('soumission'),
       date: candidature.submitted_at,
-      status: candidature.submitted_at
+      status: candidature.submitted_at || retenuSansDepot
         ? 'done'
         : isWithdrawn
         ? 'cancelled'
@@ -35,7 +38,7 @@ function buildEvents(candidature: MyCandidature, t: Translate): TimelineEvent[] 
       id: 'frais',
       label: t('frais'),
       date: candidature.date_paiement,
-      status: candidature.frais_paye ? 'done' : 'pending',
+      status: candidature.frais_paye || retenuSansDepot ? 'done' : 'pending',
     },
     {
       id: 'examen',

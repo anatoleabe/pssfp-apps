@@ -429,6 +429,16 @@ Les libellés des statuts actuels sont centralisés dans `config/statuts_actuels
 - *Stockage* : les documents sont générés à la volée et ne sont jamais conservés.
 - *Traçabilité* : chaque téléchargement est journalisé (`resultats_selection_downloaded`), avec le choix fait sur les doublons et le nombre de dossiers écartés.
 
+### 7.2 Ajout d'un retenu depuis l'admin (ajout du 4 nov. 2026)
+
+Seule exception à la règle « un dossier se crée par le candidat » : le bouton « Ajouter un retenu » de la liste des candidatures (permission `candidature.ajouter_retenu`, admin et super_admin). `CandidaturePolicy::create` reste à `false`.
+
+- Le dossier naît au statut `accepte`, sans `submitted_at`, avec `candidatures.ajoute_par` renseigné. Le motif va au journal d'activité, jamais au candidat.
+- Il reste hors des dépôts soumis et du PV du jury, hors des tableaux de réception, et hors du filtre « Frais non payés ». Il suit le parcours ordinaire d'un retenu : matricule, lettres, exports.
+- Aucun SMS ni e-mail à l'ajout. Un compte candidat est créé ou réutilisé, car la connexion par matricule en exige un. Son code n'est connu de personne.
+- Refus : téléphone déjà pris dans la campagne, compte du personnel, compte candidat à la date de naissance différente ou absente, même nom et même date de naissance sur un dossier non retiré.
+- Un ajout sur un mauvais numéro se reprend ainsi : retirer le dossier, puis l'ajouter de nouveau. Le compte créé sur ce numéro subsiste et garde la vue du dossier retiré tant qu'il n'est pas supprimé.
+
 ## 8. Frais de candidature 50 000 FCFA
 
 Payés en agence CREMINCAM, pas de paiement en ligne en V1.

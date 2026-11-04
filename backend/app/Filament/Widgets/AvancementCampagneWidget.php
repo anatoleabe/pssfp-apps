@@ -63,8 +63,11 @@ class AvancementCampagneWidget extends BaseWidget
             ];
         }
 
+        // Ce tableau suit la réception des dossiers : un retenu ajouté par
+        // l'admin n'en est pas un, ni pour le total ni pour le taux de frais.
         $byStatut = Candidature::query()
             ->where('campagne_id', $campagne->id)
+            ->whereNull('ajoute_par')
             ->selectRaw('statut, COUNT(*) as cnt')
             ->groupBy('statut')
             ->pluck('cnt', 'statut');
@@ -77,6 +80,7 @@ class AvancementCampagneWidget extends BaseWidget
 
         $fraisPayes = Candidature::query()
             ->where('campagne_id', $campagne->id)
+            ->whereNull('ajoute_par')
             ->where('frais_paye', true)
             ->count();
 

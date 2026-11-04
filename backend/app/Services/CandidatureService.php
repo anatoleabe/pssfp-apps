@@ -150,7 +150,7 @@ final class CandidatureService
             'decision_motif', 'decision_commentaire',
             'frais_paye', 'mode_paiement', 'reference_paiement', 'date_paiement',
             'recipisse_pdf_path', 'recipisse_hash_sha256',
-            'categorie_matricule', 'matricule', 'rang_retenu', 'moodle_password', 'matricule_attribue_at',
+            'categorie_matricule', 'matricule', 'rang_retenu', 'moodle_password', 'matricule_attribue_at', 'ajoute_par',
             'created_at', 'updated_at', 'deleted_at',
         ];
         $clean = array_diff_key($fields, array_flip($forbidden));
