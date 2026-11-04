@@ -10,6 +10,7 @@
 |---|---|---|
 | `deploy/deploy.sh` | pipeline `make deploy` (pull → composer → migrate → builds → reloads) | exécuté depuis `/var/www/pssfp` |
 | `pm2/ecosystem.config.js` | frontend :6001 + candidature :6003 (library commentée) | `pm2 start … && pm2 save && pm2 startup` |
+| `php/99-pssfp-uploads.ini` | **CRITIQUE** : limites d'envoi (10 Mo par fichier, 12 Mo par requête) — sans lui, PHP s'arrête à 2 Mo | `/etc/php/8.3/fpm/conf.d/` + `systemctl reload php8.3-fpm` |
 | `nginx/pssfp.org.conf` | vhost site (proxy :6001, CSP, HSTS) | `/etc/nginx/sites-available/` + symlink |
 | `nginx/apply.pssfp.org.conf` | vhost candidature (proxy :6003, no-store PII, CSP Turnstile) | idem |
 | `nginx/api.pssfp.org.conf` | vhost API/Filament (PHP 8.3-FPM, 12 Mo upload) | idem |
