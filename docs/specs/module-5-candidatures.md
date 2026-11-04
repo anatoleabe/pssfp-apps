@@ -437,7 +437,7 @@ Seule exception à la règle « un dossier se crée par le candidat » : le bout
 - Il reste hors des dépôts soumis et du PV du jury, hors des tableaux de réception, et hors du filtre « Frais non payés ». Il suit le parcours ordinaire d'un retenu : matricule, lettres, exports.
 - Aucun SMS ni e-mail à l'ajout. Un compte candidat est créé ou réutilisé, car la connexion par matricule en exige un. Son code n'est connu de personne.
 - Refus : téléphone déjà pris dans la campagne, compte du personnel, compte candidat à la date de naissance différente ou absente, même nom et même date de naissance sur un dossier non retiré.
-- Un ajout sur un mauvais numéro se reprend ainsi : retirer le dossier, puis l'ajouter de nouveau. Le compte créé sur ce numéro subsiste et garde la vue du dossier retiré tant qu'il n'est pas supprimé.
+- Un mauvais numéro se corrige par l'action « Corriger le téléphone », tracée au journal avec numéros masqués et réservée à ces dossiers. Le compte dédié au dossier suit le nouveau numéro, ou disparaît si ce numéro a déjà un compte, et perd code et sessions. Un compte qui porte un autre dossier reste intact, seul ce dossier s'en détache. Le matricule et le mot de passe FOAD ne changent pas : s'ils sont déjà partis vers l'ancien numéro, l'agent en est averti.
 
 ## 8. Frais de candidature 50 000 FCFA
 

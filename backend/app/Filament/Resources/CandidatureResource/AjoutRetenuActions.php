@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Filament\Resources\CandidatureResource;
 
 use App\Models\CampagneCandidature;
+use App\Models\Candidature;
 use App\Models\DepartementCameroun;
 use App\Models\Pays;
 use App\Models\RegionCameroun;
 use App\Services\AjoutRetenu\AjoutRetenu;
+use App\Support\PhoneMasker;
 use Filament\Actions\Action;
+use Filament\Actions\MountableAction;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\MaxWidth;
@@ -25,6 +28,20 @@ use InvalidArgumentException;
  */
 final class AjoutRetenuActions
 {
+    /** L'application n'a pas de lang/fr/validation.php : sans cela, l'agent lirait « validation.same ». */
+    private const MESSAGES = [
+        'required' => 'Ce champ est obligatoire.',
+        'same' => 'Les deux numéros ne sont pas identiques : vérifiez la saisie.',
+        'regex' => 'Saisissez le numéro au format international, par exemple +237699000000.',
+        'email' => 'Saisissez une adresse e-mail valide.',
+        'max' => 'Cette valeur est trop longue ou trop grande.',
+        'min' => 'Cette valeur est trop petite.',
+        'numeric' => 'Saisissez un nombre.',
+        'date' => 'Saisissez une date valide.',
+        'before_or_equal' => 'La personne doit avoir au moins 18 ans.',
+        'in' => 'Choisissez une valeur de la liste.',
+    ];
+
     public static function ajouter(Action $action): Action
     {
         return $action
@@ -36,7 +53,7 @@ final class AjoutRetenuActions
             ->modalDescription('Pour une personne retenue qui n\'a pas déposé de dossier sur le portail. Aucun message ne lui est envoyé. Le dossier reste hors du PV du jury. Choisissez ensuite sa catégorie (EFP par défaut), puis attribuez son matricule depuis la liste.')
             ->modalSubmitActionLabel('Enregistrer le retenu')
             ->modalWidth(MaxWidth::FourExtraLarge)
-            ->form(self::formulaire())
+            ->form(self::avecMessages(self::formulaire()))
             ->action(function (array $data, Action $action): void {
                 try {
                     $dossier = app(AjoutRetenu::class)->ajouter($data, auth()->user());
@@ -52,6 +69,82 @@ final class AjoutRetenuActions
                     ->body('Vérifiez sa catégorie (EFP par défaut), puis attribuez son matricule : il ne changera plus, et les lettres et les exports en dépendent.')
                     ->send();
             });
+    }
+
+    /**
+     * @template T of MountableAction
+     *
+     * @param  T  $action
+     * @return T
+     */
+    public static function corrigerTelephone(MountableAction $action): MountableAction
+    {
+        return $action
+            ->label('Corriger le téléphone')
+            ->icon('heroicon-o-phone')
+            ->color('gray')
+            ->visible(fn (Candidature $record): bool => auth()->user()?->can(AjoutRetenu::PERMISSION) === true && $record->ajoute_par !== null)
+            ->modalHeading('Corriger le téléphone')
+            ->modalDescription(fn (Candidature $record): string => "Dossier {$record->numero_dossier}, téléphone actuel : ".PhoneMasker::mask((string) $record->phone_e164)
+                .'. L\'ancien numéro perd l\'accès à l\'espace : code et sessions annulés. Le matricule et le mot de passe FOAD ne changent pas. Aucun message n\'est envoyé.')
+            ->modalSubmitActionLabel('Corriger')
+            ->form(self::avecMessages([
+                Forms\Components\TextInput::make('telephone')
+                    ->label('Nouveau téléphone')
+                    ->placeholder('+237699000000')
+                    ->tel()
+                    ->regex('/^\+[1-9][\d\s.\-()]{6,24}$/')
+                    ->required(),
+                Forms\Components\TextInput::make('telephone_confirmation')
+                    ->label('Confirmez le téléphone')
+                    ->tel()
+                    ->same('telephone')
+                    ->dehydrated(false)
+                    ->required(),
+                Forms\Components\Textarea::make('motif')
+                    ->label('Motif de la correction')
+                    ->helperText('Conservé dans le journal, jamais montré au candidat.')
+                    ->rows(2)
+                    ->maxLength(500)
+                    ->required(),
+            ]))
+            ->action(function (Candidature $record, array $data, MountableAction $action): void {
+                $service = app(AjoutRetenu::class);
+                try {
+                    $service->corrigerTelephone($record, (string) $data['telephone'], (string) $data['motif'], auth()->user());
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title('Téléphone non corrigé')->body($e->getMessage())->send();
+                    $action->halt();
+
+                    return;
+                }
+
+                if ($service->identifiantsDejaEnvoyes($record)) {
+                    Notification::make()->warning()->persistent()
+                        ->title('Téléphone corrigé, identifiants déjà envoyés')
+                        ->body('Le matricule et le mot de passe FOAD sont déjà partis vers les anciennes coordonnées. Le mot de passe ne change pas : ce numéro erroné peut encore s\'en servir pour se connecter.')
+                        ->send();
+
+                    return;
+                }
+                Notification::make()->success()->title('Téléphone corrigé')->send();
+            });
+    }
+
+    /**
+     * @param  list<Forms\Components\Component>  $composants
+     * @return list<Forms\Components\Component>
+     */
+    private static function avecMessages(array $composants): array
+    {
+        foreach ($composants as $composant) {
+            if ($composant instanceof Forms\Components\Field) {
+                $composant->validationMessages(self::MESSAGES);
+            }
+            self::avecMessages($composant->getChildComponents());
+        }
+
+        return $composants;
     }
 
     /** Mêmes campagnes que celles acceptées par AjoutRetenu. */

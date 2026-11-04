@@ -21,12 +21,15 @@ use App\Services\ExportsRetenus\ExportsRetenusExcel;
 use App\Services\ResultatsSelection\ResultatsSelectionService;
 use App\Services\ResultatsSelection\SeanceJury;
 use App\Services\Sms\SmsServiceInterface;
+use App\Support\PhoneMasker;
 use Carbon\CarbonImmutable;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Spatie\Activitylog\Models\Activity;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -287,7 +290,9 @@ it('refuse une confirmation de téléphone différente, sans rien créer', funct
     $this->actingAs($this->admin);
     $this->livewire(ListCandidatures::class)
         ->callAction('ajouterRetenu', data: array_merge($this->donnees, ['phone_e164_confirmation' => '+237699000079']))
-        ->assertHasActionErrors(['phone_e164_confirmation' => 'same']);
+        ->assertHasActionErrors(['phone_e164_confirmation' => 'same'])
+        ->assertSee('Les deux numéros ne sont pas identiques')
+        ->assertDontSee('validation.same');
 
     expect(Candidature::query()->count())->toBe(0);
 });
@@ -362,4 +367,124 @@ it('ne compte pas le retenu ajouté dans les tableaux de réception d\'une campa
     $donnees = (new ReflectionMethod(QuotasRegionauxWidget::class, 'getViewData'))->invoke(new QuotasRegionauxWidget);
 
     expect($donnees['total'])->toBe(1);
+});
+
+function corrigerTelephone(Candidature $c, string $nouveau = '+237699000072'): Candidature
+{
+    return app(AjoutRetenu::class)->corrigerTelephone($c, $nouveau, 'Erreur de saisie, note fictive', test()->admin);
+}
+
+it('corrige le téléphone : le compte suit, le mauvais numéro perd code et sessions', function (): void {
+    $c = ajouterRetenu();
+    $compte = $c->user;
+    $compte->forceFill(['password' => Hash::make('847291')])->save();
+    $jeton = $compte->createToken('candidat', ['application:read'])->plainTextToken;
+    app(AttributionMatricules::class)->attribuer($this->campagne, '26', $this->admin);
+    $matricule = $c->fresh()->matricule;
+
+    $corrige = corrigerTelephone($c->fresh());
+
+    expect($corrige->phone_e164)->toBe('+237699000072')
+        ->and($corrige->matricule)->toBe($matricule)
+        ->and($corrige->user_id)->toBe($compte->id)
+        ->and($compte->fresh()->phone_e164)->toBe('+237699000072')
+        ->and(Hash::check('847291', $compte->fresh()->password))->toBeFalse()
+        ->and($compte->tokens()->count())->toBe(0)
+        ->and(User::query()->where('phone_e164', '+237699000071')->exists())->toBeFalse();
+
+    Auth::forgetGuards();
+    $this->withToken($jeton)->getJson('/v1/applications/me')->assertUnauthorized();
+    $this->flushHeaders();
+    $this->postJson('/v1/auth/candidat/login-matricule', ['identifiant' => $matricule, 'mot_de_passe' => $corrige->moodle_password])->assertOk();
+});
+
+it('détache le dossier d\'un compte qui en porte un autre, sans toucher ce compte', function (): void {
+    $ancienne = CampagneCandidature::factory()->create(['status' => 'closed', 'prefix_numero' => 'P13025-']);
+    $proprietaire = User::factory()->candidat('847291')->create(['phone_e164' => '+237699000071', 'date_naissance' => '1990-05-12']);
+    Candidature::factory()->forCampagne($ancienne)->create(['user_id' => $proprietaire->id, 'phone_e164' => '+237699000071']);
+    $c = ajouterRetenu();
+    expect($c->user_id)->toBe($proprietaire->id);
+
+    $corrige = corrigerTelephone($c);
+
+    expect($corrige->user_id)->not->toBe($proprietaire->id)
+        ->and($corrige->user->phone_e164)->toBe('+237699000072')
+        ->and($proprietaire->fresh()->phone_e164)->toBe('+237699000071')
+        ->and(Hash::check('847291', $proprietaire->fresh()->password))->toBeTrue();
+});
+
+it('rattache au compte du bon numéro et supprime le compte créé par erreur', function (): void {
+    $bon = User::factory()->candidat()->create(['phone_e164' => '+237699000072', 'date_naissance' => '1990-05-12']);
+    $c = ajouterRetenu();
+    $errone = $c->user_id;
+
+    expect(corrigerTelephone($c)->user_id)->toBe($bon->id)
+        ->and(User::query()->whereKey($errone)->exists())->toBeFalse();
+});
+
+it('refuse la correction vers un numéro inutilisable, sans rien changer', function (Closure $preparer, string $message): void {
+    $c = ajouterRetenu();
+    $preparer();
+
+    expect(fn () => corrigerTelephone($c))->toThrow(InvalidArgumentException::class, $message);
+    expect($c->fresh()->phone_e164)->toBe('+237699000071')
+        ->and($c->user->fresh()->phone_e164)->toBe('+237699000071');
+})->with([
+    'dossier de la campagne' => [fn () => Candidature::factory()->forCampagne(test()->campagne)->create(['phone_e164' => '+237699000072']), 'dossier'],
+    'compte du personnel' => [fn () => User::factory()->create(['phone_e164' => '+237699000072'])->assignRole('admin'), 'personnel'],
+    'autre date de naissance' => [fn () => User::factory()->candidat()->create(['phone_e164' => '+237699000072', 'date_naissance' => '1985-01-01']), 'date de naissance'],
+]);
+
+it('refuse la correction d\'un numéro identique ou mal formé', function (string $nouveau): void {
+    expect(fn () => corrigerTelephone(ajouterRetenu(), $nouveau))->toThrow(InvalidArgumentException::class, 'téléphone');
+})->with(['+237 699 00 00 71', '699000072']);
+
+it('réserve la correction aux retenus ajoutés et à la permission', function (): void {
+    $portail = Candidature::factory()->forCampagne($this->campagne)->submitted()->create();
+    expect(fn () => corrigerTelephone($portail))->toThrow(InvalidArgumentException::class, 'portail');
+    expect(fn () => app(AjoutRetenu::class)->corrigerTelephone(ajouterRetenu(), '+237699000072', 'Motif', $this->comite))
+        ->toThrow(HttpException::class);
+});
+
+it('journalise la correction avec des numéros masqués', function (): void {
+    $c = corrigerTelephone(ajouterRetenu());
+
+    $journal = Activity::query()->where('event', 'retenu_telephone_corrige')->sole();
+    expect($journal->subject_id)->toBe($c->id)
+        ->and($journal->properties['motif'])->toBe('Erreur de saisie, note fictive')
+        ->and($journal->properties['ancien'])->toBe(PhoneMasker::mask('+237699000071'))
+        ->and($journal->properties['nouveau'])->toBe(PhoneMasker::mask('+237699000072'))
+        ->and(json_encode($journal->properties))->not->toContain('699000071');
+});
+
+it('propose la correction depuis la liste, seulement sur un retenu ajouté, et demande confirmation', function (): void {
+    $ajoute = ajouterRetenu();
+    $portail = Candidature::factory()->forCampagne($this->campagne)->submitted()->create();
+    $donnees = ['telephone' => '+237699000072', 'telephone_confirmation' => '+237699000072', 'motif' => 'Erreur de saisie'];
+
+    $this->actingAs($this->admin);
+    $page = $this->livewire(ListCandidatures::class)
+        ->assertTableActionVisible('corrigerTelephone', $ajoute)
+        ->assertTableActionHidden('corrigerTelephone', $portail);
+    $page->callTableAction('corrigerTelephone', $ajoute, array_merge($donnees, ['telephone_confirmation' => '+237699000079']))
+        ->assertHasTableActionErrors(['telephone_confirmation' => 'same']);
+    expect($ajoute->fresh()->phone_e164)->toBe('+237699000071');
+
+    $this->livewire(ListCandidatures::class)
+        ->callTableAction('corrigerTelephone', $ajoute, $donnees)
+        ->assertHasNoTableActionErrors()
+        ->assertNotified();
+    expect($ajoute->fresh()->phone_e164)->toBe('+237699000072');
+
+    $this->actingAs($this->comite);
+    $this->livewire(ListCandidatures::class)->assertTableActionHidden('corrigerTelephone', $ajoute);
+});
+
+it('signale des identifiants déjà envoyés, que la correction ne reprend pas', function (): void {
+    $c = ajouterRetenu();
+    expect(app(AjoutRetenu::class)->identifiantsDejaEnvoyes($c))->toBeFalse();
+
+    activity('candidatures')->performedOn($c)->event('moodle_identifiants_envoyes')->log('Envoi fictif');
+
+    expect(app(AjoutRetenu::class)->identifiantsDejaEnvoyes($c))->toBeTrue();
 });

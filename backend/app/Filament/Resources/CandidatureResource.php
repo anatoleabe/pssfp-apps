@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Events\CandidatureAccepted;
 use App\Events\CandidatureRefused;
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Resources\CandidatureResource\AjoutRetenuActions;
 use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
 use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
 use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
@@ -773,6 +774,7 @@ class CandidatureResource extends Resource
                                 ->withProperties($data)
                                 ->log('Frais marqués comme payés');
                         }),
+                    AjoutRetenuActions::corrigerTelephone(Tables\Actions\Action::make('corrigerTelephone')),
                     Tables\Actions\Action::make('withdraw')
                         ->label('Retirer (administratif)')
                         ->icon('heroicon-o-archive-box-x-mark')
