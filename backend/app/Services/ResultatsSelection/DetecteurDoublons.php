@@ -70,7 +70,7 @@ final class DetecteurDoublons
             ->filter(fn (Collection $groupe): bool => $groupe->count() > 1);
     }
 
-    private function identite(Candidature $c): string
+    public function identite(Candidature $c): string
     {
         // Sans date de naissance, impossible de distinguer deux homonymes :
         // le dossier reste seul plutôt que d'être écarté à tort.

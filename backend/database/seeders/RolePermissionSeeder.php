@@ -86,6 +86,7 @@ final class RolePermissionSeeder extends Seeder
                     'campagne.download_resultats',
                     'campagne.export_retenus',
                     'candidature.matricules_moodle',
+                    'candidature.ajouter_retenu',
                     'candidature.espace_candidat',
                     'candidature.frais_inscription',
                     'journal.view',

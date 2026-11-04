@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Filament\Resources\CandidatureResource\Pages;
 
 use App\Filament\Resources\CandidatureResource;
+use App\Filament\Resources\CandidatureResource\AjoutRetenuActions;
 use App\Models\Candidature;
+use Filament\Actions\Action;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,10 +18,10 @@ class ListCandidatures extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        // Pas de bouton "Nouvelle candidature" — la création est interdite
-        // côté admin (cf. arbitrage D PR D : un dossier ne peut être créé
-        // que par le candidat authentifié via /v1/applications/me).
-        return [];
+        // Pas de bouton "Nouvelle candidature" : un dossier se crée par le
+        // candidat authentifié via /v1/applications/me (cf. arbitrage D PR D).
+        // Seule exception, l'ajout d'un retenu.
+        return [AjoutRetenuActions::ajouter(Action::make('ajouterRetenu'))];
     }
 
     /**

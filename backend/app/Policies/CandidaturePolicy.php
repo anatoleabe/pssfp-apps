@@ -48,8 +48,10 @@ final class CandidaturePolicy
 
     public function create(User $user): bool
     {
-        // Pas de création via panel admin — un dossier se crée uniquement
-        // via le candidat authentifié sur /v1/applications/me (cf. arbitrage D PR D).
+        // Pas de création générale via le panel : un dossier se crée via le
+        // candidat authentifié sur /v1/applications/me (cf. arbitrage D PR D).
+        // Seule exception, un retenu : action dédiée, permission
+        // candidature.ajouter_retenu (cf. AjoutRetenu).
         return false;
     }
 

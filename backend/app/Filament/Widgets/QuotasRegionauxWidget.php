@@ -64,10 +64,12 @@ class QuotasRegionauxWidget extends Widget
             ];
         }
 
-        $total = Candidature::where('campagne_id', $campagne->id)->count();
+        // Quotas de réception : les retenus ajoutés par l'admin n'y comptent pas.
+        $total = Candidature::where('campagne_id', $campagne->id)->whereNull('ajoute_par')->count();
 
         $countByRegion = Candidature::query()
             ->where('campagne_id', $campagne->id)
+            ->whereNull('ajoute_par')
             ->whereNotNull('region')
             ->selectRaw('region, COUNT(*) as cnt')
             ->groupBy('region')

@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Events\CandidatureAccepted;
 use App\Events\CandidatureRefused;
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Resources\CandidatureResource\AjoutRetenuActions;
 use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
 use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
 use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
@@ -49,7 +50,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * Resource Filament Candidature — coeur du module 5 admin (PR D).
  *
  * Particularités :
- * - Pas de création via panel (canCreate = false, cf. arbitrage D PR D).
+ * - Pas de création via panel (canCreate = false, cf. arbitrage D PR D), sauf
+ *   l'ajout d'un retenu, par une action dédiée (AjoutRetenuActions).
  * - Édition lecture seule pour les dossiers décidés sauf super_admin (P-min-1).
  * - Champs systèmes (uuid, numero_dossier, phone_e164, user_id, statut, dates de
  *   transition, recipisse_*) sont disabled() dans le form pour empêcher leur
@@ -286,7 +288,8 @@ class CandidatureResource extends Resource
                     ->copyable()
                     ->copyMessage('Numéro de dossier copié')
                     ->badge()
-                    ->color('primary'),
+                    ->color('primary')
+                    ->description(fn (Candidature $r): ?string => $r->ajoute_par !== null ? 'Ajouté par l\'admin' : null),
                 Tables\Columns\TextColumn::make('nom_complet')
                     ->label('Candidat')
                     ->wrap()
@@ -323,7 +326,7 @@ class CandidatureResource extends Resource
                     ->toggleable(),
                 Tables\Columns\IconColumn::make('frais_paye')->label('Frais')
                     ->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle')
-                    ->tooltip(fn (Candidature $r): string => $r->frais_paye ? 'Frais payés' : 'Frais non payés'),
+                    ->tooltip(fn (Candidature $r): string => $r->frais_paye ? 'Frais payés' : ($r->ajoute_par !== null ? 'Sans objet : retenu ajouté par l\'admin' : 'Frais non payés')),
                 // Frais d'inscription des retenus (distincts des frais de dossier) :
                 // condition de la lettre d'admission dans l'espace de l'auditeur.
                 Tables\Columns\IconColumn::make('frais_inscription_payes_at')->label('Inscription')
@@ -396,7 +399,22 @@ class CandidatureResource extends Resource
                     ->label('Frais payés')
                     ->placeholder('Tous')
                     ->trueLabel('Payés uniquement')
-                    ->falseLabel('Non payés uniquement'),
+                    ->falseLabel('Non payés uniquement')
+                    // Un retenu ajouté par l'admin n'a pas de frais de dossier à
+                    // payer : il ne doit pas recevoir la relance de ce filtre.
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query->where('frais_paye', true),
+                        false: fn (Builder $query): Builder => $query->where('frais_paye', false)->whereNull('ajoute_par'),
+                    ),
+                Tables\Filters\TernaryFilter::make('ajoute_admin')
+                    ->label('Origine du dossier')
+                    ->placeholder('Tous')
+                    ->trueLabel('Ajoutés par l\'admin')
+                    ->falseLabel('Déposés sur le portail')
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query->whereNotNull('ajoute_par'),
+                        false: fn (Builder $query): Builder => $query->whereNull('ajoute_par'),
+                    ),
                 Tables\Filters\TernaryFilter::make('frais_inscription')
                     ->label('Frais d\'inscription')
                     ->placeholder('Tous')
@@ -613,7 +631,9 @@ class CandidatureResource extends Resource
                         ->label('Marquer comme candidat')
                         ->icon('heroicon-o-arrow-right-circle')
                         ->color('info')
-                        ->visible(fn () => auth()->user()?->can('candidature.update_status'))
+                        // Poserait une date de soumission sur un retenu ajouté par l'admin :
+                        // il entrerait dans les dépôts, puis dans le PV du jury.
+                        ->visible(fn (Candidature $r): bool => auth()->user()?->can('candidature.update_status') === true && $r->ajoute_par === null)
                         ->requiresConfirmation()
                         ->form([
                             Forms\Components\Textarea::make('motif')
@@ -754,6 +774,7 @@ class CandidatureResource extends Resource
                                 ->withProperties($data)
                                 ->log('Frais marqués comme payés');
                         }),
+                    AjoutRetenuActions::corrigerTelephone(Tables\Actions\Action::make('corrigerTelephone')),
                     Tables\Actions\Action::make('withdraw')
                         ->label('Retirer (administratif)')
                         ->icon('heroicon-o-archive-box-x-mark')
