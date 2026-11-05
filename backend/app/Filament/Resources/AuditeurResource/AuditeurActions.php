@@ -201,7 +201,7 @@ final class AuditeurActions
             ->icon('heroicon-o-chat-bubble-left-right')
             ->visible(fn (): bool => (bool) auth()->user()?->can(MessagesAuditeurs::PERMISSION))
             ->modalHeading('Message aux auditeurs sélectionnés')
-            ->modalDescription('Variables : '.implode(' ', MessagesAuditeurs::VARIABLES).'. Au plus '.MessagesAuditeurs::MAX.' destinataires. Chaque message est tracé et apparaît dans l\'espace de l\'auditeur.')
+            ->modalDescription('Variables : '.implode(' ', MessagesAuditeurs::VARIABLES).'. Au plus '.MessagesAuditeurs::MAX.' destinataires ; les dossiers retirés, exclus ou en abandon sont écartés. Chaque message est tracé et apparaît dans l\'espace de l\'auditeur.')
             ->modalSubmitActionLabel('Envoyer')
             ->form(fn (): array => MessagesValidation::appliquer([
                 Forms\Components\Select::make('canal')->label('Canal')->required()->native(false)->live()
@@ -212,23 +212,31 @@ final class AuditeurActions
                     ])->default(NotificationCandidatsService::CANAL_SMS),
                 Forms\Components\TextInput::make('sujet')->label('Objet de l\'e-mail')->maxLength(150)
                     ->visible(fn (Forms\Get $get): bool => $get('canal') !== NotificationCandidatsService::CANAL_SMS)
+                    ->required(fn (Forms\Get $get): bool => $get('canal') !== NotificationCandidatsService::CANAL_SMS)
                     ->default('PSSFP — votre scolarité'),
                 Forms\Components\Textarea::make('corps')->label('Message')->required()->maxLength(1000)->rows(4)->live(onBlur: true)
                     ->default(MessagesAuditeurs::MODELE_RELANCE),
                 Forms\Components\Placeholder::make('apercu')->label('Aperçu')
                     // La sélection n'est pas injectée dans les champs du formulaire : on la relit sur la table.
                     ->content(function (Forms\Get $get, HasTable $livewire): string {
-                        $records = $livewire->getSelectedTableRecords()->load(['candidature', 'inscriptionCourante.bareme']);
-                        $a = app(MessagesAuditeurs::class)->apercu($records, (string) $get('canal'), (string) $get('corps'));
+                        $selection = $livewire->getSelectedTableRecords();
+                        if ($selection->count() > MessagesAuditeurs::MAX) {
+                            return $selection->count().' sélectionnés : au plus '.MessagesAuditeurs::MAX.' par envoi, procédez par lots.';
+                        }
+                        $a = app(MessagesAuditeurs::class)->apercu(MessagesAuditeurs::precharger($selection), (string) $get('canal'), (string) $get('corps'));
 
-                        return $a['total'].' destinataire(s), '.$a['sms_par_message'].' SMS par message. Exemple : « '.$a['exemple'].' »';
+                        return $a['destinataires'].' destinataire(s)'
+                            .($a['ecartes'] > 0 ? ' ('.$a['ecartes'].' écarté(s) : dossier retiré, exclusion ou abandon)' : '')
+                            .', '.$a['sms_par_message'].' SMS par message, '.$a['cout_sms'].' SMS au total'
+                            .($a['hors_couverture'] > 0 ? ', dont '.$a['hors_couverture'].' numéro(s) hors du Cameroun, que la passerelle ne dessert pas' : '')
+                            .'. Exemple : « '.$a['exemple'].' »';
                     }),
             ]))
             ->deselectRecordsAfterCompletion()
             ->action(function (Collection $records, array $data, BulkAction $action): void {
                 try {
                     $rapport = app(MessagesAuditeurs::class)->envoyer(
-                        $records->load(['candidature.campagne', 'inscriptionCourante.bareme']),
+                        $records,
                         (string) $data['canal'], (string) $data['corps'], $data['sujet'] ?? null, auth()->user(),
                     );
                 } catch (InvalidArgumentException $e) {
@@ -240,7 +248,7 @@ final class AuditeurActions
                 Notification::make()->success()->title('Message envoyé')
                     ->body($rapport['sms_envoyes'].' SMS et '.$rapport['emails_envoyes'].' e-mail(s) envoyés'
                         .($rapport['sms_echecs'] + $rapport['emails_echecs'] > 0 ? ', '.($rapport['sms_echecs'] + $rapport['emails_echecs']).' échec(s)' : '')
-                        .($rapport['ignores'] > 0 ? ', '.$rapport['ignores'].' sans coordonnée' : '').'.')
+                        .($rapport['ignores'] > 0 ? ', '.$rapport['ignores'].' écarté(s) ou sans coordonnée' : '').'.')
                     ->send();
             });
     }
@@ -336,6 +344,12 @@ final class AuditeurActions
             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
             ->maxSize(5120)
             ->helperText('PDF, JPG ou PNG, 5 Mo maximum.')
+            // L'état d'un champ de fichier se modifie depuis le navigateur : on ne signe
+            // jamais un chemin qui n'est pas un bordereau (même bucket que les pièces).
+            ->getUploadedFileUsing(fn (string $file): ?array => Versement::cheminJustificatifValide($file) ? [
+                'name' => basename($file), 'size' => 0, 'type' => null,
+                'url' => Storage::disk(CandidatureObjectStorage::DISK)->temporaryUrl($file, now()->addMinutes(5)),
+            ] : null)
             ->saveUploadedFileUsing(function (TemporaryUploadedFile $file): ?string {
                 $extension = $file->guessExtension();
                 $nom = Str::ulid().'.'.(in_array($extension, ['pdf', 'jpg', 'jpeg', 'png'], true) ? $extension : 'pdf');

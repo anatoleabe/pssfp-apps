@@ -108,6 +108,7 @@ final class NotificationCandidatsService
         string $corps,
         ?string $sujet,
         User $auteur,
+        bool $dejaRendu = false,
     ): array {
         $rapport = [
             'sms_envoyes' => 0,
@@ -118,7 +119,9 @@ final class NotificationCandidatsService
         ];
 
         foreach ($candidatures as $candidature) {
-            $texte = $this->rendre($corps, $candidature);
+            // Texte déjà rendu par l'appelant (messages aux auditeurs) : pas de second
+            // passage, qui ré-interpréterait les données saisies par le candidat.
+            $texte = $dejaRendu ? $corps : $this->rendre($corps, $candidature);
             $touche = false;
 
             if ($this->canalInclutSms($canal)) {
@@ -133,7 +136,7 @@ final class NotificationCandidatsService
                 $adresse = $this->emailDeContact($candidature);
                 if ($adresse !== null) {
                     $touche = true;
-                    $this->envoyerEmail($candidature, $adresse, $texte, $sujet, $auteur, $rapport);
+                    $this->envoyerEmail($candidature, $adresse, $texte, $sujet, $auteur, $rapport, $dejaRendu);
                 }
             }
 
@@ -191,8 +194,9 @@ final class NotificationCandidatsService
         ?string $sujet,
         User $auteur,
         array &$rapport,
+        bool $dejaRendu = false,
     ): void {
-        $sujetRendu = $this->rendre($sujet ?? 'PSSFP — information', $candidature);
+        $sujetRendu = $dejaRendu ? ($sujet ?? 'PSSFP — information') : $this->rendre($sujet ?? 'PSSFP — information', $candidature);
 
         // La ligne est créée AVANT l'envoi : le job bridé a besoin de son
         // identifiant pour la basculer en échec si le message ne part jamais.

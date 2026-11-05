@@ -8,6 +8,7 @@ use App\Models\Auditeur;
 use App\Models\User;
 use App\Services\NotificationCandidatsService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\RateLimiter;
 use InvalidArgumentException;
 
 /**
@@ -20,7 +21,14 @@ final class MessagesAuditeurs
 {
     public const PERMISSION = 'scolarite.messages';
 
-    public const MAX = 300;
+    /** Envoi synchrone (SMS) dans la requête de l'admin : comme les identifiants, par lots. */
+    public const MAX = 100;
+
+    /** Envois par heure et par agent : un double clic ou une boucle ne rejoue pas 100 SMS. */
+    public const ENVOIS_PAR_HEURE = 6;
+
+    /** Statuts qui ne reçoivent pas de relance : la formation a pris fin. */
+    public const STATUTS_EXCLUS = [Auditeur::STATUT_EXCLU, Auditeur::STATUT_ABANDON];
 
     public const VARIABLES = ['{prenom}', '{nom}', '{matricule}', '{reste}', '{reste_inscription}', '{prochaine_echeance}'];
 
@@ -34,6 +42,7 @@ final class MessagesAuditeurs
     public static function rendre(string $gabarit, Auditeur $auditeur): string
     {
         $c = $auditeur->candidature;
+        // Une seule fois par auditeur : chaque situation() relit les versements.
         $s = $auditeur->inscriptionCourante?->situation();
 
         return strtr($gabarit, [
@@ -42,22 +51,49 @@ final class MessagesAuditeurs
             '{matricule}' => (string) $c?->matricule,
             '{reste}' => self::nombre($s?->reste ?? 0),
             '{reste_inscription}' => self::nombre($s?->resteInscription() ?? 0),
-            '{prochaine_echeance}' => self::prochaineEcheance($auditeur),
+            '{prochaine_echeance}' => self::prochaineEcheance($auditeur, $s),
+        ]);
+    }
+
+    /** Dossier retiré, formation achevée par exclusion ou abandon : pas de relance. */
+    public static function destinataire(Auditeur $auditeur): bool
+    {
+        return $auditeur->candidature !== null
+            && $auditeur->candidature->withdrawn_at === null
+            && ! in_array($auditeur->statut, self::STATUTS_EXCLUS, true);
+    }
+
+    /** Précharge ce que rendre() lit, totaux compris, pour toute la sélection. */
+    public static function precharger(Collection $auditeurs): Collection
+    {
+        return \Illuminate\Database\Eloquent\Collection::make($auditeurs->all())->load([
+            'candidature.campagne',
+            'inscriptionCourante' => fn ($q) => $q->with('bareme')->withSum('versementsValides', 'montant'),
         ]);
     }
 
     /**
      * @param  Collection<int, Auditeur>  $auditeurs
-     * @return array{total: int, sms_par_message: int, exemple: string}
+     * @return array{total: int, destinataires: int, ecartes: int, sms_par_message: int, cout_sms: int, hors_couverture: int, exemple: string, trop: bool}
      */
     public function apercu(Collection $auditeurs, string $canal, string $corps): array
     {
-        $premier = $auditeurs->first();
+        $retenus = $auditeurs->filter(fn (Auditeur $a): bool => self::destinataire($a))->values();
+        // Le texte d'exemple sur un seul auditeur ; les compteurs sur les coordonnées seules.
+        $premier = $retenus->first();
         $exemple = $premier instanceof Auditeur ? self::rendre($corps, $premier) : $corps;
-        $dossiers = $auditeurs->map(fn (Auditeur $a) => $a->candidature)->filter()->values();
-        $base = $this->notifications->apercu($dossiers, $canal, $exemple);
+        $base = $this->notifications->apercu($retenus->map(fn (Auditeur $a) => $a->candidature)->values(), $canal, $exemple);
 
-        return ['total' => $auditeurs->count(), 'sms_par_message' => (int) $base['sms_par_message'], 'exemple' => $exemple];
+        return [
+            'total' => $auditeurs->count(),
+            'destinataires' => $retenus->count(),
+            'ecartes' => $auditeurs->count() - $retenus->count(),
+            'sms_par_message' => (int) $base['sms_par_message'],
+            'cout_sms' => (int) $base['cout_sms'],
+            'hors_couverture' => (int) $base['sms_hors_couverture'],
+            'exemple' => $exemple,
+            'trop' => $auditeurs->count() > self::MAX,
+        ];
     }
 
     /**
@@ -81,10 +117,20 @@ final class MessagesAuditeurs
         if ($auditeurs->count() > self::MAX) {
             throw new InvalidArgumentException('Au plus '.self::MAX.' destinataires par envoi ('.$auditeurs->count().' sélectionnés) : procédez par lots.');
         }
+        $cle = 'messages-auditeurs|'.$auteur->id;
+        if (RateLimiter::tooManyAttempts($cle, self::ENVOIS_PAR_HEURE)) {
+            throw new InvalidArgumentException('Trop d\'envois en une heure : réessayez dans '.max(1, (int) ceil(RateLimiter::availableIn($cle) / 60)).' min.');
+        }
+        RateLimiter::hit($cle, 3600);
+
+        // Écrite avant la boucle : un envoi coupé en cours de route reste visible au journal.
+        $journal = activity('scolarite')->causedBy($auteur)->event('messages_auditeurs')
+            ->withProperties(['destinataires' => $auditeurs->count(), 'canal' => $canal, 'termine' => false])
+            ->log('Message envoyé à des auditeurs');
 
         $rapport = ['sms_envoyes' => 0, 'sms_echecs' => 0, 'emails_envoyes' => 0, 'emails_echecs' => 0, 'ignores' => 0];
-        foreach ($auditeurs as $auditeur) {
-            if ($auditeur->candidature === null) {
+        foreach (self::precharger($auditeurs) as $auditeur) {
+            if (! self::destinataire($auditeur)) {
                 $rapport['ignores']++;
 
                 continue;
@@ -95,24 +141,23 @@ final class MessagesAuditeurs
                 self::rendre($corps, $auditeur),
                 $sujet === null ? null : self::rendre($sujet, $auditeur),
                 $auteur,
+                dejaRendu: true,
             );
-            foreach ($rapport as $cle => $valeur) {
-                $rapport[$cle] = $valeur + (int) ($partiel[$cle] ?? 0);
+            foreach ($rapport as $k => $valeur) {
+                $rapport[$k] = $valeur + (int) ($partiel[$k] ?? 0);
             }
         }
 
-        activity('scolarite')->causedBy($auteur)->event('messages_auditeurs')
-            ->withProperties(['destinataires' => $auditeurs->count(), 'canal' => $canal] + $rapport)
-            ->log('Message envoyé à des auditeurs');
+        $journal->properties = $journal->properties->merge(['termine' => true] + $rapport);
+        $journal->save();
 
         return $rapport;
     }
 
     /** Premier palier non soldé : l'échéance de l'inscription est un texte, celle des tranches une date. */
-    private static function prochaineEcheance(Auditeur $auditeur): string
+    private static function prochaineEcheance(Auditeur $auditeur, ?SituationFinanciere $situation): string
     {
         $inscription = $auditeur->inscriptionCourante;
-        $situation = $inscription?->situation();
         foreach ($situation?->paliers ?? [] as $palier) {
             if ($palier->solde()) {
                 continue;

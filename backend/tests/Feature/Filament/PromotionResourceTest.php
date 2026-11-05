@@ -72,3 +72,29 @@ it('ne propose plus les réglages de la promotion dans la campagne, et ne les ef
     expect($this->p14->fresh()->consignes_retenus)->toBe('Consignes existantes')
         ->and($this->p14->fresh()->parametres_lettres['rentree_lieu'])->toBe('Messa');
 });
+
+it('garde les paramètres absents du formulaire, et refuse une signature hors de son dossier', function (): void {
+    $this->p14->update(['parametres_lettres' => ['frais_inscription_montant' => 185000, 'rentree_lieu' => 'Messa'], 'signature_lettres_path' => null]);
+    $this->actingAs(($this->compte)('scolarite_responsable'));
+
+    $this->livewire(EditPromotion::class, ['record' => $this->p14->getRouteKey()])
+        ->set('data.signature_lettres_path', ['x' => 'candidatures/piece.pdf'])
+        ->fillForm(['parametres_lettres.rentree_lieu' => 'Auditorium'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $c = $this->p14->fresh();
+    expect($c->parametres_lettres['frais_inscription_montant'])->toBe(185000)
+        ->and($c->parametres_lettres['rentree_lieu'])->toBe('Auditorium')
+        ->and($c->signature_lettres_path)->toBeNull();
+});
+
+it('affiche les erreurs du formulaire en français', function (): void {
+    $this->actingAs(($this->compte)('scolarite_responsable'));
+
+    $this->livewire(EditPromotion::class, ['record' => $this->p14->getRouteKey()])
+        ->fillForm(['parametres_lettres.rentree_date' => '2026-11-11', 'parametres_lettres.rentree_date_fin' => '2026-11-10'])
+        ->call('save')
+        ->assertHasFormErrors(['parametres_lettres.rentree_date_fin'])
+        ->assertDontSee('validation.after_or_equal');
+});

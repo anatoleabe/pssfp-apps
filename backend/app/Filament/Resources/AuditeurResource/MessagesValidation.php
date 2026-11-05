@@ -22,6 +22,8 @@ final class MessagesValidation
         'max' => 'Cette valeur est trop longue ou trop grande.',
         'date' => 'Saisissez une date valide.',
         'before_or_equal' => 'La date ne peut pas être dans le futur.',
+        'after_or_equal' => 'Cette date doit suivre la date de début.',
+        'image' => 'Déposez une image PNG ou JPEG.',
         'in' => 'Choisissez une valeur de la liste.',
         'regex' => 'Saisissez l\'année au format 2026-2027.',
         'unique' => 'Un barème existe déjà pour cette année et ce niveau.',

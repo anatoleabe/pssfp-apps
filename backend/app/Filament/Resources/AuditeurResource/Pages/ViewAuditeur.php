@@ -50,7 +50,11 @@ class ViewAuditeur extends ViewRecord
         if (in_array($action->getName(), self::ACTIONS_DU_DOSSIER, true)) {
             /** @var Auditeur $auditeur */
             $auditeur = $this->getRecord();
-            $action->record($auditeur->candidature);
+            $dossier = $auditeur->candidature;
+            // Gestes des admissions : ils exigent aussi l'accès à ce module et le droit de voir
+            // ce dossier, comme depuis les candidatures. Sans dossier (supprimé), rien.
+            $action->record($dossier)
+                ->hidden(fn (): bool => $dossier === null || ! CandidatureResource::canAccess() || ! CandidatureResource::canView($dossier));
         }
     }
 

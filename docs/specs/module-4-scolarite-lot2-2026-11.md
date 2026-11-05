@@ -24,7 +24,8 @@ Une ligne par campagne qui a des retenus. L'écran porte sur le même modèle qu
 
 - **Formulaire :**
   - consignes aux retenus ;
-  - documents des auditeurs : références, date des lettres, rentrée (date, fin, heure, lieu), échéance de l'inscription en texte, copies, signature.
+  - documents des auditeurs : références, date des lettres, rentrée (date, fin, heure, lieu), copies, signature. Les montants et échéances viennent du barème.
+- **Adresse :** `/admin/promotions-scolarite`, distincte de la future rubrique « Promotions » du CMS.
 
   Ces sections quittent le formulaire de la campagne, qui ne garde que la campagne elle-même et ses communiqués.
 - **Actions :**
@@ -42,11 +43,13 @@ Elle ajoute au lot 1 les gestes suivants, regroupés en menus :
 | **Accès eCampus** | Créer le compte, consulter et envoyer les identifiants (`candidature.matricules_moodle`), voir l'espace, nouveau code (`candidature.espace_candidat`) |
 | **Documents** | Lettre d'admission et lettre d'accès en Word (permissions des documents), lettre signée : déposer, voir, retirer (`candidature.lettres_signees`) |
 | **Dossier** | Corriger le téléphone d'un retenu ajouté (`candidature.ajouter_retenu`), ouvrir le dossier de candidature |
-| **Statut** | Changer le statut (section 4) |
+| (dans **Dossier**) | Changer le statut (section 4) |
 
-Ces actions s'appliquent à la candidature de l'auditeur : leur code, leurs contrôles et leurs journaux ne changent pas.
+Ces actions s'appliquent à la candidature de l'auditeur : leur code, leurs contrôles et leurs journaux ne changent pas. Comme depuis les candidatures, elles exigent en plus l'accès au module des admissions et le droit de voir le dossier.
 
-**Historique :** nouvel onglet listant les entrées du journal de l'auditeur, de ses inscriptions, de ses versements et de son dossier, en lecture seule.
+**Fichiers :** les champs de signature et de bordereau ne signent jamais un chemin qui ne vient pas d'eux (même bucket que les pièces des candidats).
+
+**Historique :** section listant les entrées du journal de l'auditeur, de ses inscriptions, de ses versements, en lecture seule. Les entrées du dossier de candidature n'y figurent que pour qui peut ouvrir ce dossier.
 
 ## 4. Statut de l'auditeur
 
@@ -71,7 +74,7 @@ Action groupée dans la liste des auditeurs : « Envoyer un message ».
 - **Variables propres à chaque auditeur :** `{prenom}`, `{nom}`, `{matricule}`, `{reste}` (reste à payer), `{reste_inscription}`, `{prochaine_echeance}`.
 - **Modèle proposé :** « PSSFP : {prenom}, il reste {reste} FCFA à régler pour votre scolarité. Prochaine échéance : {prochaine_echeance}. » Il reste modifiable.
 - **Envoi :** par le service des notifications existant. Il reste donc tracé dans le journal des envois, et apparaît dans les messages de l'espace de l'auditeur.
-- **Garde-fous :** au plus 300 destinataires par envoi, aucun mot de passe dans les variables.
+- **Garde-fous :** au plus 100 destinataires par envoi (l'envoi est synchrone), 6 envois par heure et par agent, dossiers retirés, exclus et en abandon écartés, aucun mot de passe dans les variables. L'aperçu donne le nombre de destinataires, le coût total en SMS et les numéros hors couverture.
 - **Droits :** nouvelle permission `scolarite.messages`, donnée au responsable, à l'admin et au super admin.
 
 ## 6. Liste des candidatures allégée

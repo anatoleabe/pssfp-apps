@@ -97,3 +97,39 @@ it('n\'affiche dans l\'historique que les entrées de cet auditeur', function ()
 
     expect($this->fiche->historique()->pluck('description'))->not->toContain('Entrée d\'un autre auditeur');
 });
+
+it('n\'ouvre pas les gestes des admissions à un rôle scolarité doté à la main d\'une de leurs permissions', function (): void {
+    $agent = ($this->compte)('scolarite_responsable');
+    $agent->givePermissionTo('candidature.matricules_moodle');
+    $this->actingAs($agent);
+
+    $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
+        ->assertActionHidden('identifiantsMoodle')
+        ->assertActionHidden('envoyerIdentifiantsMoodle');
+    $this->livewire(ListAuditeurs::class)
+        ->assertTableBulkActionHidden('envoyerIdentifiantsMoodleBulk')
+        ->assertActionHidden('deposerLettresSignees');
+});
+
+it('masque les entrées du dossier dans l\'historique à qui ne peut pas l\'ouvrir', function (): void {
+    activity('candidatures')->performedOn($this->dossier)->log('Entrée du dossier');
+    activity('scolarite')->performedOn($this->fiche)->log('Entrée de la fiche');
+
+    $this->actingAs(($this->compte)('scolarite_agent'));
+    $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
+        ->assertSee('Entrée de la fiche')->assertDontSee('Entrée du dossier');
+
+    $this->actingAs(($this->compte)('admin'));
+    $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
+        ->assertSee('Entrée du dossier');
+});
+
+it('ne signe jamais un chemin de bordereau venu du navigateur', function (): void {
+    $this->actingAs(($this->compte)('scolarite_agent'));
+    $page = $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
+        ->mountAction('enregistrerVersement')
+        ->set('mountedActionsData.0.justificatif_path', ['x' => 'candidatures/'.$this->dossier->uuid.'/recipisse.pdf']);
+
+    // Le fichier forgé ressort sans aucune adresse signée.
+    expect(array_filter((array) $page->instance()->getFormUploadedFiles('mountedActionsData.0.justificatif_path')))->toBe([]);
+});

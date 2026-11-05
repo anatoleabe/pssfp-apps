@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\CampagneCandidatureResource\ExportsRetenusActions;
 use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
 use App\Filament\Resources\PromotionResource\Pages;
@@ -22,6 +23,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -40,7 +42,11 @@ class PromotionResource extends Resource
 
     protected static ?string $model = CampagneCandidature::class;
 
-    protected static ?string $slug = 'promotions';
+    /** Distinct de la future rubrique « Promotions » du CMS (module 6). */
+    protected static ?string $slug = 'promotions-scolarite';
+
+    /** Seul chemin que ce formulaire signe : un scan déposé par lui-même. */
+    public const MOTIF_SIGNATURE = '#^signatures/signature-[0-9A-Za-z]{26}\.(png|jpe?g)$#';
 
     protected static ?string $modelLabel = 'Promotion';
 
@@ -89,13 +95,13 @@ class PromotionResource extends Resource
             ->whereHas('candidatures', fn (Builder $q) => $q->where('statut', Candidature::STATUT_ACCEPTE))
             ->withCount([
                 'candidatures as retenus_count' => fn (Builder $q) => $q->where('statut', Candidature::STATUT_ACCEPTE)->whereNull('withdrawn_at'),
-                'candidatures as matricules_count' => fn (Builder $q) => $q->whereNotNull('matricule'),
+                'candidatures as matricules_count' => fn (Builder $q) => $q->whereNotNull('matricule')->whereNull('withdrawn_at'),
             ]);
     }
 
     public static function form(Form $form): Form
     {
-        return $form->schema([
+        return $form->schema(MessagesValidation::appliquer([
             Forms\Components\Section::make('Après la sélection')
                 ->description('Affiché dans l\'espace privé des candidats retenus, sous l\'annonce de leur admission.')
                 ->schema([
@@ -107,7 +113,7 @@ class PromotionResource extends Resource
                 ]),
 
             self::sectionDocumentsAuditeurs(),
-        ]);
+        ]));
     }
 
     /**
@@ -150,6 +156,12 @@ class PromotionResource extends Resource
                     ->visibility('private')
                     // Extension déduite du contenu, jamais du nom fourni par le navigateur.
                     ->getUploadedFileNameForStorageUsing(fn (TemporaryUploadedFile $file): string => 'signature-'.Str::ulid().'.'.($file->guessExtension() ?: 'png'))
+                    // L'état d'un champ de fichier se modifie depuis le navigateur : ne jamais
+                    // signer un chemin qui n'est pas un scan de signature (bucket des pièces).
+                    ->getUploadedFileUsing(fn (string $file): ?array => preg_match(self::MOTIF_SIGNATURE, $file) === 1 ? [
+                        'name' => basename($file), 'size' => 0, 'type' => null,
+                        'url' => Storage::disk(CandidatureObjectStorage::DISK)->temporaryUrl($file, now()->addMinutes(5)),
+                    ] : null)
                     ->image()
                     ->acceptedFileTypes(['image/png', 'image/jpeg'])
                     ->maxSize(2048)

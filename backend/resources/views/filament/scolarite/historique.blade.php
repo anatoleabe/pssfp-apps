@@ -1,6 +1,8 @@
 @php
     /* Description, auteur et date seulement : les propriétés du journal ne sont pas affichées. */
-    $entrees = $getRecord()->historique();
+    // Les entrées du dossier de candidature ne s'affichent qu'à qui peut ouvrir ce dossier.
+    $dossier = $getRecord()->candidature;
+    $entrees = $getRecord()->historique(100, $dossier !== null && \App\Filament\Resources\CandidatureResource::canAccess() && \App\Filament\Resources\CandidatureResource::canView($dossier));
     $cellule = 'padding:0.45rem 1rem 0.45rem 0;border-bottom:1px solid rgb(var(--gray-200));vertical-align:top;';
 @endphp
 @if ($entrees->isEmpty())

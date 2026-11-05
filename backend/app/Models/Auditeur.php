@@ -68,18 +68,18 @@ class Auditeur extends Model
      *
      * @return Collection<int, Activity>
      */
-    public function historique(int $limite = 100): Collection
+    public function historique(int $limite = 100, bool $avecDossier = true): Collection
     {
         $inscriptions = $this->inscriptions()->pluck('id');
         $versements = Versement::query()->whereIn('inscription_annuelle_id', $inscriptions)->pluck('id');
 
         return Activity::query()
             ->with('causer')
-            ->where(function ($q) use ($inscriptions, $versements): void {
+            ->where(function ($q) use ($inscriptions, $versements, $avecDossier): void {
                 $q->where(fn ($s) => $s->where('subject_type', $this->getMorphClass())->where('subject_id', $this->getKey()))
                     ->orWhere(fn ($s) => $s->where('subject_type', (new InscriptionAnnuelle)->getMorphClass())->whereIn('subject_id', $inscriptions))
                     ->orWhere(fn ($s) => $s->where('subject_type', (new Versement)->getMorphClass())->whereIn('subject_id', $versements))
-                    ->orWhere(fn ($s) => $s->where('subject_type', (new Candidature)->getMorphClass())->where('subject_id', $this->candidature_id));
+                    ->when($avecDossier, fn ($w) => $w->orWhere(fn ($s) => $s->where('subject_type', (new Candidature)->getMorphClass())->where('subject_id', $this->candidature_id)));
             })
             ->latest('id')
             ->limit($limite)

@@ -19,7 +19,7 @@ class ListAuditeurs extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            LettresSigneesActions::deposerLot(Action::make('deposerLettresSignees')),
+            LettresSigneesActions::deposerLot(AuditeurResource::gardeAdmissions(Action::make('deposerLettresSignees'))),
             Action::make('exporterSituation')
                 ->label('Exporter la situation (Excel)')
                 ->icon('heroicon-o-arrow-down-tray')
