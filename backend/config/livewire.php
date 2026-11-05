@@ -70,7 +70,8 @@ return [
         // 200 Mo, plafond du PDF bibliothèque ; chaque champ garde son maxSize.
         'rules' => ['required', 'file', 'max:204800'],
         'directory' => null,   // Example: 'tmp'                      | Default: 'livewire-tmp'
-        'middleware' => null,  // Example: 'throttle:5,1'             | Default: 'throttle:60,1'
+        // Admin seul : le dépôt des lettres signées enchaîne plusieurs lots de 50 fichiers.
+        'middleware' => 'throttle:300,1',
         'preview_mimes' => [   // Supported file types for temporary pre-signed file URLs...
             'png', 'gif', 'bmp', 'svg', 'wav', 'mp4',
             'mov', 'avi', 'wmv', 'mp3', 'm4a',

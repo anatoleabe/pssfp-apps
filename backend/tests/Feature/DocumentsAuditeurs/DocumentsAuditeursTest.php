@@ -59,6 +59,8 @@ beforeEach(function (): void {
         fn (User $u) => $u->assignRole($role),
     );
     app(AttributionMatricules::class)->attribuer($this->campagne, '26', ($this->agent)('admin'));
+    // La lettre d'accès exige les droits d'inscription pointés (cf. RemiseCodeAccesTest).
+    Candidature::query()->whereKey([$this->alice->id, $this->bruno->id])->update(['frais_inscription_payes_at' => now()]);
     $this->alice = $this->alice->fresh();
     $this->bruno = $this->bruno->fresh();
 });
@@ -196,12 +198,13 @@ it('enregistre les paramètres des lettres depuis la campagne', function (): voi
 });
 
 it('pointe les frais d\'inscription des seuls retenus, et annule le pointage', function (): void {
+    $this->alice->forceFill(['frais_inscription_payes_at' => null])->save();
     $admin = ($this->agent)('admin');
     $this->actingAs($admin);
 
     $this->livewire(ListCandidatures::class)
         ->callTableBulkAction('fraisInscriptionPayesBulk', [$this->alice, $this->refuse])
-        ->assertNotified('Frais d\'inscription pointés');
+        ->assertNotified('Droits d\'inscription pointés');
 
     expect($this->alice->fresh()->frais_inscription_payes_at)->not->toBeNull()
         ->and($this->alice->fresh()->frais_inscription_payes_by)->toBe($admin->id)

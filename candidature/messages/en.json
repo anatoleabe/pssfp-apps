@@ -141,7 +141,14 @@
       "places": "On campus: 25 places · Distance learning: 10 places."
     },
     "campaignClosed": "Intake closed",
-    "promotionLabel": "Intake {numero}"
+    "promotionLabel": "Intake {numero}",
+    "resultats": {
+      "eyebrow": "Official results · Cohort {promotion}",
+      "heading": "Communiqué on the results of the call for applications",
+      "body": "The official list of selected candidates is published. Candidates can also find this communiqué in their personal space.",
+      "download": "Download the communiqué",
+      "downloadHint": "PDF — new tab"
+    }
   },
   "login": {
     "title": "Applicant sign-in",
@@ -544,7 +551,10 @@
       "lockedBody": "Your application has already been submitted (or withdrawn) and can no longer be edited. Check your progress page for details.",
       "campaignClosedBody": "Your account has been created. Come back when the next intake opens to build your application.",
       "notInitialisedBody": "This can happen if the connection was interrupted during sign-up. Your account already exists — simply initialise your application to continue.",
-      "loadError": "Your application could not be loaded: {message}. Please try again in a moment."
+      "loadError": "Your application could not be loaded: {message}. Please try again in a moment.",
+      "lettreTitle": "Admission letter unavailable",
+      "lettreNotReady": "Your signed admission letter is not available yet. Please check back later.",
+      "lettreFailed": "The letter download failed. Please try again in a moment."
     },
     "summary": {
       "eyebrow": "Saved information",
@@ -724,6 +734,13 @@
         "pending": "upcoming",
         "cancelled": "closed"
       }
+    },
+    "documents": {
+      "eyebrow": "Official documents",
+      "title": "My documents",
+      "lettre": "Download my signed admission letter",
+      "resultats": "View the results communiqué",
+      "newTab": "new tab"
     }
   },
   "legal": {

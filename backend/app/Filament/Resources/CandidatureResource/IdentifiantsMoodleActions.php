@@ -57,6 +57,9 @@ final class IdentifiantsMoodleActions
     public static function envoyer(MountableAction $action): MountableAction
     {
         return self::autorise($action)
+            // Après l'autorisation commune : la remise exige les droits d'inscription pointés.
+            ->visible(fn (Candidature $record): bool => (bool) auth()->user()?->can(self::PERMISSION)
+                && IdentifiantsMoodle::remettables($record))
             ->label('Envoyer les identifiants Moodle')
             ->icon('heroicon-o-paper-airplane')
             ->color('gray')
@@ -79,7 +82,7 @@ final class IdentifiantsMoodleActions
             ->visible(fn (): bool => (bool) auth()->user()?->can(self::PERMISSION))
             ->requiresConfirmation()
             ->modalHeading('Envoyer leurs identifiants Moodle aux candidats sélectionnés')
-            ->modalDescription('Seuls les retenus dotés d\'un matricule les reçoivent ; les autres dossiers sélectionnés sont ignorés. Un SMS par candidat. '
+            ->modalDescription('Seuls les retenus dotés d\'un matricule et dont les droits d\'inscription sont pointés les reçoivent ; les autres dossiers sélectionnés sont ignorés. Un SMS par candidat. '
                 .'Au plus '.IdentifiantsMoodle::ENVOI_GROUPE_MAX.' dossiers par envoi : procédez par lots.')
             ->form([self::canal()])
             ->deselectRecordsAfterCompletion()
@@ -95,10 +98,11 @@ final class IdentifiantsMoodleActions
                     return;
                 }
                 $service = app(IdentifiantsMoodle::class);
-                self::notifier($records
-                    ->filter(fn (Candidature $c): bool => IdentifiantsMoodle::disponibles($c))
-                    ->map(fn (Candidature $c): array => $service->envoyer($c, (string) $data['canal'], auth()->user()))
-                    ->values());
+                $remettables = $records->filter(fn (Candidature $c): bool => IdentifiantsMoodle::remettables($c));
+                self::notifier(
+                    $remettables->map(fn (Candidature $c): array => $service->envoyer($c, (string) $data['canal'], auth()->user()))->values(),
+                    $records->count() - $remettables->count(),
+                );
             });
     }
 
@@ -129,15 +133,16 @@ final class IdentifiantsMoodleActions
     }
 
     /** @param  Collection<int, array{sms: ?bool, email: ?bool}>  $resultats */
-    private static function notifier(Collection $resultats): void
+    private static function notifier(Collection $resultats, int $ignores = 0): void
     {
         $compter = fn (string $canal, bool $etat): int => $resultats->filter(fn (array $r): bool => $r[$canal] === $etat)->count();
         $echecs = $compter('sms', false) + $compter('email', false);
 
         $notification = Notification::make()
-            ->title($resultats->isEmpty() ? 'Aucun envoi : aucun retenu doté d\'un matricule' : 'Identifiants envoyés')
+            ->title($resultats->isEmpty() ? 'Aucun envoi : aucun dossier remplit les conditions' : 'Identifiants envoyés')
             ->body(sprintf('SMS : %d envoyé(s), %d échec(s). E-mails : %d envoyé(s), %d échec(s).',
-                $compter('sms', true), $compter('sms', false), $compter('email', true), $compter('email', false)));
+                $compter('sms', true), $compter('sms', false), $compter('email', true), $compter('email', false))
+                .($ignores > 0 ? " {$ignores} dossier(s) ignoré(s) : sans matricule ou droits d'inscription non pointés." : ''));
         ($echecs > 0 || $resultats->isEmpty() ? $notification->warning() : $notification->success())->send();
     }
 }

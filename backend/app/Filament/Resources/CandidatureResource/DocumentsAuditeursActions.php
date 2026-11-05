@@ -23,7 +23,7 @@ use Throwable;
  * Documents remis aux auditeurs (accès FOAD, lettres d'admission) au format
  * Word, une page par auditeur : pour toute la promotion depuis la campagne,
  * pour une sélection ou un seul dossier depuis les candidatures. Et pointage
- * des frais d'inscription, condition de la lettre dans l'espace de l'auditeur.
+ * des droits d'inscription, condition de la remise du code d'accès.
  */
 final class DocumentsAuditeursActions
 {
@@ -70,7 +70,7 @@ final class DocumentsAuditeursActions
             ->icon('heroicon-o-document-text')
             ->color('gray')
             ->visible(fn (Candidature $record): bool => (bool) auth()->user()?->can(DocumentsAuditeurs::permission($document))
-                && ($document === ParametresLettres::DOCUMENT_ACCES ? IdentifiantsMoodle::disponibles($record)
+                && ($document === ParametresLettres::DOCUMENT_ACCES ? IdentifiantsMoodle::remettables($record)
                     : FraisInscription::concerne($record) && $record->matricule !== null))
             ->action(fn (Candidature $record): ?StreamedResponse => $record->campagne === null ? null
                 : self::telecharger($record->campagne, $document, [$record->id]));
@@ -109,22 +109,22 @@ final class DocumentsAuditeursActions
     public static function fraisPayes(MountableAction $action, bool $payes): MountableAction
     {
         return $action
-            ->label($payes ? 'Frais d\'inscription payés' : 'Annuler : frais d\'inscription non payés')
+            ->label($payes ? 'Droits d\'inscription payés' : 'Annuler : droits d\'inscription non payés')
             ->icon($payes ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
             ->color($payes ? 'success' : 'gray')
             ->visible(fn (Candidature $record): bool => (bool) auth()->user()?->can(FraisInscription::PERMISSION)
                 && FraisInscription::concerne($record) && FraisInscription::payes($record) !== $payes)
             ->requiresConfirmation()
-            ->modalDescription($payes
-                ? 'À cocher une fois les frais d\'inscription et péri-académiques réglés. La lettre d\'admission pourra alors être mise à disposition de l\'auditeur.'
-                : 'Le pointage est retiré ; la lettre d\'admission ne sera plus mise à disposition de l\'auditeur.')
+            ->modalDescription(fn (Candidature $record): string => $payes
+                ? self::conditionPointage($record->campagne)
+                : 'Le pointage est retiré : le code d\'accès ne pourra plus être remis. Un code déjà envoyé reste connu de l\'auditeur.')
             ->action(fn (Candidature $record) => self::pointer(collect([$record]), $payes));
     }
 
     public static function fraisPayesGroupe(BulkAction $action, bool $payes): BulkAction
     {
         return $action
-            ->label($payes ? 'Frais d\'inscription payés' : 'Frais d\'inscription non payés')
+            ->label($payes ? 'Droits d\'inscription payés' : 'Droits d\'inscription non payés')
             ->icon($payes ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
             ->color($payes ? 'success' : 'gray')
             ->visible(fn (): bool => (bool) auth()->user()?->can(FraisInscription::PERMISSION))
@@ -134,10 +134,17 @@ final class DocumentsAuditeursActions
             ->action(fn (Collection $records) => self::pointer($records, $payes));
     }
 
+    private static function conditionPointage(?CampagneCandidature $campagne): string
+    {
+        $montant = $campagne === null ? '' : ' de '.ParametresLettres::pour($campagne)->montant('frais_inscription_montant').' FCFA';
+
+        return "À cocher une fois réglés au moins les droits d'inscription{$montant}. Le code d'accès à la plateforme pourra alors être remis à l'auditeur.";
+    }
+
     private static function avertissement(string $document): ?string
     {
         return $document === ParametresLettres::DOCUMENT_ACCES
-            ? 'Ce fichier contient les mots de passe des auditeurs, qui ne changent jamais : ne le transmettez pas, ne le déposez sur aucun partage, détruisez les impressions inutiles. Le téléchargement est inscrit sur la fiche de chaque auditeur.'
+            ? 'Seuls les auditeurs dont les droits d\'inscription sont pointés y figurent. Ce fichier contient leurs mots de passe, qui ne changent jamais : ne le transmettez pas, ne le déposez sur aucun partage, détruisez les impressions inutiles. Le téléchargement est inscrit sur la fiche de chaque auditeur.'
             : null;
     }
 
@@ -147,7 +154,7 @@ final class DocumentsAuditeursActions
         abort_unless(auth()->user()?->can(FraisInscription::PERMISSION), 403);
         $modifies = app(FraisInscription::class)->pointer($dossiers, $payes, auth()->user());
         Notification::make()->success()
-            ->title($payes ? 'Frais d\'inscription pointés' : 'Pointage annulé')
+            ->title($payes ? 'Droits d\'inscription pointés' : 'Pointage annulé')
             ->body("{$modifies} dossier(s) mis à jour.")
             ->send();
     }

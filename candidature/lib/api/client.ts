@@ -175,6 +175,11 @@ export function getCurrentCampaign(): Promise<ApiResult<Campagne | null>> {
   return apiGet<Campagne | null>('/applications/campaigns/current', { revalidate: 60 });
 }
 
+/** Communiqué des résultats : public même une fois la campagne close. */
+export async function getCommuniqueResultats(): Promise<ApiResult<{ communique_resultats_url: string; promotion_numero: number } | null>> {
+  return apiGet<{ communique_resultats_url: string; promotion_numero: number } | null>('/applications/campaigns/resultats', { revalidate: 60 });
+}
+
 export function getPays(): Promise<ApiResult<Pays[]>> {
   return apiGet<Pays[]>('/reference/pays', { revalidate: 86400 });
 }
@@ -297,10 +302,11 @@ export interface MyCandidature extends CandidatureProfile {
   reference_paiement: string | null;
   date_paiement: string | null;
   recipisse_available: boolean;
+  lettre_admission_available: boolean;
   has_photo: boolean;
   photo_url: string | null;
   documents: CandidatureDocumentItem[];
-  campagne: Pick<Campagne, 'slug' | 'nom' | 'closes_at' | 'results_at' | 'is_currently_open'> | null;
+  campagne: Pick<Campagne, 'slug' | 'nom' | 'closes_at' | 'results_at' | 'is_currently_open' | 'communique_resultats_url'> | null;
   /** Présent une fois la décision rendue, null avant. */
   decision: CandidatureDecision | null;
   /** Messages rédigés depuis l'admin et reçus par le candidat, du plus récent au plus ancien. */

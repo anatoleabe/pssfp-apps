@@ -11,6 +11,7 @@ use App\Filament\Resources\CandidatureResource\AjoutRetenuActions;
 use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
 use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
 use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
+use App\Filament\Resources\CandidatureResource\LettresSigneesActions;
 use App\Filament\Resources\CandidatureResource\Pages;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
@@ -19,6 +20,7 @@ use App\Models\Pays;
 use App\Models\RegionCameroun;
 use App\Services\CandidatureService;
 use App\Services\DepotPhysiqueService;
+use App\Services\DocumentsAuditeurs\LettresAdmissionSignees;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
 use App\Services\DocumentUploadService;
 use App\Services\ExportsRetenus\AttributionMatricules;
@@ -328,15 +330,22 @@ class CandidatureResource extends Resource
                     ->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle')
                     ->tooltip(fn (Candidature $r): string => $r->frais_paye ? 'Frais payés' : ($r->ajoute_par !== null ? 'Sans objet : retenu ajouté par l\'admin' : 'Frais non payés')),
                 // Frais d'inscription des retenus (distincts des frais de dossier) :
-                // condition de la lettre d'admission dans l'espace de l'auditeur.
+                // condition de la remise du code d'accès à l'auditeur.
+                Tables\Columns\IconColumn::make('lettre_admission_path')->label('Lettre')
+                    ->state(fn (Candidature $r): ?bool => LettresAdmissionSignees::depotPossible($r) ? filled($r->lettre_admission_path) : null)
+                    ->boolean()
+                    ->tooltip(fn (Candidature $r): ?string => LettresAdmissionSignees::depotPossible($r)
+                        ? (filled($r->lettre_admission_path) ? 'Lettre signée déposée' : 'Lettre signée à déposer')
+                        : null)
+                    ->toggleable(),
                 Tables\Columns\IconColumn::make('frais_inscription_payes_at')->label('Inscription')
                     ->boolean()
                     ->state(fn (Candidature $r): bool => $r->frais_inscription_payes_at !== null)
                     ->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-minus-circle')
                     ->trueColor('success')->falseColor('gray')
                     ->tooltip(fn (Candidature $r): string => $r->frais_inscription_payes_at !== null
-                        ? 'Frais d\'inscription payés (pointés le '.$r->frais_inscription_payes_at->timezone('Africa/Douala')->format('d/m/Y').')'
-                        : 'Frais d\'inscription non pointés')
+                        ? 'Droits d\'inscription payés (pointés le '.$r->frais_inscription_payes_at->timezone('Africa/Douala')->format('d/m/Y').')'
+                        : 'Droits d\'inscription non pointés : le code d\'accès reste bloqué')
                     ->toggleable(),
                 // ADR-0009 : rendre l'absence de photo lisible d'un coup d'œil
                 // sur la liste, et pas seulement derrière un filtre.
@@ -415,8 +424,21 @@ class CandidatureResource extends Resource
                         true: fn (Builder $query): Builder => $query->whereNotNull('ajoute_par'),
                         false: fn (Builder $query): Builder => $query->whereNull('ajoute_par'),
                     ),
+                Tables\Filters\TernaryFilter::make('lettre_signee')
+                    ->label('Lettre d\'admission signée')
+                    ->placeholder('Toutes')
+                    ->trueLabel('Déposée')
+                    ->falseLabel('Retenus sans lettre')
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query->whereNotNull('lettre_admission_path'),
+                        false: fn (Builder $query): Builder => $query
+                            ->where('statut', Candidature::STATUT_ACCEPTE)
+                            ->whereNull('withdrawn_at')
+                            ->whereNotNull('matricule')
+                            ->whereNull('lettre_admission_path'),
+                    ),
                 Tables\Filters\TernaryFilter::make('frais_inscription')
-                    ->label('Frais d\'inscription')
+                    ->label('Droits d\'inscription')
                     ->placeholder('Tous')
                     ->trueLabel('Payés uniquement')
                     ->falseLabel('Non payés uniquement')
@@ -731,6 +753,9 @@ class CandidatureResource extends Resource
                     EspaceCandidatActions::nouveauCode(Tables\Actions\Action::make('nouveauCode')),
                     DocumentsAuditeursActions::dossier(Tables\Actions\Action::make('lettreAccesFoad'), ParametresLettres::DOCUMENT_ACCES),
                     DocumentsAuditeursActions::dossier(Tables\Actions\Action::make('lettreAdmission'), ParametresLettres::DOCUMENT_ADMISSION),
+                    LettresSigneesActions::deposer(Tables\Actions\Action::make('deposerLettreSignee')),
+                    LettresSigneesActions::voir(Tables\Actions\Action::make('voirLettreSignee')),
+                    LettresSigneesActions::retirer(Tables\Actions\Action::make('retirerLettreSignee')),
                     DocumentsAuditeursActions::fraisPayes(Tables\Actions\Action::make('fraisInscriptionPayes'), true),
                     DocumentsAuditeursActions::fraisPayes(Tables\Actions\Action::make('fraisInscriptionAnnules'), false),
                     Tables\Actions\Action::make('categorieMatricule')

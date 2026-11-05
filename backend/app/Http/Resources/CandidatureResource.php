@@ -6,6 +6,7 @@ namespace App\Http\Resources;
 
 use App\Models\Candidature;
 use App\Models\CandidatureRelance;
+use App\Services\DocumentsAuditeurs\LettresAdmissionSignees;
 use App\Services\PhotoUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -88,6 +89,7 @@ final class CandidatureResource extends JsonResource
                 ? app(PhotoUploadService::class)->signedUrl($this->photo_path)
                 : null,
             'recipisse_available' => $this->recipisse_pdf_path !== null,
+            'lettre_admission_available' => LettresAdmissionSignees::disponible($this->resource),
             // Pièces justificatives optionnelles (cf. migration
             // candidature_documents) — non-bloquantes, dépôt physique
             // alternatif possible au bureau de la scolarité.

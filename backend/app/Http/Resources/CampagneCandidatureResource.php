@@ -32,6 +32,7 @@ final class CampagneCandidatureResource extends JsonResource
             'communique_url_en' => $this->communiqueUrl('en'),
             'communique_reference' => $this->communique_reference,
             'communique_signed_at' => optional($this->communique_signed_at)->toDateString(),
+            'communique_resultats_url' => $this->communiqueResultatsUrl(),
             // prefix_numero exclus volontairement (interne, pas exposé en API).
         ];
     }

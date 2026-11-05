@@ -198,6 +198,9 @@ it('suit le parcours ordinaire : matricule au rang suivant, lettres et exports',
     foreach ([ExportsRetenusExcel::FULL_DATA, ExportsRetenusExcel::ACMA, ExportsRetenusExcel::MOODLE] as $type) {
         expect(app(ExportsRetenus::class)->generer($this->campagne, $type, $this->admin, 'P14')['lignes'])->toBe(2);
     }
+    // Comme tout auditeur : la lettre d'accès attend les droits d'inscription pointés.
+    expect(app(DocumentsAuditeurs::class)->generer($this->campagne, ParametresLettres::DOCUMENT_ADMISSION, $this->admin, [$c->id])['pages'])->toBe(1);
+    $c->forceFill(['frais_inscription_payes_at' => now()])->save();
     foreach ([ParametresLettres::DOCUMENT_ACCES, ParametresLettres::DOCUMENT_ADMISSION] as $document) {
         expect(app(DocumentsAuditeurs::class)->generer($this->campagne, $document, $this->admin, [$c->id])['pages'])->toBe(1);
     }

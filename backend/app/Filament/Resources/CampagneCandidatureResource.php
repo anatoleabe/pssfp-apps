@@ -76,8 +76,31 @@ class CampagneCandidatureResource extends Resource
                 Forms\Components\DateTimePicker::make('results_at')->native(false)->after('closes_at'),
             ])->columns(2),
 
-            Forms\Components\Section::make('Communiqué conjoint signé')
-                ->description('Publié en téléchargement sur la page d\'accueil de apply.pssfp.org dès qu\'un PDF est déposé ici.')
+            Forms\Components\Section::make('Communiqué des résultats')
+                ->description('Publié sur la page d\'accueil de apply.pssfp.org et dans l\'espace des candidats dès qu\'un PDF est déposé ici, même campagne close. Il ne remplace pas le communiqué de l\'appel ci-dessous.')
+                ->schema([
+                    Forms\Components\FileUpload::make('communique_resultats_path')
+                        ->label('PDF du communiqué des résultats signé')
+                        ->disk(CampagneCandidature::COMMUNIQUE_DISK)
+                        // Pas de HeadObject à l'ouverture du formulaire : la clé MinIO de prod
+                        // le refuse et Filament retirerait alors le PDF déjà déposé.
+                        ->fetchFileInformation(false)
+                        ->directory('communiques')
+                        ->visibility('public')
+                        ->acceptedFileTypes(['application/pdf'])
+                        ->maxSize(10240)
+                        ->downloadable()
+                        ->openable()
+                        ->previewable(false)
+                        ->helperText('PDF uniquement, 10 Mo maximum.')
+                        ->getUploadedFileNameForStorageUsing(
+                            fn (Forms\Get $get): string => 'resultats-'
+                                .Str::slug((string) ($get('slug') ?: 'campagne')).'.pdf',
+                        ),
+                ]),
+
+            Forms\Components\Section::make('Communiqué conjoint de l\'appel à candidature')
+                ->description('Publié en téléchargement sur la page d\'accueil de apply.pssfp.org tant que la campagne est ouverte. Pour les résultats, utilisez la section ci-dessus.')
                 ->schema([
                     Forms\Components\FileUpload::make('communique_pdf_path')
                         ->label('PDF du communiqué signé — version française')

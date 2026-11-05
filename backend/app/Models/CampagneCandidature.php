@@ -41,6 +41,7 @@ class CampagneCandidature extends Model
         'max_voeux',
         'communique_pdf_path',
         'communique_pdf_path_en',
+        'communique_resultats_path',
         'communique_reference',
         'communique_signed_at',
         // Consignes affichées aux candidats retenus dans leur espace.
@@ -113,5 +114,13 @@ class CampagneCandidature extends Model
         }
 
         return Storage::disk(self::COMMUNIQUE_DISK)->url($path);
+    }
+
+    /** URL publique du communiqué des résultats, distinct de celui de l'appel. */
+    public function communiqueResultatsUrl(): ?string
+    {
+        return blank($this->communique_resultats_path)
+            ? null
+            : Storage::disk(self::COMMUNIQUE_DISK)->url($this->communique_resultats_path);
     }
 }
