@@ -1,21 +1,26 @@
 import { useTranslations } from 'next-intl';
-import { ArrowRight, FileDown, FileText } from 'lucide-react';
+import { ArrowUpRight, Download, FileText } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { MyCandidature } from '@/lib/api/client';
 
 const LIEN =
   'group flex min-h-14 items-center gap-3 rounded-pssfp-button border border-[#F4EFFA] bg-white px-5 py-3 font-semibold text-[#333] transition-colors duration-200 hover:border-[#D4AF6A] hover:text-[#4A2E67] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2';
 
-function Document({ href, testId, icone, nouvelOnglet, children }: { href: string; testId: string; icone: ReactNode; nouvelOnglet: string; children: ReactNode }): JSX.Element {
+/** `nouvelOnglet` : document externe ouvert à côté ; sinon téléchargement dans l'onglet. */
+function Document({ href, testId, icone, nouvelOnglet, children }: { href: string; testId: string; icone: ReactNode; nouvelOnglet?: string; children: ReactNode }): JSX.Element {
   return (
     <li>
-      <a href={href} target="_blank" rel="noopener noreferrer" data-testid={testId} className={LIEN}>
+      <a href={href} {...(nouvelOnglet ? { target: '_blank', rel: 'noopener noreferrer' } : {})} data-testid={testId} className={LIEN}>
         <span aria-hidden="true" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F4EFFA] text-[#4A2E67]">{icone}</span>
         <span>
           {children}
-          <span className="sr-only"> ({nouvelOnglet})</span>
+          {nouvelOnglet && <span className="sr-only"> ({nouvelOnglet})</span>}
         </span>
-        <ArrowRight size={18} aria-hidden="true" className="ml-auto shrink-0" />
+        {nouvelOnglet ? (
+          <ArrowUpRight size={18} aria-hidden="true" className="ml-auto shrink-0" />
+        ) : (
+          <Download size={18} aria-hidden="true" className="ml-auto shrink-0" />
+        )}
       </a>
     </li>
   );
@@ -32,11 +37,11 @@ export function EspaceDocuments({ candidature }: { candidature: MyCandidature })
       <h2 id="documents-heading" className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A1A1A]">{t('title')}</h2>
       <ul className="mt-6 grid gap-3">
         {candidature.lettre_admission_available && (
-          <Document href="/dossier/lettre-admission" testId="doc-lettre" icone={<FileDown size={18} />} nouvelOnglet={t('newTab')}>{t('lettre')}</Document>
+          <Document href="/dossier/lettre-admission" testId="doc-lettre" icone={<FileText size={18} />}>{t('lettre')}</Document>
         )}
-        <Document href="/dossier/releve" testId="doc-releve" icone={<FileDown size={18} />} nouvelOnglet={t('newTab')}>{t('releve')}</Document>
+        <Document href="/dossier/releve" testId="doc-releve" icone={<FileText size={18} />}>{t('releve')}</Document>
         {candidature.recipisse_available && (
-          <Document href="/dossier/recipisse" testId="doc-recipisse" icone={<FileText size={18} />} nouvelOnglet={t('newTab')}>{t('recipisse')}</Document>
+          <Document href="/dossier/recipisse" testId="doc-recipisse" icone={<FileText size={18} />}>{t('recipisse')}</Document>
         )}
         {resultats && (
           <Document href={resultats} testId="doc-resultats" icone={<FileText size={18} />} nouvelOnglet={t('newTab')}>{t('resultats')}</Document>

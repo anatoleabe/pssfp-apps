@@ -18,8 +18,8 @@ export function AccueilAuditeur({ scolarite, candidature }: { scolarite: MaScola
 
   return (
     <>
-      {scolarite.statut && scolarite.statut !== 'actif' && (
-        <p role="status" data-testid="statut-auditeur" className="flex items-start gap-3 rounded-pssfp-card border border-amber-200 bg-amber-50/90 p-5 text-sm text-amber-900">
+      {scolarite.statut && scolarite.statut !== 'actif' && t.has(`statut.${scolarite.statut}`) && (
+        <p data-testid="statut-auditeur" className="flex items-start gap-3 rounded-pssfp-card border border-amber-200 bg-amber-50/90 p-5 text-sm text-amber-900">
           <Info size={18} aria-hidden="true" className="mt-0.5 shrink-0" />
           {t(`statut.${scolarite.statut}`)}
         </p>
@@ -50,7 +50,7 @@ export function AccueilAuditeur({ scolarite, candidature }: { scolarite: MaScola
           <div className="rounded-pssfp-card bg-[#FAF7F2] p-5">
             <h3 className="font-ui text-xs uppercase tracking-[0.14em] text-[#5C5C5C]">{t('accueil.dernierMessage')}</h3>
             {dernier ? (
-              <p className="mt-1 line-clamp-3 text-sm text-[#3C3C3C]">{dernier.sujet ?? dernier.message}</p>
+              <p className="mt-1 line-clamp-3 text-sm text-[#3C3C3C]">{dernier.sujet || dernier.message}</p>
             ) : (
               <p className="mt-1 text-sm text-[#5C5C5C]">{t('accueil.aucunMessage')}</p>
             )}

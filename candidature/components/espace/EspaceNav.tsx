@@ -22,7 +22,7 @@ export function EspaceNav(): JSX.Element {
   const pathname = usePathname();
 
   return (
-    <nav aria-label={t('navLabel')} data-testid="espace-nav" className="-mx-6 mb-8 overflow-x-auto px-6">
+    <nav aria-label={t('navLabel')} data-testid="espace-nav" className="-mx-6 mb-8 overflow-x-auto px-6 py-1">
       <ul className="flex min-w-max gap-2 border-b border-[#F4EFFA] pb-px">
         {RUBRIQUES.map(({ cle, href, icone: Icone }) => {
           const actif = pathname === href;
@@ -31,7 +31,7 @@ export function EspaceNav(): JSX.Element {
               <Link
                 href={href}
                 aria-current={actif ? 'page' : undefined}
-                className={`inline-flex min-h-11 items-center gap-2 rounded-t-pssfp-button border-b-2 px-4 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2 ${
+                className={`inline-flex min-h-11 items-center gap-2 rounded-t-pssfp-button border-b-2 px-4 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#4A2E67] ${
                   actif ? 'border-[#4A2E67] text-[#4A2E67]' : 'border-transparent text-[#3C3C3C] hover:border-[#A592BD] hover:text-[#4A2E67]'
                 }`}
               >

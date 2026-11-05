@@ -785,7 +785,8 @@
         "reprise": "Enregistré avant la mise en service"
       },
       "resteMontant": "Reste à payer : <strong>{montant}</strong>",
-      "headerCourt": "{matricule} · {niveau}"
+      "headerCourt": "{matricule} · {niveau}",
+      "promotion": "{numero, selectordinal, one {#re} other {#e}} promotion"
     },
     "acces": {
       "eyebrow": "Mes accès",
@@ -1129,11 +1130,10 @@
     "documents": {
       "eyebrow": "Mes documents",
       "title": "Documents officiels",
-      "lettre": "Lettre d'admission signée",
+      "lettre": "Lettre d'admission signée (PDF)",
       "releve": "Relevé de ma situation financière (PDF)",
-      "recipisse": "Récépissé de ma candidature",
+      "recipisse": "Récépissé de ma candidature (PDF)",
       "resultats": "Communiqué des résultats",
-      "aucun": "Aucun document disponible pour l'instant.",
       "newTab": "nouvel onglet"
     },
     "messages": {

@@ -785,7 +785,8 @@
         "reprise": "Recorded before go-live"
       },
       "resteMontant": "Outstanding: <strong>{montant}</strong>",
-      "headerCourt": "{matricule} · {niveau}"
+      "headerCourt": "{matricule} · {niveau}",
+      "promotion": "Cohort {numero}"
     },
     "acces": {
       "eyebrow": "My access",
@@ -1129,11 +1130,10 @@
     "documents": {
       "eyebrow": "My documents",
       "title": "Official documents",
-      "lettre": "Signed admission letter",
+      "lettre": "Signed admission letter (PDF)",
       "releve": "Statement of my fees (PDF)",
-      "recipisse": "Application receipt",
+      "recipisse": "Application receipt (PDF)",
       "resultats": "Results communiqué",
-      "aucun": "No document available yet.",
       "newTab": "new tab"
     },
     "messages": {

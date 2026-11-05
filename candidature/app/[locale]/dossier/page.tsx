@@ -168,6 +168,12 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
             <p className="font-semibold">{lettre_error === 'not_ready' ? t('lettreNotReady') : t('lettreFailed')}</p>
           </div>
         )}
+        {recipisse_error && (
+          <div role="alert" className="flex items-start gap-3 rounded-pssfp-card border border-red-200 bg-red-50/90 p-5 text-sm text-red-900 shadow-pssfp-soft">
+            <AlertCircle size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-red-600" />
+            <p className="font-semibold">{recipisse_error === 'not_ready' ? t('recipisseNotReady') : t('recipisseFailed')}</p>
+          </div>
+        )}
         <AccueilAuditeur scolarite={scolarite} candidature={candidature} />
         <DossierDecisionCard candidature={candidature} phase={phase} />
       </EspaceGabarit>
