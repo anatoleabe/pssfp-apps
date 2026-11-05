@@ -73,6 +73,10 @@ class AuditeurResource extends Resource
                 Tables\Columns\TextColumn::make('situation')->label('Situation')->badge()
                     ->getStateUsing(fn (Auditeur $record): string => LibelleSituation::libelle($record->inscriptionCourante))
                     ->color(fn (Auditeur $record): string => LibelleSituation::couleur(LibelleSituation::cle($record->inscriptionCourante))),
+                Tables\Columns\TextColumn::make('statut')->label('Statut')->badge()
+                    ->formatStateUsing(fn (string $state): string => Auditeur::STATUTS[$state] ?? $state)
+                    ->color(fn (string $state): string => self::couleurStatut($state))
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('retrait')->label('')
                     ->getStateUsing(fn (Auditeur $record): ?string => $record->candidature?->withdrawn_at === null ? null : 'Retiré')
                     ->badge()->color('gray'),
@@ -83,6 +87,7 @@ class AuditeurResource extends Resource
                         ->pluck('promotion_numero', 'id')->map(fn ($n): string => $n.'e promotion')->all())
                     ->query(fn (Builder $query, array $data): Builder => blank($data['value'] ?? null) ? $query
                         : $query->whereHas('candidature', fn (Builder $c) => $c->where('campagne_id', $data['value']))),
+                Tables\Filters\SelectFilter::make('statut')->label('Statut')->options(Auditeur::STATUTS),
                 Tables\Filters\SelectFilter::make('niveau')->label('Niveau')->options(BaremeScolarite::NIVEAUX)
                     ->query(fn (Builder $query, array $data): Builder => blank($data['value'] ?? null) ? $query
                         : $query->whereHas('inscriptionCourante', fn (Builder $i) => $i->where('niveau', $data['value']))),
@@ -127,11 +132,25 @@ class AuditeurResource extends Resource
                     ->getStateUsing(fn (Auditeur $record): string => $record->candidature?->withdrawn_at === null ? 'Actif' : 'Retiré le '.$record->candidature->withdrawn_at->timezone('Africa/Douala')->format('d/m/Y'))
                     ->badge()->color(fn (Auditeur $record): string => $record->candidature?->withdrawn_at === null ? 'success' : 'gray'),
             ]),
+            Infolists\Components\Section::make('Statut')->columns(3)
+                ->visible(fn (Auditeur $record): bool => $record->statut !== Auditeur::STATUT_ACTIF || $record->statut_depuis !== null)
+                ->schema([
+                    Infolists\Components\TextEntry::make('statut')->label('Statut')->badge()
+                        ->formatStateUsing(fn (string $state): string => Auditeur::STATUTS[$state] ?? $state)
+                        ->color(fn (string $state): string => self::couleurStatut($state)),
+                    Infolists\Components\TextEntry::make('statut_depuis')->label('Depuis le')->date('d/m/Y')->placeholder('—'),
+                    Infolists\Components\TextEntry::make('statut_motif')->label('Motif')->placeholder('—'),
+                ]),
             Infolists\Components\Section::make('Situation financière')
                 ->description(fn (Auditeur $record): ?string => $record->inscriptionCourante === null ? null
                     : $record->inscriptionCourante->annee_academique.' · '.(BaremeScolarite::NIVEAUX[$record->inscriptionCourante->niveau] ?? $record->inscriptionCourante->niveau))
                 ->schema([
                     Infolists\Components\ViewEntry::make('situation')->hiddenLabel()->view('filament.scolarite.situation'),
+                ]),
+            Infolists\Components\Section::make('Historique')->collapsible()->collapsed()
+                ->description('Les 100 dernières entrées du journal : fiche, inscriptions, versements et dossier.')
+                ->schema([
+                    Infolists\Components\ViewEntry::make('historique')->hiddenLabel()->view('filament.scolarite.historique'),
                 ]),
             Infolists\Components\Section::make('Accès à eCampus')->columns(2)->schema([
                 Infolists\Components\TextEntry::make('acces')->label('État')->badge()
@@ -147,6 +166,16 @@ class AuditeurResource extends Resource
                         : 'Envoyé le '.$record->inscriptionCourante->acces_notifie_at->timezone('Africa/Douala')->format('d/m/Y à H:i')),
             ]),
         ]);
+    }
+
+    public static function couleurStatut(string $statut): string
+    {
+        return match ($statut) {
+            Auditeur::STATUT_ACTIF => 'success',
+            Auditeur::STATUT_DIPLOME => 'info',
+            Auditeur::STATUT_SUSPENDU => 'warning',
+            default => 'danger',
+        };
     }
 
     public static function libelleAcces(Auditeur $record): string

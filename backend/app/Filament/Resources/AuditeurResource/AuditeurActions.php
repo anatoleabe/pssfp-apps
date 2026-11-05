@@ -13,6 +13,7 @@ use App\Services\Scolarite\NotificationAcces;
 use App\Services\Scolarite\OuvertureAuditeur;
 use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\ResultatOperation;
+use App\Services\Scolarite\StatutAuditeur;
 use App\Support\CandidatureObjectStorage;
 use Filament\Actions\Action;
 use Filament\Forms;
@@ -156,6 +157,35 @@ final class AuditeurActions
                 $inscription === null
                     ? Notification::make()->danger()->title('Barème manquant')->body('Aucun barème M1 pour l\'année de cette promotion : un responsable de scolarité doit d\'abord le saisir (Vie académique > Barèmes).')->persistent()->send()
                     : Notification::make()->success()->title('Inscription créée')->send();
+            });
+    }
+
+    public static function changerStatut(): Action
+    {
+        return Action::make('changerStatut')
+            ->label('Changer le statut')
+            ->icon('heroicon-o-flag')
+            ->visible(fn (): bool => (bool) auth()->user()?->can(StatutAuditeur::PERMISSION))
+            ->modalHeading('Statut de l\'auditeur')
+            ->modalDescription('Informatif : le statut ne bloque ni les versements ni l\'accès à eCampus. Il n\'a pas d\'effet sur le dossier de candidature.')
+            ->fillForm(fn (Auditeur $record): array => ['statut' => $record->statut, 'depuis' => InscriptionAnnuelle::aujourdhui()->toDateString()])
+            ->form(MessagesValidation::appliquer([
+                Forms\Components\Select::make('statut')->label('Statut')->required()->options(Auditeur::STATUTS)->native(false),
+                Forms\Components\DatePicker::make('depuis')->label('Date d\'effet')->required()->native(false)->displayFormat('d/m/Y')
+                    ->maxDate(InscriptionAnnuelle::aujourdhui()->endOfDay()->toDateTimeString()),
+                Forms\Components\Textarea::make('motif')->label('Motif')->required()->maxLength(500)->rows(3),
+            ]))
+            ->action(function (Auditeur $record, array $data, Action $action): void {
+                try {
+                    app(StatutAuditeur::class)->changer($record, (string) $data['statut'], (string) $data['motif'], (string) $data['depuis'], auth()->user());
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title('Statut non modifié')->body($e->getMessage())->send();
+                    $action->halt();
+
+                    return;
+                }
+                $record->refresh();
+                Notification::make()->success()->title('Statut modifié')->send();
             });
     }
 

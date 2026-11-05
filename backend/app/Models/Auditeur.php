@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
+use Spatie\Activitylog\Models\Activity;
 
 /**
  * Auditeur du programme, à partir de l'attribution de son matricule.
@@ -58,6 +60,30 @@ class Auditeur extends Model
     public function getRouteKeyName(): string
     {
         return 'uuid';
+    }
+
+    /**
+     * Journal de la fiche : l'auditeur, ses inscriptions, ses versements et son
+     * dossier. Pour l'affichage seulement (description, auteur, date).
+     *
+     * @return Collection<int, Activity>
+     */
+    public function historique(int $limite = 100): Collection
+    {
+        $inscriptions = $this->inscriptions()->pluck('id');
+        $versements = Versement::query()->whereIn('inscription_annuelle_id', $inscriptions)->pluck('id');
+
+        return Activity::query()
+            ->with('causer')
+            ->where(function ($q) use ($inscriptions, $versements): void {
+                $q->where(fn ($s) => $s->where('subject_type', $this->getMorphClass())->where('subject_id', $this->getKey()))
+                    ->orWhere(fn ($s) => $s->where('subject_type', (new InscriptionAnnuelle)->getMorphClass())->whereIn('subject_id', $inscriptions))
+                    ->orWhere(fn ($s) => $s->where('subject_type', (new Versement)->getMorphClass())->whereIn('subject_id', $versements))
+                    ->orWhere(fn ($s) => $s->where('subject_type', (new Candidature)->getMorphClass())->where('subject_id', $this->candidature_id));
+            })
+            ->latest('id')
+            ->limit($limite)
+            ->get();
     }
 
     public function statutModifiePar(): BelongsTo
