@@ -91,6 +91,16 @@ it('réserve les messages au responsable et à l\'administration', function (): 
     $this->livewire(ListAuditeurs::class)->assertTableBulkActionHidden('messageAuditeurs');
 });
 
+it('montre dans l\'aperçu le texte rendu pour la sélection', function (): void {
+    $this->actingAs(($this->compte)('scolarite_responsable'));
+
+    $this->livewire(ListAuditeurs::class)
+        ->mountTableBulkAction('messageAuditeurs', [$this->bruno->auditeur])
+        ->setTableBulkActionData(['canal' => NotificationCandidatsService::CANAL_SMS, 'corps' => 'Reste {reste} FCFA'])
+        ->assertSee('1 destinataire(s)')
+        ->assertSee('Reste 1 185 000 FCFA');
+});
+
 it('envoie depuis la liste des auditeurs', function (): void {
     $this->actingAs(($this->compte)('scolarite_responsable'));
 

@@ -140,8 +140,8 @@ class AuditeurResource extends Resource
                 Infolists\Components\TextEntry::make('candidature.campagne.promotion_numero')->label('Promotion')
                     ->formatStateUsing(fn ($state): string => $state.'e promotion'),
                 Infolists\Components\TextEntry::make('candidature.specialite')->label('Spécialité')->placeholder('—'),
-                Infolists\Components\TextEntry::make('candidature.withdrawn_at')->label('Dossier')
-                    ->getStateUsing(fn (Auditeur $record): string => $record->candidature?->withdrawn_at === null ? 'Actif' : 'Retiré le '.$record->candidature->withdrawn_at->timezone('Africa/Douala')->format('d/m/Y'))
+                Infolists\Components\TextEntry::make('candidature.withdrawn_at')->label('Dossier de candidature')
+                    ->getStateUsing(fn (Auditeur $record): string => $record->candidature?->withdrawn_at === null ? 'En cours' : 'Retiré le '.$record->candidature->withdrawn_at->timezone('Africa/Douala')->format('d/m/Y'))
                     ->badge()->color(fn (Auditeur $record): string => $record->candidature?->withdrawn_at === null ? 'success' : 'gray'),
             ]),
             Infolists\Components\Section::make('Statut')->columns(3)

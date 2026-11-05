@@ -22,6 +22,7 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions\Action as TableAction;
 use Filament\Tables\Actions\BulkAction;
+use Filament\Tables\Contracts\HasTable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -215,7 +216,9 @@ final class AuditeurActions
                 Forms\Components\Textarea::make('corps')->label('Message')->required()->maxLength(1000)->rows(4)->live(onBlur: true)
                     ->default(MessagesAuditeurs::MODELE_RELANCE),
                 Forms\Components\Placeholder::make('apercu')->label('Aperçu')
-                    ->content(function (Forms\Get $get, Collection $records): string {
+                    // La sélection n'est pas injectée dans les champs du formulaire : on la relit sur la table.
+                    ->content(function (Forms\Get $get, HasTable $livewire): string {
+                        $records = $livewire->getSelectedTableRecords()->load(['candidature', 'inscriptionCourante.bareme']);
                         $a = app(MessagesAuditeurs::class)->apercu($records, (string) $get('canal'), (string) $get('corps'));
 
                         return $a['total'].' destinataire(s), '.$a['sms_par_message'].' SMS par message. Exemple : « '.$a['exemple'].' »';
