@@ -22,8 +22,7 @@ use Throwable;
 /**
  * Documents remis aux auditeurs (accès FOAD, lettres d'admission) au format
  * Word, une page par auditeur : pour toute la promotion depuis la campagne,
- * pour une sélection ou un seul dossier depuis les candidatures. Et pointage
- * des droits d'inscription, condition de la remise du code d'accès.
+ * pour une sélection ou un seul dossier depuis les candidatures.
  */
 final class DocumentsAuditeursActions
 {
@@ -100,63 +99,11 @@ final class DocumentsAuditeursActions
             });
     }
 
-    /**
-     * @template T of MountableAction
-     *
-     * @param  T  $action
-     * @return T
-     */
-    public static function fraisPayes(MountableAction $action, bool $payes): MountableAction
-    {
-        return $action
-            ->label($payes ? 'Droits d\'inscription payés' : 'Annuler : droits d\'inscription non payés')
-            ->icon($payes ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
-            ->color($payes ? 'success' : 'gray')
-            ->visible(fn (Candidature $record): bool => (bool) auth()->user()?->can(FraisInscription::PERMISSION)
-                && FraisInscription::concerne($record) && FraisInscription::payes($record) !== $payes)
-            ->requiresConfirmation()
-            ->modalDescription(fn (Candidature $record): string => $payes
-                ? self::conditionPointage($record->campagne)
-                : 'Le pointage est retiré : le code d\'accès ne pourra plus être remis. Un code déjà envoyé reste connu de l\'auditeur.')
-            ->action(fn (Candidature $record) => self::pointer(collect([$record]), $payes));
-    }
-
-    public static function fraisPayesGroupe(BulkAction $action, bool $payes): BulkAction
-    {
-        return $action
-            ->label($payes ? 'Droits d\'inscription payés' : 'Droits d\'inscription non payés')
-            ->icon($payes ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
-            ->color($payes ? 'success' : 'gray')
-            ->visible(fn (): bool => (bool) auth()->user()?->can(FraisInscription::PERMISSION))
-            ->requiresConfirmation()
-            ->modalDescription('Seuls les retenus non retirés sont concernés ; les autres dossiers sélectionnés sont ignorés.')
-            ->deselectRecordsAfterCompletion()
-            ->action(fn (Collection $records) => self::pointer($records, $payes));
-    }
-
-    private static function conditionPointage(?CampagneCandidature $campagne): string
-    {
-        $montant = $campagne === null ? '' : ' de '.ParametresLettres::pour($campagne)->montant('frais_inscription_montant').' FCFA';
-
-        return "À cocher une fois réglés au moins les droits d'inscription{$montant}. Le code d'accès à la plateforme pourra alors être remis à l'auditeur.";
-    }
-
     private static function avertissement(string $document): ?string
     {
         return $document === ParametresLettres::DOCUMENT_ACCES
-            ? 'Seuls les auditeurs dont les droits d\'inscription sont pointés y figurent. Ce fichier contient leurs mots de passe, qui ne changent jamais : ne le transmettez pas, ne le déposez sur aucun partage, détruisez les impressions inutiles. Le téléchargement est inscrit sur la fiche de chaque auditeur.'
+            ? 'Seuls les auditeurs dont l\'inscription est soldée y figurent. Ce fichier contient leurs mots de passe, qui ne changent jamais : ne le transmettez pas, ne le déposez sur aucun partage, détruisez les impressions inutiles. Le téléchargement est inscrit sur la fiche de chaque auditeur.'
             : null;
-    }
-
-    /** @param  Collection<int, Candidature>  $dossiers */
-    private static function pointer(Collection $dossiers, bool $payes): void
-    {
-        abort_unless(auth()->user()?->can(FraisInscription::PERMISSION), 403);
-        $modifies = app(FraisInscription::class)->pointer($dossiers, $payes, auth()->user());
-        Notification::make()->success()
-            ->title($payes ? 'Droits d\'inscription pointés' : 'Pointage annulé')
-            ->body("{$modifies} dossier(s) mis à jour.")
-            ->send();
     }
 
     /** @param  list<int>|null  $seulement */

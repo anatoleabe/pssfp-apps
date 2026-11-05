@@ -48,8 +48,8 @@ final class IdentifiantsMoodle
     }
 
     /**
-     * Le code ne se remet à l'auditeur qu'une fois ses droits d'inscription
-     * pointés. La consultation par l'administration reste libre, pour l'assistance.
+     * Le code ne se remet à l'auditeur qu'une fois son inscription soldée. La
+     * consultation par l'administration reste libre, pour l'assistance.
      */
     public static function remettables(Candidature $c): bool
     {
@@ -96,7 +96,7 @@ final class IdentifiantsMoodle
             throw new InvalidArgumentException("Le dossier {$c->numero_dossier} n'est pas un retenu doté d'un matricule.");
         }
         if (! FraisInscription::payes($c)) {
-            throw new InvalidArgumentException("Dossier {$c->numero_dossier} : droits d'inscription non pointés, le code d'accès ne peut pas être remis.");
+            throw new InvalidArgumentException("Dossier {$c->numero_dossier} : inscription non soldée, le code d'accès ne peut pas être remis.");
         }
 
         $resultat = ['sms' => null, 'email' => null];

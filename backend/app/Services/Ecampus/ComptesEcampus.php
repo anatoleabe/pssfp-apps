@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Services\ExportsRetenus\AttributionMatricules;
 use App\Services\ExportsRetenus\ExportsRetenus;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
+use App\Services\Scolarite\AccesEcampus;
+use App\Services\Scolarite\NotificationAcces;
 use App\Support\TexteImprimable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -40,7 +42,10 @@ final class ComptesEcampus
 
     private const RAPPROCHEMENT_PAR_LOT = 50;
 
-    public function __construct(private readonly ClientMoodle $moodle) {}
+    public function __construct(
+        private readonly ClientMoodle $moodle,
+        private readonly NotificationAcces $notification,
+    ) {}
 
     public static function actif(): bool
     {
@@ -288,6 +293,11 @@ final class ComptesEcampus
             ->event('ecampus_compte')
             ->withProperties(['statut' => $statut])
             ->log('Compte eCampus du dossier traité');
+
+        // Inscription soldée avant la création du compte : l'accès vient de s'ouvrir.
+        if (AccesEcampus::compteExiste($c)) {
+            $this->notification->siDisponible($c);
+        }
 
         return $statut;
     }

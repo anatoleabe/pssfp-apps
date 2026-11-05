@@ -30,8 +30,6 @@ class ViewCandidature extends ViewRecord
             ActionGroup::make([
                 DocumentsAuditeursActions::dossier(Action::make('lettreAccesFoad'), ParametresLettres::DOCUMENT_ACCES),
                 DocumentsAuditeursActions::dossier(Action::make('lettreAdmission'), ParametresLettres::DOCUMENT_ADMISSION),
-                DocumentsAuditeursActions::fraisPayes(Action::make('fraisInscriptionPayes'), true),
-                DocumentsAuditeursActions::fraisPayes(Action::make('fraisInscriptionAnnules'), false),
             ])->label('Documents')->icon('heroicon-o-document-text')->button()->color('gray'),
             ComptesEcampusActions::creer(Action::make('creerCompteEcampus')),
             IdentifiantsMoodleActions::consulter(Action::make('identifiantsMoodle')),

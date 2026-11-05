@@ -170,8 +170,6 @@ class CampagneCandidatureResource extends Resource
     private static function sectionDocumentsAuditeurs(): Forms\Components\Section
     {
         $defaut = fn (string $cle): string => (string) config('documents_auditeurs.defauts.'.$cle);
-        $montant = fn (string $cle, string $libelle): Forms\Components\TextInput => Forms\Components\TextInput::make('parametres_lettres.'.$cle)
-            ->label($libelle)->numeric()->minValue(0)->suffix('FCFA')->placeholder(number_format((int) $defaut($cle), 0, ',', ' '));
 
         return Forms\Components\Section::make('Documents des auditeurs')
             ->description('Lettres d\'accès FOAD et lettres d\'admission, générées en Word depuis « Documents des auditeurs ». Un champ laissé vide reprend la valeur grisée. Enregistrez avant de générer : les lettres utilisent les valeurs enregistrées.')
@@ -189,13 +187,10 @@ class CampagneCandidatureResource extends Resource
                 Forms\Components\TextInput::make('parametres_lettres.rentree_lieu')->label('Lieu de la rentrée')->maxLength(250)
                     ->placeholder('à l\'Auditorium 300 de l\'immeuble principal du MINEPAT, boulevard du 20 mai')
                     ->helperText('Complète la phrase « aura lieu le … à 08:00 heures précises, … ».'),
-                $montant('frais_inscription_montant', 'Frais d\'inscription et péri-académiques'),
-                Forms\Components\TextInput::make('parametres_lettres.frais_inscription_echeance')->label('Échéance des frais d\'inscription')
-                    ->placeholder($defaut('frais_inscription_echeance'))->maxLength(120),
-                $montant('frais_tranche1_montant', '1re tranche'),
-                Forms\Components\DatePicker::make('parametres_lettres.frais_tranche1_date')->label('Échéance de la 1re tranche')->native(false)->displayFormat('d/m/Y'),
-                $montant('frais_tranche2_montant', '2e tranche'),
-                Forms\Components\DatePicker::make('parametres_lettres.frais_tranche2_date')->label('Échéance de la 2e tranche')->native(false)->displayFormat('d/m/Y'),
+                Forms\Components\Placeholder::make('frais_bareme')
+                    ->label('Droits d\'inscription et tranches')
+                    ->content('Montants et échéances viennent du barème M1 de l\'année (Vie académique > Barèmes) : la lettre et le déblocage du code d\'accès lisent la même valeur.')
+                    ->columnSpanFull(),
                 Forms\Components\TagsInput::make('parametres_lettres.copies')->label('Copies (lettres d\'admission)')
                     ->placeholder(implode(', ', (array) config('documents_auditeurs.defauts.copies'))),
                 Forms\Components\FileUpload::make('signature_lettres_path')

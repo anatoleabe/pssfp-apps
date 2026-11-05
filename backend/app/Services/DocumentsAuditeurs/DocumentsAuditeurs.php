@@ -97,8 +97,9 @@ final class DocumentsAuditeurs
     {
         return AttributionMatricules::retenus($campagne)
             ->whereNotNull('matricule')
-            // La lettre d'accès contient le code : réservée aux droits d'inscription pointés.
-            ->when($document === ParametresLettres::DOCUMENT_ACCES, fn ($q) => $q->whereNotNull('moodle_password')->whereNotNull('frais_inscription_payes_at'))
+            // La lettre d'accès contient le code : réservée aux inscriptions soldées.
+            ->when($document === ParametresLettres::DOCUMENT_ACCES, fn ($q) => $q->whereNotNull('moodle_password')
+                ->whereHas('auditeur.inscriptionCourante', fn ($i) => $i->inscriptionSoldee()))
             ->when($seulement !== null, fn ($q) => $q->whereIn('id', $seulement))
             ->orderBy('rang_retenu')
             ->get();

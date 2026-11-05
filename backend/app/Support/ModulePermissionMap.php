@@ -112,6 +112,23 @@ final class ModulePermissionMap
                     'candidature.espace_candidat' => 'Donner un nouveau code de connexion à un candidat et voir son espace (lecture seule)',
                 ],
             ],
+            'scolarite' => [
+                'label' => 'Module 4 — Scolarité',
+                'description' => 'Auditeurs, versements et situation financière. La gestion donne le droit d\'enregistrer un versement.',
+                'read' => [
+                    'view_any_auditeur', 'view_auditeur',
+                ],
+                'manage' => [
+                    'scolarite.versement_saisir',
+                ],
+                'sensitive_description' => 'À cocher explicitement : enregistrer un versement n\'emporte pas le droit de l\'annuler.',
+                'sensitive' => [
+                    'scolarite.export' => 'Exporter la situation financière des auditeurs',
+                    'scolarite.versement_annuler' => 'Annuler un versement',
+                    'scolarite.remise' => 'Accorder une remise',
+                    'scolarite.bareme' => 'Modifier les barèmes',
+                ],
+            ],
             'bibliotheque' => [
                 'label' => 'Module 3 — Bibliothèque',
                 'description' => 'Documents de la bibliothèque virtuelle et thésaurus. La publication reste une action sensible.',

@@ -1,5 +1,10 @@
 <?php
 
+use App\Models\Auditeur;
+use App\Models\BaremeScolarite;
+use App\Models\Candidature;
+use App\Models\InscriptionAnnuelle;
+use App\Models\Versement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -56,4 +61,40 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Solde le palier d'inscription d'un retenu doté d'un matricule, comme l'aurait
+ * fait la Scolarité : barème de l'année, auditeur, inscription, versement.
+ */
+function solderInscription(Candidature $dossier): InscriptionAnnuelle
+{
+    $annee = $dossier->campagne->anneeAcademique();
+    $bareme = BaremeScolarite::query()->firstOrCreate(
+        ['annee_academique' => $annee, 'niveau' => 'M1'],
+        ['montant_inscription' => 185000, 'montant_tranche1' => 500000, 'montant_tranche2' => 500000],
+    );
+    $auditeur = Auditeur::query()->firstOrCreate(['candidature_id' => $dossier->id]);
+    $inscription = InscriptionAnnuelle::query()->firstOrCreate(
+        ['auditeur_id' => $auditeur->id, 'annee_academique' => $annee],
+        [
+            'bareme_id' => $bareme->id, 'niveau' => 'M1',
+            'montant_inscription' => $bareme->montant_inscription,
+            'montant_tranche1' => $bareme->montant_tranche1,
+            'montant_tranche2' => $bareme->montant_tranche2,
+        ],
+    );
+    Versement::factory()->create(['inscription_annuelle_id' => $inscription->id, 'montant' => $inscription->montant_inscription]);
+    $dossier->unsetRelation('auditeur');
+
+    return $inscription;
+}
+
+/** Annule tous les versements du dossier : l'inscription n'est plus soldée. */
+function annulerVersements(Candidature $dossier): void
+{
+    Versement::query()
+        ->whereHas('inscription.auditeur', fn ($q) => $q->where('candidature_id', $dossier->id))
+        ->update(['annule_at' => now()]);
+    $dossier->unsetRelation('auditeur');
 }

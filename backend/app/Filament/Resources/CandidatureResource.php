@@ -272,7 +272,7 @@ class CandidatureResource extends Resource
             ->defaultSort('submitted_at', 'desc')
             ->modifyQueryUsing(fn (Builder $query): Builder => $query
                 // user.roles : visibilité des boutons « Voir son espace » et « Nouveau code ».
-                ->with(['campagne', 'user.roles'])
+                ->with(['campagne', 'user.roles', 'auditeur.inscriptionCourante' => fn ($q) => $q->with('bareme')->withSum('versementsValides', 'montant')])
                 ->withCount('documents'))
             ->columns([
                 Tables\Columns\TextColumn::make('submitted_at')
@@ -347,15 +347,6 @@ class CandidatureResource extends Resource
                     ->tooltip(fn (Candidature $r): ?string => LettresAdmissionSignees::depotPossible($r)
                         ? (filled($r->lettre_admission_path) ? 'Lettre signée déposée' : 'Lettre signée à déposer')
                         : null)
-                    ->toggleable(),
-                Tables\Columns\IconColumn::make('frais_inscription_payes_at')->label('Inscription')
-                    ->boolean()
-                    ->state(fn (Candidature $r): bool => $r->frais_inscription_payes_at !== null)
-                    ->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-minus-circle')
-                    ->trueColor('success')->falseColor('gray')
-                    ->tooltip(fn (Candidature $r): string => $r->frais_inscription_payes_at !== null
-                        ? 'Droits d\'inscription payés (pointés le '.$r->frais_inscription_payes_at->timezone('Africa/Douala')->format('d/m/Y').')'
-                        : 'Droits d\'inscription non pointés : le code d\'accès reste bloqué')
                     ->toggleable(),
                 // ADR-0009 : rendre l'absence de photo lisible d'un coup d'œil
                 // sur la liste, et pas seulement derrière un filtre.
@@ -463,16 +454,6 @@ class CandidatureResource extends Resource
                             ->whereNull('withdrawn_at')
                             ->whereNotNull('matricule')
                             ->whereNull('lettre_admission_path'),
-                    ),
-                Tables\Filters\TernaryFilter::make('frais_inscription')
-                    ->label('Droits d\'inscription')
-                    ->placeholder('Tous')
-                    ->trueLabel('Payés uniquement')
-                    ->falseLabel('Non payés uniquement')
-                    // Paramètres nommés `$query` : Filament injecte par nom.
-                    ->queries(
-                        true: fn (Builder $query): Builder => $query->whereNotNull('frais_inscription_payes_at'),
-                        false: fn (Builder $query): Builder => $query->whereNull('frais_inscription_payes_at'),
                     ),
                 // ADR-0009 : la photo ne bloquant plus la soumission, des
                 // dossiers soumis circulent sans photo. Ce filtre est le seul
@@ -784,8 +765,6 @@ class CandidatureResource extends Resource
                     LettresSigneesActions::deposer(Tables\Actions\Action::make('deposerLettreSignee')),
                     LettresSigneesActions::voir(Tables\Actions\Action::make('voirLettreSignee')),
                     LettresSigneesActions::retirer(Tables\Actions\Action::make('retirerLettreSignee')),
-                    DocumentsAuditeursActions::fraisPayes(Tables\Actions\Action::make('fraisInscriptionPayes'), true),
-                    DocumentsAuditeursActions::fraisPayes(Tables\Actions\Action::make('fraisInscriptionAnnules'), false),
                     Tables\Actions\Action::make('categorieMatricule')
                         ->label('Catégorie de matricule (EFP / EFSC)')
                         ->icon('heroicon-o-identification')
@@ -1179,8 +1158,6 @@ class CandidatureResource extends Resource
                 IdentifiantsMoodleActions::envoyerGroupe(Tables\Actions\BulkAction::make('envoyerIdentifiantsMoodleBulk')),
                 DocumentsAuditeursActions::selection(Tables\Actions\BulkAction::make('accesFoadBulk'), ParametresLettres::DOCUMENT_ACCES),
                 DocumentsAuditeursActions::selection(Tables\Actions\BulkAction::make('lettresAdmissionBulk'), ParametresLettres::DOCUMENT_ADMISSION),
-                DocumentsAuditeursActions::fraisPayesGroupe(Tables\Actions\BulkAction::make('fraisInscriptionPayesBulk'), true),
-                DocumentsAuditeursActions::fraisPayesGroupe(Tables\Actions\BulkAction::make('fraisInscriptionAnnulesBulk'), false),
                 Tables\Actions\BulkAction::make('categorieMatriculeBulk')
                     ->label('Catégorie de matricule (EFP / EFSC)')
                     ->icon('heroicon-o-identification')
