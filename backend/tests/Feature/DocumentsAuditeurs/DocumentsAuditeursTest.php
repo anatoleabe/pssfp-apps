@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Filament\Resources\CampagneCandidatureResource\Pages\EditCampagneCandidature;
 use App\Filament\Resources\CandidatureResource\Pages\ListCandidatures;
+use App\Filament\Resources\PromotionResource\Pages\EditPromotion;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\User;
@@ -173,19 +173,19 @@ it('télécharge depuis la liste des candidatures et refuse une sélection de de
         ->assertNotified('Une seule promotion à la fois');
 });
 
-it('signale depuis la campagne ce qu\'il reste à saisir', function (): void {
+it('signale depuis la promotion ce qu\'il reste à saisir', function (): void {
     $this->campagne->update(['parametres_lettres' => ['date_lettres' => '2026-11-03']]);
     $this->actingAs(($this->agent)('admin'));
 
-    $this->livewire(EditCampagneCandidature::class, ['record' => $this->campagne->getRouteKey()])
+    $this->livewire(EditPromotion::class, ['record' => $this->campagne->getRouteKey()])
         ->callAction('lettresAdmission')
         ->assertNotified('Document impossible à générer');
 });
 
-it('enregistre les paramètres des lettres depuis la campagne', function (): void {
+it('enregistre les paramètres des lettres depuis la promotion', function (): void {
     $this->actingAs(($this->agent)('admin'));
 
-    $this->livewire(EditCampagneCandidature::class, ['record' => $this->campagne->getRouteKey()])
+    $this->livewire(EditPromotion::class, ['record' => $this->campagne->getRouteKey()])
         ->fillForm(['parametres_lettres.rentree_heure' => '9 heures'])
         ->call('save')
         ->assertHasNoFormErrors();

@@ -27,12 +27,10 @@ Une ligne par campagne qui a des retenus. L'écran porte sur le même modèle qu
   - documents des auditeurs : références, date des lettres, rentrée (date, fin, heure, lieu), échéance de l'inscription en texte, copies, signature.
 
   Ces sections quittent le formulaire de la campagne, qui ne garde que la campagne elle-même et ses communiqués.
-- **Actions, déplacées depuis la liste des campagnes :**
-  - attribuer les matricules ;
-  - exports des retenus (données complètes, ACMA, Moodle) ;
-  - documents des auditeurs (accès FOAD, lettres d'admission).
-
-  Les résultats de sélection (communiqué, PV, liste) restent sur la campagne.
+- **Actions :**
+  - documents des auditeurs (accès FOAD, lettres d'admission) : ils quittent la campagne ;
+  - attribution des matricules et exports des retenus (données complètes, ACMA, Moodle) : ajoutés ici, mais **ils restent aussi sur la campagne**, car le comité d'admission y télécharge les données complètes sans avoir accès au module Scolarité ;
+  - les résultats de sélection (communiqué, PV, liste) restent sur la campagne.
 - **Droits :** nouvelle permission `scolarite.promotion`, pour modifier les réglages de la promotion. Elle est donnée au responsable de scolarité, à l'admin et au super admin. Chaque action garde sa permission actuelle : exports, matricules, documents.
 
 ## 3. Fiche auditeur complète
