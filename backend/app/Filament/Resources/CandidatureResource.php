@@ -8,6 +8,7 @@ use App\Events\CandidatureAccepted;
 use App\Events\CandidatureRefused;
 use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\CandidatureResource\AjoutRetenuActions;
+use App\Filament\Resources\CandidatureResource\ComptesEcampusActions;
 use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
 use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
 use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
@@ -23,6 +24,7 @@ use App\Services\DepotPhysiqueService;
 use App\Services\DocumentsAuditeurs\LettresAdmissionSignees;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
 use App\Services\DocumentUploadService;
+use App\Services\Ecampus\ComptesEcampus;
 use App\Services\ExportsRetenus\AttributionMatricules;
 use App\Services\NotificationCandidatsService;
 use App\Services\RecipisseService;
@@ -326,6 +328,14 @@ class CandidatureResource extends Resource
                     ->copyable()
                     ->searchable()
                     ->toggleable(),
+                Tables\Columns\TextColumn::make('ecampus_statut')
+                    ->label('eCampus')
+                    ->state(fn (Candidature $r): ?string => ComptesEcampusActions::libelle($r))
+                    ->color(fn (Candidature $r): string => ComptesEcampusActions::couleur($r))
+                    ->tooltip(fn (Candidature $r): ?string => $r->ecampus_detail)
+                    ->badge()
+                    ->visible(fn (): bool => ComptesEcampus::actif() && (bool) auth()->user()?->can('candidature.matricules_moodle'))
+                    ->toggleable(),
                 Tables\Columns\IconColumn::make('frais_paye')->label('Frais')
                     ->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle')
                     ->tooltip(fn (Candidature $r): string => $r->frais_paye ? 'Frais payés' : ($r->ajoute_par !== null ? 'Sans objet : retenu ajouté par l\'admin' : 'Frais non payés')),
@@ -415,6 +425,23 @@ class CandidatureResource extends Resource
                         true: fn (Builder $query): Builder => $query->where('frais_paye', true),
                         false: fn (Builder $query): Builder => $query->where('frais_paye', false)->whereNull('ajoute_par'),
                     ),
+                Tables\Filters\SelectFilter::make('ecampus')
+                    ->label('Compte eCampus')
+                    ->visible(fn (): bool => ComptesEcampus::actif() && (bool) auth()->user()?->can('candidature.matricules_moodle'))
+                    ->options([
+                        'a_traiter' => 'À créer ou à reprendre',
+                        'ecart' => 'Différence avec eCampus',
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
+                        'a_traiter' => $query
+                            ->where('statut', Candidature::STATUT_ACCEPTE)
+                            ->whereNull('withdrawn_at')
+                            ->whereNotNull('matricule')
+                            ->where(fn (Builder $q) => $q->whereNull('ecampus_statut')
+                                ->orWhereIn('ecampus_statut', [ComptesEcampus::ECHEC, ComptesEcampus::COHORTE_A_FINIR])),
+                        'ecart' => $query->where('ecampus_statut', ComptesEcampus::EXISTANT)->whereNotNull('ecampus_detail'),
+                        default => $query,
+                    }),
                 Tables\Filters\TernaryFilter::make('ajoute_admin')
                     ->label('Origine du dossier')
                     ->placeholder('Tous')
@@ -747,6 +774,7 @@ class CandidatureResource extends Resource
                                 ->helperText('Laissée vide : année de la promotion. Ignorée si la promotion a déjà des matricules (année figée).'),
                         ])
                         ->action(fn (Candidature $r, array $data) => self::attribuerMatricules(collect([$r]), $data['annee'] ?? null)),
+                    ComptesEcampusActions::creer(Tables\Actions\Action::make('creerCompteEcampus')),
                     IdentifiantsMoodleActions::consulter(Tables\Actions\Action::make('identifiantsMoodle')),
                     IdentifiantsMoodleActions::envoyer(Tables\Actions\Action::make('envoyerIdentifiantsMoodle')),
                     EspaceCandidatActions::voirEspace(Tables\Actions\Action::make('voirEspace')),
@@ -1147,6 +1175,7 @@ class CandidatureResource extends Resource
                     ])
                     ->deselectRecordsAfterCompletion()
                     ->action(fn ($records, array $data) => self::attribuerMatricules($records, $data['annee'] ?? null)),
+                ComptesEcampusActions::creerGroupe(Tables\Actions\BulkAction::make('creerComptesEcampus')),
                 IdentifiantsMoodleActions::envoyerGroupe(Tables\Actions\BulkAction::make('envoyerIdentifiantsMoodleBulk')),
                 DocumentsAuditeursActions::selection(Tables\Actions\BulkAction::make('accesFoadBulk'), ParametresLettres::DOCUMENT_ACCES),
                 DocumentsAuditeursActions::selection(Tables\Actions\BulkAction::make('lettresAdmissionBulk'), ParametresLettres::DOCUMENT_ADMISSION),
@@ -1207,6 +1236,7 @@ class CandidatureResource extends Resource
         abort_unless($user?->can('candidature.matricules_moodle'), 403);
 
         $attribues = 0;
+        $ids = [];
         $erreurs = [];
         foreach (collect($records)->groupBy('campagne_id') as $dossiers) {
             $campagne = CampagneCandidature::query()->find($dossiers->first()->campagne_id);
@@ -1216,17 +1246,27 @@ class CandidatureResource extends Resource
             $anneeCampagne = AttributionMatricules::anneeFigee($campagne)
                 ?? (filled($annee) ? (string) $annee : AttributionMatricules::anneeParDefaut($campagne));
             try {
-                $attribues += app(AttributionMatricules::class)
-                    ->attribuer($campagne, $anneeCampagne, $user, $dossiers->pluck('id')->map(fn ($id): int => (int) $id)->all())['attribues'];
+                $resultat = app(AttributionMatricules::class)
+                    ->attribuer($campagne, $anneeCampagne, $user, $dossiers->pluck('id')->map(fn ($id): int => (int) $id)->all());
+                $attribues += $resultat['attribues'];
+                $ids = [...$ids, ...$resultat['ids']];
             } catch (InvalidArgumentException|RuntimeException $e) {
                 $erreurs[] = $e->getMessage();
             }
         }
 
+        $bilan = app(ComptesEcampus::class)->apresAttribution($ids, $user);
+
         $notification = Notification::make()
             ->title($attribues === 0 ? 'Aucun matricule attribué' : "{$attribues} matricule(s) attribué(s)")
-            ->body($erreurs === [] ? 'Les dossiers non retenus ou déjà numérotés sont ignorés.' : implode(' ', $erreurs));
-        ($erreurs === [] ? $notification->success() : $notification->danger())->send();
+            ->body(trim(($erreurs === [] ? 'Les dossiers non retenus ou déjà numérotés sont ignorés.' : implode(' ', $erreurs))
+                .' '.ComptesEcampusActions::phrase($bilan)));
+        match (true) {
+            $erreurs !== [] => $notification->danger(),
+            ! ComptesEcampusActions::sansIncident($bilan) => $notification->warning(),
+            default => $notification->success(),
+        };
+        $notification->send();
     }
 
     /**

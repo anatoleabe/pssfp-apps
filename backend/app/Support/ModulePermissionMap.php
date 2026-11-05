@@ -105,7 +105,7 @@ final class ModulePermissionMap
                     'candidature.notify' => 'Notifier un groupe de candidats par SMS ou e-mail',
                     'campagne.download_resultats' => 'Télécharger le communiqué des résultats et le PV du jury (listes nominatives)',
                     'campagne.export_retenus' => 'Télécharger les exports des retenus (données complètes, ACMA)',
-                    'candidature.matricules_moodle' => 'Attribuer les matricules, exporter les comptes Moodle, voir et envoyer le mot de passe Moodle d\'un auditeur',
+                    'candidature.matricules_moodle' => 'Attribuer les matricules, créer les comptes sur eCampus, exporter les comptes Moodle, voir et envoyer le mot de passe Moodle d\'un auditeur',
                     'candidature.ajouter_retenu' => 'Ajouter un retenu depuis l\'admin, sans dossier déposé sur le portail de candidature, et corriger son téléphone',
                     'candidature.lettres_signees' => 'Déposer, remplacer, consulter et retirer les lettres d\'admission signées des auditeurs',
                     'candidature.frais_inscription' => 'Pointer les droits d\'inscription payés des auditeurs (condition de la remise du code d\'accès)',

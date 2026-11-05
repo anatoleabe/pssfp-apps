@@ -131,6 +131,8 @@ class Candidature extends Model
         // Hors $fillable : posés par LettresAdmissionSignees uniquement.
         'lettre_admission_deposee_at' => 'datetime',
         'lettre_admission_deposee_par' => 'integer',
+        // Hors $fillable : posé par ComptesEcampus uniquement.
+        'ecampus_synchronise_at' => 'datetime',
     ];
 
     /** Le `id` reste BIGSERIAL ; HasUuids génère uniquement le champ `uuid`. */

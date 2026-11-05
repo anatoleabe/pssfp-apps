@@ -182,6 +182,7 @@ final class CandidatureService
             'recipisse_pdf_path', 'recipisse_hash_sha256',
             'categorie_matricule', 'matricule', 'rang_retenu', 'moodle_password', 'matricule_attribue_at', 'ajoute_par',
             'lettre_admission_path', 'lettre_admission_deposee_at', 'lettre_admission_deposee_par',
+            'ecampus_statut', 'ecampus_detail', 'ecampus_synchronise_at',
             'created_at', 'updated_at', 'deleted_at',
         ];
         $clean = array_diff_key($fields, array_flip($forbidden));

@@ -34,6 +34,15 @@ return [
     // Plateforme FOAD (Moodle) : adresse rappelée aux auditeurs avec leurs identifiants.
     'foad_url' => rtrim((string) env('FOAD_URL', 'https://ecampus.pssfp.org'), '/'),
 
+    // Création des comptes eCampus par les services web de Moodle. Sans jeton,
+    // rien n'est appelé : les comptes passent par l'export Moodle.
+    'ecampus' => [
+        'jeton' => (string) env('ECAMPUS_JETON', ''),
+        'delai_secondes' => (int) env('ECAMPUS_DELAI_SECONDES', 8),
+        // Temps maximal consacré aux comptes dans une requête de l'admin.
+        'budget_secondes' => (int) env('ECAMPUS_BUDGET_SECONDES', 20),
+    ],
+
     // Secret partagé avec le portail candidature : authentifie l'en-tête qui
     // porte l'adresse IP réelle du visiteur (cf. IpVisiteurDuPortail).
     'portail_secret' => (string) env('PSSFP_PORTAIL_SECRET', ''),

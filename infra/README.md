@@ -39,6 +39,18 @@ apt install -y php8.3-fpm php8.3-pgsql php8.3-redis php8.3-gd php8.3-intl \
 mkdir -p /var/log/pssfp /var/log/pm2 && chown deploy:www-data /var/log/pssfp
 ```
 
+## Comptes eCampus depuis le portail
+
+Le jeton passe directement d'un serveur à l'autre, sans s'afficher. À lancer une fois, puis à chaque rotation (retirer d'abord l'ancienne ligne `ECAMPUS_JETON` du `.env`) :
+
+```bash
+scp moodle/cli/creer-service-portail.php pssfp-foad:/tmp/
+ssh pssfp-foad 'sudo -u www-data php /tmp/creer-service-portail.php --ip=<IP de la prod>; rm -f /tmp/creer-service-portail.php' \
+  | ssh open-claw-codabe 'read -r jeton; case "$jeton" in ""|*[!a-zA-Z0-9]*) echo "Jeton refusé, .env inchangé." >&2; exit 1;; esac; printf "ECAMPUS_JETON=%s\n" "$jeton" | sudo -u pssfp tee -a /var/www/pssfp/app/backend/.env >/dev/null; cd /var/www/pssfp/app/backend && sudo -u pssfp php artisan optimize && sudo systemctl restart pssfp-queue.service'
+```
+
+Avant la première exécution, vérifier que `FOAD_URL` du `.env` vise bien eCampus : le jeton et les mots de passe partent vers cette adresse. Puis `php artisan ecampus:rapprocher` pour noter les comptes déjà créés, sans écriture sur eCampus.
+
 ## C.6 — DNS Cloudflare (zone pssfp.org, déjà active)
 
 | Enregistrement | Type | Cible | Proxy |
