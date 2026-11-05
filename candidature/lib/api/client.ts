@@ -330,6 +330,62 @@ export function getMyCandidature(token: string): Promise<ApiResult<MyCandidature
   return apiGet<MyCandidature>('/applications/me', { token, noStore: true });
 }
 
+export type PalierCle = 'inscription' | 'tranche1' | 'tranche2';
+
+export interface ScolaritePalier {
+  cle: PalierCle;
+  du: number;
+  paye: number;
+  reste: number;
+  solde: boolean;
+  en_retard: boolean;
+  /** Date ISO (YYYY-MM-DD) ; null pour l'inscription, dont l'échéance est un texte. */
+  echeance: string | null;
+  echeance_texte: string | null;
+}
+
+export interface ScolariteVersement {
+  date: string;
+  montant: number;
+  mode: string;
+  reference: string;
+}
+
+export type AccesEtat = 'bloque' | 'en_preparation' | 'disponible';
+
+export interface MaScolarite {
+  matricule: string;
+  identifiant: string;
+  promotion_numero: number | null;
+  annee_academique: string | null;
+  niveau: 'M1' | 'M2' | null;
+  du_total: number | null;
+  remise: number | null;
+  verse: number;
+  reste: number | null;
+  trop_percu: number;
+  en_retard: boolean;
+  paliers: ScolaritePalier[];
+  versements: ScolariteVersement[];
+  acces: { etat: AccesEtat; foad_url?: string; reste_inscription?: number };
+}
+
+export interface AccesRevele {
+  identifiant: string;
+  mot_de_passe: string;
+  foad_url: string;
+}
+
+/** Situation de l'auditeur connecté ; 404 `auditeur_missing` hors retenu doté d'un matricule. */
+export function getMyScolarite(token: string): Promise<ApiResult<MaScolarite>> {
+  return apiGet<MaScolarite>('/applications/me/scolarite', { token, noStore: true });
+}
+
+/** Mot de passe FOAD, à la demande seulement : jamais présent dans la page initiale. */
+export function revelerAcces(token: string): Promise<ApiResult<AccesRevele>> {
+  return apiPost<AccesRevele>('/applications/me/acces/reveler', {}, { token, noStore: true });
+}
+
 export function submitMyCandidature(
   token: string,
   idempotencyKey?: string,

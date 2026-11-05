@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { redirect } from '@/navigation';
 import { AlertCircle, ArrowRight } from 'lucide-react';
+import { DossierAccesCard } from '@/components/dossier/DossierAccesCard';
 import { DossierActionsCard } from '@/components/dossier/DossierActionsCard';
 import { DossierCompleteness } from '@/components/dossier/DossierCompleteness';
 import { DossierDecisionCard } from '@/components/dossier/DossierDecisionCard';
@@ -11,8 +12,9 @@ import { DossierMessages } from '@/components/dossier/DossierMessages';
 import { DossierPhotoCard } from '@/components/dossier/DossierPhotoCard';
 import { DossierPiecesCard } from '@/components/dossier/DossierPiecesCard';
 import { DossierProfileSummary } from '@/components/dossier/DossierProfileSummary';
+import { DossierScolariteCard } from '@/components/dossier/DossierScolariteCard';
 import { DossierStatutCard } from '@/components/dossier/DossierStatutCard';
-import { getMyCandidature } from '@/lib/api/client';
+import { getMyCandidature, getMyScolarite, type MaScolarite } from '@/lib/api/client';
 import { getCandidatToken, isConsultation } from '@/lib/auth/session';
 import { getDossierPhase, isDossierFige } from '@/lib/dossier/phase';
 import { initDossierAction } from './actions';
@@ -30,6 +32,7 @@ interface DossierPageProps {
     init_error?: string;
     recipisse_error?: string;
     lettre_error?: string;
+    releve_error?: string;
     welcome?: string;
   }>;
 }
@@ -47,7 +50,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
     redirect('/login?reason=session_expired');
   }
 
-  const { profile_pending, reason, init_error, recipisse_error, lettre_error, welcome } = await searchParams;
+  const { profile_pending, reason, init_error, recipisse_error, lettre_error, releve_error, welcome } = await searchParams;
   const result = await getMyCandidature(token);
   // Un agent qui consulte l'espace voit le dossier en lecture, sans aucune action.
   const consultation = await isConsultation();
@@ -141,6 +144,14 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
   const fullName = `${candidature.prenom ?? ''} ${candidature.nom ?? ''}`.trim();
   const phase = getDossierPhase(candidature);
   const fige = isDossierFige(phase) || consultation;
+  // Retenu doté d'un matricule : sa scolarité passe en tête. Toute autre réponse
+  // (404 sans fiche, API indisponible) laisse la page telle qu'avant.
+  let scolarite: MaScolarite | null = null;
+  if (phase === 'retenu') {
+    const r = await getMyScolarite(token);
+    scolarite = r.ok ? r.data : null;
+  }
+  const ts = await getTranslations('dossier.scolarite');
 
   return (
     <div className="relative isolate min-h-[60vh]">
@@ -180,6 +191,18 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
                 <span className="font-mono">{candidature.numero_dossier}</span>
                 {' · '}
                 <span>{fullName}</span>
+              </p>
+            )}
+            {scolarite?.niveau && (
+              <p data-testid="entete-auditeur" className="mt-1 text-sm font-semibold text-[#4A2E67]">
+                {scolarite.promotion_numero !== null && scolarite.annee_academique
+                  ? ts('header', {
+                      matricule: scolarite.matricule,
+                      promotion: scolarite.promotion_numero,
+                      niveau: ts(`niveaux.${scolarite.niveau}`),
+                      annee: scolarite.annee_academique,
+                    })
+                  : ts('headerCourt', { matricule: scolarite.matricule, niveau: ts(`niveaux.${scolarite.niveau}`) })}
               </p>
             )}
           </div>
@@ -243,6 +266,16 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
           </div>
         )}
 
+        {releve_error && (
+          <div
+            role="alert"
+            className="mb-6 flex items-start gap-3 rounded-pssfp-card border border-red-200 bg-red-50/90 p-5 text-sm text-red-900 shadow-pssfp-soft"
+          >
+            <AlertCircle size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-red-600" />
+            <p className="font-semibold">{ts('releveError')}</p>
+          </div>
+        )}
+
         {reason === 'locked' && (
           <div
             role="status"
@@ -263,9 +296,21 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
           // Campagne close ou décision rendue : plus rien à compléter. On mène
           // avec la décision, puis ce que le candidat peut encore consulter.
           <div className="grid gap-6">
+            {scolarite && (
+              <>
+                <DossierScolariteCard scolarite={scolarite} />
+                <DossierAccesCard scolarite={scolarite} consultation={consultation} />
+                <DossierDocumentsCard candidature={candidature} />
+                <DossierMessages messages={candidature.messages} />
+              </>
+            )}
             <DossierDecisionCard candidature={candidature} phase={phase} />
-            <DossierDocumentsCard candidature={candidature} />
-            <DossierMessages messages={candidature.messages} />
+            {!scolarite && (
+              <>
+                <DossierDocumentsCard candidature={candidature} />
+                <DossierMessages messages={candidature.messages} />
+              </>
+            )}
             <DossierStatutCard candidature={candidature} />
             <DossierActionsCard candidature={candidature} canEdit={false} />
             <DossierProfileSummary candidature={candidature} readOnly={consultation} />
