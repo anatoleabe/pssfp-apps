@@ -24,7 +24,31 @@ class Auditeur extends Model
     use HasFactory;
     use HasUuids;
 
+    public const STATUT_ACTIF = 'actif';
+
+    public const STATUT_SUSPENDU = 'suspendu';
+
+    public const STATUT_ABANDON = 'abandon';
+
+    public const STATUT_EXCLU = 'exclu';
+
+    public const STATUT_DIPLOME = 'diplome';
+
+    public const STATUTS = [
+        self::STATUT_ACTIF => 'Actif',
+        self::STATUT_SUSPENDU => 'Suspendu',
+        self::STATUT_ABANDON => 'Abandon',
+        self::STATUT_EXCLU => 'Exclu',
+        self::STATUT_DIPLOME => 'Diplômé',
+    ];
+
+    /** Le statut n'est jamais rempli en masse : seul StatutAuditeur le pose. */
     protected $fillable = ['candidature_id'];
+
+    protected $casts = [
+        'statut_depuis' => 'immutable_date',
+        'statut_par' => 'integer',
+    ];
 
     public function uniqueIds(): array
     {
@@ -34,6 +58,11 @@ class Auditeur extends Model
     public function getRouteKeyName(): string
     {
         return 'uuid';
+    }
+
+    public function statutModifiePar(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'statut_par');
     }
 
     public function candidature(): BelongsTo

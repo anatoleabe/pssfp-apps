@@ -126,6 +126,9 @@ final class ModulePermissionMap
                     'scolarite.versement_annuler' => 'Annuler un versement',
                     'scolarite.remise' => 'Accorder une remise',
                     'scolarite.bareme' => 'Modifier les barèmes',
+                    'scolarite.promotion' => 'Modifier les réglages d\'une promotion (lettres, rentrée, consignes)',
+                    'scolarite.statut' => 'Changer le statut d\'un auditeur (suspendu, abandon, exclu, diplômé)',
+                    'scolarite.messages' => 'Envoyer un message aux auditeurs (relance des impayés)',
                 ],
             ],
             'bibliotheque' => [
