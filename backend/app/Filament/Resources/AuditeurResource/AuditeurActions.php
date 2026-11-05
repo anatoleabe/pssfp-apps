@@ -7,8 +7,10 @@ namespace App\Filament\Resources\AuditeurResource;
 use App\Models\Auditeur;
 use App\Models\InscriptionAnnuelle;
 use App\Models\Versement;
+use App\Services\NotificationCandidatsService;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\LibelleSituation;
+use App\Services\Scolarite\MessagesAuditeurs;
 use App\Services\Scolarite\NotificationAcces;
 use App\Services\Scolarite\OuvertureAuditeur;
 use App\Services\Scolarite\RegistreVersements;
@@ -19,6 +21,8 @@ use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions\Action as TableAction;
+use Filament\Tables\Actions\BulkAction;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -186,6 +190,55 @@ final class AuditeurActions
                 }
                 $record->refresh();
                 Notification::make()->success()->title('Statut modifié')->send();
+            });
+    }
+
+    public static function message(): BulkAction
+    {
+        return BulkAction::make('messageAuditeurs')
+            ->label('Envoyer un message')
+            ->icon('heroicon-o-chat-bubble-left-right')
+            ->visible(fn (): bool => (bool) auth()->user()?->can(MessagesAuditeurs::PERMISSION))
+            ->modalHeading('Message aux auditeurs sélectionnés')
+            ->modalDescription('Variables : '.implode(' ', MessagesAuditeurs::VARIABLES).'. Au plus '.MessagesAuditeurs::MAX.' destinataires. Chaque message est tracé et apparaît dans l\'espace de l\'auditeur.')
+            ->modalSubmitActionLabel('Envoyer')
+            ->form(fn (): array => MessagesValidation::appliquer([
+                Forms\Components\Select::make('canal')->label('Canal')->required()->native(false)->live()
+                    ->options([
+                        NotificationCandidatsService::CANAL_SMS => 'SMS',
+                        NotificationCandidatsService::CANAL_EMAIL => 'E-mail',
+                        NotificationCandidatsService::CANAL_LES_DEUX => 'SMS et e-mail',
+                    ])->default(NotificationCandidatsService::CANAL_SMS),
+                Forms\Components\TextInput::make('sujet')->label('Objet de l\'e-mail')->maxLength(150)
+                    ->visible(fn (Forms\Get $get): bool => $get('canal') !== NotificationCandidatsService::CANAL_SMS)
+                    ->default('PSSFP — votre scolarité'),
+                Forms\Components\Textarea::make('corps')->label('Message')->required()->maxLength(1000)->rows(4)->live(onBlur: true)
+                    ->default(MessagesAuditeurs::MODELE_RELANCE),
+                Forms\Components\Placeholder::make('apercu')->label('Aperçu')
+                    ->content(function (Forms\Get $get, Collection $records): string {
+                        $a = app(MessagesAuditeurs::class)->apercu($records, (string) $get('canal'), (string) $get('corps'));
+
+                        return $a['total'].' destinataire(s), '.$a['sms_par_message'].' SMS par message. Exemple : « '.$a['exemple'].' »';
+                    }),
+            ]))
+            ->deselectRecordsAfterCompletion()
+            ->action(function (Collection $records, array $data, BulkAction $action): void {
+                try {
+                    $rapport = app(MessagesAuditeurs::class)->envoyer(
+                        $records->load(['candidature.campagne', 'inscriptionCourante.bareme']),
+                        (string) $data['canal'], (string) $data['corps'], $data['sujet'] ?? null, auth()->user(),
+                    );
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title('Message non envoyé')->body($e->getMessage())->send();
+                    $action->halt();
+
+                    return;
+                }
+                Notification::make()->success()->title('Message envoyé')
+                    ->body($rapport['sms_envoyes'].' SMS et '.$rapport['emails_envoyes'].' e-mail(s) envoyés'
+                        .($rapport['sms_echecs'] + $rapport['emails_echecs'] > 0 ? ', '.($rapport['sms_echecs'] + $rapport['emails_echecs']).' échec(s)' : '')
+                        .($rapport['ignores'] > 0 ? ', '.$rapport['ignores'].' sans coordonnée' : '').'.')
+                    ->send();
             });
     }
 
