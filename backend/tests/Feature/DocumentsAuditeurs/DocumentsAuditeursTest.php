@@ -443,9 +443,9 @@ it('cache au comité d\'admission tout ce qui produit des mots de passe', functi
     $this->actingAs(($this->agent)('admission_committee'));
 
     $this->livewire(ListCandidatures::class)
-        ->assertTableActionHidden('lettreAccesFoad', $this->alice)
+        ->assertTableActionDoesNotExist('lettreAccesFoad')
         ->assertTableActionVisible('lettreAdmission', $this->alice)
-        ->assertTableBulkActionHidden('accesFoadBulk');
+        ->assertTableBulkActionDoesNotExist('accesFoadBulk');
 });
 
 it('inscrit l\'export des accès FOAD sur la fiche de chaque auditeur', function (): void {

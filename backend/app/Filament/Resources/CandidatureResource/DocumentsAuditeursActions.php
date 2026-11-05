@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\CandidatureResource;
 
+use App\Filament\Resources\AuditeurResource\SelectionDossiers;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Services\DocumentsAuditeurs\DocumentImpossible;
@@ -87,6 +88,7 @@ final class DocumentsAuditeursActions
             ->modalDescription(self::avertissement($document))
             ->deselectRecordsAfterCompletion()
             ->action(function (Collection $records) use ($document): ?StreamedResponse {
+                $records = SelectionDossiers::dossiers($records);
                 $campagnes = $records->pluck('campagne_id')->unique();
                 if ($campagnes->count() !== 1 || ($campagne = CampagneCandidature::find($campagnes->first())) === null) {
                     Notification::make()->warning()->title('Une seule promotion à la fois')

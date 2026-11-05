@@ -7,9 +7,13 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\AuditeurResource\Pages;
 use App\Filament\Resources\AuditeurResource\RelationManagers\VersementsRelationManager;
+use App\Filament\Resources\CandidatureResource\ComptesEcampusActions;
+use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
+use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
 use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
+use App\Services\DocumentsAuditeurs\ParametresLettres;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\LibelleSituation;
 use App\Support\BelongsToModule;
@@ -114,7 +118,14 @@ class AuditeurResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Fiche'),
             ])
-            ->bulkActions([]);
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    ComptesEcampusActions::creerGroupe(Tables\Actions\BulkAction::make('creerComptesEcampus')),
+                    IdentifiantsMoodleActions::envoyerGroupe(Tables\Actions\BulkAction::make('envoyerIdentifiantsMoodleBulk')),
+                    DocumentsAuditeursActions::selection(Tables\Actions\BulkAction::make('lettresAdmissionBulk'), ParametresLettres::DOCUMENT_ADMISSION),
+                    DocumentsAuditeursActions::selection(Tables\Actions\BulkAction::make('accesFoadBulk'), ParametresLettres::DOCUMENT_ACCES),
+                ])->label('Actions sur la sélection'),
+            ]);
     }
 
     public static function infolist(Infolist $infolist): Infolist

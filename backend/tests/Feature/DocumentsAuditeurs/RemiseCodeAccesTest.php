@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Filament\Resources\CandidatureResource\Pages\ListCandidatures;
+use App\Filament\Resources\AuditeurResource\Pages\ListAuditeurs;
+use App\Filament\Resources\AuditeurResource\Pages\ViewAuditeur;
 use App\Mail\NotificationCandidatMail;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
@@ -69,19 +70,20 @@ it('envoie le code d\'accès une fois les droits pointés', function (): void {
 it('masque l\'envoi sur la ligne d\'un dossier impayé, mais laisse la consultation à l\'admin', function (): void {
     $this->actingAs($this->admin);
 
-    $this->livewire(ListCandidatures::class)
-        ->assertTableActionHidden('envoyerIdentifiantsMoodle', $this->impaye)
-        ->assertTableActionVisible('envoyerIdentifiantsMoodle', $this->paye)
-        ->assertTableActionVisible('identifiantsMoodle', $this->impaye)
-        ->assertTableActionHidden('lettreAccesFoad', $this->impaye)
-        ->assertTableActionVisible('lettreAccesFoad', $this->paye);
+    $this->livewire(ViewAuditeur::class, ['record' => ficheDe($this->impaye)->getRouteKey()])
+        ->assertActionHidden('envoyerIdentifiantsMoodle')
+        ->assertActionVisible('identifiantsMoodle')
+        ->assertActionHidden('lettreAccesFoad');
+    $this->livewire(ViewAuditeur::class, ['record' => ficheDe($this->paye)->getRouteKey()])
+        ->assertActionVisible('envoyerIdentifiantsMoodle')
+        ->assertActionVisible('lettreAccesFoad');
 });
 
 it('n\'envoie un groupe qu\'aux dossiers pointés et signale les autres', function (): void {
     $this->actingAs($this->admin);
 
-    $this->livewire(ListCandidatures::class)
-        ->callTableBulkAction('envoyerIdentifiantsMoodleBulk', [$this->paye, $this->impaye], data: ['canal' => IdentifiantsMoodle::CANAL_SMS])
+    $this->livewire(ListAuditeurs::class)
+        ->callTableBulkAction('envoyerIdentifiantsMoodleBulk', [ficheDe($this->paye), ficheDe($this->impaye)], data: ['canal' => IdentifiantsMoodle::CANAL_SMS])
         ->assertHasNoTableBulkActionErrors()
         ->assertNotified();
 

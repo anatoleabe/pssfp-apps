@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\AuditeurResource\Pages;
 
 use App\Filament\Resources\AuditeurResource;
+use App\Filament\Resources\CandidatureResource\LettresSigneesActions;
 use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\SituationFinanciereExcel;
 use Filament\Actions\Action;
@@ -18,6 +19,7 @@ class ListAuditeurs extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            LettresSigneesActions::deposerLot(Action::make('deposerLettresSignees')),
             Action::make('exporterSituation')
                 ->label('Exporter la situation (Excel)')
                 ->icon('heroicon-o-arrow-down-tray')

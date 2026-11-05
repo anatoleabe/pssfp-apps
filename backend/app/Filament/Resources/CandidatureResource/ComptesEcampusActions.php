@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\CandidatureResource;
 
+use App\Filament\Resources\AuditeurResource\SelectionDossiers;
 use App\Models\Candidature;
 use App\Services\Ecampus\ComptesEcampus;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
@@ -89,7 +90,7 @@ final class ComptesEcampusActions
             ->deselectRecordsAfterCompletion()
             ->action(function (Collection $records): void {
                 abort_unless(auth()->user()?->can(IdentifiantsMoodle::PERMISSION), 403);
-                $dossiers = $records->load('campagne')->filter(fn (Candidature $c): bool => ComptesEcampus::aTraiter($c))->values();
+                $dossiers = SelectionDossiers::dossiers($records)->load('campagne')->filter(fn (Candidature $c): bool => ComptesEcampus::aTraiter($c))->values();
                 self::notifier(app(ComptesEcampus::class)->traiterPlusieurs($dossiers, auth()->user()));
             });
     }

@@ -76,12 +76,15 @@ Action groupée dans la liste des auditeurs : « Envoyer un message ».
 
 ## 6. Liste des candidatures allégée
 
-**Quittent la liste et la fiche d'une candidature** (désormais sur la fiche ou la liste des auditeurs) :
+**Quittent la liste et la fiche d'une candidature** (désormais sur la fiche ou la liste des auditeurs). Ce sont les gestes réservés à l'administration :
 - création du compte eCampus (ligne et groupe) ;
 - consultation et envoi des identifiants (ligne et groupe) ;
-- lettres Word d'accès et d'admission (ligne et groupe) ;
-- lettres signées : déposer, voir, retirer, et le dépôt en lot ;
-- correction du téléphone.
+- lettre Word d'accès FOAD (ligne et groupe) ;
+- lettres signées : déposer, voir, retirer, et le dépôt en lot.
+
+**Restent, et sont aussi sur la fiche auditeur :**
+- la lettre d'admission en Word (ligne et groupe), parce que le comité d'admission la produit sans avoir accès au module Scolarité ;
+- la correction du téléphone d'un retenu ajouté, souvent faite avant l'attribution du matricule, donc avant la fiche.
 
 **Restent :**
 - dépôt physique, frais de dossier, décision, retrait, notifications des candidats, exports ;
