@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\Applications\CandidatureController;
 use App\Http\Controllers\Api\Applications\QrCandidatureController;
+use App\Http\Controllers\Api\Applications\ScolariteController;
 use App\Http\Controllers\Api\Articles\ArticleController;
 use App\Http\Controllers\Api\Auth\AuthCandidatController;
 use App\Http\Controllers\Api\Auth\ConsultationEspaceController;
@@ -114,6 +115,19 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
         Route::get('/me/lettre-admission', [CandidatureController::class, 'lettreAdmission'])
             ->middleware('ability:application:read')
             ->name('me.lettre-admission');
+
+        // Scolarité de l'auditeur (spec module 4, lot 1).
+        Route::get('/me/scolarite', [ScolariteController::class, 'show'])
+            ->middleware('ability:application:read')
+            ->name('me.scolarite');
+
+        Route::get('/me/releve-scolarite', [ScolariteController::class, 'releve'])
+            ->middleware('ability:application:read')
+            ->name('me.releve-scolarite');
+
+        Route::post('/me/acces/reveler', [ScolariteController::class, 'reveler'])
+            ->middleware(['ability:application:read', 'throttle:acces-ecampus'])
+            ->name('me.acces.reveler');
 
         Route::post('/me/withdraw', [CandidatureController::class, 'withdraw'])
             ->middleware('ability:application:create')

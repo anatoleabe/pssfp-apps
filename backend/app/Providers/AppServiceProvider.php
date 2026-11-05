@@ -67,6 +67,9 @@ class AppServiceProvider extends ServiceProvider
         // Échange « Voir son espace » : compteur propre. `throttle:N,M` partage
         // un seul compteur par IP entre toutes ses routes, et les échanges
         // arrivent tous de l'IP du portail : ils épuiseraient « PIN oublié ».
+        // Affichage du mot de passe FOAD dans l'espace : 10 demandes par heure et par compte.
+        RateLimiter::for('acces-ecampus', fn (Request $request): Limit => Limit::perHour(10)->by('acces-ecampus|'.($request->user()?->id ?? $request->ip())));
+
         RateLimiter::for('consultation-espace', fn (Request $request): Limit => Limit::perMinute(30)->by('consultation-espace|'.$request->ip()));
 
         $this->configureLibraryRateLimits();
