@@ -98,6 +98,7 @@ it('montre dans l\'aperçu le texte rendu pour la sélection', function (): void
         ->mountTableBulkAction('messageAuditeurs', [$this->bruno->auditeur])
         ->setTableBulkActionData(['canal' => NotificationCandidatsService::CANAL_SMS, 'corps' => 'Reste {reste} FCFA'])
         ->assertSee('1 destinataire(s)')
+        ->assertSee('SMS au total')
         ->assertSee('Reste 1 185 000 FCFA');
 });
 
@@ -113,4 +114,33 @@ it('envoie depuis la liste des auditeurs', function (): void {
 
     expect($this->sms)->toHaveCount(2)
         ->and($this->sms['+237699004002'])->toBe('PSSFP : Bruno, reste 1 185 000 FCFA.');
+});
+
+it('écarte les dossiers retirés, exclus ou en abandon', function (): void {
+    $this->bruno->forceFill(['withdrawn_at' => now()])->save();
+    $this->awa->auditeur->forceFill(['statut' => 'abandon'])->save();
+
+    $rapport = app(MessagesAuditeurs::class)->envoyer(
+        collect([$this->awa->auditeur->fresh(), $this->bruno->auditeur->fresh()]), NotificationCandidatsService::CANAL_SMS, 'Bonjour {prenom}', null, ($this->compte)('scolarite_responsable'),
+    );
+
+    expect($rapport['ignores'])->toBe(2)->and($this->sms)->toBeEmpty();
+});
+
+it('limite le nombre d\'envois par heure et par agent', function (): void {
+    $resp = ($this->compte)('scolarite_responsable');
+    foreach (range(1, MessagesAuditeurs::ENVOIS_PAR_HEURE) as $_) {
+        app(MessagesAuditeurs::class)->envoyer(collect([$this->awa->auditeur]), NotificationCandidatsService::CANAL_SMS, 'Bonjour', null, $resp);
+    }
+
+    expect(fn () => app(MessagesAuditeurs::class)->envoyer(collect([$this->awa->auditeur]), NotificationCandidatsService::CANAL_SMS, 'Bonjour', null, $resp))
+        ->toThrow(InvalidArgumentException::class, 'Trop d');
+});
+
+it('ne réinterprète pas les variables des candidats dans un texte déjà rendu', function (): void {
+    $this->awa->forceFill(['prenom' => '{numero_dossier}'])->save();
+
+    app(MessagesAuditeurs::class)->envoyer(collect([$this->awa->fresh()->auditeur]), NotificationCandidatsService::CANAL_SMS, 'Bonjour {prenom}', null, ($this->compte)('scolarite_responsable'));
+
+    expect($this->sms['+237699004001'])->toBe('Bonjour {numero_dossier}');
 });

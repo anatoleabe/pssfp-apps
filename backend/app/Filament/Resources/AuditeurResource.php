@@ -17,6 +17,7 @@ use App\Services\DocumentsAuditeurs\ParametresLettres;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\LibelleSituation;
 use App\Support\BelongsToModule;
+use Filament\Actions\MountableAction;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
@@ -121,10 +122,10 @@ class AuditeurResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     AuditeurResource\AuditeurActions::message(),
-                    ComptesEcampusActions::creerGroupe(Tables\Actions\BulkAction::make('creerComptesEcampus')),
-                    IdentifiantsMoodleActions::envoyerGroupe(Tables\Actions\BulkAction::make('envoyerIdentifiantsMoodleBulk')),
-                    DocumentsAuditeursActions::selection(Tables\Actions\BulkAction::make('lettresAdmissionBulk'), ParametresLettres::DOCUMENT_ADMISSION),
-                    DocumentsAuditeursActions::selection(Tables\Actions\BulkAction::make('accesFoadBulk'), ParametresLettres::DOCUMENT_ACCES),
+                    ComptesEcampusActions::creerGroupe(self::gardeAdmissions(Tables\Actions\BulkAction::make('creerComptesEcampus'))),
+                    IdentifiantsMoodleActions::envoyerGroupe(self::gardeAdmissions(Tables\Actions\BulkAction::make('envoyerIdentifiantsMoodleBulk'))),
+                    DocumentsAuditeursActions::selection(self::gardeAdmissions(Tables\Actions\BulkAction::make('lettresAdmissionBulk')), ParametresLettres::DOCUMENT_ADMISSION),
+                    DocumentsAuditeursActions::selection(self::gardeAdmissions(Tables\Actions\BulkAction::make('accesFoadBulk')), ParametresLettres::DOCUMENT_ACCES),
                 ])->label('Actions sur la sélection'),
             ]);
     }
@@ -178,6 +179,20 @@ class AuditeurResource extends Resource
                         : 'Envoyé le '.$record->inscriptionCourante->acces_notifie_at->timezone('Africa/Douala')->format('d/m/Y à H:i')),
             ]),
         ]);
+    }
+
+    /**
+     * Gestes des admissions repris ici : ils exigent aussi l'accès au module des
+     * admissions, comme depuis la liste des candidatures (cf. ModuleAccess).
+     *
+     * @template T of \Filament\Actions\MountableAction
+     *
+     * @param  T  $action
+     * @return T
+     */
+    public static function gardeAdmissions(MountableAction $action): MountableAction
+    {
+        return $action->hidden(fn (): bool => ! CandidatureResource::canAccess());
     }
 
     public static function couleurStatut(string $statut): string
