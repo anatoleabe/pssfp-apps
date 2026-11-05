@@ -35,6 +35,7 @@ final class ScolariteResource extends JsonResource
             'promotion_numero' => $c->campagne?->promotion_numero,
             'annee_academique' => $inscription?->annee_academique,
             'niveau' => $inscription?->niveau,
+            'statut' => $c->auditeur?->statut,
             'du_total' => $s?->duTotal,
             'remise' => $s?->remise,
             'verse' => $s?->verse ?? 0,

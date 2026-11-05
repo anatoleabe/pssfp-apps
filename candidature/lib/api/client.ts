@@ -359,6 +359,7 @@ export interface MaScolarite {
   promotion_numero: number | null;
   annee_academique: string | null;
   niveau: 'M1' | 'M2' | null;
+  statut: 'actif' | 'suspendu' | 'abandon' | 'exclu' | 'diplome' | null;
   du_total: number | null;
   remise: number | null;
   verse: number;

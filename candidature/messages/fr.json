@@ -1091,5 +1091,54 @@
     "title": "Mode consultation (lecture seule).",
     "body": "Vous voyez l'espace de ce candidat avec ses informations, sa décision et ses messages. Aucune modification n'est possible.",
     "quit": "Quitter la consultation"
+  },
+  "espace": {
+    "navLabel": "Rubriques de mon espace",
+    "nav": {
+      "accueil": "Accueil",
+      "scolarite": "Ma scolarité",
+      "acces": "Mes accès",
+      "documents": "Mes documents",
+      "messages": "Mes messages",
+      "profil": "Mon profil"
+    },
+    "accueil": {
+      "eyebrow": "Mon espace auditeur",
+      "title": "En un coup d'œil",
+      "reste": "Reste à payer",
+      "toutRegle": "Scolarité entièrement réglée",
+      "prochaineEcheance": "Prochaine échéance : {echeance}",
+      "voirScolarite": "Voir ma scolarité",
+      "acces": "Accès eCampus",
+      "accesEtat": {
+        "disponible": "Disponible",
+        "bloque": "En attente du règlement de l'inscription",
+        "en_preparation": "En préparation"
+      },
+      "voirAcces": "Voir mes accès",
+      "dernierMessage": "Dernier message",
+      "aucunMessage": "Aucun message pour l'instant.",
+      "voirMessages": "Voir tous mes messages"
+    },
+    "statut": {
+      "suspendu": "Votre formation est suspendue. Rapprochez-vous de la scolarité pour toute question.",
+      "abandon": "Votre formation est enregistrée comme interrompue. Rapprochez-vous de la scolarité pour toute question.",
+      "exclu": "Votre formation a pris fin sur décision de l'établissement. Rapprochez-vous de la scolarité pour toute question.",
+      "diplome": "Félicitations : votre formation est achevée."
+    },
+    "documents": {
+      "eyebrow": "Mes documents",
+      "title": "Documents officiels",
+      "lettre": "Lettre d'admission signée",
+      "releve": "Relevé de ma situation financière (PDF)",
+      "recipisse": "Récépissé de ma candidature",
+      "resultats": "Communiqué des résultats",
+      "aucun": "Aucun document disponible pour l'instant.",
+      "newTab": "nouvel onglet"
+    },
+    "messages": {
+      "aucun": "Vous n'avez reçu aucun message de l'administration."
+    },
+    "eyebrow": "Espace auditeur"
   }
 }
