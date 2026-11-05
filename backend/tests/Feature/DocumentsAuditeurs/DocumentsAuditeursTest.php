@@ -9,7 +9,6 @@ use App\Models\Candidature;
 use App\Models\User;
 use App\Services\DocumentsAuditeurs\DocumentsAuditeurs;
 use App\Services\DocumentsAuditeurs\DocumentsIncomplets;
-use App\Services\DocumentsAuditeurs\FraisInscription;
 use App\Services\DocumentsAuditeurs\LettreAdmissionWord;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
 use App\Services\ExportsRetenus\AttributionMatricules;
@@ -60,7 +59,8 @@ beforeEach(function (): void {
     );
     app(AttributionMatricules::class)->attribuer($this->campagne, '26', ($this->agent)('admin'));
     // La lettre d'accès exige les droits d'inscription pointés (cf. RemiseCodeAccesTest).
-    Candidature::query()->whereKey([$this->alice->id, $this->bruno->id])->update(['frais_inscription_payes_at' => now()]);
+    solderInscription($this->alice->refresh());
+    solderInscription($this->bruno->refresh());
     $this->alice = $this->alice->fresh();
     $this->bruno = $this->bruno->fresh();
 });
@@ -186,45 +186,15 @@ it('enregistre les paramètres des lettres depuis la campagne', function (): voi
     $this->actingAs(($this->agent)('admin'));
 
     $this->livewire(EditCampagneCandidature::class, ['record' => $this->campagne->getRouteKey()])
-        ->fillForm(['parametres_lettres.rentree_heure' => '9 heures', 'parametres_lettres.frais_tranche1_montant' => 450000])
+        ->fillForm(['parametres_lettres.rentree_heure' => '9 heures'])
         ->call('save')
         ->assertHasNoFormErrors();
 
     $p = ParametresLettres::pour($this->campagne->fresh());
     expect($p->texte('rentree_heure'))->toBe('9 heures')
-        ->and($p->montant('frais_tranche1_montant'))->toBe("450\u{00A0}000")
-        ->and($p->totalFrais())->toBe("1\u{00A0}135\u{00A0}000")
+        ->and($p->montant('frais_tranche1_montant'))->toBe("500\u{00A0}000")
+        ->and($p->totalFrais())->toBe("1\u{00A0}185\u{00A0}000")
         ->and($p->texte('reference_admission'))->toBe(config('documents_auditeurs.defauts.reference_admission'));
-});
-
-it('pointe les frais d\'inscription des seuls retenus, et annule le pointage', function (): void {
-    $this->alice->forceFill(['frais_inscription_payes_at' => null])->save();
-    $admin = ($this->agent)('admin');
-    $this->actingAs($admin);
-
-    $this->livewire(ListCandidatures::class)
-        ->callTableBulkAction('fraisInscriptionPayesBulk', [$this->alice, $this->refuse])
-        ->assertNotified('Droits d\'inscription pointés');
-
-    expect($this->alice->fresh()->frais_inscription_payes_at)->not->toBeNull()
-        ->and($this->alice->fresh()->frais_inscription_payes_by)->toBe($admin->id)
-        ->and($this->refuse->fresh()->frais_inscription_payes_at)->toBeNull()
-        ->and(Activity::query()->where('event', 'frais_inscription_payes')->count())->toBe(1);
-
-    $this->livewire(ListCandidatures::class)
-        ->assertTableActionHidden('fraisInscriptionPayes', $this->alice->fresh())
-        ->callTableAction('fraisInscriptionAnnules', $this->alice->fresh());
-    expect($this->alice->fresh()->frais_inscription_payes_at)->toBeNull();
-});
-
-it('réserve le pointage des frais d\'inscription à l\'administration', function (): void {
-    $this->actingAs(($this->agent)('admission_committee'));
-
-    $this->livewire(ListCandidatures::class)
-        ->assertTableActionHidden('fraisInscriptionPayes', $this->alice)
-        ->assertTableBulkActionHidden('fraisInscriptionPayesBulk');
-    expect(fn () => app(FraisInscription::class)->pointer(collect([$this->alice]), true, auth()->user()))
-        ->toThrow(HttpException::class);
 });
 
 it('n\'inclut ni les retirés, ni les retenus sans matricule, ni un dossier d\'une autre promotion', function (): void {

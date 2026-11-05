@@ -69,13 +69,13 @@ final class RolePermissionSeeder extends Seeder
             'super_admin' => [
                 'label' => 'Super administrateur',
                 'description' => 'Accès total, y compris réglages, rôles et suppressions définitives.',
-                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage],
+                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage, 'scolarite' => $manage],
                 'sensitive' => array_keys(ModulePermissionMap::sensitiveActions()),
             ],
             'admin' => [
                 'label' => 'Administrateur',
                 'description' => 'Comptes, rôles, campagnes, réglages et exports.',
-                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage],
+                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage, 'scolarite' => $manage],
                 'sensitive' => [
                     'candidature.export_csv',
                     'candidature.mark_depot_physique',
@@ -89,7 +89,10 @@ final class RolePermissionSeeder extends Seeder
                     'candidature.ajouter_retenu',
                     'candidature.lettres_signees',
                     'candidature.espace_candidat',
-                    'candidature.frais_inscription',
+                    'scolarite.export',
+                    'scolarite.versement_annuler',
+                    'scolarite.remise',
+                    'scolarite.bareme',
                     'journal.view',
                     'document.publish',
                     'library.thesaurus',
@@ -138,6 +141,21 @@ final class RolePermissionSeeder extends Seeder
              * 2026_10_19_200000_library_admin_roles (vérifié par
              * LibraryAdminRolesMigrationTest).
              */
+            // Scolarité (spec module 4) : l'agent enregistre l'argent, le responsable
+            // corrige et accorde. Aucun des deux n'ouvre les dossiers ni ne voit
+            // les mots de passe FOAD.
+            'scolarite_agent' => [
+                'label' => 'Agent de scolarité',
+                'description' => 'Consultation des auditeurs, enregistrement des versements et export de la situation financière.',
+                'modules' => ['scolarite' => $manage],
+                'sensitive' => ['scolarite.export'],
+            ],
+            'scolarite_responsable' => [
+                'label' => 'Responsable de scolarité',
+                'description' => 'Droits de l\'agent, plus l\'annulation des versements, les remises et les barèmes.',
+                'modules' => ['scolarite' => $manage],
+                'sensitive' => ['scolarite.export', 'scolarite.versement_annuler', 'scolarite.remise', 'scolarite.bareme'],
+            ],
             'library_manager' => [
                 'label' => 'Responsable de la bibliothèque',
                 'description' => 'Bibliothèque seulement : documents, thésaurus, publication, anciennes adresses et statistiques.',

@@ -107,3 +107,7 @@ tmp/
 assets-source/
 
 .superpowers/
+
+# Données nominatives réelles (communiqués, PV, listes) et sorties locales : jamais versionnées.
+docs/Release/
+output/

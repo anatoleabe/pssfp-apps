@@ -741,6 +741,73 @@
       "lettre": "Télécharger ma lettre d'admission signée",
       "resultats": "Consulter le communiqué des résultats",
       "newTab": "nouvel onglet"
+    },
+    "scolarite": {
+      "eyebrow": "Ma scolarité",
+      "title": "Mes droits et paiements",
+      "header": "{matricule} · {promotion, selectordinal, one {#re} other {#e}} promotion · {niveau} · {annee}",
+      "verse": "Versé",
+      "reste": "Reste à payer",
+      "du": "Total dû",
+      "paliers": {
+        "inscription": "Inscription",
+        "tranche1": "1re tranche",
+        "tranche2": "2e tranche"
+      },
+      "paye": "{paye} sur {du}",
+      "solde": "Soldé",
+      "enRetard": "En retard",
+      "echeance": "Échéance : {date}",
+      "remise": "Remise accordée : {montant}",
+      "tropPercu": "Trop-perçu : {montant}",
+      "versementsTitre": "Mes versements ({count})",
+      "aucunVersement": "Aucun versement enregistré pour l'instant.",
+      "colDate": "Date",
+      "colMontant": "Montant",
+      "colMode": "Mode",
+      "colReference": "Référence",
+      "releve": "Télécharger mon relevé (PDF)",
+      "releveError": "Le relevé n'a pas pu être produit. Réessayez dans quelques instants.",
+      "note": "Les versements sont enregistrés par la scolarité du PSSFP à réception du bordereau. Le bordereau de la banque fait foi.",
+      "fraisDossier": "Les frais de dossier (50 000 FCFA) ne sont pas compris dans ces montants.",
+      "niveaux": {
+        "M1": "Master 1",
+        "M2": "Master 2"
+      },
+      "modes": {
+        "cremincam_agence": "Agence CREMINCAM",
+        "virement": "Virement bancaire",
+        "especes": "Espèces",
+        "orange_money": "Orange Money",
+        "mtn_money": "MTN Mobile Money",
+        "carte_visa": "Carte Visa / Mastercard",
+        "autre": "Autre",
+        "reprise": "Enregistré avant la mise en service"
+      },
+      "resteMontant": "Reste à payer : <strong>{montant}</strong>",
+      "headerCourt": "{matricule} · {niveau}"
+    },
+    "acces": {
+      "eyebrow": "Mes accès",
+      "title": "Plateforme eCampus",
+      "identifiant": "Identifiant",
+      "motDePasse": "Mot de passe",
+      "masque": "Masqué",
+      "afficher": "Afficher le mot de passe",
+      "masquer": "Masquer",
+      "chargement": "Affichage…",
+      "ouvrir": "Ouvrir eCampus",
+      "conseil": "Ce mot de passe vous est propre et ne change pas : ne le communiquez à personne.",
+      "bloque": "Vos accès seront disponibles dès le règlement de l'inscription : il reste {reste} à payer.",
+      "preparation": "Votre inscription est réglée : vos accès sont en préparation. Vous serez prévenu par SMS dès qu'ils seront prêts.",
+      "consultation": "Consultation en lecture seule : le mot de passe n'est pas affiché.",
+      "erreurs": {
+        "indisponible": "Vos accès ne sont pas encore disponibles.",
+        "limite": "Trop de demandes. Réessayez dans une heure.",
+        "session": "Votre session a expiré. Reconnectez-vous.",
+        "reseau": "Le service ne répond pas. Réessayez dans quelques instants."
+      },
+      "newTab": "nouvel onglet"
     }
   },
   "legal": {

@@ -36,9 +36,9 @@ beforeEach(function (): void {
     $this->paye = $retenu('Abega');
     $this->impaye = $retenu('Biya');
     app(AttributionMatricules::class)->attribuer($this->campagne, '26', $this->admin);
-    $this->paye->forceFill(['frais_inscription_payes_at' => now(), 'frais_inscription_payes_by' => $this->admin->id])->save();
     $this->paye->refresh();
     $this->impaye->refresh();
+    solderInscription($this->paye);
 
     $this->sms = [];
     $this->mock(SmsServiceInterface::class, function ($mock): void {
@@ -100,7 +100,7 @@ it('exclut les impayés de la lettre d\'accès, sans toucher à la lettre d\'adm
 });
 
 it('explique pourquoi aucune lettre d\'accès ne sort quand personne n\'a payé', function (): void {
-    $this->paye->forceFill(['frais_inscription_payes_at' => null])->save();
+    annulerVersements($this->paye);
     $this->campagne->forceFill(['parametres_lettres' => ['reference_acces' => 'REF-ESSAI', 'date_lettres' => '2026-11-05']])->save();
 
     expect(fn () => app(DocumentsAuditeurs::class)->generer($this->campagne->fresh(), ParametresLettres::DOCUMENT_ACCES, $this->admin))

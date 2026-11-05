@@ -7,6 +7,7 @@ namespace App\Services\ExportsRetenus;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\User;
+use App\Services\Scolarite\OuvertureAuditeur;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -27,7 +28,10 @@ use RuntimeException;
  */
 final class AttributionMatricules
 {
-    public function __construct(private readonly ConnectionInterface $db) {}
+    public function __construct(
+        private readonly ConnectionInterface $db,
+        private readonly OuvertureAuditeur $ouverture,
+    ) {}
 
     /** Retenus de la campagne, retraits exclus. */
     public static function retenus(CampagneCandidature $campagne): Builder
@@ -103,6 +107,7 @@ final class AttributionMatricules
                     'moodle_password' => self::motDePasse(),
                     'matricule_attribue_at' => now(),
                 ])->save();
+                $this->ouverture->ouvrir($candidature);
             }
 
             return ['attribues' => $nouveaux->count(), 'deja' => $deja, 'ids' => $nouveaux->map(fn (Candidature $c): int => (int) $c->id)->all()];

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Candidature extends Model
@@ -202,6 +203,12 @@ class Candidature extends Model
     public function ajoutePar(): BelongsTo
     {
         return $this->belongsTo(User::class, 'ajoute_par');
+    }
+
+    /** Fiche d'auditeur, créée à l'attribution du matricule (ADR-0010). */
+    public function auditeur(): HasOne
+    {
+        return $this->hasOne(Auditeur::class);
     }
 
     public function scopeForCampagne(Builder $query, int $campagneId): Builder

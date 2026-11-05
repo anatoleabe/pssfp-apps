@@ -44,7 +44,7 @@ beforeEach(function (): void {
     );
     app(AttributionMatricules::class)->attribuer($campagne, '26', ($this->agent)('admin'));
     // La remise du code exige les droits d'inscription pointés (cf. RemiseCodeAccesTest).
-    $this->auditeur->forceFill(['frais_inscription_payes_at' => now()])->save();
+    solderInscription($this->auditeur->refresh());
     $this->auditeur = $this->auditeur->fresh();
     $this->motDePasse = $this->auditeur->moodle_password;
 

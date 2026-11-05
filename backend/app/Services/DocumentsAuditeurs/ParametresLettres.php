@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\DocumentsAuditeurs;
 
+use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
 use Carbon\CarbonImmutable;
 
@@ -50,15 +51,43 @@ final class ParametresLettres
         public readonly ?string $signature,
     ) {}
 
-    public static function pour(CampagneCandidature $campagne): self
+    /**
+     * Les montants et échéances des droits viennent du barème M1 de l'année
+     * (Vie académique > Barèmes) dès qu'il existe : une seule source pour le
+     * seuil du code d'accès et pour la lettre. Sinon, valeurs de la campagne,
+     * puis valeurs par défaut.
+     */
+    public static function pour(CampagneCandidature $campagne, bool $avecBareme = true): self
     {
         $saisies = array_filter((array) $campagne->parametres_lettres, fn ($v): bool => filled($v));
+        $bareme = $avecBareme ? self::valeursDuBareme($campagne) : [];
 
         return new self(
             $campagne,
-            array_merge((array) config('documents_auditeurs.defauts'), $saisies),
+            array_merge((array) config('documents_auditeurs.defauts'), $saisies, $bareme),
             filled($campagne->signature_lettres_path) ? (string) $campagne->signature_lettres_path : null,
         );
+    }
+
+    /** @return array<string, int|string> */
+    private static function valeursDuBareme(CampagneCandidature $campagne): array
+    {
+        $bareme = BaremeScolarite::query()
+            ->where('annee_academique', $campagne->anneeAcademique())
+            ->where('niveau', BaremeScolarite::NIVEAU_M1)
+            ->first();
+        if ($bareme === null) {
+            return [];
+        }
+
+        return array_filter([
+            'frais_inscription_montant' => $bareme->montant_inscription,
+            'frais_inscription_echeance' => $bareme->inscription_echeance,
+            'frais_tranche1_montant' => $bareme->montant_tranche1,
+            'frais_tranche1_date' => $bareme->tranche1_echeance?->toDateString(),
+            'frais_tranche2_montant' => $bareme->montant_tranche2,
+            'frais_tranche2_date' => $bareme->tranche2_echeance?->toDateString(),
+        ], fn ($v): bool => filled($v));
     }
 
     /** @return list<string> libellés des champs à saisir avant de générer ce document */
@@ -77,6 +106,11 @@ final class ParametresLettres
     public function texte(string $cle): string
     {
         return trim((string) ($this->valeurs[$cle] ?? ''));
+    }
+
+    public function entier(string $cle): int
+    {
+        return (int) ($this->valeurs[$cle] ?? 0);
     }
 
     public function montant(string $cle): string

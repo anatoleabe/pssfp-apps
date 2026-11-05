@@ -4,6 +4,7 @@ import { redirect } from '@/navigation';
 import { revalidatePath } from 'next/cache';
 import {
   logoutCandidat,
+  revelerAcces,
   putApplicationsMe,
   submitMyCandidature,
   withdrawMyCandidature,
@@ -127,4 +128,33 @@ export async function logoutAction(): Promise<void> {
   }
   await clearCandidatToken();
   redirect(consultation ? '/login?reason=consultation_ended' : '/login?reason=logged_out');
+}
+
+export type RevelerAccesResult =
+  | { ok: true; identifiant: string; motDePasse: string }
+  | { ok: false; erreur: 'consultation' | 'indisponible' | 'limite' | 'session' | 'reseau' };
+
+/**
+ * Mot de passe FOAD de l'auditeur, demandé au clic sur « Afficher ». Le serveur
+ * revérifie le solde ; un agent qui consulte l'espace est refusé ici et par l'API.
+ * La valeur ne transite que dans la réponse : jamais en cache, jamais journalisée.
+ */
+export async function revelerAccesAction(): Promise<RevelerAccesResult> {
+  if (await isConsultation()) {
+    return { ok: false, erreur: 'consultation' };
+  }
+  const token = await getCandidatToken();
+  if (!token) {
+    return { ok: false, erreur: 'session' };
+  }
+
+  const r = await revelerAcces(token);
+  if (r.ok) {
+    return { ok: true, identifiant: r.data.identifiant, motDePasse: r.data.mot_de_passe };
+  }
+  if (r.status === 401) return { ok: false, erreur: 'session' };
+  if (r.status === 403) return { ok: false, erreur: 'indisponible' };
+  if (r.status === 429) return { ok: false, erreur: 'limite' };
+
+  return { ok: false, erreur: 'reseau' };
 }

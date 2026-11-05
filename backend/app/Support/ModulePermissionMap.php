@@ -108,8 +108,24 @@ final class ModulePermissionMap
                     'candidature.matricules_moodle' => 'Attribuer les matricules, créer les comptes sur eCampus, exporter les comptes Moodle, voir et envoyer le mot de passe Moodle d\'un auditeur',
                     'candidature.ajouter_retenu' => 'Ajouter un retenu depuis l\'admin, sans dossier déposé sur le portail de candidature, et corriger son téléphone',
                     'candidature.lettres_signees' => 'Déposer, remplacer, consulter et retirer les lettres d\'admission signées des auditeurs',
-                    'candidature.frais_inscription' => 'Pointer les droits d\'inscription payés des auditeurs (condition de la remise du code d\'accès)',
                     'candidature.espace_candidat' => 'Donner un nouveau code de connexion à un candidat et voir son espace (lecture seule)',
+                ],
+            ],
+            'scolarite' => [
+                'label' => 'Module 4 — Scolarité',
+                'description' => 'Auditeurs, versements et situation financière. La gestion donne le droit d\'enregistrer un versement.',
+                'read' => [
+                    'view_any_auditeur', 'view_auditeur',
+                ],
+                'manage' => [
+                    'scolarite.versement_saisir',
+                ],
+                'sensitive_description' => 'À cocher explicitement : enregistrer un versement n\'emporte pas le droit de l\'annuler.',
+                'sensitive' => [
+                    'scolarite.export' => 'Exporter la situation financière des auditeurs',
+                    'scolarite.versement_annuler' => 'Annuler un versement',
+                    'scolarite.remise' => 'Accorder une remise',
+                    'scolarite.bareme' => 'Modifier les barèmes',
                 ],
             ],
             'bibliotheque' => [

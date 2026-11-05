@@ -741,6 +741,73 @@
       "lettre": "Download my signed admission letter",
       "resultats": "View the results communiqué",
       "newTab": "new tab"
+    },
+    "scolarite": {
+      "eyebrow": "My studies",
+      "title": "My fees and payments",
+      "header": "{matricule} · Cohort {promotion} · {niveau} · {annee}",
+      "verse": "Paid",
+      "reste": "Outstanding",
+      "du": "Total due",
+      "paliers": {
+        "inscription": "Registration",
+        "tranche1": "1st instalment",
+        "tranche2": "2nd instalment"
+      },
+      "paye": "{paye} of {du}",
+      "solde": "Paid in full",
+      "enRetard": "Overdue",
+      "echeance": "Due: {date}",
+      "remise": "Reduction granted: {montant}",
+      "tropPercu": "Overpayment: {montant}",
+      "versementsTitre": "My payments ({count})",
+      "aucunVersement": "No payment recorded yet.",
+      "colDate": "Date",
+      "colMontant": "Amount",
+      "colMode": "Method",
+      "colReference": "Reference",
+      "releve": "Download my statement (PDF)",
+      "releveError": "The statement could not be produced. Please try again in a moment.",
+      "note": "Payments are recorded by the PSSFP registry once the bank slip is received. The bank slip is authoritative.",
+      "fraisDossier": "The application fee (50,000 FCFA) is not included in these amounts.",
+      "niveaux": {
+        "M1": "Master 1",
+        "M2": "Master 2"
+      },
+      "modes": {
+        "cremincam_agence": "CREMINCAM branch",
+        "virement": "Bank transfer",
+        "especes": "Cash",
+        "orange_money": "Orange Money",
+        "mtn_money": "MTN Mobile Money",
+        "carte_visa": "Visa / Mastercard",
+        "autre": "Other",
+        "reprise": "Recorded before go-live"
+      },
+      "resteMontant": "Outstanding: <strong>{montant}</strong>",
+      "headerCourt": "{matricule} · {niveau}"
+    },
+    "acces": {
+      "eyebrow": "My access",
+      "title": "eCampus platform",
+      "identifiant": "Username",
+      "motDePasse": "Password",
+      "masque": "Hidden",
+      "afficher": "Show password",
+      "masquer": "Hide",
+      "chargement": "Loading…",
+      "ouvrir": "Open eCampus",
+      "conseil": "This password is yours and does not change: never share it.",
+      "bloque": "Your access will be available once the registration fee is paid: {reste} still due.",
+      "preparation": "Your registration is paid: your access is being prepared. You will receive a text message as soon as it is ready.",
+      "consultation": "Read-only view: the password is not shown.",
+      "erreurs": {
+        "indisponible": "Your access is not available yet.",
+        "limite": "Too many requests. Please try again in an hour.",
+        "session": "Your session has expired. Please log in again.",
+        "reseau": "The service is not responding. Please try again in a moment."
+      },
+      "newTab": "new tab"
     }
   },
   "legal": {
