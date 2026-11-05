@@ -73,9 +73,11 @@ class VersementsRelationManager extends RelationManager
             ])
             ->headerActions([])
             ->actions([
-                AuditeurActions::voirJustificatif(),
-                AuditeurActions::ajouterJustificatif(),
-                AuditeurActions::annulerVersement(),
+                Tables\Actions\ActionGroup::make([
+                    AuditeurActions::voirJustificatif(),
+                    AuditeurActions::ajouterJustificatif(),
+                    AuditeurActions::annulerVersement(),
+                ])->tooltip('Actions sur ce versement'),
             ])
             ->bulkActions([]);
     }

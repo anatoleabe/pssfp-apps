@@ -89,7 +89,6 @@ final class RolePermissionSeeder extends Seeder
                     'candidature.ajouter_retenu',
                     'candidature.lettres_signees',
                     'candidature.espace_candidat',
-                    'candidature.frais_inscription',
                     'scolarite.export',
                     'scolarite.versement_annuler',
                     'scolarite.remise',

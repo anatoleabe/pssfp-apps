@@ -8,6 +8,7 @@ use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\InscriptionAnnuelle;
+use App\Models\Versement;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
 
 /**
@@ -17,7 +18,8 @@ use App\Services\DocumentsAuditeurs\ParametresLettres;
  * 2. un auditeur et une inscription M1 par dossier doté d'un matricule, retirés
  *    compris (leur historique doit rester consultable) ;
  * 3. chaque case cochée devient un versement « Reprise du pointage » ;
- * 4. aucune vague de SMS : les inscriptions déjà soldées sont notées notifiées.
+ * 4. aucune vague de SMS : les inscriptions dont l'accès est déjà disponible sont
+ *    notées notifiées ; à déployer après `ecampus:rapprocher` (spec §13).
  */
 final class RepriseScolarite
 {
@@ -35,7 +37,7 @@ final class RepriseScolarite
             $bilan['baremes'] += $this->baremes($campagne);
         }
 
-        $avant = InscriptionAnnuelle::query()->count();
+        $avant = Versement::query()->where('mode', Versement::MODE_REPRISE)->count();
         Candidature::query()->whereNotNull('matricule')->orderBy('id')
             ->chunkById(100, function ($dossiers) use (&$bilan): void {
                 foreach ($dossiers as $dossier) {
@@ -44,10 +46,18 @@ final class RepriseScolarite
                     $bilan['auditeurs'] += $existait ? 0 : 1;
                 }
             });
-        $bilan['reprises'] = InscriptionAnnuelle::query()->count() - $avant;
+        $bilan['reprises'] = Versement::query()->where('mode', Versement::MODE_REPRISE)->count() - $avant;
 
-        InscriptionAnnuelle::query()->whereNull('acces_notifie_at')->inscriptionSoldee()
-            ->update(['acces_notifie_at' => now()]);
+        // Pas de vague de SMS pour ceux qui ont déjà leur accès. Ceux dont le compte
+        // eCampus reste à créer seront prévenus à sa création (ComptesEcampus).
+        InscriptionAnnuelle::query()->whereNull('acces_notifie_at')
+            ->with(['auditeur.candidature', 'bareme'])
+            ->chunkById(200, function ($inscriptions): void {
+                $ids = $inscriptions->filter(fn (InscriptionAnnuelle $i): bool => $i->auditeur?->candidature !== null
+                    && AccesEcampus::etat($i->auditeur->candidature->setRelation('auditeur', $i->auditeur->setRelation('inscriptionCourante', $i))) === AccesEcampus::DISPONIBLE)
+                    ->pluck('id');
+                InscriptionAnnuelle::query()->whereKey($ids)->update(['acces_notifie_at' => now()]);
+            });
 
         return $bilan;
     }

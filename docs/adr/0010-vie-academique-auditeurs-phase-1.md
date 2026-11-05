@@ -18,11 +18,12 @@ La rentrée de la 14e promotion a lieu les 10 et 11 novembre 2026, et le matricu
 1. **Le périmètre change :** la vie académique des auditeurs passe en Phase I, en quatre lots (paiements, gestion des auditeurs, espace complet, LMD). Le SSO Moodle et le paiement en ligne restent en Phase II.
 2. **Une nouvelle entité `auditeurs`, liée à la candidature :** les inscriptions annuelles et les versements s'y rattachent. Le matricule, le mot de passe FOAD et la connexion restent sur la candidature pendant le lot 1, et seront déplacés au moment du lot 4.
 3. **La situation financière n'est pas stockée :** elle se recalcule toujours à partir des versements non annulés et de la remise. Un versement n'est jamais supprimé.
-4. **Deux usages de SQL brut sont autorisés, par exception à la règle 9 du projet :**
+4. **Trois usages de SQL brut sont autorisés, par exception à la règle 9 du projet :**
    - l'index unique partiel sur les références des versements non annulés ;
-   - les expressions de filtre sur la situation financière de la liste des auditeurs, regroupées dans un seul scope.
+   - les contraintes `CHECK` sur les montants (PostgreSQL ignore `unsigned`) ;
+   - les expressions de filtre sur la situation financière de la liste des auditeurs, regroupées dans les scopes d'`InscriptionAnnuelle`.
 
-   Eloquent n'exprime ni l'un ni l'autre, et stocker la situation pour l'éviter réintroduirait une donnée en double sur de l'argent.
+   Eloquent n'exprime aucun des trois, et stocker la situation pour l'éviter réintroduirait une donnée en double sur de l'argent.
 
 ## Conséquences
 

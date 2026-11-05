@@ -50,7 +50,9 @@ final class AuditeurActions
                 Forms\Components\TextInput::make('montant')->label('Montant (FCFA)')->required()->integer()->minValue(1)->maxValue(100000000)->live(onBlur: true),
                 Forms\Components\DatePicker::make('date_versement')->label('Date du versement')->required()->native(false)
                     ->displayFormat('d/m/Y')->default(InscriptionAnnuelle::aujourdhui()->toDateString())
-                    ->maxDate(InscriptionAnnuelle::aujourdhui()->toDateString()),
+                    // Fin de journée : le sélecteur du navigateur renvoie une heure, et une
+                    // borne à minuit refusait la date du jour (constaté au navigateur).
+                    ->maxDate(InscriptionAnnuelle::aujourdhui()->endOfDay()->toDateTimeString()),
                 Forms\Components\Select::make('mode')->label('Mode de paiement')->required()->options(Versement::MODES)->default('cremincam_agence')->native(false),
                 Forms\Components\TextInput::make('reference')->label('Référence du bordereau')->required()->maxLength(100),
                 Forms\Components\Select::make('payeur')->label('Payé par')->required()->options(Versement::PAYEURS)->default('auditeur')->native(false),
@@ -64,11 +66,13 @@ final class AuditeurActions
                 try {
                     $resultat = app(RegistreVersements::class)->enregistrer($record->inscriptionCourante, $data, auth()->user());
                 } catch (InvalidArgumentException $e) {
+                    self::supprimerScanOrphelin($data['justificatif_path'] ?? null);
                     Notification::make()->danger()->title('Versement non enregistré')->body($e->getMessage())->send();
                     $action->halt();
 
                     return;
                 }
+                $record->refresh();
                 self::notifier('Versement enregistré', $resultat);
             });
     }
@@ -102,6 +106,7 @@ final class AuditeurActions
 
                     return;
                 }
+                $record->refresh();
                 self::notifier('Remise enregistrée', $resultat);
             });
     }
@@ -119,10 +124,14 @@ final class AuditeurActions
             ->requiresConfirmation()
             ->modalDescription('Le SMS « vos accès sont disponibles dans votre espace » n\'est pas parti. Il ne contient pas de mot de passe.')
             ->action(function (Auditeur $record): void {
-                $envoye = app(NotificationAcces::class)->siDisponible($record->candidature);
-                $envoye === true
-                    ? Notification::make()->success()->title('SMS envoyé')->send()
-                    : Notification::make()->danger()->title('SMS non envoyé')->body('La passerelle n\'a pas répondu. Réessayez plus tard ; si cela persiste, prévenez l\'USI.')->persistent()->send();
+                abort_unless(auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR), 403);
+                $envoye = app(NotificationAcces::class)->siDisponible($record->candidature, auth()->user());
+                $record->refresh();
+                match ($envoye) {
+                    true => Notification::make()->success()->title('SMS envoyé')->send(),
+                    false => Notification::make()->danger()->title('SMS non envoyé')->body('La passerelle n\'a pas répondu. Réessayez plus tard ; si cela persiste, prévenez l\'USI.')->persistent()->send(),
+                    null => Notification::make()->info()->title('Rien à envoyer')->body('L\'accès n\'est plus disponible, ou le SMS vient de partir.')->send(),
+                };
             });
     }
 
@@ -131,11 +140,19 @@ final class AuditeurActions
         return Action::make('creerInscription')
             ->label('Créer l\'inscription')
             ->icon('heroicon-o-plus-circle')
-            ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR) && $record->inscriptionCourante === null)
+            ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR)
+                && $record->inscriptionCourante === null && $record->candidature?->withdrawn_at === null)
             ->requiresConfirmation()
             ->modalDescription('Inscription en Master 1 pour l\'année de la promotion, au barème en vigueur.')
             ->action(function (Auditeur $record): void {
-                $inscription = app(OuvertureAuditeur::class)->creerInscription($record);
+                try {
+                    $inscription = app(OuvertureAuditeur::class)->creerInscription($record, auth()->user());
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title('Inscription non créée')->body($e->getMessage())->send();
+
+                    return;
+                }
+                $record->refresh();
                 $inscription === null
                     ? Notification::make()->danger()->title('Barème manquant')->body('Aucun barème M1 pour l\'année de cette promotion : un responsable de scolarité doit d\'abord le saisir (Vie académique > Barèmes).')->persistent()->send()
                     : Notification::make()->success()->title('Inscription créée')->send();
@@ -174,12 +191,19 @@ final class AuditeurActions
             ->label('Bordereau')
             ->icon('heroicon-o-paper-clip')
             ->color('gray')
-            ->visible(fn (Versement $record): bool => filled($record->justificatif_path))
-            ->url(fn (Versement $record): string => Storage::disk(CandidatureObjectStorage::DISK)->temporaryUrl(
-                (string) $record->justificatif_path,
-                now()->addMinutes(30),
-                ['ResponseContentDisposition' => 'inline; filename="bordereau"'],
-            ), shouldOpenInNewTab: true);
+            // Seuls les chemins du dossier des bordereaux sont signés (cf. Versement::cheminJustificatifValide).
+            ->visible(fn (Versement $record): bool => Versement::cheminJustificatifValide($record->justificatif_path))
+            ->action(function (Versement $record) {
+                abort_unless(Versement::cheminJustificatifValide($record->justificatif_path) && auth()->user()?->can('view_auditeur'), 403);
+                activity('scolarite')->causedBy(auth()->user())->performedOn($record)->event('justificatif_consulte')->log('Bordereau consulté');
+                $extension = pathinfo((string) $record->justificatif_path, PATHINFO_EXTENSION);
+
+                return redirect()->away(Storage::disk(CandidatureObjectStorage::DISK)->temporaryUrl(
+                    (string) $record->justificatif_path,
+                    now()->addMinutes(30),
+                    ['ResponseContentDisposition' => 'inline; filename="bordereau.'.$extension.'"'],
+                ));
+            });
     }
 
     public static function ajouterJustificatif(): TableAction
@@ -190,13 +214,23 @@ final class AuditeurActions
             ->color('gray')
             ->visible(fn (Versement $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR)
                 && blank($record->justificatif_path) && ! $record->estAnnule())
-            ->form(MessagesValidation::appliquer([self::champJustificatif()->required()]))
-            ->action(function (Versement $record, array $data): void {
-                if (blank($data['justificatif_path'] ?? null)) {
+            ->form(MessagesValidation::appliquer([self::champJustificatif()->label('Scan du bordereau')->required()]))
+            ->action(function (Versement $record, array $data, TableAction $action): void {
+                $chemin = $data['justificatif_path'] ?? null;
+                if (blank($chemin)) {
+                    Notification::make()->danger()->title('Bordereau non joint')->body('Le fichier n\'a pas pu être enregistré. Réessayez.')->send();
+                    $action->halt();
+
                     return;
                 }
-                $record->forceFill(['justificatif_path' => $data['justificatif_path']])->save();
-                activity('scolarite')->causedBy(auth()->user())->performedOn($record)->event('justificatif_joint')->log('Bordereau joint au versement');
+                try {
+                    app(RegistreVersements::class)->joindreJustificatif($record, (string) $chemin, auth()->user());
+                } catch (InvalidArgumentException $e) {
+                    self::supprimerScanOrphelin((string) $chemin);
+                    Notification::make()->danger()->title('Bordereau non joint')->body($e->getMessage())->send();
+
+                    return;
+                }
                 Notification::make()->success()->title('Bordereau joint')->send();
             });
     }
@@ -217,7 +251,8 @@ final class AuditeurActions
             ->maxSize(5120)
             ->helperText('PDF, JPG ou PNG, 5 Mo maximum.')
             ->saveUploadedFileUsing(function (TemporaryUploadedFile $file): ?string {
-                $nom = Str::ulid().'.'.($file->guessExtension() ?: 'pdf');
+                $extension = $file->guessExtension();
+                $nom = Str::ulid().'.'.(in_array($extension, ['pdf', 'jpg', 'jpeg', 'png'], true) ? $extension : 'pdf');
                 try {
                     $chemin = $file->storeAs(self::DOSSIER_JUSTIFICATIFS, $nom, ['disk' => CandidatureObjectStorage::DISK]);
 
@@ -225,11 +260,24 @@ final class AuditeurActions
                 } catch (Throwable $e) {
                     Log::channel('single')->error('Bordereau non enregistré.', ['erreur' => $e::class]);
                     Notification::make()->warning()->persistent()->title('Bordereau non enregistré')
-                        ->body('Le stockage n\'a pas répondu. Le versement sera enregistré sans scan : joignez-le ensuite depuis la liste des versements.')->send();
+                        ->body('Le stockage n\'a pas répondu : le scan n\'est pas enregistré. Vous pourrez le joindre ensuite depuis la liste des versements.')->send();
 
                     return null;
                 }
             });
+    }
+
+    /** Un scan déposé pour un versement refusé ne doit pas rester dans le bucket. */
+    private static function supprimerScanOrphelin(?string $chemin): void
+    {
+        if (! Versement::cheminJustificatifValide($chemin)) {
+            return;
+        }
+        try {
+            Storage::disk(CandidatureObjectStorage::DISK)->delete((string) $chemin);
+        } catch (Throwable $e) {
+            Log::channel('single')->warning('Bordereau orphelin non supprimé.', ['erreur' => $e::class]);
+        }
     }
 
     private static function notifier(string $titre, ResultatOperation $resultat): void

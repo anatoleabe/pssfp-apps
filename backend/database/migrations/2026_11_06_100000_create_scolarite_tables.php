@@ -88,10 +88,21 @@ return new class extends Migration
         // SQL brut autorisé par l'ADR-0010 : Eloquent n'exprime pas un index partiel.
         // Une référence redevient utilisable quand son versement est annulé.
         DB::statement('CREATE UNIQUE INDEX versements_mode_reference_actifs_unique ON versements (mode, reference) WHERE annule_at IS NULL');
+
+        // Garde-fous sur l'argent, même pour une écriture hors RegistreVersements
+        // (import, console) : PostgreSQL ignore `unsigned`. SQL brut, ADR-0010.
+        DB::statement('ALTER TABLE baremes_scolarite ADD CONSTRAINT baremes_scolarite_montants_check CHECK (montant_inscription >= 0 AND montant_tranche1 >= 0 AND montant_tranche2 >= 0)');
+        DB::statement("ALTER TABLE baremes_scolarite ADD CONSTRAINT baremes_scolarite_niveau_check CHECK (niveau IN ('M1', 'M2'))");
+        DB::statement('ALTER TABLE inscriptions_annuelles ADD CONSTRAINT inscriptions_annuelles_montants_check CHECK (montant_inscription >= 0 AND montant_tranche1 >= 0 AND montant_tranche2 >= 0 AND remise_montant >= 0 AND remise_montant <= montant_inscription + montant_tranche1 + montant_tranche2)');
+        DB::statement('ALTER TABLE versements ADD CONSTRAINT versements_montant_check CHECK (montant > 0)');
     }
 
     public function down(): void
     {
+        // Le retour arrière se fait par le code : ne jamais effacer des versements saisis.
+        if (Schema::hasTable('versements') && DB::table('versements')->where('mode', '!=', 'reprise')->exists()) {
+            throw new RuntimeException('Des versements ont été saisis : la table ne se supprime pas. Revenez au code précédent sans annuler la migration.');
+        }
         Schema::dropIfExists('versements');
         Schema::dropIfExists('inscriptions_annuelles');
         Schema::dropIfExists('auditeurs');

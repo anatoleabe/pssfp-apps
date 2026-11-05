@@ -52,15 +52,17 @@ Une seule ligne par couple année + niveau.
 
 ### `auditeurs`
 
-`uuid`, `candidature_id` (unique, obligatoire), `user_id`.
+`uuid`, `candidature_id` (unique, obligatoire). Pas de `user_id` : `AjoutRetenu::corrigerTelephone` peut changer le compte d'un dossier, une copie se désynchroniserait. Le compte se lit à travers la candidature.
 
 Le matricule, le mot de passe FOAD, la connexion et l'identité restent sur la candidature pendant ce lot. Ils seront déplacés au moment du lot 4.
 
 ### `inscriptions_annuelles`
 
-`uuid`, `auditeur_id`, `annee_academique`, `niveau`, copie des montants du barème, `remise_montant` (0 par défaut), `remise_motif`, `remise_par`, `remise_at`, `acces_notifie_at`.
+`uuid`, `auditeur_id`, `bareme_id`, `annee_academique`, `niveau`, copie des montants du barème, `remise_montant` (0 par défaut), `remise_motif`, `remise_par`, `remise_at`, `acces_notifie_at`.
 
-Une seule inscription par auditeur et par année. La copie des montants garantit qu'une modification du barème ne change rien pour les auditeurs déjà inscrits.
+Une seule inscription par auditeur et par année. La copie des montants garantit qu'une modification du barème ne change rien pour les auditeurs déjà inscrits. Les **échéances**, elles, se lisent en direct sur le barème : une date corrigée par le responsable vaut pour tous les inscrits.
+
+Contraintes en base (`CHECK`) : montants positifs ou nuls, remise entre 0 et le total, versement strictement positif, niveau `M1` ou `M2`.
 
 ### `versements`
 
@@ -121,7 +123,7 @@ Texte, en ASCII et en un seul segment, avec l'adresse tirée de la configuration
 
 - **Déclenchement :** au premier passage à l'état « Disponible » d'une inscription, que ce soit par un versement, une remise ou la création du compte eCampus.
 - **Une seule fois par inscription :** `acces_notifie_at` est posé par une mise à jour conditionnelle, et l'envoi part après la validation de la transaction. Annuler puis ressaisir ne renvoie rien.
-- **En cas d'échec :** le versement reste enregistré, `acces_notifie_at` revient à vide, l'agent est averti et la fiche propose « Renvoyer ». Il n'y a pas de nouvelle tentative automatique.
+- **En cas d'échec :** le versement reste enregistré, `acces_notifie_at` revient à vide, l'agent est averti et la fiche propose « Renvoyer ». Pas de nouvelle tentative programmée ; le prochain versement ou la prochaine remise retente l'envoi.
 - **Canal :** SMS seulement, sans e-mail.
 - **Contenu :** jamais de mot de passe.
 
@@ -133,7 +135,7 @@ Nouveau groupe de navigation : **Vie académique**.
 
 - **Recherche :** matricule, nom, téléphone.
 - **Colonnes :** matricule, nom, promotion, niveau, cumul versé, reste à payer, situation.
-- **Filtres :** promotion, niveau, inscription non soldée, en retard, soldé, barème manquant.
+- **Filtres :** promotion, niveau, inscription non soldée, en retard (inscription soldée, tranche échue), à jour, soldé, barème manquant. Même priorité que le badge.
 - **Export Excel :** matricule, nom, prénom, promotion, niveau, dû, remise, versé, reste, situation. Sans téléphone. Toutes les valeurs saisies sont écrites comme du texte, jamais comme des formules.
 
 ### Fiche auditeur
@@ -141,7 +143,9 @@ Nouveau groupe de navigation : **Vie académique**.
 - **Identité, en lecture seule :** nom, matricule, téléphone, promotion, spécialité.
 - **Situation :** paliers (dû, payé, reste), remise, état de l'accès.
 - **Versements :** historique complet, lignes annulées comprises et clairement distinguées.
-- **Actions :** « Enregistrer un versement », « Annuler un versement » (motif obligatoire), « Accorder une remise » (montant, motif obligatoire), « Renvoyer le SMS », « Créer l'inscription ».
+- **Actions :** « Enregistrer un versement », « Annuler un versement » (motif obligatoire), « Accorder une remise » (montant, motif obligatoire), « Renvoyer le SMS », « Créer l'inscription », « Joindre le bordereau ».
+- **Bordereaux :** seuls les fichiers du dossier `scolarite/justificatifs/`, nommés par le formulaire, sont acceptés et signés. Un chemin venu d'ailleurs est refusé (même bucket que les pièces des candidats). Chaque consultation est journalisée.
+- **Journal :** les barèmes gardent l'ancienne et la nouvelle valeur de chaque montant et échéance.
 - **Liens :** dossier de candidature et lettre signée, affichés seulement si l'agent en a déjà le droit.
 
 ### Barèmes
@@ -170,7 +174,7 @@ Nouveau module `scolarite` dans `ModulePermissionMap`, avec une migration additi
 
 - **Nouveaux rôles :** `scolarite_agent` et `scolarite_responsable`.
 - **Sans accès aux dossiers par défaut :** ces rôles n'ouvrent pas le module Admissions. Une personne qui en a besoin peut cumuler un autre rôle.
-- **`candidature.frais_inscription` :** n'a plus d'usage, et sa suppression viendra une fois le lot stabilisé.
+- **`candidature.frais_inscription` :** retirée par migration (`down()` la rend à super_admin et admin).
 - **Journal :** enregistrement, annulation, remise, modification de barème, affichage du mot de passe par l'auditeur.
 - **2FA :** les deux rôles sont soumis à la double authentification de l'admin.
 
@@ -199,7 +203,8 @@ La page `/dossier` reste en place. Pour un retenu, l'ordre devient : Ma scolarit
 
 - Demandé seulement au clic sur « Afficher », jamais présent dans la page initiale.
 - Le serveur revérifie l'état à chaque demande : 403 si l'état n'est pas « Disponible ».
-- Limité à 10 demandes par heure et par compte.
+- Limité à 10 demandes par heure, par compte et par type de connexion (un agent en consultation n'épuise pas le quota de l'auditeur). Relevé PDF : 20 par heure.
+- L'auditeur se retrouve par son compte : un brouillon déposé dans une campagne suivante ne masque pas sa scolarité.
 - Réponse `Cache-Control: no-store`.
 - Chaque affichage est journalisé, sans jamais écrire le mot de passe.
 - 403 pour un agent en consultation de l'espace, qui voit la situation financière mais pas le bouton.
@@ -220,7 +225,8 @@ Par migration additive, idempotente et réversible :
 2. **Barèmes 2026-2027 :** M1 repris des valeurs de la campagne P14, ou à défaut de la configuration. M2 à 135 000 + 500 000 + 500 000, échéances vides. Le responsable vérifie les valeurs avant la mise en service.
 3. **Cases déjà cochées :** chacune devient un versement du montant de l'inscription, mode `reprise`, référence `REPRISE-<matricule>`, date et agent repris du pointage, à compléter par la Scolarité.
 4. **Dossier coché sans matricule :** la reprise se fait à l'attribution du matricule. C'est la seule lecture restante de l'ancienne colonne.
-5. **Pas de SMS de masse :** `acces_notifie_at` est posé pour toutes les inscriptions déjà soldées à la migration.
+5. **Pas de SMS de masse :** `acces_notifie_at` est posé pour les inscriptions dont l'accès est déjà disponible (inscription soldée et compte eCampus présent). Celles dont le compte reste à créer sont prévenues à sa création. D'où l'ordre de la section 13 : `ecampus:rapprocher` avant la migration.
+6. **Retour arrière :** la migration des tables refuse de les supprimer dès qu'un versement a été saisi à la main.
 
 `frais_inscription_payes_at` et `frais_inscription_payes_by` restent en place jusqu'à stabilisation, pour permettre un retour arrière.
 
@@ -243,7 +249,7 @@ Fichier fourni par la Scolarité : matricule, nom, téléphone, e-mail, versemen
 
 ## 13. Déploiement
 
-1. PR #65 en production, puis `php artisan ecampus:rapprocher`.
+1. PR #65 en production, puis `php artisan ecampus:rapprocher` (avant la migration de ce lot, cf. §10.5).
 2. Sauvegarde de la base.
 3. `php artisan migrate --force`, sans relancer le seeder.
 4. Vérification des barèmes par le responsable, notamment les échéances.

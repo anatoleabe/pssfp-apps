@@ -12,6 +12,7 @@ use App\Models\Versement;
 use App\Services\DocumentsAuditeurs\FraisInscription;
 use App\Services\Ecampus\ComptesEcampus;
 use App\Services\ExportsRetenus\AttributionMatricules;
+use App\Services\Scolarite\NotificationAcces;
 use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\RepriseScolarite;
 use App\Services\Sms\SmsServiceInterface;
@@ -19,6 +20,7 @@ use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 
 uses()->group('scolarite');
@@ -86,7 +88,7 @@ it('convertit chaque case cochée en versement de reprise, retirés compris', fu
     $bilan = app(RepriseScolarite::class)->executer();
 
     $reprises = Versement::query()->where('mode', Versement::MODE_REPRISE)->orderBy('reference')->get();
-    expect($bilan)->toBe(['baremes' => 2, 'auditeurs' => 3, 'reprises' => 3])
+    expect($bilan)->toBe(['baremes' => 2, 'auditeurs' => 3, 'reprises' => 2])
         ->and($reprises)->toHaveCount(2)
         ->and($reprises->first()->reference)->toBe('REPRISE-'.$this->coche->fresh()->matricule)
         ->and($reprises->first()->montant)->toBe(185000)
@@ -124,4 +126,24 @@ it('reprend la case d\'un dossier sans matricule à l\'attribution de son matric
     $d = $this->sansMatricule->fresh();
     expect(FraisInscription::payes($d))->toBeTrue()
         ->and(Versement::query()->where('reference', 'REPRISE-'.$d->matricule)->exists())->toBeTrue();
+});
+
+it('laisse prévenir à la création du compte un auditeur soldé dont le compte eCampus manque', function (): void {
+    Candidature::query()->whereKey($this->coche->id)->update(['ecampus_statut' => ComptesEcampus::ECHEC]);
+    app(RepriseScolarite::class)->executer();
+
+    expect($this->coche->fresh()->auditeur->inscriptionCourante->acces_notifie_at)->toBeNull();
+
+    $this->coche->forceFill(['ecampus_statut' => ComptesEcampus::CREE])->save();
+    expect(app(NotificationAcces::class)->siDisponible($this->coche->fresh()))->toBeTrue()
+        ->and($this->sms)->toBe([$this->coche->phone_e164]);
+});
+
+it('refuse les montants incohérents en base, même hors du registre', function (): void {
+    app(RepriseScolarite::class)->executer();
+    $i = $this->coche->fresh()->auditeur->inscriptionCourante;
+
+    expect(fn () => $i->forceFill(['remise_montant' => -1])->save())->toThrow(QueryException::class)
+        ->and(fn () => $i->fresh()->forceFill(['remise_montant' => 2000000])->save())->toThrow(QueryException::class)
+        ->and(fn () => Versement::factory()->create(['inscription_annuelle_id' => $i->id, 'montant' => 0]))->toThrow(QueryException::class);
 });

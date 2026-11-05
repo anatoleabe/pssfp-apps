@@ -8,7 +8,10 @@ use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
 use App\Models\Candidature;
 use App\Models\InscriptionAnnuelle;
+use App\Models\User;
 use App\Models\Versement;
+use Illuminate\Database\UniqueConstraintViolationException;
+use InvalidArgumentException;
 
 /**
  * Crée l'auditeur et son inscription à l'attribution du matricule. Idempotent.
@@ -26,10 +29,23 @@ final class OuvertureAuditeur
         return $auditeur;
     }
 
-    /** @return InscriptionAnnuelle|null null si le barème de l'année n'existe pas encore */
-    public function creerInscription(Auditeur $auditeur): ?InscriptionAnnuelle
+    /**
+     * `$auteur` : l'agent qui crée l'inscription depuis la fiche (droit vérifié,
+     * dossier retiré refusé) ; null pour l'attribution du matricule et la reprise.
+     *
+     * @return InscriptionAnnuelle|null null si le barème de l'année n'existe pas encore
+     *
+     * @throws InvalidArgumentException dossier retiré
+     */
+    public function creerInscription(Auditeur $auditeur, ?User $auteur = null): ?InscriptionAnnuelle
     {
+        if ($auteur !== null) {
+            abort_unless($auteur->can(RegistreVersements::PERMISSION_SAISIR), 403);
+        }
         $dossier = $auditeur->candidature()->with('campagne')->firstOrFail();
+        if ($auteur !== null && $dossier->withdrawn_at !== null) {
+            throw new InvalidArgumentException('Ce dossier est retiré : aucune inscription ne peut être créée.');
+        }
         $annee = $dossier->campagne->anneeAcademique();
 
         $existante = InscriptionAnnuelle::query()->where('auditeur_id', $auditeur->id)->where('annee_academique', $annee)->first();
@@ -43,15 +59,24 @@ final class OuvertureAuditeur
             return null;
         }
 
-        $inscription = InscriptionAnnuelle::query()->create([
-            'auditeur_id' => $auditeur->id,
-            'bareme_id' => $bareme->id,
-            'annee_academique' => $annee,
-            'niveau' => $bareme->niveau,
-            'montant_inscription' => $bareme->montant_inscription,
-            'montant_tranche1' => $bareme->montant_tranche1,
-            'montant_tranche2' => $bareme->montant_tranche2,
-        ]);
+        try {
+            $inscription = InscriptionAnnuelle::query()->create([
+                'auditeur_id' => $auditeur->id,
+                'bareme_id' => $bareme->id,
+                'annee_academique' => $annee,
+                'niveau' => $bareme->niveau,
+                'montant_inscription' => $bareme->montant_inscription,
+                'montant_tranche1' => $bareme->montant_tranche1,
+                'montant_tranche2' => $bareme->montant_tranche2,
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            // Double clic : l'autre requête a créé l'inscription.
+            return InscriptionAnnuelle::query()->where('auditeur_id', $auditeur->id)->where('annee_academique', $annee)->first();
+        }
+        activity('scolarite')->causedBy($auteur)->performedOn($inscription)
+            ->event('inscription_creee')
+            ->withProperties(['annee' => $annee, 'niveau' => $bareme->niveau, 'dossier' => $dossier->numero_dossier])
+            ->log('Inscription annuelle créée');
         $this->reprendrePointage($inscription, $dossier);
         $auditeur->unsetRelation('inscriptionCourante');
 
@@ -73,14 +98,20 @@ final class OuvertureAuditeur
             return;
         }
 
-        (new Versement)->forceFill([
+        $versement = new Versement;
+        $versement->forceFill([
             'inscription_annuelle_id' => $inscription->id,
             'montant' => $inscription->montant_inscription,
-            'date_versement' => $dossier->frais_inscription_payes_at->toDateString(),
+            'date_versement' => $dossier->frais_inscription_payes_at->copy()->timezone(InscriptionAnnuelle::FUSEAU)->toDateString(),
             'mode' => Versement::MODE_REPRISE,
             'reference' => $reference,
             'payeur' => 'auditeur',
             'saisi_par' => $dossier->frais_inscription_payes_by,
         ])->save();
+
+        activity('scolarite')->performedOn($versement)
+            ->event('versement_repris')
+            ->withProperties(['montant' => $versement->montant, 'reference' => $reference])
+            ->log('Case « droits payés » reprise en versement');
     }
 }

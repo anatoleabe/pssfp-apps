@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Api\Applications;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ScolariteResource;
 use App\Models\Candidature;
-use App\Services\CandidatureService;
 use App\Services\EspaceCandidat\ConsultationEspaceCandidat;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use App\Services\Scolarite\AccesEcampus;
@@ -20,14 +19,12 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Scolarité de l'auditeur connecté : situation, relevé, mot de passe FOAD.
  *
- * Propriété stricte : le dossier est toujours celui du compte du jeton
- * (CandidatureService::findReadableForUser), jamais un identifiant reçu.
+ * Propriété stricte : le dossier est toujours un dossier du compte du jeton,
+ * jamais un identifiant reçu.
  */
 final class ScolariteController extends Controller
 {
     private const SANS_CACHE = ['Cache-Control' => 'no-store, private', 'Pragma' => 'no-cache'];
-
-    public function __construct(private readonly CandidatureService $candidatures) {}
 
     public function show(Request $request): JsonResponse
     {
@@ -59,9 +56,9 @@ final class ScolariteController extends Controller
             ], Response::HTTP_FORBIDDEN, self::SANS_CACHE);
         }
 
-        activity('auth.candidat')->performedOn($dossier)
+        activity('auth.candidat')->causedBy($request->user())->performedOn($dossier)
             ->event('acces_mot_de_passe_affiche')
-            ->withProperties(['ip' => $request->ip()])
+            ->withProperties(['ip' => $request->ip(), 'connexion' => $jeton?->name])
             ->log('Mot de passe FOAD affiché dans l\'espace');
 
         return response()->json(['data' => [
@@ -91,16 +88,21 @@ final class ScolariteController extends Controller
         ] + self::SANS_CACHE);
     }
 
-    /** Retenu non retiré, doté d'une fiche auditeur ; sinon rien à montrer. */
+    /**
+     * Dernier dossier retenu, non retiré et doté d'une fiche auditeur du compte :
+     * un brouillon dans une campagne suivante ne masque pas la scolarité en cours.
+     */
     private function dossier(Request $request): ?Candidature
     {
-        $dossier = $this->candidatures->findReadableForUser($request->user());
-        if ($dossier === null || $dossier->statut !== Candidature::STATUT_ACCEPTE || $dossier->withdrawn_at !== null) {
-            return null;
-        }
-        $dossier->load(['campagne', 'auditeur.inscriptionCourante.bareme']);
-
-        return $dossier->auditeur === null ? null : $dossier;
+        return Candidature::query()
+            ->where('user_id', $request->user()->id)
+            ->where('statut', Candidature::STATUT_ACCEPTE)
+            ->whereNull('withdrawn_at')
+            ->whereHas('auditeur')
+            ->with(['campagne', 'auditeur.inscriptionCourante.bareme'])
+            ->orderByDesc('matricule_attribue_at')
+            ->orderByDesc('id')
+            ->first();
     }
 
     private function absent(): JsonResponse

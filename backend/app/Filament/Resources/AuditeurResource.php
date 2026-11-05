@@ -57,7 +57,7 @@ class AuditeurResource extends Resource
         return $table
             ->defaultSort('id', 'desc')
             ->columns([
-                Tables\Columns\TextColumn::make('candidature.matricule')->label('Matricule')->fontFamily('mono')
+                Tables\Columns\TextColumn::make('candidature.matricule')->label('Matricule')->fontFamily('mono')->sortable()
                     ->searchable(query: fn (Builder $query, string $search): Builder => self::rechercher($query, $search)),
                 Tables\Columns\TextColumn::make('nom')->label('Nom')
                     ->getStateUsing(fn (Auditeur $record): string => trim(mb_strtoupper((string) $record->candidature?->nom).' '.$record->candidature?->prenom)),
@@ -89,13 +89,18 @@ class AuditeurResource extends Resource
                 Tables\Filters\SelectFilter::make('situation')->label('Situation')
                     ->options([
                         LibelleSituation::NON_SOLDEE => 'Inscription non soldée',
-                        LibelleSituation::EN_RETARD => 'En retard',
+                        LibelleSituation::EN_RETARD => 'En retard (inscription soldée, tranche échue)',
+                        LibelleSituation::A_JOUR => 'À jour',
                         LibelleSituation::SOLDEE => 'Soldé',
                         LibelleSituation::SANS_INSCRIPTION => 'Barème manquant',
                     ])
                     ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
                         LibelleSituation::NON_SOLDEE => $query->whereHas('inscriptionCourante', fn (Builder $i) => $i->inscriptionNonSoldee()),
-                        LibelleSituation::EN_RETARD => $query->whereHas('inscriptionCourante', fn (Builder $i) => $i->enRetard()),
+                        // Même priorité que le badge : une inscription non soldée n'est pas « en retard ».
+                        LibelleSituation::EN_RETARD => $query->whereHas('inscriptionCourante', fn (Builder $i) => $i->inscriptionSoldee()->enRetard()),
+                        LibelleSituation::A_JOUR => $query->whereHas('inscriptionCourante', fn (Builder $i) => $i->inscriptionSoldee()
+                            ->whereNot(fn (Builder $q) => $q->enRetard())
+                            ->whereNot(fn (Builder $q) => $q->entierementSoldee())),
                         LibelleSituation::SOLDEE => $query->whereHas('inscriptionCourante', fn (Builder $i) => $i->entierementSoldee()),
                         LibelleSituation::SANS_INSCRIPTION => $query->doesntHave('inscriptions'),
                         default => $query,
@@ -170,13 +175,13 @@ class AuditeurResource extends Resource
     /** Matricule, nom, prénom ou téléphone (chiffres seuls). */
     private static function rechercher(Builder $query, string $search): Builder
     {
-        $terme = '%'.mb_strtolower(trim($search)).'%';
+        $terme = '%'.addcslashes(trim($search), '%_\\').'%';
         $chiffres = (string) preg_replace('/\D+/', '', $search);
 
         return $query->whereHas('candidature', fn (Builder $c) => $c->where(function (Builder $q) use ($terme, $chiffres): void {
-            $q->whereRaw('LOWER(matricule) LIKE ?', [$terme])
-                ->orWhereRaw('LOWER(nom) LIKE ?', [$terme])
-                ->orWhereRaw('LOWER(prenom) LIKE ?', [$terme]);
+            $q->where('matricule', 'ilike', $terme)
+                ->orWhere('nom', 'ilike', $terme)
+                ->orWhere('prenom', 'ilike', $terme);
             if (strlen($chiffres) >= 4) {
                 $q->orWhere('phone_e164', 'like', '%'.$chiffres.'%');
             }

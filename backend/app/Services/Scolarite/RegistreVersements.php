@@ -32,6 +32,8 @@ final class RegistreVersements
 
     public const PERMISSION_BAREME = 'scolarite.bareme';
 
+    private ?User $auteurCourant = null;
+
     public function __construct(
         private readonly ConnectionInterface $db,
         private readonly NotificationAcces $notification,
@@ -50,7 +52,10 @@ final class RegistreVersements
         if ($montant === false || $montant <= 0) {
             throw new InvalidArgumentException('Le montant doit être un nombre entier de FCFA, supérieur à zéro.');
         }
-        $date = CarbonImmutable::parse((string) ($saisie['date_versement'] ?? ''), InscriptionAnnuelle::FUSEAU)->startOfDay();
+        if (blank($saisie['date_versement'] ?? null)) {
+            throw new InvalidArgumentException('Indiquez la date du versement.');
+        }
+        $date = CarbonImmutable::parse((string) $saisie['date_versement'], InscriptionAnnuelle::FUSEAU)->startOfDay();
         if ($date->greaterThan(InscriptionAnnuelle::aujourdhui())) {
             throw new InvalidArgumentException('La date du versement ne peut pas être dans le futur.');
         }
@@ -66,10 +71,14 @@ final class RegistreVersements
         if ($reference === '' || mb_strlen($reference) > 100) {
             throw new InvalidArgumentException('Indiquez la référence du bordereau (100 caractères au plus).');
         }
+        $justificatif = $saisie['justificatif_path'] ?? null;
+        if ($justificatif !== null && ! Versement::cheminJustificatifValide($justificatif)) {
+            throw new InvalidArgumentException('Le scan du bordereau est invalide : déposez-le à nouveau.');
+        }
         $this->refuserDossierRetire($inscription);
 
         try {
-            $versement = $this->db->transaction(function () use ($inscription, $montant, $date, $mode, $reference, $payeur, $saisie, $auteur): Versement {
+            $versement = $this->db->transaction(function () use ($inscription, $montant, $date, $mode, $reference, $payeur, $justificatif, $auteur): Versement {
                 InscriptionAnnuelle::query()->whereKey($inscription->id)->lockForUpdate()->firstOrFail();
 
                 if (Versement::query()->where('mode', $mode)->where('reference', $reference)->whereNull('annule_at')->exists()) {
@@ -84,7 +93,7 @@ final class RegistreVersements
                     'mode' => $mode,
                     'reference' => $reference,
                     'payeur' => $payeur,
-                    'justificatif_path' => $saisie['justificatif_path'] ?? null,
+                    'justificatif_path' => $justificatif,
                     'saisi_par' => $auteur->id,
                 ])->save();
 
@@ -99,6 +108,8 @@ final class RegistreVersements
             // Deux agents sur le même bordereau, au même moment : l'index tranche.
             throw new InvalidArgumentException(self::messageDoublon($reference));
         }
+
+        $this->auteurCourant = $auteur;
 
         return new ResultatOperation($versement, $this->notifier($inscription));
     }
@@ -171,7 +182,30 @@ final class RegistreVersements
                 ->log('Remise modifiée');
         });
 
+        $this->auteurCourant = $auteur;
+
         return new ResultatOperation(null, $this->notifier($inscription));
+    }
+
+    /** Joint le scan d'un bordereau à un versement qui n'en a pas encore. */
+    public function joindreJustificatif(Versement $versement, string $chemin, User $auteur): void
+    {
+        abort_unless($auteur->can(self::PERMISSION_SAISIR), 403);
+
+        if (! Versement::cheminJustificatifValide($chemin)) {
+            throw new InvalidArgumentException('Le scan du bordereau est invalide : déposez-le à nouveau.');
+        }
+        $this->refuserDossierRetire($versement->inscription()->firstOrFail());
+
+        $modifies = Versement::query()->whereKey($versement->id)
+            ->whereNull('annule_at')->whereNull('justificatif_path')
+            ->update(['justificatif_path' => $chemin]);
+        if ($modifies === 0) {
+            throw new InvalidArgumentException('Ce versement est annulé ou a déjà un bordereau.');
+        }
+
+        activity('scolarite')->causedBy($auteur)->performedOn($versement)
+            ->event('justificatif_joint')->log('Bordereau joint au versement');
     }
 
     /** L'annulation ferait-elle repasser l'inscription sous le seuil ? Pour avertir l'agent. */
@@ -200,7 +234,7 @@ final class RegistreVersements
     {
         $dossier = $inscription->auditeur()->with('candidature')->first()?->candidature;
 
-        return $dossier === null ? null : $this->notification->siDisponible($dossier);
+        return $dossier === null ? null : $this->notification->siDisponible($dossier, $this->auteurCourant);
     }
 
     private function refuserDossierRetire(InscriptionAnnuelle $inscription): void

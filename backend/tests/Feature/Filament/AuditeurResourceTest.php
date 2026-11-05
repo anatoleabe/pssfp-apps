@@ -13,18 +13,24 @@ use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
+use App\Models\InscriptionAnnuelle;
 use App\Models\User;
 use App\Models\Versement;
 use App\Services\Ecampus\ComptesEcampus;
 use App\Services\ExportsRetenus\AttributionMatricules;
+use App\Services\Scolarite\OuvertureAuditeur;
+use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\SituationFinanciereExcel;
 use App\Services\Sms\SmsServiceInterface;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Spatie\Activitylog\Models\Activity;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses()->group('filament', 'scolarite');
 
@@ -113,6 +119,18 @@ it('exige la confirmation d\'un trop-perçu', function (): void {
     expect(Versement::query()->count())->toBe(0);
 });
 
+it('accepte la date du jour, y compris le soir à Yaoundé', function (string $heure): void {
+    Carbon::setTestNow($heure);
+    $this->actingAs(($this->compte)('scolarite_agent'));
+
+    $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
+        ->callAction('enregistrerVersement', data: ($this->saisie)(['date_versement' => InscriptionAnnuelle::aujourdhui()->toDateString()]))
+        ->assertHasNoActionErrors();
+    Carbon::setTestNow();
+
+    expect(Versement::query()->count())->toBe(1);
+})->with(['matin' => '2026-11-05 08:00:00', 'soir' => '2026-11-05 19:44:00', 'nuit (déjà le 6 à Yaoundé)' => '2026-11-05 23:30:00']);
+
 it('refuse une date future et un montant nul dans le formulaire', function (): void {
     $this->actingAs(($this->compte)('scolarite_agent'));
 
@@ -150,9 +168,11 @@ it('filtre la liste par situation et retrouve un auditeur par son matricule', fu
     $this->livewire(ListAuditeurs::class)
         ->filterTable('situation', 'non_soldee')
         ->assertCanSeeTableRecords([$bruno])->assertCanNotSeeTableRecords([$this->fiche])
-        // Tranche 1 échue : les deux sont en retard, même celui dont l'inscription reste due.
+        // Même priorité que le badge : l'inscription non soldée de Bruno ne compte pas « en retard ».
         ->filterTable('situation', 'en_retard')
-        ->assertCanSeeTableRecords([$this->fiche, $bruno])
+        ->assertCanSeeTableRecords([$this->fiche])->assertCanNotSeeTableRecords([$bruno])
+        ->filterTable('situation', 'a_jour')
+        ->assertCanNotSeeTableRecords([$this->fiche, $bruno])
         ->filterTable('situation', 'soldee')
         ->assertCanNotSeeTableRecords([$this->fiche, $bruno]);
 
@@ -212,4 +232,59 @@ it('mène de la liste des candidatures à la fiche auditeur', function (): void 
 
     $this->livewire(ListCandidatures::class)
         ->assertTableActionVisible('ficheAuditeur', $this->awa);
+});
+
+it('refuse un chemin de bordereau qui ne vient pas du formulaire', function (string $chemin): void {
+    $agent = ($this->compte)('scolarite_agent');
+    $v = Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id]);
+
+    expect(fn () => app(RegistreVersements::class)->joindreJustificatif($v, $chemin, $agent))
+        ->toThrow(InvalidArgumentException::class)
+        ->and(fn () => app(RegistreVersements::class)->enregistrer($this->fiche->inscriptionCourante,
+            ($this->saisie)(['justificatif_path' => $chemin]), $agent))
+        ->toThrow(InvalidArgumentException::class)
+        ->and($v->fresh()->justificatif_path)->toBeNull();
+
+    // Un chemin posé à la main en base n'est jamais signé.
+    $v->forceFill(['justificatif_path' => $chemin])->save();
+    $this->actingAs($agent);
+    $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
+        ->assertTableActionHidden('voirJustificatif', $v);
+})->with([
+    'récépissé d\'un candidat' => ['candidatures/0193a8b2-uuid/recipisse.pdf'],
+    'remontée' => ['scolarite/justificatifs/../signatures/signature.png'],
+    'signature' => ['signatures/signature-01JABCDEFGHJKMNPQRSTVWXYZ0.png'],
+    'extension' => ['scolarite/justificatifs/01JABCDEFGHJKMNPQRSTVWXYZ0.php'],
+]);
+
+it('joint un bordereau valide une seule fois, et le journalise', function (): void {
+    $agent = ($this->compte)('scolarite_agent');
+    $v = Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id]);
+    $chemin = 'scolarite/justificatifs/01JABCDEFGHJKMNPQRSTVWXYZ0.pdf';
+
+    app(RegistreVersements::class)->joindreJustificatif($v, $chemin, $agent);
+
+    expect($v->fresh()->justificatif_path)->toBe($chemin)
+        ->and(Activity::query()->where('event', 'justificatif_joint')->count())->toBe(1)
+        ->and(fn () => app(RegistreVersements::class)->joindreJustificatif($v, $chemin, $agent))->toThrow(InvalidArgumentException::class);
+});
+
+it('journalise les montants d\'un barème modifié', function (): void {
+    $this->actingAs(($this->compte)('scolarite_responsable'));
+    $b = BaremeScolarite::query()->firstOrFail();
+    $b->update(['montant_tranche2' => 450000]);
+
+    $journal = Activity::query()->where('log_name', 'scolarite')->where('subject_type', $b->getMorphClass())->latest('id')->firstOrFail();
+    expect($journal->properties['attributes']['montant_tranche2'])->toBe(450000)
+        ->and($journal->properties['old']['montant_tranche2'])->toBe(500000);
+});
+
+it('refuse de créer une inscription sur un dossier retiré, et vérifie le droit', function (): void {
+    $this->fiche->inscriptions()->delete();
+    $this->awa->forceFill(['withdrawn_at' => now()])->save();
+
+    expect(fn () => app(OuvertureAuditeur::class)->creerInscription($this->fiche->fresh(), ($this->compte)('scolarite_agent')))
+        ->toThrow(InvalidArgumentException::class)
+        ->and(fn () => app(OuvertureAuditeur::class)->creerInscription($this->fiche->fresh(), ($this->compte)('caisse')))
+        ->toThrow(HttpException::class);
 });

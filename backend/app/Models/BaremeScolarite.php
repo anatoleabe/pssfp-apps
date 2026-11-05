@@ -7,11 +7,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /** Barème d'une année académique et d'un niveau : inscription et deux tranches. */
 class BaremeScolarite extends Model
 {
     use HasFactory;
+    use LogsActivity;
 
     public const NIVEAU_M1 = 'M1';
 
@@ -42,6 +45,16 @@ class BaremeScolarite extends Model
         'tranche1_echeance' => 'immutable_date',
         'tranche2_echeance' => 'immutable_date',
     ];
+
+    /** Montants et échéances : ancienne et nouvelle valeur au journal (aucune donnée personnelle). */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('scolarite')
+            ->logOnly($this->fillable)
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     public function inscriptions(): HasMany
     {

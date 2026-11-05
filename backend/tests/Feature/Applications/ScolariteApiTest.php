@@ -151,3 +151,13 @@ it('produit le relevé PDF de l\'auditeur, sans mot de passe', function (): void
         ->and($reponse->headers->get('Cache-Control'))->toContain('no-store')
         ->and(substr((string) $reponse->getContent(), 0, 4))->toBe('%PDF');
 });
+
+it('garde la scolarité visible quand l\'auditeur ouvre un brouillon dans une campagne suivante', function (): void {
+    $p15 = CampagneCandidature::factory()->create(['nom' => ['fr' => 'Année académique 2027-2028'], 'promotion_numero' => 15]);
+    Candidature::factory()->forCampagne($p15)->create([
+        'statut' => Candidature::STATUT_POSTULANT, 'user_id' => $this->awa->user_id, 'phone_e164' => $this->awa->phone_e164, 'email' => 'p15@example.org',
+    ]);
+
+    $this->withToken(($this->jeton)($this->awa))->getJson('/v1/applications/me/scolarite')
+        ->assertOk()->assertJsonPath('data.matricule', $this->awa->matricule);
+});

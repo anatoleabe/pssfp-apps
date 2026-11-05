@@ -122,7 +122,7 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
             ->name('me.scolarite');
 
         Route::get('/me/releve-scolarite', [ScolariteController::class, 'releve'])
-            ->middleware('ability:application:read')
+            ->middleware(['ability:application:read', 'throttle:releve-scolarite'])
             ->name('me.releve-scolarite');
 
         Route::post('/me/acces/reveler', [ScolariteController::class, 'reveler'])

@@ -76,12 +76,13 @@ Règle des 3 clics maximum. Sticky header, breadcrumb, footer complet.
 
 ## Modules en cours — cf. `docs/specs/`
 
-Phase I : Module 1 (site institutionnel), Module 2 (actualités), Module 3 (biblio), Module 5 (candidatures — rapatrié de Phase II), Module 6 (CMS Filament).
-Phase II : Module 4 (espace étudiant SSO Moodle), Module Paiement biblio.
+Phase I : Module 1 (site institutionnel), Module 2 (actualités), Module 3 (biblio), Module 4 (vie académique des auditeurs — rapatrié de Phase II par l'ADR-0010, en 4 lots : paiements, gestion des auditeurs, espace complet, LMD), Module 5 (candidatures — rapatrié de Phase II), Module 6 (CMS Filament).
+Phase II : SSO Moodle de l'espace étudiant, Module Paiement en ligne (biblio et scolarité).
 
 ## Hors périmètre Phase I (rappel)
 
-- Espace étudiant sécurisé avec SSO Moodle.
+- SSO Moodle de l'espace étudiant (l'espace lui-même est en Phase I, cf. ADR-0010).
+- Paiement en ligne des droits (la Scolarité enregistre les versements à la main).
 - Module de paiement biblio multi-canal.
 - Refonte de la plateforme Moodle FOAD elle-même.
 

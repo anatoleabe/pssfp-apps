@@ -26,6 +26,9 @@ final class MessagesValidation
         'regex' => 'Saisissez l\'année au format 2026-2027.',
         'unique' => 'Un barème existe déjà pour cette année et ce niveau.',
         'mimetypes' => 'Format accepté : PDF, JPG ou PNG.',
+        'mimes' => 'Format accepté : PDF, JPG ou PNG.',
+        'uploaded' => 'Le fichier n\'a pas pu être envoyé : 5 Mo au plus pour un bordereau.',
+        'file' => 'Le fichier n\'a pas pu être envoyé.',
     ];
 
     /**

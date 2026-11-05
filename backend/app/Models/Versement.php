@@ -68,6 +68,19 @@ class Versement extends Model
         return 'uuid';
     }
 
+    public const DOSSIER_JUSTIFICATIFS = 'scolarite/justificatifs';
+
+    /**
+     * Seuls les fichiers déposés par le formulaire du versement sont acceptés :
+     * même bucket que les pièces des candidats, un chemin choisi par le client
+     * ouvrirait un lien signé vers n'importe quel dossier.
+     */
+    public static function cheminJustificatifValide(?string $chemin): bool
+    {
+        return $chemin !== null
+            && preg_match('#^'.preg_quote(self::DOSSIER_JUSTIFICATIFS, '#').'/[0-9A-Za-z]{26}\.(pdf|jpg|jpeg|png)$#', $chemin) === 1;
+    }
+
     public static function normaliserReference(string $reference): string
     {
         return mb_strtoupper(trim($reference));

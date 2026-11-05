@@ -6,6 +6,7 @@ namespace App\Services\Scolarite;
 
 use App\Models\Candidature;
 use App\Models\InscriptionAnnuelle;
+use App\Models\User;
 use App\Services\Sms\SmsServiceInterface;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -33,7 +34,7 @@ final class NotificationAcces
      * @return bool|null true envoyé, false échec (à renvoyer depuis la fiche),
      *                   null rien à envoyer (accès non disponible ou déjà notifié)
      */
-    public function siDisponible(Candidature $dossier): ?bool
+    public function siDisponible(Candidature $dossier, ?User $auteur = null): ?bool
     {
         try {
             // Relecture : l'appelant peut tenir un état antérieur à sa propre transaction.
@@ -57,17 +58,28 @@ final class NotificationAcces
             }
             $this->sms->send((string) $c->phone_e164, self::texte());
         } catch (Throwable $e) {
-            // La réservation saute : la fiche proposera « Renvoyer ».
-            InscriptionAnnuelle::query()->whereKey($inscription->id)->update(['acces_notifie_at' => null]);
             Log::channel('single')->error('SMS « accès disponibles » non envoyé.', ['dossier' => $c->numero_dossier, 'erreur' => $e::class]);
-            activity('scolarite')->performedOn($c)->event('acces_sms_echec')->log('SMS « accès disponibles » non envoyé');
+            $this->sansEchec(function () use ($inscription, $c, $auteur): void {
+                // La réservation saute : la fiche proposera « Renvoyer ».
+                InscriptionAnnuelle::query()->whereKey($inscription->id)->update(['acces_notifie_at' => null]);
+                activity('scolarite')->causedBy($auteur)->performedOn($c)->event('acces_sms_echec')->log('SMS « accès disponibles » non envoyé');
+            });
 
             return false;
         }
 
-        activity('scolarite')->performedOn($c)->event('acces_sms_envoye')->log('SMS « accès disponibles » envoyé');
+        $this->sansEchec(fn () => activity('scolarite')->causedBy($auteur)->performedOn($c)->event('acces_sms_envoye')->log('SMS « accès disponibles » envoyé'));
 
         return true;
+    }
+
+    private function sansEchec(callable $geste): void
+    {
+        try {
+            $geste();
+        } catch (Throwable $e) {
+            Log::channel('single')->error('Journal du SMS « accès disponibles » non écrit.', ['erreur' => $e::class]);
+        }
     }
 
     /** Mise à jour conditionnelle : deux saisies simultanées n'envoient pas deux SMS. */
