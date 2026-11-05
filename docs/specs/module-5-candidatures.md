@@ -439,6 +439,23 @@ Seule exception à la règle « un dossier se crée par le candidat » : le bout
 - Refus : téléphone déjà pris dans la campagne, compte du personnel, compte candidat à la date de naissance différente ou absente, même nom et même date de naissance sur un dossier non retiré.
 - Un mauvais numéro se corrige par l'action « Corriger le téléphone », tracée au journal avec numéros masqués et réservée à ces dossiers. Le compte dédié au dossier suit le nouveau numéro, ou disparaît si ce numéro a déjà un compte, et perd code et sessions. Un compte qui porte un autre dossier reste intact, seul ce dossier s'en détache. Le matricule et le mot de passe FOAD ne changent pas : s'ils sont déjà partis vers l'ancien numéro, l'agent en est averti.
 
+### 7.3 Lettres signées, communiqué des résultats et code d'accès (ajout du 5 nov. 2026)
+
+- **Communiqué des résultats** : champ propre sur la campagne (`communique_resultats_path`), affiché sur la page d'accueil (route publique `campaigns/resultats`, indépendante de l'ouverture de la campagne) et dans l'espace des candidats une fois la campagne close ou la décision rendue. Il ne remplace pas le communiqué de l'appel, qui n'apparaît sur l'accueil que tant que la campagne est ouverte.
+- **Lettre d'admission signée** : déposée par l'administration seule (`candidature.lettres_signees`), en lot depuis la liste des candidatures, ou dossier par dossier pour un dépôt, un remplacement ou un retrait. Un PDF par auditeur, nommé exactement par son matricule (`26EFP014.pdf`), y compris sur la ligne d'un dossier ; tout autre nom est refusé, pour ne jamais remettre à un auditeur la lettre d'un autre. Le contenu du scan, lui, n'est pas contrôlé : un scan mal nommé reste possible, d'où le retrait immédiat. Au plus 50 fichiers de 10 Mo par dépôt ; une lettre déjà déposée reste en place, ce qui permet de relancer un lot.
+- La lettre est stockée dans le bucket privé, sous une clé sans matricule, et servie au seul auditeur connecté par une URL signée de 30 minutes. **Aucune condition de paiement.** Aucun message n'est envoyé au dépôt.
+- **Code d'accès** : l'envoi des identifiants et la lettre d'accès FOAD exigent les droits d'inscription pointés, soit au moins le montant d'inscription de la promotion (185 000 FCFA pour la P14). L'administration garde la consultation du code, pour l'assistance. Retirer un pointage n'efface pas un code déjà remis. L'export « Comptes Moodle », destiné à l'administrateur de la plateforme, garde tous les retenus : il ne sert pas à la remise aux auditeurs.
+### 7.4 Compte eCampus créé à l'attribution du matricule (ajout du 5 nov. 2026)
+
+Quand `ECAMPUS_JETON` est configuré, l'attribution d'un matricule crée aussi le compte sur eCampus, par les services web de Moodle (`ComptesEcampus`). Sans jeton, rien n'est appelé et l'export Moodle reste la seule voie.
+
+- Le compte reçoit l'identifiant et le mot de passe déjà attribués, le matricule dans `idnumber`, puis entre dans la cohorte de la promotion. Moodle n'envoie aucun message.
+- Un compte déjà présent n'est jamais modifié : le dossier passe à « Existant », avec la différence de nom ou d'e-mail s'il y en a une. La marque `idnumber` distingue seulement un compte créé par le portail, dont on peut terminer la création interrompue.
+- Une panne ne touche pas au matricule : le dossier affiche « Échec » ou « Cohorte à finir », et le bouton « Créer le compte eCampus » reprend. Un lot s'arrête à la première panne et après `ECAMPUS_BUDGET_SECONDES` ; le reste se reprend de la même façon.
+- Le mot de passe part uniquement dans le corps d'un POST HTTPS, sans redirection suivie, sans file d'attente ni journal. Le jeton est limité à l'adresse IP de la production.
+- Le lien va dans un seul sens : une correction faite ensuite dans le portail (e-mail, téléphone) ou un retrait n'est pas reportée sur eCampus.
+- `php artisan ecampus:rapprocher` note l'état des comptes déjà créés, sans aucune écriture sur eCampus. `moodle/cli/creer-service-portail.php` prépare le service web et produit le jeton.
+
 ## 8. Frais de candidature 50 000 FCFA
 
 Payés en agence CREMINCAM, pas de paiement en ligne en V1.

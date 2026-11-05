@@ -9,9 +9,10 @@ use App\Models\User;
 use Illuminate\Support\Collection;
 
 /**
- * Frais d'inscription et péri-académiques des auditeurs : pointés par un
- * agent, ils conditionnent la mise à disposition de la lettre d'admission
- * dans l'espace de l'auditeur. Distincts des frais de dossier (`frais_paye`).
+ * Droits d'inscription des auditeurs (au moins le montant d'inscription de la
+ * promotion), pointés par un agent : ils conditionnent la remise du code d'accès
+ * à la plateforme. La lettre d'admission signée, elle, reste visible sans
+ * paiement. Distincts des frais de dossier (`frais_paye`).
  */
 final class FraisInscription
 {

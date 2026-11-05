@@ -16,6 +16,7 @@ use App\Http\Resources\CandidatureResource;
 use App\Models\Candidature;
 use App\Models\CandidatureDocument;
 use App\Services\CandidatureService;
+use App\Services\DocumentsAuditeurs\LettresAdmissionSignees;
 use App\Services\DocumentUploadService;
 use App\Services\PhotoUploadService;
 use App\Services\RecipisseService;
@@ -42,6 +43,17 @@ final class CandidatureController extends Controller
         private readonly PhotoUploadService $photo,
         private readonly DocumentUploadService $documents,
     ) {}
+
+    /** Communiqué des résultats le plus récent : il reste public une fois la campagne close. */
+    public function resultatsCampagne(): JsonResponse
+    {
+        $campagne = $this->service->derniereCampagneAvecResultats();
+
+        return response()->json(['data' => $campagne === null ? null : [
+            'communique_resultats_url' => $campagne->communiqueResultatsUrl(),
+            'promotion_numero' => $campagne->promotion_numero,
+        ]]);
+    }
 
     public function currentCampaign(): JsonResponse
     {
@@ -156,6 +168,19 @@ final class CandidatureController extends Controller
         $url = $this->recipisse->signedUrl($candidature->recipisse_pdf_path);
 
         return redirect()->away($url, 302);
+    }
+
+    /** Lettre d'admission signée de l'auditeur connecté : aucune condition de paiement. */
+    public function lettreAdmission(Request $request, LettresAdmissionSignees $lettres): RedirectResponse|JsonResponse
+    {
+        $candidature = $this->service->dossierAvecLettre($request->user());
+        if ($candidature === null) {
+            return response()->json([
+                'message' => 'Aucune lettre d\'admission disponible pour ce dossier.',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        return redirect()->away($lettres->lienSigne($candidature), 302);
     }
 
     public function uploadPhoto(UploadPhotoRequest $request): JsonResponse

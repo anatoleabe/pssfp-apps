@@ -141,7 +141,14 @@
       "places": "Présentiel : 25 places · Distanciel : 10 places."
     },
     "campaignClosed": "Campagne clôturée",
-    "promotionLabel": "Promotion {numero}"
+    "promotionLabel": "Promotion {numero}",
+    "resultats": {
+      "eyebrow": "Résultats officiels · Promotion {promotion}",
+      "heading": "Communiqué des résultats de l'appel à candidatures",
+      "body": "La liste officielle des candidats retenus est publiée. Les candidats retrouvent aussi ce communiqué dans leur espace.",
+      "download": "Télécharger le communiqué",
+      "downloadHint": "PDF — nouvel onglet"
+    }
   },
   "login": {
     "title": "Connexion candidat",
@@ -544,7 +551,10 @@
       "lockedBody": "Votre dossier a déjà été soumis (ou retiré) et ne peut plus être modifié. Consultez votre suivi pour plus d'informations.",
       "campaignClosedBody": "Votre compte est bien créé. Revenez dès l'ouverture de la prochaine campagne pour constituer votre dossier.",
       "notInitialisedBody": "Cela peut arriver si la connexion a été interrompue à l'inscription. Votre compte existe déjà — il suffit d'initialiser votre dossier pour continuer.",
-      "loadError": "Erreur de chargement du dossier : {message}. Réessayez dans quelques instants."
+      "loadError": "Erreur de chargement du dossier : {message}. Réessayez dans quelques instants.",
+      "lettreTitle": "Lettre d'admission indisponible",
+      "lettreNotReady": "Votre lettre d'admission signée n'est pas encore disponible. Revenez sur cet espace un peu plus tard.",
+      "lettreFailed": "Le téléchargement de la lettre a échoué. Réessayez dans quelques instants."
     },
     "summary": {
       "eyebrow": "Informations enregistrées",
@@ -724,6 +734,13 @@
         "pending": "étape à venir",
         "cancelled": "étape close"
       }
+    },
+    "documents": {
+      "eyebrow": "Documents officiels",
+      "title": "Mes documents",
+      "lettre": "Télécharger ma lettre d'admission signée",
+      "resultats": "Consulter le communiqué des résultats",
+      "newTab": "nouvel onglet"
     }
   },
   "legal": {

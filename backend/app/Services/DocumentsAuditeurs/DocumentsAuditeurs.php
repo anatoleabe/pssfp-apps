@@ -46,7 +46,7 @@ final class DocumentsAuditeurs
 
         $auditeurs = $this->auditeurs($campagne, $document, $seulement);
         if ($auditeurs->isEmpty()) {
-            throw new DocumentImpossible('Aucun auditeur concerné : les documents ne concernent que les retenus dotés d\'un matricule.');
+            throw new DocumentImpossible(($document === ParametresLettres::DOCUMENT_ACCES ? 'Les lettres d\'accès exigent les droits d\'inscription pointés. ' : '').'Aucun auditeur concerné : les documents ne concernent que les retenus dotés d\'un matricule.');
         }
 
         $signature = $parametres->signature === null ? null : $this->signatureLocale($parametres->signature);
@@ -97,7 +97,8 @@ final class DocumentsAuditeurs
     {
         return AttributionMatricules::retenus($campagne)
             ->whereNotNull('matricule')
-            ->when($document === ParametresLettres::DOCUMENT_ACCES, fn ($q) => $q->whereNotNull('moodle_password'))
+            // La lettre d'accès contient le code : réservée aux droits d'inscription pointés.
+            ->when($document === ParametresLettres::DOCUMENT_ACCES, fn ($q) => $q->whereNotNull('moodle_password')->whereNotNull('frais_inscription_payes_at'))
             ->when($seulement !== null, fn ($q) => $q->whereIn('id', $seulement))
             ->orderBy('rang_retenu')
             ->get();

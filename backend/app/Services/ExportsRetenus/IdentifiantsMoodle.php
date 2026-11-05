@@ -7,6 +7,7 @@ namespace App\Services\ExportsRetenus;
 use App\Mail\NotificationCandidatMail;
 use App\Models\Candidature;
 use App\Models\User;
+use App\Services\DocumentsAuditeurs\FraisInscription;
 use App\Services\Sms\SmsServiceInterface;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -44,6 +45,15 @@ final class IdentifiantsMoodle
             && $c->withdrawn_at === null
             && $c->matricule !== null
             && filled($c->moodle_password);
+    }
+
+    /**
+     * Le code ne se remet à l'auditeur qu'une fois ses droits d'inscription
+     * pointés. La consultation par l'administration reste libre, pour l'assistance.
+     */
+    public static function remettables(Candidature $c): bool
+    {
+        return self::disponibles($c) && FraisInscription::payes($c);
     }
 
     public static function identifiant(Candidature $c): string
@@ -84,6 +94,9 @@ final class IdentifiantsMoodle
         abort_unless($auteur->can(self::PERMISSION), 403);
         if (! self::disponibles($c)) {
             throw new InvalidArgumentException("Le dossier {$c->numero_dossier} n'est pas un retenu doté d'un matricule.");
+        }
+        if (! FraisInscription::payes($c)) {
+            throw new InvalidArgumentException("Dossier {$c->numero_dossier} : droits d'inscription non pointés, le code d'accès ne peut pas être remis.");
         }
 
         $resultat = ['sms' => null, 'email' => null];

@@ -102,7 +102,7 @@ class Candidature extends Model
     ];
 
     /** Jamais dans une sérialisation (toArray, JSON) : seul l'export Moodle le lit. */
-    protected $hidden = ['moodle_password'];
+    protected $hidden = ['moodle_password', 'lettre_admission_path'];
 
     protected $casts = [
         'date_naissance' => 'date',
@@ -128,6 +128,11 @@ class Candidature extends Model
         'matricule_attribue_at' => 'datetime',
         // Hors $fillable : posé par AjoutRetenu uniquement.
         'ajoute_par' => 'integer',
+        // Hors $fillable : posés par LettresAdmissionSignees uniquement.
+        'lettre_admission_deposee_at' => 'datetime',
+        'lettre_admission_deposee_par' => 'integer',
+        // Hors $fillable : posé par ComptesEcampus uniquement.
+        'ecampus_synchronise_at' => 'datetime',
     ];
 
     /** Le `id` reste BIGSERIAL ; HasUuids génère uniquement le champ `uuid`. */

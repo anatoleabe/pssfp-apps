@@ -4,6 +4,7 @@ import { AlertCircle, ArrowRight } from 'lucide-react';
 import { DossierActionsCard } from '@/components/dossier/DossierActionsCard';
 import { DossierCompleteness } from '@/components/dossier/DossierCompleteness';
 import { DossierDecisionCard } from '@/components/dossier/DossierDecisionCard';
+import { DossierDocumentsCard } from '@/components/dossier/DossierDocumentsCard';
 import { DossierEtapesRestantes } from '@/components/dossier/DossierEtapesRestantes';
 import { DossierFraisCard } from '@/components/dossier/DossierFraisCard';
 import { DossierMessages } from '@/components/dossier/DossierMessages';
@@ -28,6 +29,7 @@ interface DossierPageProps {
     reason?: string;
     init_error?: string;
     recipisse_error?: string;
+    lettre_error?: string;
     welcome?: string;
   }>;
 }
@@ -45,7 +47,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
     redirect('/login?reason=session_expired');
   }
 
-  const { profile_pending, reason, init_error, recipisse_error, welcome } = await searchParams;
+  const { profile_pending, reason, init_error, recipisse_error, lettre_error, welcome } = await searchParams;
   const result = await getMyCandidature(token);
   // Un agent qui consulte l'espace voit le dossier en lecture, sans aucune action.
   const consultation = await isConsultation();
@@ -226,6 +228,21 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
           </div>
         )}
 
+        {lettre_error && (
+          <div
+            role="alert"
+            className="mb-6 flex items-start gap-3 rounded-pssfp-card border border-red-200 bg-red-50/90 p-5 text-sm text-red-900 shadow-pssfp-soft"
+          >
+            <AlertCircle size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-red-600" />
+            <div>
+              <p className="font-semibold">{t('lettreTitle')}</p>
+              <p className="mt-1 leading-relaxed">
+                {lettre_error === 'not_ready' ? t('lettreNotReady') : t('lettreFailed')}
+              </p>
+            </div>
+          </div>
+        )}
+
         {reason === 'locked' && (
           <div
             role="status"
@@ -247,6 +264,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
           // avec la décision, puis ce que le candidat peut encore consulter.
           <div className="grid gap-6">
             <DossierDecisionCard candidature={candidature} phase={phase} />
+            <DossierDocumentsCard candidature={candidature} />
             <DossierMessages messages={candidature.messages} />
             <DossierStatutCard candidature={candidature} />
             <DossierActionsCard candidature={candidature} canEdit={false} />

@@ -60,7 +60,7 @@ final class AttributionMatricules
     /**
      * @param  list<int>|null  $seulement  ids des dossiers à numéroter (sélection
      *                                     faite dans l'admin) ; null = tous les retenus
-     * @return array{attribues: int, deja: int}
+     * @return array{attribues: int, deja: int, ids: list<int>}
      */
     public function attribuer(CampagneCandidature $campagne, string $annee, User $auteur, ?array $seulement = null): array
     {
@@ -105,12 +105,12 @@ final class AttributionMatricules
                 ])->save();
             }
 
-            return ['attribues' => $nouveaux->count(), 'deja' => $deja];
+            return ['attribues' => $nouveaux->count(), 'deja' => $deja, 'ids' => $nouveaux->map(fn (Candidature $c): int => (int) $c->id)->all()];
         });
 
         activity('candidatures')->causedBy($auteur)->performedOn($campagne)
             ->event('matricules_attribues')
-            ->withProperties($resultat + ['annee' => $annee, 'selection' => $seulement !== null])
+            ->withProperties(['attribues' => $resultat['attribues'], 'deja' => $resultat['deja'], 'annee' => $annee, 'selection' => $seulement !== null])
             ->log('Matricules des retenus attribués');
 
         return $resultat;

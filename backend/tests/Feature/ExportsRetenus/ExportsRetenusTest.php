@@ -84,7 +84,7 @@ it('numérote les retenus dans l\'ordre alphabétique, compteur commun EFP / EFS
 
     $r = app(AttributionMatricules::class)->attribuer($this->campagne, '26', ($this->agent)('admin'));
 
-    expect($r)->toBe(['attribues' => 3, 'deja' => 0])
+    expect($r)->toMatchArray(['attribues' => 3, 'deja' => 0])
         ->and($abena->fresh()->matricule)->toBe('26EFSC001')
         ->and($ebode->fresh()->matricule)->toBe('26EFP002')
         ->and($zoa->fresh()->matricule)->toBe('26EFP003');
@@ -99,7 +99,7 @@ it('fige les matricules : un second passage ne change rien, un nouveau retenu pr
     $tardif = ($this->retenu)('Abanda', 'Jean');
     $r = $service->attribuer($this->campagne, '26', ($this->agent)('super_admin'));
 
-    expect($r)->toBe(['attribues' => 1, 'deja' => 1])
+    expect($r)->toMatchArray(['attribues' => 1, 'deja' => 1])
         ->and($premier->fresh()->matricule)->toBe($avant->matricule)
         ->and($premier->fresh()->moodle_password)->toBe($avant->moodle_password)
         ->and($tardif->fresh()->matricule)->toBe('26EFP002');

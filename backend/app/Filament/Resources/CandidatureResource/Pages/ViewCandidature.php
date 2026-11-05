@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\CandidatureResource\Pages;
 
 use App\Filament\Resources\CandidatureResource;
+use App\Filament\Resources\CandidatureResource\ComptesEcampusActions;
 use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
 use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
 use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
@@ -32,6 +33,7 @@ class ViewCandidature extends ViewRecord
                 DocumentsAuditeursActions::fraisPayes(Action::make('fraisInscriptionPayes'), true),
                 DocumentsAuditeursActions::fraisPayes(Action::make('fraisInscriptionAnnules'), false),
             ])->label('Documents')->icon('heroicon-o-document-text')->button()->color('gray'),
+            ComptesEcampusActions::creer(Action::make('creerCompteEcampus')),
             IdentifiantsMoodleActions::consulter(Action::make('identifiantsMoodle')),
             IdentifiantsMoodleActions::envoyer(Action::make('envoyerIdentifiantsMoodle')),
             EditAction::make(),

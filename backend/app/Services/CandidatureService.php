@@ -9,6 +9,7 @@ use App\Events\CandidatureSubmitted;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\User;
+use App\Services\DocumentsAuditeurs\LettresAdmissionSignees;
 use App\Support\CandidatureDiplomeBlocks;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -52,6 +53,35 @@ final class CandidatureService
         // Tri explicite : sans lui, PostgreSQL renvoie une ligne arbitraire
         // si plusieurs campagnes se chevauchent. La plus récemment ouverte fait foi.
         return CampagneCandidature::query()->currentlyOpen()->orderByDesc('opens_at')->orderByDesc('id')->first();
+    }
+
+    /**
+     * Dossier dont servir la lettre signée : celui affiché à l'auditeur s'il en a
+     * une, sinon son dernier dossier retenu et non retiré qui en a une. Un dossier
+     * plus récent, refusé ou retiré, ne doit pas la lui masquer.
+     */
+    public function dossierAvecLettre(User $user): ?Candidature
+    {
+        $affiche = $this->findReadableForUser($user);
+        if ($affiche !== null && LettresAdmissionSignees::disponible($affiche)) {
+            return $affiche;
+        }
+
+        return $this->latestForUser($user)
+            ->where('statut', Candidature::STATUT_ACCEPTE)
+            ->whereNull('withdrawn_at')
+            ->whereNotNull('lettre_admission_path')
+            ->first();
+    }
+
+    public function derniereCampagneAvecResultats(): ?CampagneCandidature
+    {
+        return CampagneCandidature::query()
+            ->where('status', '!=', 'draft')
+            ->whereNotNull('communique_resultats_path')
+            ->orderByDesc('opens_at')
+            ->orderByDesc('id')
+            ->first();
     }
 
     public function findForUser(User $user, CampagneCandidature $campagne): ?Candidature
@@ -151,6 +181,8 @@ final class CandidatureService
             'frais_paye', 'mode_paiement', 'reference_paiement', 'date_paiement',
             'recipisse_pdf_path', 'recipisse_hash_sha256',
             'categorie_matricule', 'matricule', 'rang_retenu', 'moodle_password', 'matricule_attribue_at', 'ajoute_par',
+            'lettre_admission_path', 'lettre_admission_deposee_at', 'lettre_admission_deposee_par',
+            'ecampus_statut', 'ecampus_detail', 'ecampus_synchronise_at',
             'created_at', 'updated_at', 'deleted_at',
         ];
         $clean = array_diff_key($fields, array_flip($forbidden));

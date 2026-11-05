@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import { Link } from '@/navigation';
 import { ArrowRight, ArrowUpRight, CalendarClock, CheckCircle2, Download, FileCheck2, Laptop, MapPin } from 'lucide-react';
 import { CountdownToClose } from '@/components/CountdownToClose';
-import { getCurrentCampaign, getSpecialites } from '@/lib/api/client';
+import { getCommuniqueResultats, getCurrentCampaign, getSpecialites } from '@/lib/api/client';
 import { FALLBACK_SPECIALITES } from '@/lib/api/fallbacks';
 
 const MAIN_SITE_URL = process.env.NEXT_PUBLIC_MAIN_SITE_URL ?? 'https://pssfp.org';
@@ -11,10 +11,13 @@ const MAIN_SITE_URL = process.env.NEXT_PUBLIC_MAIN_SITE_URL ?? 'https://pssfp.or
 export default async function HomePage(): Promise<JSX.Element> {
   const t = await getTranslations('home');
   const locale = await getLocale();
-  const [campaignResult, specialitesResult] = await Promise.all([
+  const [campaignResult, specialitesResult, resultatsResult] = await Promise.all([
     getCurrentCampaign(),
     getSpecialites(),
+    getCommuniqueResultats(),
   ]);
+  const resultats = resultatsResult.ok ? resultatsResult.data : null;
+  const resultatsUrl = resultats?.communique_resultats_url ?? null;
   const campagne = campaignResult.ok ? campaignResult.data : null;
   const isOpen = campagne?.is_currently_open === true;
   const specialites = specialitesResult.ok && specialitesResult.data.length > 0
@@ -136,6 +139,39 @@ export default async function HomePage(): Promise<JSX.Element> {
           )}
         </div>
       </section>
+
+      {resultatsUrl && (
+        <section
+          aria-labelledby="resultats-heading"
+          className="mt-12 overflow-hidden rounded-2xl border border-[#4A2E67]/20 bg-[#4A2E67] text-white shadow-pssfp-soft"
+        >
+          <div className="flex flex-col gap-6 p-6 sm:p-8 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-2xl">
+              <p className="inline-flex items-center gap-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-[#D4AF6A]">
+                <span aria-hidden="true" className="inline-block h-1.5 w-1.5 rounded-full bg-[#D4AF6A]" />
+                {t('resultats.eyebrow', { promotion: resultats?.promotion_numero ?? '' })}
+              </p>
+              <h2 id="resultats-heading" className="mt-3 font-heading text-2xl font-bold leading-snug text-white">
+                {t('resultats.heading')}
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-white/80">{t('resultats.body')}</p>
+            </div>
+            <a
+              href={resultatsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="resultats-home-download"
+              className="group inline-flex shrink-0 items-center gap-2.5 rounded-pssfp-button bg-[#D4AF6A] px-6 py-3.5 font-medium text-[#2A1D0A] shadow-pssfp-elevated transition-all duration-200 ease-pssfp-out-expo hover:-translate-y-0.5 hover:bg-[#E0BF80] hover:shadow-pssfp-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#4A2E67]"
+            >
+              <Download size={18} aria-hidden="true" />
+              <span>
+                {t('resultats.download')}
+                <span className="block font-ui text-xs font-normal text-[#2A1D0A]/90">{t('resultats.downloadHint')}</span>
+              </span>
+            </a>
+          </div>
+        </section>
+      )}
 
       {communiqueUrl && (
         <section

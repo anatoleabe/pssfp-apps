@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\CampagneCandidatureResource;
 
+use App\Filament\Resources\CandidatureResource\ComptesEcampusActions;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
+use App\Services\Ecampus\ComptesEcampus;
 use App\Services\ExportsRetenus\AttributionMatricules;
 use App\Services\ExportsRetenus\ExportsRetenus;
 use App\Services\ExportsRetenus\ExportsRetenusExcel;
@@ -67,11 +69,12 @@ final class ExportsRetenusActions
                     return;
                 }
 
-                Notification::make()
-                    ->success()
+                $bilan = app(ComptesEcampus::class)->apresAttribution($r['ids'], $user);
+
+                $notification = Notification::make()
                     ->title($r['attribues'] === 0 ? 'Aucun nouveau matricule' : "{$r['attribues']} matricule(s) attribué(s)")
-                    ->body("{$r['deja']} retenu(s) avaient déjà leur matricule, inchangé.")
-                    ->send();
+                    ->body(trim("{$r['deja']} retenu(s) avaient déjà leur matricule, inchangé. ".ComptesEcampusActions::phrase($bilan)));
+                (ComptesEcampusActions::sansIncident($bilan) ? $notification->success() : $notification->warning())->send();
             });
     }
 

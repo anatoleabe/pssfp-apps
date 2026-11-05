@@ -91,6 +91,9 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
     Route::get('/campaigns/current', [CandidatureController::class, 'currentCampaign'])
         ->name('campaigns.current');
 
+    Route::get('/campaigns/resultats', [CandidatureController::class, 'resultatsCampagne'])
+        ->name('campaigns.resultats');
+
     Route::middleware(['auth:sanctum'])->group(function (): void {
         Route::get('/me', [CandidatureController::class, 'me'])
             ->middleware('ability:application:read')
@@ -107,6 +110,10 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
         Route::get('/me/recipisse', [CandidatureController::class, 'recipisse'])
             ->middleware('ability:application:read')
             ->name('me.recipisse');
+
+        Route::get('/me/lettre-admission', [CandidatureController::class, 'lettreAdmission'])
+            ->middleware('ability:application:read')
+            ->name('me.lettre-admission');
 
         Route::post('/me/withdraw', [CandidatureController::class, 'withdraw'])
             ->middleware('ability:application:create')

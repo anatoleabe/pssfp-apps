@@ -25,6 +25,8 @@ export interface Campagne {
   communique_url_en: string | null;
   communique_reference: string | null;
   communique_signed_at: string | null;
+  /** Communiqué des résultats, distinct de celui de l'appel à candidature. */
+  communique_resultats_url: string | null;
 }
 
 export interface Pays {

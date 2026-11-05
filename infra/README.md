@@ -10,6 +10,7 @@
 |---|---|---|
 | `deploy/deploy.sh` | pipeline `make deploy` (pull → composer → migrate → builds → reloads) | exécuté depuis `/var/www/pssfp` |
 | `pm2/ecosystem.config.js` | frontend :6001 + candidature :6003 (library commentée) | `pm2 start … && pm2 save && pm2 startup` |
+| `php/99-pssfp-uploads.ini` | **CRITIQUE** : limites d'envoi (10 Mo par fichier, 12 Mo par requête) — sans lui, PHP s'arrête à 2 Mo | `/etc/php/8.3/fpm/conf.d/` + `systemctl reload php8.3-fpm` |
 | `nginx/pssfp.org.conf` | vhost site (proxy :6001, CSP, HSTS) | `/etc/nginx/sites-available/` + symlink |
 | `nginx/apply.pssfp.org.conf` | vhost candidature (proxy :6003, no-store PII, CSP Turnstile) | idem |
 | `nginx/api.pssfp.org.conf` | vhost API/Filament (PHP 8.3-FPM, 12 Mo upload) | idem |
@@ -38,6 +39,18 @@ apt install -y php8.3-fpm php8.3-pgsql php8.3-redis php8.3-gd php8.3-intl \
 # fail2ban : sshd + nginx-limit-req (cf. docs/deployment-contabo.md §7-8)
 mkdir -p /var/log/pssfp /var/log/pm2 && chown deploy:www-data /var/log/pssfp
 ```
+
+## Comptes eCampus depuis le portail
+
+Le jeton passe directement d'un serveur à l'autre, sans s'afficher. À lancer une fois, puis à chaque rotation (retirer d'abord l'ancienne ligne `ECAMPUS_JETON` du `.env`) :
+
+```bash
+scp moodle/cli/creer-service-portail.php pssfp-foad:/tmp/
+ssh pssfp-foad 'sudo -u www-data php /tmp/creer-service-portail.php --ip=<IP de la prod>; rm -f /tmp/creer-service-portail.php' \
+  | ssh open-claw-codabe 'read -r jeton; case "$jeton" in ""|*[!a-zA-Z0-9]*) echo "Jeton refusé, .env inchangé." >&2; exit 1;; esac; printf "ECAMPUS_JETON=%s\n" "$jeton" | sudo -u pssfp tee -a /var/www/pssfp/app/backend/.env >/dev/null; cd /var/www/pssfp/app/backend && sudo -u pssfp php artisan optimize && sudo systemctl restart pssfp-queue.service'
+```
+
+Avant la première exécution, vérifier que `FOAD_URL` du `.env` vise bien eCampus : le jeton et les mots de passe partent vers cette adresse. Puis `php artisan ecampus:rapprocher` pour noter les comptes déjà créés, sans écriture sur eCampus.
 
 ## C.6 — DNS Cloudflare (zone pssfp.org, déjà active)
 
