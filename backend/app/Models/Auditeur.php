@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
@@ -43,6 +44,12 @@ class Auditeur extends Model
     public function inscriptions(): HasMany
     {
         return $this->hasMany(InscriptionAnnuelle::class);
+    }
+
+    /** Tous les versements, toutes années, annulés compris (historique de la fiche). */
+    public function versements(): HasManyThrough
+    {
+        return $this->hasManyThrough(Versement::class, InscriptionAnnuelle::class);
     }
 
     /** Inscription de l'année académique la plus récente : celle qui commande l'accès. */

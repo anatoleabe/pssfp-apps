@@ -755,6 +755,12 @@ class CandidatureResource extends Resource
                                 ->helperText('Laissée vide : année de la promotion. Ignorée si la promotion a déjà des matricules (année figée).'),
                         ])
                         ->action(fn (Candidature $r, array $data) => self::attribuerMatricules(collect([$r]), $data['annee'] ?? null)),
+                    Tables\Actions\Action::make('ficheAuditeur')
+                        ->label('Fiche auditeur (paiements)')
+                        ->icon('heroicon-o-academic-cap')
+                        ->color('gray')
+                        ->visible(fn (Candidature $r): bool => $r->auditeur !== null && AuditeurResource::canView($r->auditeur))
+                        ->url(fn (Candidature $r): string => AuditeurResource::getUrl('view', ['record' => $r->auditeur])),
                     ComptesEcampusActions::creer(Tables\Actions\Action::make('creerCompteEcampus')),
                     IdentifiantsMoodleActions::consulter(Tables\Actions\Action::make('identifiantsMoodle')),
                     IdentifiantsMoodleActions::envoyer(Tables\Actions\Action::make('envoyerIdentifiantsMoodle')),
