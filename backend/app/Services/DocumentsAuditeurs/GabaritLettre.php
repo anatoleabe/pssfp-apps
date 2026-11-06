@@ -216,6 +216,21 @@ final class GabaritLettre
         return in_array($c->civilite, ['Mme', 'Mlle'], true) || ($c->civilite === null && $c->genre === 'F');
     }
 
+    /**
+     * Téléphones enregistrés, « +237 699… », ceux du formulaire d'abord, sinon celui du compte.
+     *
+     * @return list<string>
+     */
+    public static function telephones(Candidature $c): array
+    {
+        return array_values(array_filter(array_map(
+            fn (?string $indicatif, ?string $numero): string => blank($numero) ? ''
+                : trim((filled($indicatif) ? '+'.ltrim((string) $indicatif, '+').' ' : '').$numero),
+            [$c->indicatif1, $c->indicatif2],
+            [$c->telephone1, $c->telephone2],
+        ))) ?: array_values(array_filter([(string) $c->phone_e164]));
+    }
+
     /** « MENGUE Alice » : nom en capitales, prénoms tels que saisis. */
     public static function nomComplet(Candidature $c): string
     {

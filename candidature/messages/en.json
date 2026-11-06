@@ -809,7 +809,14 @@
         "reseau": "The service is not responding. Please try again in a moment."
       },
       "newTab": "new tab",
-      "motDePasseHabituel": "Use the eCampus password you already have. If you have forgotten it, please contact the registry."
+      "motDePasseHabituel": "Use the eCampus password you already have. If you have forgotten it, please contact the registry.",
+      "telecharger": "Download my access letter (PDF)",
+      "lettreErreurs": {
+        "non_prete": "Your access letter is not ready yet. Try again later or contact the registrar's office.",
+        "indisponible": "Your access letter is no longer available. Reload the page or contact the registrar's office.",
+        "limite": "Too many downloads. Try again in an hour.",
+        "echec": "The letter could not be downloaded. Try again in a few moments."
+      }
     }
   },
   "legal": {
@@ -1132,6 +1139,7 @@
       "eyebrow": "My documents",
       "title": "Official documents",
       "lettre": "Signed admission letter (PDF)",
+      "lettreAcces": "eCampus access letter (PDF)",
       "releve": "Statement of my fees (PDF)",
       "recipisse": "Application receipt (PDF)",
       "resultats": "Results communiqué",

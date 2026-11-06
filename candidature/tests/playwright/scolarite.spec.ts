@@ -12,3 +12,10 @@ test.describe('Relevé de situation', () => {
     await expect(page).toHaveURL(/\/login\?reason=session_expired/);
   });
 });
+
+test.describe("Lettre d'accès eCampus", () => {
+  test('sans session, renvoie à la connexion sans rien servir', async ({ page }) => {
+    await page.goto('/dossier/lettre-acces', { waitUntil: 'domcontentloaded' });
+    await expect(page).toHaveURL(/\/login\?reason=session_expired/);
+  });
+});
