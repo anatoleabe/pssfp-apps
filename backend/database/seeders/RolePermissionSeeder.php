@@ -93,6 +93,9 @@ final class RolePermissionSeeder extends Seeder
                     'scolarite.versement_annuler',
                     'scolarite.remise',
                     'scolarite.bareme',
+                    'scolarite.promotion',
+                    'scolarite.statut',
+                    'scolarite.messages',
                     'journal.view',
                     'document.publish',
                     'library.thesaurus',
@@ -152,9 +155,10 @@ final class RolePermissionSeeder extends Seeder
             ],
             'scolarite_responsable' => [
                 'label' => 'Responsable de scolarité',
-                'description' => 'Droits de l\'agent, plus l\'annulation des versements, les remises et les barèmes.',
+                'description' => 'Droits de l\'agent, plus l\'annulation des versements, les remises, les barèmes, les réglages de promotion, le statut des auditeurs et les messages.',
                 'modules' => ['scolarite' => $manage],
-                'sensitive' => ['scolarite.export', 'scolarite.versement_annuler', 'scolarite.remise', 'scolarite.bareme'],
+                'sensitive' => ['scolarite.export', 'scolarite.versement_annuler', 'scolarite.remise', 'scolarite.bareme',
+                    'scolarite.promotion', 'scolarite.statut', 'scolarite.messages'],
             ],
             'library_manager' => [
                 'label' => 'Responsable de la bibliothèque',

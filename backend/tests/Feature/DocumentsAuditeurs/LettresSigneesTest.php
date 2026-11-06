@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Filament\Resources\AuditeurResource;
+use App\Filament\Resources\AuditeurResource\Pages\ListAuditeurs;
+use App\Filament\Resources\AuditeurResource\Pages\ViewAuditeur;
 use App\Filament\Resources\CandidatureResource\LettresSigneesActions;
 use App\Filament\Resources\CandidatureResource\Pages\ListCandidatures;
 use App\Models\CampagneCandidature;
@@ -292,9 +295,9 @@ describe('admin', function (): void {
     it('dépose une lettre depuis la ligne du dossier', function (): void {
         $this->actingAs($this->admin);
 
-        $this->livewire(ListCandidatures::class)
-            ->callTableAction('deposerLettreSignee', $this->alice, data: ['fichier' => pdfEssai($this->alice->matricule.'.pdf')])
-            ->assertHasNoTableActionErrors();
+        $this->livewire(ViewAuditeur::class, ['record' => ficheDe($this->alice)->getRouteKey()])
+            ->callAction('deposerLettreSignee', data: ['fichier' => pdfEssai($this->alice->matricule.'.pdf')])
+            ->assertHasNoActionErrors();
 
         expect($this->alice->fresh()->lettre_admission_path)->not->toBeNull();
     });
@@ -302,7 +305,7 @@ describe('admin', function (): void {
     it('dépose un lot depuis la liste et en donne le bilan', function (): void {
         $this->actingAs($this->admin);
 
-        $this->livewire(ListCandidatures::class)
+        $this->livewire(ListAuditeurs::class)
             ->callAction('deposerLettresSignees', data: [
                 'campagne_id' => $this->campagne->id,
                 'fichiers' => [pdfEssai($this->alice->matricule.'.pdf'), pdfEssai('inconnu.pdf')],
@@ -335,10 +338,11 @@ describe('admin', function (): void {
         $this->service->deposer($this->alice, pdfEssai($this->alice->matricule.'.pdf'), $this->admin);
         $this->actingAs($this->admin);
 
-        $this->livewire(ListCandidatures::class)
-            ->assertTableActionHidden('retirerLettreSignee', $this->bruno)
-            ->callTableAction('retirerLettreSignee', $this->alice->fresh())
-            ->assertHasNoTableActionErrors();
+        $this->livewire(ViewAuditeur::class, ['record' => ficheDe($this->bruno)->getRouteKey()])
+            ->assertActionHidden('retirerLettreSignee');
+        $this->livewire(ViewAuditeur::class, ['record' => ficheDe($this->alice)->getRouteKey()])
+            ->callAction('retirerLettreSignee')
+            ->assertHasNoActionErrors();
 
         expect($this->alice->fresh()->lettre_admission_path)->toBeNull();
     });
@@ -348,7 +352,7 @@ describe('admin', function (): void {
         $this->actingAs($this->admin);
 
         // mountTableAction exécute une action sans fenêtre ; callTableAction la rappellerait après la redirection.
-        $this->livewire(ListCandidatures::class)->mountTableAction('voirLettreSignee', $this->alice->fresh());
+        $this->livewire(ViewAuditeur::class, ['record' => ficheDe($this->alice)->getRouteKey()])->mountAction('voirLettreSignee');
 
         expect(Activity::query()->where('event', 'lettre_admission_consultee')->count())->toBe(1);
     });
@@ -356,9 +360,11 @@ describe('admin', function (): void {
     it('masque ces actions aux agents sans droit', function (string $role): void {
         $this->actingAs(($this->agent)($role));
 
+        // Plus rien sur les candidatures, et la liste des auditeurs leur est fermée.
         $this->livewire(ListCandidatures::class)
-            ->assertActionHidden('deposerLettresSignees')
-            ->assertTableActionHidden('deposerLettreSignee', $this->alice);
+            ->assertActionDoesNotExist('deposerLettresSignees')
+            ->assertTableActionDoesNotExist('deposerLettreSignee');
+        $this->get(AuditeurResource::getUrl('index'))->assertForbidden();
     })->with(['receptionniste', 'admission_committee']);
 
     it('réserve ce droit à l\'administration', function (string $role, bool $autorise): void {

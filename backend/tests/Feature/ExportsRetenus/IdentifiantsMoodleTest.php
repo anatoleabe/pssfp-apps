@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Filament\Resources\AuditeurResource;
+use App\Filament\Resources\AuditeurResource\Pages\ListAuditeurs;
+use App\Filament\Resources\AuditeurResource\Pages\ViewAuditeur;
 use App\Filament\Resources\CandidatureResource\Pages\ListCandidatures;
-use App\Filament\Resources\CandidatureResource\Pages\ViewCandidature;
 use App\Mail\NotificationCandidatMail;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
@@ -59,7 +61,7 @@ beforeEach(function (): void {
 it('montre identifiant et mot de passe à l\'administration, et journalise la consultation sans le mot de passe', function (): void {
     $this->actingAs(($this->agent)('admin'));
 
-    $this->livewire(ViewCandidature::class, ['record' => $this->auditeur->getRouteKey()])
+    $this->livewire(ViewAuditeur::class, ['record' => ficheDe($this->auditeur)->getRouteKey()])
         ->mountAction('identifiantsMoodle')
         ->assertSee('26efp001')
         ->assertSee($this->motDePasse);
@@ -72,9 +74,11 @@ it('montre identifiant et mot de passe à l\'administration, et journalise la co
 it('cache les identifiants au comité d\'admission et à l\'accueil', function (string $role): void {
     $this->actingAs(($this->agent)($role));
 
+    // Les identifiants ne sont plus sur les candidatures, et la fiche auditeur leur est fermée.
     $this->livewire(ListCandidatures::class)
-        ->assertTableActionHidden('identifiantsMoodle', $this->auditeur)
-        ->assertTableActionHidden('envoyerIdentifiantsMoodle', $this->auditeur);
+        ->assertTableActionDoesNotExist('identifiantsMoodle')
+        ->assertTableActionDoesNotExist('envoyerIdentifiantsMoodle');
+    $this->get(AuditeurResource::getUrl('view', ['record' => ficheDe($this->auditeur)]))->assertForbidden();
 })->with(['admission_committee', 'receptionniste']);
 
 it('ne change jamais le mot de passe : la fiche et l\'export montrent toujours le même', function (): void {
@@ -87,9 +91,9 @@ it('envoie les identifiants par SMS et e-mail, sans les écrire dans les journau
     Mail::fake();
     $this->actingAs(($this->agent)('admin'));
 
-    $this->livewire(ListCandidatures::class)
-        ->callTableAction('envoyerIdentifiantsMoodle', $this->auditeur, data: ['canal' => IdentifiantsMoodle::CANAL_LES_DEUX])
-        ->assertHasNoTableActionErrors();
+    $this->livewire(ViewAuditeur::class, ['record' => ficheDe($this->auditeur)->getRouteKey()])
+        ->callAction('envoyerIdentifiantsMoodle', data: ['canal' => IdentifiantsMoodle::CANAL_LES_DEUX])
+        ->assertHasNoActionErrors();
 
     expect($this->sms)->toHaveCount(1)
         ->and($this->sms[0][0])->toBe('+237699000020')
@@ -108,8 +112,8 @@ it('n\'envoie que par le canal choisi', function (): void {
     Mail::fake();
     $this->actingAs(($this->agent)('admin'));
 
-    $this->livewire(ListCandidatures::class)
-        ->callTableAction('envoyerIdentifiantsMoodle', $this->auditeur, data: ['canal' => IdentifiantsMoodle::CANAL_EMAIL]);
+    $this->livewire(ViewAuditeur::class, ['record' => ficheDe($this->auditeur)->getRouteKey()])
+        ->callAction('envoyerIdentifiantsMoodle', data: ['canal' => IdentifiantsMoodle::CANAL_EMAIL]);
 
     expect($this->sms)->toBe([]);
     Mail::assertSent(NotificationCandidatMail::class, 1);
@@ -120,8 +124,8 @@ it('envoie en groupe aux seuls retenus dotés d\'un matricule', function (): voi
     $sansMatricule = Candidature::factory()->forCampagne($this->auditeur->campagne)->submitted()->create();
     $this->actingAs(($this->agent)('admin'));
 
-    $this->livewire(ListCandidatures::class)
-        ->callTableBulkAction('envoyerIdentifiantsMoodleBulk', [$this->auditeur, $sansMatricule], data: ['canal' => IdentifiantsMoodle::CANAL_SMS])
+    $this->livewire(ListAuditeurs::class)
+        ->callTableBulkAction('envoyerIdentifiantsMoodleBulk', [ficheDe($this->auditeur), ficheDe($sansMatricule)], data: ['canal' => IdentifiantsMoodle::CANAL_SMS])
         ->assertHasNoTableBulkActionErrors();
 
     expect($this->sms)->toHaveCount(1);
@@ -132,8 +136,8 @@ it('n\'envoie rien à un auditeur retiré après l\'attribution', function (): v
     $this->auditeur->forceFill(['withdrawn_at' => now()])->save();
     $this->actingAs(($this->agent)('admin'));
 
-    $this->livewire(ListCandidatures::class)
-        ->assertTableActionHidden('envoyerIdentifiantsMoodle', $this->auditeur->fresh());
+    $this->livewire(ViewAuditeur::class, ['record' => ficheDe($this->auditeur)->getRouteKey()])
+        ->assertActionHidden('envoyerIdentifiantsMoodle');
     expect(fn () => app(IdentifiantsMoodle::class)->envoyer($this->auditeur->fresh(), IdentifiantsMoodle::CANAL_SMS, ($this->agent)('admin')))
         ->toThrow(InvalidArgumentException::class);
     expect($this->sms)->toBe([]);
@@ -153,8 +157,8 @@ it('plafonne l\'envoi groupé pour rester sous le délai du serveur', function (
         ->forCampagne($this->auditeur->campagne)->submitted()->create()->push($this->auditeur);
     $this->actingAs(($this->agent)('admin'));
 
-    $this->livewire(ListCandidatures::class)
-        ->callTableBulkAction('envoyerIdentifiantsMoodleBulk', $selection, data: ['canal' => IdentifiantsMoodle::CANAL_SMS]);
+    $this->livewire(ListAuditeurs::class)
+        ->callTableBulkAction('envoyerIdentifiantsMoodleBulk', $selection->map(fn (Candidature $c) => ficheDe($c)), data: ['canal' => IdentifiantsMoodle::CANAL_SMS]);
 
     expect($this->sms)->toBe([]);
 });

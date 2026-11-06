@@ -6,7 +6,6 @@ namespace App\Filament\Resources\CandidatureResource\Pages;
 
 use App\Filament\Resources\CandidatureResource;
 use App\Filament\Resources\CandidatureResource\AjoutRetenuActions;
-use App\Filament\Resources\CandidatureResource\LettresSigneesActions;
 use App\Models\Candidature;
 use Filament\Actions\Action;
 use Filament\Resources\Components\Tab;
@@ -23,7 +22,6 @@ class ListCandidatures extends ListRecords
         // candidat authentifié via /v1/applications/me (cf. arbitrage D PR D).
         // Seule exception, l'ajout d'un retenu.
         return [
-            LettresSigneesActions::deposerLot(Action::make('deposerLettresSignees')),
             AjoutRetenuActions::ajouter(Action::make('ajouterRetenu')),
         ];
     }

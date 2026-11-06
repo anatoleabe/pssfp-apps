@@ -6,14 +6,9 @@ namespace App\Filament\Resources\CandidatureResource\Pages;
 
 use App\Filament\Resources\AuditeurResource;
 use App\Filament\Resources\CandidatureResource;
-use App\Filament\Resources\CandidatureResource\ComptesEcampusActions;
-use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
 use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
-use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
 use App\Models\Candidature;
-use App\Services\DocumentsAuditeurs\ParametresLettres;
 use Filament\Actions\Action;
-use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Database\Eloquent\Collection;
@@ -28,19 +23,12 @@ class ViewCandidature extends ViewRecord
         return [
             EspaceCandidatActions::voirEspace(Action::make('voirEspace')),
             EspaceCandidatActions::nouveauCode(Action::make('nouveauCode')),
-            ActionGroup::make([
-                DocumentsAuditeursActions::dossier(Action::make('lettreAccesFoad'), ParametresLettres::DOCUMENT_ACCES),
-                DocumentsAuditeursActions::dossier(Action::make('lettreAdmission'), ParametresLettres::DOCUMENT_ADMISSION),
-            ])->label('Documents')->icon('heroicon-o-document-text')->button()->color('gray'),
             Action::make('ficheAuditeur')
                 ->label('Fiche auditeur (paiements)')
                 ->icon('heroicon-o-academic-cap')
                 ->color('gray')
                 ->visible(fn (Candidature $record): bool => $record->auditeur !== null && AuditeurResource::canView($record->auditeur))
                 ->url(fn (Candidature $record): string => AuditeurResource::getUrl('view', ['record' => $record->auditeur])),
-            ComptesEcampusActions::creer(Action::make('creerCompteEcampus')),
-            IdentifiantsMoodleActions::consulter(Action::make('identifiantsMoodle')),
-            IdentifiantsMoodleActions::envoyer(Action::make('envoyerIdentifiantsMoodle')),
             EditAction::make(),
         ];
     }

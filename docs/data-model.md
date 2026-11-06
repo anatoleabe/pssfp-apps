@@ -864,7 +864,7 @@ Ajout du 6 novembre 2026 (ADR-0010). Détail : `docs/specs/module-4-scolarite-lo
 | Table | Rôle | Points clés |
 |---|---|---|
 | `baremes_scolarite` | Barème d'une année et d'un niveau (M1, M2) | Unique (`annee_academique`, `niveau`) ; échéances lues en direct par les inscriptions |
-| `auditeurs` | Ancrage de la vie académique | `uuid` public, `candidature_id` unique ; matricule et compte restent sur la candidature |
+| `auditeurs` | Ancrage de la vie académique | `uuid` public, `candidature_id` unique ; matricule et compte restent sur la candidature ; `statut` (actif, suspendu, abandon, exclu, diplome), `statut_motif`, `statut_depuis`, `statut_par` (lot 2) |
 | `inscriptions_annuelles` | Auditeur × année × niveau | Copie des montants du barème, remise (montant, motif, agent), `acces_notifie_at` ; unique (`auditeur_id`, `annee_academique`) |
 | `versements` | Registre de l'argent | Jamais supprimé : annulation par `annule_*` ; index unique partiel (`mode`, `reference`) sur les lignes non annulées |
 

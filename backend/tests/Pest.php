@@ -98,3 +98,9 @@ function annulerVersements(Candidature $dossier): void
         ->update(['annule_at' => now()]);
     $dossier->unsetRelation('auditeur');
 }
+
+/** Fiche auditeur d'un dossier (créée si le test a posé le matricule à la main). */
+function ficheDe(Candidature $dossier): Auditeur
+{
+    return Auditeur::query()->firstOrCreate(['candidature_id' => $dossier->id]);
+}

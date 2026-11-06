@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Filament\Resources\AuditeurResource\Pages\ListAuditeurs;
+use App\Filament\Resources\AuditeurResource\Pages\ViewAuditeur;
 use App\Filament\Resources\CampagneCandidatureResource\Pages\ListCampagneCandidatures;
 use App\Filament\Resources\CandidatureResource\ComptesEcampusActions;
 use App\Filament\Resources\CandidatureResource\Pages\ListCandidatures;
@@ -574,10 +576,10 @@ describe('boutons de l\'admin', function (): void {
         fauxMoodle($this);
         $this->actingAs($this->admin);
 
-        $this->livewire(ListCandidatures::class)
-            ->assertTableActionVisible('creerCompteEcampus', $c)
-            ->callTableAction('creerCompteEcampus', $c)
-            ->assertHasNoTableActionErrors();
+        $this->livewire(ViewAuditeur::class, ['record' => ficheDe($c)->getRouteKey()])
+            ->assertActionVisible('creerCompteEcampus')
+            ->callAction('creerCompteEcampus')
+            ->assertHasNoActionErrors();
 
         $c->refresh();
         expect($c->ecampus_statut)->toBe(ComptesEcampus::CREE)
@@ -590,8 +592,8 @@ describe('boutons de l\'admin', function (): void {
         fauxMoodle($this);
         $this->actingAs($this->admin);
 
-        $this->livewire(ListCandidatures::class)
-            ->callTableBulkAction('creerComptesEcampus', [$a, $b])
+        $this->livewire(ListAuditeurs::class)
+            ->callTableBulkAction('creerComptesEcampus', [ficheDe($a), ficheDe($b)])
             ->assertHasNoTableBulkActionErrors();
 
         expect($a->fresh()->ecampus_statut)->toBe(ComptesEcampus::CREE)
@@ -604,14 +606,14 @@ describe('boutons de l\'admin', function (): void {
         $termine->forceFill(['ecampus_statut' => ComptesEcampus::EXISTANT])->save();
 
         $this->actingAs($this->admin);
-        $this->livewire(ListCandidatures::class)->assertTableActionHidden('creerCompteEcampus', $termine);
+        $this->livewire(ViewAuditeur::class, ['record' => ficheDe($termine)->getRouteKey()])->assertActionHidden('creerCompteEcampus');
 
         config()->set('pssfp.ecampus.jeton', '');
-        $this->livewire(ListCandidatures::class)->assertTableActionHidden('creerCompteEcampus', $c);
+        $this->livewire(ViewAuditeur::class, ['record' => ficheDe($c)->getRouteKey()])->assertActionHidden('creerCompteEcampus');
 
         config()->set('pssfp.ecampus.jeton', JETON_ESSAI);
         $this->actingAs(($this->agent)('admission_committee'));
-        $this->livewire(ListCandidatures::class)->assertTableActionHidden('creerCompteEcampus', $c);
+        $this->livewire(ListCandidatures::class)->assertTableActionDoesNotExist('creerCompteEcampus');
     });
 
     it('masque colonne et filtre eCampus sans jeton', function (): void {

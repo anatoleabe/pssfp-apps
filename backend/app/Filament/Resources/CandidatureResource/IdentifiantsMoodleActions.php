@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\CandidatureResource;
 
+use App\Filament\Resources\AuditeurResource\SelectionDossiers;
 use App\Models\Candidature;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use Filament\Actions\MountableAction;
@@ -82,7 +83,7 @@ final class IdentifiantsMoodleActions
             ->visible(fn (): bool => (bool) auth()->user()?->can(self::PERMISSION))
             ->requiresConfirmation()
             ->modalHeading('Envoyer leurs identifiants Moodle aux candidats sélectionnés')
-            ->modalDescription('Seuls les retenus dotés d\'un matricule et dont les droits d\'inscription sont pointés les reçoivent ; les autres dossiers sélectionnés sont ignorés. Un SMS par candidat. '
+            ->modalDescription('Seuls les retenus dotés d\'un matricule et dont l\'inscription est soldée les reçoivent ; les autres dossiers sélectionnés sont ignorés. Un SMS par candidat. '
                 .'Au plus '.IdentifiantsMoodle::ENVOI_GROUPE_MAX.' dossiers par envoi : procédez par lots.')
             ->form([self::canal()])
             ->deselectRecordsAfterCompletion()
@@ -98,6 +99,7 @@ final class IdentifiantsMoodleActions
                     return;
                 }
                 $service = app(IdentifiantsMoodle::class);
+                $records = SelectionDossiers::dossiers($records);
                 $remettables = $records->filter(fn (Candidature $c): bool => IdentifiantsMoodle::remettables($c));
                 self::notifier(
                     $remettables->map(fn (Candidature $c): array => $service->envoyer($c, (string) $data['canal'], auth()->user()))->values(),

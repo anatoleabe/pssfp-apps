@@ -11,8 +11,6 @@ use App\Filament\Resources\CandidatureResource\AjoutRetenuActions;
 use App\Filament\Resources\CandidatureResource\ComptesEcampusActions;
 use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
 use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
-use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
-use App\Filament\Resources\CandidatureResource\LettresSigneesActions;
 use App\Filament\Resources\CandidatureResource\Pages;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
@@ -761,16 +759,10 @@ class CandidatureResource extends Resource
                         ->color('gray')
                         ->visible(fn (Candidature $r): bool => $r->auditeur !== null && AuditeurResource::canView($r->auditeur))
                         ->url(fn (Candidature $r): string => AuditeurResource::getUrl('view', ['record' => $r->auditeur])),
-                    ComptesEcampusActions::creer(Tables\Actions\Action::make('creerCompteEcampus')),
-                    IdentifiantsMoodleActions::consulter(Tables\Actions\Action::make('identifiantsMoodle')),
-                    IdentifiantsMoodleActions::envoyer(Tables\Actions\Action::make('envoyerIdentifiantsMoodle')),
                     EspaceCandidatActions::voirEspace(Tables\Actions\Action::make('voirEspace')),
                     EspaceCandidatActions::nouveauCode(Tables\Actions\Action::make('nouveauCode')),
-                    DocumentsAuditeursActions::dossier(Tables\Actions\Action::make('lettreAccesFoad'), ParametresLettres::DOCUMENT_ACCES),
+                    // Reste ici pour le comité d'admission, qui n'a pas accès au module Scolarité.
                     DocumentsAuditeursActions::dossier(Tables\Actions\Action::make('lettreAdmission'), ParametresLettres::DOCUMENT_ADMISSION),
-                    LettresSigneesActions::deposer(Tables\Actions\Action::make('deposerLettreSignee')),
-                    LettresSigneesActions::voir(Tables\Actions\Action::make('voirLettreSignee')),
-                    LettresSigneesActions::retirer(Tables\Actions\Action::make('retirerLettreSignee')),
                     Tables\Actions\Action::make('categorieMatricule')
                         ->label('Catégorie de matricule (EFP / EFSC)')
                         ->icon('heroicon-o-identification')
@@ -812,6 +804,7 @@ class CandidatureResource extends Resource
                                 ->withProperties($data)
                                 ->log('Frais marqués comme payés');
                         }),
+                    // Reste ici : un retenu ajouté se corrige souvent avant son matricule, donc avant sa fiche.
                     AjoutRetenuActions::corrigerTelephone(Tables\Actions\Action::make('corrigerTelephone')),
                     Tables\Actions\Action::make('withdraw')
                         ->label('Retirer (administratif)')
@@ -1160,9 +1153,6 @@ class CandidatureResource extends Resource
                     ])
                     ->deselectRecordsAfterCompletion()
                     ->action(fn ($records, array $data) => self::attribuerMatricules($records, $data['annee'] ?? null)),
-                ComptesEcampusActions::creerGroupe(Tables\Actions\BulkAction::make('creerComptesEcampus')),
-                IdentifiantsMoodleActions::envoyerGroupe(Tables\Actions\BulkAction::make('envoyerIdentifiantsMoodleBulk')),
-                DocumentsAuditeursActions::selection(Tables\Actions\BulkAction::make('accesFoadBulk'), ParametresLettres::DOCUMENT_ACCES),
                 DocumentsAuditeursActions::selection(Tables\Actions\BulkAction::make('lettresAdmissionBulk'), ParametresLettres::DOCUMENT_ADMISSION),
                 Tables\Actions\BulkAction::make('categorieMatriculeBulk')
                     ->label('Catégorie de matricule (EFP / EFSC)')
