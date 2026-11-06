@@ -30,7 +30,7 @@ function fullDataEssai(array $lignes): string
     $f->setTitle('PROMOTION 13 - Full Data');
     $f->fromArray(['id', 'LETTRENUMERO', 'Matricule (Généré)', 'Nom', 'Prenom', 'Nom & Prenom', 'civilite', 'Date de Naissance', 'nationalite', 'lieu_de_naissce',
         'region_dorigine', 'sexe', 'statu_matrimonial', 'adresse_candidat', 'Colonne 1', 'Colonne 2', 'email', 'ville_residence', 'dernier_diplome',
-        'annee_optention_diplome', 'statut_prof', 'structure', 'langue', 'Type Etude', 'Spécialité Choisie', 'Pays'], null, 'A1');
+        'annee_optention_diplome', 'statut_prof', 'structure', 'langue', 'Type Etude', 'Spécialité Choisie', 'Pays', 'Diplome Requis'], null, 'A1');
     foreach ($lignes as $i => $l) {
         $f->fromArray(array_merge(['id' => $i, 'num' => $i], $l), null, 'A'.($i + 2));
     }
@@ -44,7 +44,7 @@ function ligneEssai(string $matricule, string $tel, string $nom = 'ESSAI', strin
 {
     return [$matricule, $nom, 'Awa', "$nom Awa", 'Madame', $naissance, 'Camerounaise', 'Yaoundé', 'Centre', 'F', 'Célibataire', 'Messa',
         $tel, '', Str::lower($nom).'@example.org', 'Yaoundé', 'Master', '2015', 'Fonctionnaire', 'MINFI', 'Français', 'Distanciel',
-        'Audit et contrôle', 'Cameroun'];
+        'Audit et contrôle', 'Cameroun', 'LICENCE PROFESSIONNELLE'];
 }
 
 beforeEach(function (): void {
@@ -85,6 +85,8 @@ it('importe tous les auditeurs, inscrit seulement les admis, et signale les manq
         ->and($admise->civilite)->toBe('Mme')
         ->and($admise->type_etude)->toBe('distanciel')
         ->and($admise->nationalite)->toBe('CM')
+        ->and($admise->diplome_requis)->toBe('licence-bachelor')
+        ->and($admise->statut_actuel)->toBe('Fonctionnaire')
         ->and($admise->campagne->promotion_numero)->toBe(13)
         ->and($admise->campagne->status)->toBe('closed')
         ->and($admise->auditeur->inscriptionCourante->niveau)->toBe('M2')
@@ -154,3 +156,15 @@ it('écarte un téléphone en double et le compte d\'une autre personne', functi
 
     expect($b['crees'])->toBe(1)->and($b['telephone_en_double'])->toBe(['25EFP011'])->and($b['autre_personne'])->toBe(['25EFP012']);
 });
+
+it('signale dès l\'essai à blanc une date de naissance illisible', function (): void {
+    $source = fullDataEssai([ligneEssai('25EFP020', '699000301', 'DATE', 'Mars 1985')]);
+
+    $b = app(ImportAuditeurs::class)->importer([$source], [], '2026-2027', 'M2', $this->usi, false);
+
+    expect($b['date_illisible'])->toBe(['25EFP020'])->and($b['crees'])->toBe(0);
+});
+
+it('ramène diplômes et statuts aux listes fermées de la base', function (string $diplome, ?string $attendu): void {
+    expect(ImportAuditeurs::diplomeRequis($diplome))->toBe($attendu);
+})->with([['LICENCE', 'licence-bachelor'], ['Bachelor of Science', 'licence-bachelor'], ['Master2', 'master'], ['DIPET 2', 'licence-bachelor'], ['Doctorat', null], ['', null]]);

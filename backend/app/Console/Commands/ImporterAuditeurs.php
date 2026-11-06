@@ -55,7 +55,7 @@ final class ImporterAuditeurs extends Command
 
         $this->info(($appliquer ? 'Import' : 'Essai à blanc').' : '.$b['lus'].' matricules lus, '.count($admis).' admis.');
         $this->line('  à créer / créés : '.$b['crees'].' (dont '.$b['inscrits'].' inscrits '.$this->option('niveau').' '.$this->option('annee').')');
-        foreach (['deja' => 'déjà présents', 'sans_telephone' => 'sans téléphone exploitable', 'compte_occupe' => 'téléphone d\'un compte du personnel', 'telephone_en_double' => 'téléphone déjà pris par un autre auditeur du fichier', 'autre_personne' => 'téléphone d\'un compte candidat d\'une autre personne', 'admis_introuvables' => 'admis absents des sources'] as $cle => $libelle) {
+        foreach (['deja' => 'déjà présents', 'sans_telephone' => 'sans téléphone exploitable', 'compte_occupe' => 'téléphone d\'un compte du personnel', 'telephone_en_double' => 'téléphone déjà pris par un autre auditeur du fichier', 'autre_personne' => 'téléphone d\'un compte candidat d\'une autre personne', 'date_illisible' => 'date de naissance illisible', 'admis_introuvables' => 'admis absents des sources'] as $cle => $libelle) {
             $this->line('  '.$libelle.' : '.count($b[$cle]).(count($b[$cle]) > 0 ? ' ('.implode(', ', $b[$cle]).')' : ''));
         }
         foreach ($b['erreurs'] as $matricule => $message) {

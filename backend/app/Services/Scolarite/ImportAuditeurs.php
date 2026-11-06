@@ -87,7 +87,7 @@ final class ImportAuditeurs
     {
         $lignes = $this->lire($sources);
         $admis = array_values(array_unique(array_map(fn (string $m): string => strtoupper(trim($m)), $admis)));
-        $bilan = ['lus' => count($lignes), 'crees' => 0, 'inscrits' => 0, 'deja' => [], 'sans_telephone' => [], 'compte_occupe' => [], 'telephone_en_double' => [], 'autre_personne' => [], 'admis_introuvables' => [], 'erreurs' => []];
+        $bilan = ['lus' => count($lignes), 'crees' => 0, 'inscrits' => 0, 'deja' => [], 'sans_telephone' => [], 'compte_occupe' => [], 'telephone_en_double' => [], 'autre_personne' => [], 'date_illisible' => [], 'admis_introuvables' => [], 'erreurs' => []];
         $telephones = [];
         $bilan['admis_introuvables'] = array_values(array_diff($admis, array_keys($lignes)));
 
@@ -99,6 +99,12 @@ final class ImportAuditeurs
         foreach ($lignes as $matricule => $l) {
             if (Candidature::withTrashed()->where('matricule', $matricule)->exists()) {
                 $bilan['deja'][] = $matricule;
+
+                continue;
+            }
+            // Contrôlée dès l'essai à blanc : la date de naissance est obligatoire.
+            if (self::date($l['date_naissance'] ?? '') === null) {
+                $bilan['date_illisible'][] = $matricule;
 
                 continue;
             }
@@ -195,9 +201,9 @@ final class ImportAuditeurs
             'premiere_langue' => str_contains(Str::ascii(mb_strtolower($l['langue'] ?? '')), 'angl') ? 'en' : 'fr',
             'diplome_obtenu' => self::texte($l['diplome_obtenu'] ?? '', 100),
             'annee_diplome' => ctype_digit(trim($l['annee_diplome'] ?? '')) ? (int) $l['annee_diplome'] : null,
-            'diplome_requis' => self::texte($l['diplome_requis'] ?? '', 100),
+            'diplome_requis' => self::diplomeRequis($l['diplome_requis'] ?? ''),
             'specialite_diplome_requis' => self::texte($l['specialite_diplome_requis'] ?? '', 100),
-            'statut_actuel' => self::texte($l['statut_actuel'] ?? '', 30),
+            'statut_actuel' => self::statutActuel($l['statut_actuel'] ?? ''),
             'employeur' => self::texte($l['employeur'] ?? '', 150),
             'adresse_employeur' => self::texte($l['adresse_employeur'] ?? '', 200),
             'statut' => Candidature::STATUT_ACCEPTE,
@@ -390,6 +396,32 @@ final class ImportAuditeurs
                         return (string) $libelle;
                     }
                 }
+            }
+        }
+
+        return null;
+    }
+
+    /** Valeurs admises par la base : `licence-bachelor` ou `master`. */
+    public static function diplomeRequis(string $valeur): ?string
+    {
+        $v = self::cle($valeur);
+
+        return match (true) {
+            $v === '' => null,
+            str_contains($v, 'master') => 'master',
+            str_contains($v, 'licence'), str_contains($v, 'bachelor'), str_contains($v, 'ingenieur'), str_contains($v, 'dipet') => 'licence-bachelor',
+            default => null,
+        };
+    }
+
+    /** Seulement une valeur de la liste fermée (config/statuts_actuels.php), libellé ou clé. */
+    public static function statutActuel(string $valeur): ?string
+    {
+        $v = self::cle($valeur);
+        foreach ((array) config('statuts_actuels', []) as $cle => $libelle) {
+            if ($v !== '' && ($v === self::cle((string) $cle) || $v === self::cle((string) $libelle) || str_starts_with(self::cle((string) $libelle), $v))) {
+                return (string) $cle;
             }
         }
 
