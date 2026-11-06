@@ -56,6 +56,7 @@ final class ScolariteResource extends JsonResource
             'acces' => array_filter([
                 'etat' => $etat,
                 'foad_url' => $etat === AccesEcampus::DISPONIBLE ? (string) config('pssfp.foad_url') : null,
+                'mot_de_passe_connu' => $etat === AccesEcampus::DISPONIBLE ? AccesEcampus::motDePasseConnu($c) : null,
                 'reste_inscription' => $etat === AccesEcampus::BLOQUE ? ($s?->resteInscription()) : null,
             ], fn ($v): bool => $v !== null),
         ];

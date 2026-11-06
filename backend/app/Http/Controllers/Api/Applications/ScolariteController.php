@@ -56,6 +56,13 @@ final class ScolariteController extends Controller
             ], Response::HTTP_FORBIDDEN, self::SANS_CACHE);
         }
 
+        if (! AccesEcampus::motDePasseConnu($dossier)) {
+            return response()->json([
+                'message' => 'Votre mot de passe eCampus n\'est pas connu du portail : utilisez celui que vous avez déjà.',
+                'code' => 'mot_de_passe_inconnu',
+            ], Response::HTTP_NOT_FOUND, self::SANS_CACHE);
+        }
+
         activity('auth.candidat')->causedBy($request->user())->performedOn($dossier)
             ->event('acces_mot_de_passe_affiche')
             ->withProperties(['ip' => $request->ip(), 'connexion' => $jeton?->name])

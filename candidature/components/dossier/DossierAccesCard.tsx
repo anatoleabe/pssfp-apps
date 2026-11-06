@@ -57,7 +57,13 @@ export function DossierAccesCard({ scolarite, consultation }: DossierAccesCardPr
             <div>
               <dt className="font-ui text-xs uppercase tracking-[0.14em] text-[#5C5C5C]">{t('motDePasse')}</dt>
               <dd className="mt-1">
-                {consultation ? <p className="text-sm text-[#5C5C5C]">{t('consultation')}</p> : <RevelerMotDePasse />}
+                {scolarite.acces.mot_de_passe_connu === false ? (
+                  <p data-testid="mot-de-passe-habituel" className="text-sm text-[#3C3C3C]">{t('motDePasseHabituel')}</p>
+                ) : consultation ? (
+                  <p className="text-sm text-[#5C5C5C]">{t('consultation')}</p>
+                ) : (
+                  <RevelerMotDePasse />
+                )}
               </dd>
             </div>
           </dl>
