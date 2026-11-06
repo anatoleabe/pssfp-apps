@@ -808,7 +808,8 @@
         "session": "Votre session a expiré. Reconnectez-vous.",
         "reseau": "Le service ne répond pas. Réessayez dans quelques instants."
       },
-      "newTab": "nouvel onglet"
+      "newTab": "nouvel onglet",
+      "motDePasseHabituel": "Utilisez le mot de passe eCampus que vous avez déjà. En cas d'oubli, rapprochez-vous de la scolarité."
     }
   },
   "legal": {

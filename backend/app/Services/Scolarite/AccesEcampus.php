@@ -36,9 +36,16 @@ final class AccesEcampus
             return self::BLOQUE;
         }
 
-        return self::compteExiste($c) && filled($c->matricule) && filled($c->moodle_password)
+        // Auditeurs importés des promotions antérieures : compte eCampus existant, mot de
+        // passe inconnu du portail (ils gardent le leur) : l'accès est disponible sans lui.
+        return self::compteExiste($c) && filled($c->matricule)
             ? self::DISPONIBLE
             : self::EN_PREPARATION;
+    }
+
+    public static function motDePasseConnu(Candidature $c): bool
+    {
+        return filled($c->moodle_password);
     }
 
     public static function compteExiste(Candidature $c): bool

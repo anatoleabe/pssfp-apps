@@ -808,7 +808,8 @@
         "session": "Your session has expired. Please log in again.",
         "reseau": "The service is not responding. Please try again in a moment."
       },
-      "newTab": "new tab"
+      "newTab": "new tab",
+      "motDePasseHabituel": "Use the eCampus password you already have. If you have forgotten it, please contact the registry."
     }
   },
   "legal": {
