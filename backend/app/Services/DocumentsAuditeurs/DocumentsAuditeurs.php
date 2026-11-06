@@ -105,8 +105,12 @@ final class DocumentsAuditeurs
             ->get();
     }
 
-    /** PhpWord lit les images sur disque : copie temporaire de la signature privée. */
-    private function signatureLocale(string $chemin): string
+    /**
+     * Octets du scan de signature et cachet de la promotion.
+     *
+     * @throws DocumentsIncomplets chemin hors du dossier des signatures, ou fichier introuvable
+     */
+    public static function lireSignature(string $chemin): string
     {
         // Même bucket que les pièces des candidats : seul le dossier des signatures est lisible ici.
         if (! str_starts_with($chemin, self::DOSSIER_SIGNATURES.'/') || str_contains($chemin, '..')) {
@@ -117,6 +121,14 @@ final class DocumentsAuditeurs
         if (blank($contenu)) {
             throw new DocumentsIncomplets(['Signature et cachet (fichier introuvable : déposez-le à nouveau)']);
         }
+
+        return (string) $contenu;
+    }
+
+    /** PhpWord lit les images sur disque : copie temporaire de la signature privée. */
+    private function signatureLocale(string $chemin): string
+    {
+        $contenu = self::lireSignature($chemin);
         $fichier = tempnam(sys_get_temp_dir(), 'pssfp-signature-');
         if ($fichier === false || file_put_contents($fichier, $contenu) === false) {
             throw new DocumentImpossible('Impossible de préparer l\'image de la signature.');

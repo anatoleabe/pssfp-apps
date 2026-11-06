@@ -129,6 +129,10 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
             ->middleware(['ability:application:read', 'throttle:acces-ecampus'])
             ->name('me.acces.reveler');
 
+        Route::get('/me/acces/lettre', [ScolariteController::class, 'lettreAcces'])
+            ->middleware(['ability:application:read', 'throttle:lettre-acces'])
+            ->name('me.acces.lettre');
+
         Route::post('/me/withdraw', [CandidatureController::class, 'withdraw'])
             ->middleware('ability:application:create')
             ->name('me.withdraw');

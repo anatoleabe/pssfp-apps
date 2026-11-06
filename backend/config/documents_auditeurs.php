@@ -15,6 +15,10 @@ declare(strict_types=1);
 return [
     'signataire' => 'Le Président du Comité de Pilotage',
 
+    // Lettre d'accès en PDF téléchargée par l'auditeur : document édité par le
+    // portail, sans signature manuscrite, d'où la mention devant le signataire.
+    'mention_signature_electronique' => '(é)',
+
     'pied_de_page' => 'Programme Supérieur de Spécialisation en Finances Publiques · B.P. 2332 Yaoundé – Messa · www.pssfp.org · contact@pssfp.org',
 
     'defauts' => [

@@ -369,7 +369,7 @@ export interface MaScolarite {
   paliers: ScolaritePalier[];
   versements: ScolariteVersement[];
   /** `mot_de_passe_connu` faux : auditeur d'une promotion antérieure, il garde son mot de passe eCampus. */
-  acces: { etat: AccesEtat; foad_url?: string; reste_inscription?: number; mot_de_passe_connu?: boolean };
+  acces: { etat: AccesEtat; foad_url?: string; reste_inscription?: number; mot_de_passe_connu?: boolean; lettre_disponible?: boolean };
 }
 
 export interface AccesRevele {

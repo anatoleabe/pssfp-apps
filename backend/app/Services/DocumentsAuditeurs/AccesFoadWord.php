@@ -100,12 +100,7 @@ final class AccesFoadWord
     private function coordonnees(Section $s, Candidature $c): void
     {
         G::rubrique($s, 'Vos coordonnées enregistrées');
-        $telephones = array_values(array_filter(array_map(
-            fn (?string $indicatif, ?string $numero): string => blank($numero) ? ''
-                : trim((filled($indicatif) ? '+'.ltrim((string) $indicatif, '+').' ' : '').$numero),
-            [$c->indicatif1, $c->indicatif2],
-            [$c->telephone1, $c->telephone2],
-        ))) ?: array_filter([(string) $c->phone_e164]);
+        $telephones = G::telephones($c);
         $this->point($s, 'Téléphone : ', $telephones === [] ? '—' : implode('   ·   ', $telephones));
         $this->point($s, 'E-mail : ', (string) ($c->email ?: '—'));
         $s->addText('Une erreur ? Signalez-la à la scolarité.', G::police(G::TEXTE, 9.5, color: G::GRIS),

@@ -12,11 +12,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DocumentsPage(): Promise<JSX.Element> {
-  const { candidature, scolarite } = await chargerEspaceAuditeur();
+  const { candidature, scolarite, consultation } = await chargerEspaceAuditeur();
 
   return (
     <EspaceGabarit candidature={candidature} scolarite={scolarite} rubrique="documents">
-      <EspaceDocuments candidature={candidature} />
+      <EspaceDocuments candidature={candidature} scolarite={scolarite} consultation={consultation} />
     </EspaceGabarit>
   );
 }

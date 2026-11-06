@@ -809,7 +809,14 @@
         "reseau": "Le service ne répond pas. Réessayez dans quelques instants."
       },
       "newTab": "nouvel onglet",
-      "motDePasseHabituel": "Utilisez le mot de passe eCampus que vous avez déjà. En cas d'oubli, rapprochez-vous de la scolarité."
+      "motDePasseHabituel": "Utilisez le mot de passe eCampus que vous avez déjà. En cas d'oubli, rapprochez-vous de la scolarité.",
+      "telecharger": "Télécharger ma lettre d'accès (PDF)",
+      "lettreErreurs": {
+        "non_prete": "Votre lettre d'accès n'est pas encore prête. Réessayez plus tard ou rapprochez-vous de la scolarité.",
+        "indisponible": "Votre lettre d'accès n'est plus disponible. Rechargez la page ou rapprochez-vous de la scolarité.",
+        "limite": "Trop de téléchargements. Réessayez dans une heure.",
+        "echec": "La lettre n'a pas pu être téléchargée. Réessayez dans quelques instants."
+      }
     }
   },
   "legal": {
@@ -1132,6 +1139,7 @@
       "eyebrow": "Mes documents",
       "title": "Documents officiels",
       "lettre": "Lettre d'admission signée (PDF)",
+      "lettreAcces": "Lettre d'accès à eCampus (PDF)",
       "releve": "Relevé de ma situation financière (PDF)",
       "recipisse": "Récépissé de ma candidature (PDF)",
       "resultats": "Communiqué des résultats",

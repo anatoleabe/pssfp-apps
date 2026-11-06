@@ -1,7 +1,7 @@
 import { useTranslations } from 'next-intl';
-import { ArrowUpRight, Download, FileText } from 'lucide-react';
+import { ArrowUpRight, Download, FileText, KeyRound } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { MyCandidature } from '@/lib/api/client';
+import type { MaScolarite, MyCandidature } from '@/lib/api/client';
 
 const LIEN =
   'group flex min-h-14 items-center gap-3 rounded-pssfp-button border border-[#F4EFFA] bg-white px-5 py-3 font-semibold text-[#333] transition-colors duration-200 hover:border-[#D4AF6A] hover:text-[#4A2E67] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2';
@@ -27,9 +27,17 @@ function Document({ href, testId, icone, nouvelOnglet, children }: { href: strin
 }
 
 /** Tous les documents de l'auditeur au même endroit ; les routes /dossier/* relaient le jeton httpOnly. */
-export function EspaceDocuments({ candidature }: { candidature: MyCandidature }): JSX.Element {
+interface EspaceDocumentsProps {
+  candidature: MyCandidature;
+  scolarite: MaScolarite;
+  consultation: boolean;
+}
+
+export function EspaceDocuments({ candidature, scolarite, consultation }: EspaceDocumentsProps): JSX.Element {
   const t = useTranslations('espace.documents');
   const resultats = candidature.campagne?.communique_resultats_url ?? null;
+  // Mêmes conditions que dans « Mes accès » : la lettre contient le mot de passe.
+  const lettreAcces = scolarite.acces.lettre_disponible === true && !consultation;
 
   return (
     <section aria-labelledby="documents-heading" data-testid="espace-documents" className="rounded-pssfp-card border border-[#F4EFFA] bg-white p-6 shadow-pssfp-soft md:p-7">
@@ -38,6 +46,9 @@ export function EspaceDocuments({ candidature }: { candidature: MyCandidature })
       <ul className="mt-6 grid gap-3">
         {candidature.lettre_admission_available && (
           <Document href="/dossier/lettre-admission" testId="doc-lettre" icone={<FileText size={18} />}>{t('lettre')}</Document>
+        )}
+        {lettreAcces && (
+          <Document href="/dossier/lettre-acces" testId="doc-lettre-acces" icone={<KeyRound size={18} />}>{t('lettreAcces')}</Document>
         )}
         <Document href="/dossier/releve" testId="doc-releve" icone={<FileText size={18} />}>{t('releve')}</Document>
         {candidature.recipisse_available && (

@@ -74,6 +74,10 @@ class AppServiceProvider extends ServiceProvider
         // Relevé PDF (rendu DomPDF) : 20 par heure et par compte.
         RateLimiter::for('releve-scolarite', fn (Request $request): Limit => Limit::perHour(20)->by('releve-scolarite|'.($request->user()?->id ?? $request->ip())));
 
+        // Lettre d'accès PDF (contient le mot de passe) : 10 par heure et par compte, clé par jeton comme ci-dessus.
+        RateLimiter::for('lettre-acces', fn (Request $request): Limit => Limit::perHour(10)
+            ->by('lettre-acces|'.($request->user()?->id ?? $request->ip()).'|'.($request->user()?->currentAccessToken()?->name ?? '')));
+
         RateLimiter::for('consultation-espace', fn (Request $request): Limit => Limit::perMinute(30)->by('consultation-espace|'.$request->ip()));
 
         $this->configureLibraryRateLimits();

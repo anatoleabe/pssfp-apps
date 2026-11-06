@@ -7,6 +7,7 @@ namespace App\Http\Resources;
 use App\Models\Candidature;
 use App\Models\InscriptionAnnuelle;
 use App\Models\Versement;
+use App\Services\DocumentsAuditeurs\ParametresLettres;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\Palier;
@@ -28,6 +29,7 @@ final class ScolariteResource extends JsonResource
         $inscription = AccesEcampus::inscriptionCourante($c);
         $s = $inscription?->situation();
         $etat = AccesEcampus::etat($c);
+        $motDePasseConnu = $etat === AccesEcampus::DISPONIBLE ? AccesEcampus::motDePasseConnu($c) : null;
 
         return [
             'matricule' => $c->matricule,
@@ -56,7 +58,11 @@ final class ScolariteResource extends JsonResource
             'acces' => array_filter([
                 'etat' => $etat,
                 'foad_url' => $etat === AccesEcampus::DISPONIBLE ? (string) config('pssfp.foad_url') : null,
-                'mot_de_passe_connu' => $etat === AccesEcampus::DISPONIBLE ? AccesEcampus::motDePasseConnu($c) : null,
+                'mot_de_passe_connu' => $motDePasseConnu,
+                // Le bouton de la lettre PDF n'apparaît qu'une fois la date des lettres saisie sur la promotion.
+                'lettre_disponible' => $motDePasseConnu === true && $c->campagne !== null
+                    ? ParametresLettres::pour($c->campagne, avecBareme: false)->manquants(ParametresLettres::DOCUMENT_ACCES) === []
+                    : null,
                 'reste_inscription' => $etat === AccesEcampus::BLOQUE ? ($s?->resteInscription()) : null,
             ], fn ($v): bool => $v !== null),
         ];
