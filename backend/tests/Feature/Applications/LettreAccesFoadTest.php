@@ -61,13 +61,13 @@ it('remet à l\'auditeur en règle sa lettre d\'accès en PDF, sans cache, et le
         ->and(json_encode($journal->toArray()))->not->toContain((string) $this->awa->moodle_password);
 });
 
-it('met dans la lettre les identifiants de l\'auditeur et la mention (e) du signataire', function (): void {
+it('met dans la lettre les identifiants de l\'auditeur et la mention (é) du signataire', function (): void {
     $html = app(LettreAccesFoadPdf::class)->html($this->awa);
 
     expect($html)->toContain((string) $this->awa->moodle_password)
         ->toContain(mb_strtolower((string) $this->awa->matricule))
         ->toContain('ABENA Test')
-        ->toContain('(e) Le Président du Comité de Pilotage')
+        ->toContain('(é) Le Président du Comité de Pilotage')
         ->toContain('04 novembre 2026');
 });
 
@@ -83,7 +83,7 @@ it('intègre le scan de signature de la promotion, et part sans lui s\'il est il
     $this->campagne->forceFill(['signature_lettres_path' => 'signatures/absente.png'])->save();
     $this->awa->unsetRelation('campagne');
     expect(app(LettreAccesFoadPdf::class)->html($this->awa))->not->toContain('alt="Signature et cachet"')
-        ->toContain('(e) Le Président du Comité de Pilotage');
+        ->toContain('(é) Le Président du Comité de Pilotage');
 });
 
 it('ne remet à chaque auditeur que sa propre lettre', function (): void {

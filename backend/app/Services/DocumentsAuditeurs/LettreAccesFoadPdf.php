@@ -15,7 +15,7 @@ use Throwable;
 /**
  * Lettre d'accès FOAD d'un auditeur, en PDF, téléchargée depuis son espace :
  * mêmes textes que la version Word de l'administration (`AccesFoadWord`),
- * signataire précédé de la mention (e), le document n'étant pas signé à la main.
+ * signataire précédé de la mention (é), le document n'étant pas signé à la main.
  *
  * Les conditions de remise (inscription soldée, compte créé, mot de passe connu)
  * se vérifient avant l'appel : ce service ne fait que mettre en page.
@@ -63,7 +63,7 @@ final class LettreAccesFoadPdf
     }
 
     /**
-     * Scan facultatif. Illisible, la lettre part sans lui (la mention (e) en
+     * Scan facultatif. Illisible, la lettre part sans lui (la mention (é) en
      * tient lieu) : l'auditeur n'a pas à attendre une correction de l'admin.
      */
     private function signature(?string $chemin): ?string
