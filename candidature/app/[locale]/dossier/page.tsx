@@ -1,7 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 import { redirect } from '@/navigation';
 import { AlertCircle, ArrowRight } from 'lucide-react';
-import { DossierAccesCard } from '@/components/dossier/DossierAccesCard';
+import { AccueilAuditeur } from '@/components/espace/AccueilAuditeur';
+import { EspaceGabarit } from '@/components/espace/EspaceGabarit';
 import { DossierActionsCard } from '@/components/dossier/DossierActionsCard';
 import { DossierCompleteness } from '@/components/dossier/DossierCompleteness';
 import { DossierDecisionCard } from '@/components/dossier/DossierDecisionCard';
@@ -12,7 +13,6 @@ import { DossierMessages } from '@/components/dossier/DossierMessages';
 import { DossierPhotoCard } from '@/components/dossier/DossierPhotoCard';
 import { DossierPiecesCard } from '@/components/dossier/DossierPiecesCard';
 import { DossierProfileSummary } from '@/components/dossier/DossierProfileSummary';
-import { DossierScolariteCard } from '@/components/dossier/DossierScolariteCard';
 import { DossierStatutCard } from '@/components/dossier/DossierStatutCard';
 import { getMyCandidature, getMyScolarite, type MaScolarite } from '@/lib/api/client';
 import { getCandidatToken, isConsultation } from '@/lib/auth/session';
@@ -153,6 +153,33 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
   }
   const ts = await getTranslations('dossier.scolarite');
 
+  if (scolarite) {
+    return (
+      <EspaceGabarit candidature={candidature} scolarite={scolarite}>
+        {releve_error && (
+          <div role="alert" className="flex items-start gap-3 rounded-pssfp-card border border-red-200 bg-red-50/90 p-5 text-sm text-red-900 shadow-pssfp-soft">
+            <AlertCircle size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-red-600" />
+            <p className="font-semibold">{ts('releveError')}</p>
+          </div>
+        )}
+        {lettre_error && (
+          <div role="alert" className="flex items-start gap-3 rounded-pssfp-card border border-red-200 bg-red-50/90 p-5 text-sm text-red-900 shadow-pssfp-soft">
+            <AlertCircle size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-red-600" />
+            <p className="font-semibold">{lettre_error === 'not_ready' ? t('lettreNotReady') : t('lettreFailed')}</p>
+          </div>
+        )}
+        {recipisse_error && (
+          <div role="alert" className="flex items-start gap-3 rounded-pssfp-card border border-red-200 bg-red-50/90 p-5 text-sm text-red-900 shadow-pssfp-soft">
+            <AlertCircle size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-red-600" />
+            <p className="font-semibold">{recipisse_error === 'not_ready' ? t('recipisseNotReady') : t('recipisseFailed')}</p>
+          </div>
+        )}
+        <AccueilAuditeur scolarite={scolarite} candidature={candidature} />
+        <DossierDecisionCard candidature={candidature} phase={phase} />
+      </EspaceGabarit>
+    );
+  }
+
   return (
     <div className="relative isolate min-h-[60vh]">
       {/* Background décoratif */}
@@ -191,18 +218,6 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
                 <span className="font-mono">{candidature.numero_dossier}</span>
                 {' · '}
                 <span>{fullName}</span>
-              </p>
-            )}
-            {scolarite?.niveau && (
-              <p data-testid="entete-auditeur" className="mt-1 text-sm font-semibold text-[#4A2E67]">
-                {scolarite.promotion_numero !== null && scolarite.annee_academique
-                  ? ts('header', {
-                      matricule: scolarite.matricule,
-                      promotion: scolarite.promotion_numero,
-                      niveau: ts(`niveaux.${scolarite.niveau}`),
-                      annee: scolarite.annee_academique,
-                    })
-                  : ts('headerCourt', { matricule: scolarite.matricule, niveau: ts(`niveaux.${scolarite.niveau}`) })}
               </p>
             )}
           </div>
@@ -296,21 +311,9 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
           // Campagne close ou décision rendue : plus rien à compléter. On mène
           // avec la décision, puis ce que le candidat peut encore consulter.
           <div className="grid gap-6">
-            {scolarite && (
-              <>
-                <DossierScolariteCard scolarite={scolarite} />
-                <DossierAccesCard scolarite={scolarite} consultation={consultation} />
-                <DossierDocumentsCard candidature={candidature} />
-                <DossierMessages messages={candidature.messages} />
-              </>
-            )}
             <DossierDecisionCard candidature={candidature} phase={phase} />
-            {!scolarite && (
-              <>
-                <DossierDocumentsCard candidature={candidature} />
-                <DossierMessages messages={candidature.messages} />
-              </>
-            )}
+            <DossierDocumentsCard candidature={candidature} />
+            <DossierMessages messages={candidature.messages} />
             <DossierStatutCard candidature={candidature} />
             <DossierActionsCard candidature={candidature} canEdit={false} />
             <DossierProfileSummary candidature={candidature} readOnly={consultation} />

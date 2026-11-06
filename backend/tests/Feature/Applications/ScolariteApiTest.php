@@ -50,6 +50,7 @@ it('donne à l\'auditeur sa situation, ses versements valides et son accès', fu
     $reponse->assertJsonPath('data.matricule', $this->awa->matricule)
         ->assertJsonPath('data.identifiant', mb_strtolower((string) $this->awa->matricule))
         ->assertJsonPath('data.niveau', 'M1')
+        ->assertJsonPath('data.statut', 'actif')
         ->assertJsonPath('data.annee_academique', '2026-2027')
         ->assertJsonPath('data.promotion_numero', 14)
         ->assertJsonPath('data.du_total', 1185000)
