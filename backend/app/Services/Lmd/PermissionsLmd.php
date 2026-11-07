@@ -64,4 +64,8 @@ final class PermissionsLmd
     public const CALENDRIER_REAJUSTER = 'lmd.calendrier_reajuster';
 
     public const CALENDRIER_SIGNER = 'lmd.calendrier_signer';
+
+    public const ACTES_PRODUIRE = 'lmd.actes_produire';
+
+    public const ACTES_SIGNER = 'lmd.actes_signer';
 }

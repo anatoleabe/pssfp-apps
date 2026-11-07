@@ -6,11 +6,16 @@ namespace App\Http\Controllers\Api\Applications;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ParcoursAuditeurResource;
+use App\Models\Acte;
+use App\Models\CalendrierAcademique;
 use App\Models\EvenementCalendrier;
+use App\Models\InscriptionAnnuelle;
 use App\Models\RegleAssiduite;
+use App\Services\Lmd\Actes;
 use App\Services\Lmd\Assiduite;
 use App\Services\Lmd\Calendriers;
 use App\Services\Scolarite\DossierAuditeurConnecte;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -91,6 +96,45 @@ final class ParcoursController extends Controller
                 'statut_libelle' => EvenementCalendrier::STATUTS[$e->statut] ?? $e->statut,
                 'reporte' => $e->debut_signe !== null && ! $e->debut_signe->equalTo($e->debut_prevu),
             ])->values()->all(),
+            'communiques' => $this->communiques($c, $inscription)->get()->map(fn (Acte $a): array => [
+                'uuid' => $a->uuid,
+                'objet' => $a->objet,
+                'numero' => $a->numero,
+                'date_signature' => $a->date_signature?->toDateString(),
+            ])->values()->all(),
         ]], Response::HTTP_OK, ['Cache-Control' => 'no-store, private']);
+    }
+
+    /** Communiqué diffusé du calendrier publié (spec lot 12b, §4) : acte signé, vérifié par son empreinte. */
+    public function communique(Request $request, string $uuid, DossierAuditeurConnecte $dossiers, Calendriers $calendriers, Actes $actes): Response
+    {
+        $inscription = $dossiers->pour($request->user())?->auditeur?->inscriptionCourante;
+        $c = $inscription === null ? null : $calendriers->publie($inscription->annee_academique);
+        $acte = $c === null ? null : $this->communiques($c, $inscription)->where('uuid', $uuid)->first();
+        if ($acte === null) {
+            return response()->json(['message' => 'Communiqué introuvable.', 'code' => 'document_indisponible'], Response::HTTP_NOT_FOUND);
+        }
+        $pdf = $actes->piece($acte);
+        if ($pdf === null) {
+            return response()->json(['message' => 'Document momentanément indisponible : réessayez plus tard.', 'code' => 'document_indisponible'],
+                Response::HTTP_CONFLICT, ['Cache-Control' => 'no-store, private']);
+        }
+
+        return response($pdf, Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="communique-'.$acte->date_signature?->format('Y-m-d').'.pdf"',
+            'Cache-Control' => 'no-store, private',
+        ]);
+    }
+
+    /** @return Builder<Acte> actes diffusés aux auditeurs, de leur niveau ou communs, sur le calendrier publié */
+    private function communiques(CalendrierAcademique $c, InscriptionAnnuelle $inscription): Builder
+    {
+        return Acte::query()->where('statut', Acte::DIFFUSE)
+            ->whereHas('modele', fn (Builder $q) => $q->where('diffusion_auditeurs', true))
+            ->whereHas('evenement', fn (Builder $q) => $q->where('calendrier_id', $c->id)
+                ->where(fn (Builder $n) => $n->whereNull('niveau')->orWhere('niveau', $inscription->niveau))
+                ->where(fn (Builder $p) => $p->whereNull('parcours_id')->orWhere('parcours_id', $inscription->parcours_id)))
+            ->orderByDesc('date_signature')->orderByDesc('id');
     }
 }

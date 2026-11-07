@@ -17,11 +17,11 @@ use InvalidArgumentException;
  */
 final class ImportCalendrier
 {
-    public function __construct(private readonly Calendriers $calendriers, private readonly ControlesCalendrier $controles) {}
+    public function __construct(private readonly Calendriers $calendriers, private readonly ControlesCalendrier $controles, private readonly Actes $actes) {}
 
     /**
      * @param  array<string, mixed>  $document
-     * @return array{annee: string, evenements: int, phases: int, jours: int, dependances: int, anomalies: list<string>}
+     * @return array{annee: string, evenements: int, phases: int, jours: int, dependances: int, actes: int, anomalies: list<string>, alertes: list<string>}
      */
     public function importer(array $document, bool $appliquer): array
     {
@@ -40,7 +40,7 @@ final class ImportCalendrier
         if (CalendrierAcademique::query()->where('annee_academique', $annee)->exists()) {
             throw new InvalidArgumentException('Un calendrier '.$annee.' existe déjà : la reprise ne l\'écrase pas.');
         }
-        $bilan = ['annee' => $annee, 'evenements' => count($evenements), 'phases' => count($phases), 'jours' => count((array) ($document['jours_non_ouvres'] ?? [])), 'dependances' => 0, 'anomalies' => []];
+        $bilan = ['annee' => $annee, 'evenements' => count($evenements), 'phases' => count($phases), 'jours' => count((array) ($document['jours_non_ouvres'] ?? [])), 'dependances' => 0, 'actes' => 0, 'anomalies' => [], 'alertes' => []];
 
         $executer = function () use ($document, $annee, $evenements, $phases, &$bilan): void {
             $c = new CalendrierAcademique(['annee_academique' => $annee, 'date_debut' => $document['date_debut'], 'date_fin' => $document['date_fin'],
@@ -66,8 +66,11 @@ final class ImportCalendrier
             $bilan['dependances'] = $this->controles->genererDependances($c);
             $this->calendriers->figerReference($c);
             $c->forceFill(['statut' => CalendrierAcademique::SIGNE, 'signataire' => (string) ($document['signataire'] ?? 'Le Chef de la structure')])->save();
+            $bilan['actes'] = $this->actes->generer($c);
             activity('lmd')->performedOn($c)->event('calendrier_repris')->withProperties(['source' => $document['source'] ?? null])->log('Calendrier signé repris');
             $bilan['anomalies'] = array_map(fn (array $a): string => $a['libelle'].' : '.$a['detail'], $this->controles->anomaliesBloquantes($c));
+            $bilan['alertes'] = array_values(array_map(fn (array $k): string => $k['evenement']->libelle.' : '.$k['detail'],
+                array_filter($this->controles->controles($c), fn (array $k): bool => $k['controle'] === 'acte_pendant_interruption')));
         };
 
         if ($appliquer) {

@@ -25,7 +25,7 @@ final class Calendriers
 {
     public const DOSSIER = 'lmd/calendriers';
 
-    public function __construct(private readonly ControlesCalendrier $controles) {}
+    public function __construct(private readonly ControlesCalendrier $controles, private readonly Actes $actes) {}
 
     public function creer(string $annee, string $debut, string $fin, User $auteur): CalendrierAcademique
     {
@@ -80,6 +80,7 @@ final class Calendriers
             $e->save();
             if ($c->estSigne() && $dateChange && ! $e->estPhase()) {
                 $this->journaliser($e, $ancien[0] ?? null, $ancien[1] ?? null, $e->wasRecentlyCreated ? null : $e->statut, $e->statut, (string) $motif, $auteur);
+                $this->actes->suivreEvenement($e);
             }
             $this->recalculerPhases($c);
 
@@ -141,6 +142,9 @@ final class Calendriers
             if ($ancien !== $statut) {
                 $this->journaliser($e, $e->debut_prevu, $e->fin_prevue, $ancien, $statut, $motif !== '' ? $motif : 'Changement de statut', $auteur);
             }
+            if ($statut === 'annule') {
+                $this->actes->annulerPourEvenement($e);
+            }
         });
     }
 
@@ -178,7 +182,7 @@ final class Calendriers
         $c->forceFill(['statut' => CalendrierAcademique::BROUILLON, 'renvoi_motif' => mb_substr(trim($motif), 0, 500)])->save();
     }
 
-    /** Signature (D21) : pièce signée obligatoire, référence figée, version précédente remplacée. */
+    /** Signature (D21) : pièce signée obligatoire, référence figée, version précédente remplacée, actes générés (D18). */
     public function signer(CalendrierAcademique $c, ?UploadedFile $piece, string $signataire, string $date, User $auteur): void
     {
         abort_unless($auteur->can(PermissionsLmd::CALENDRIER_SIGNER), 403);
@@ -199,10 +203,15 @@ final class Calendriers
         }
         DB::transaction(function () use ($c, $chemin, $contenu, $signataire, $date, $auteur): void {
             $this->figerReference($c);
-            CalendrierAcademique::query()->where('annee_academique', $c->annee_academique)->where('id', '<>', $c->id)
-                ->whereIn('statut', [CalendrierAcademique::SIGNE, CalendrierAcademique::PUBLIE])->update(['statut' => CalendrierAcademique::REMPLACE]);
+            $remplaces = CalendrierAcademique::query()->where('annee_academique', $c->annee_academique)->where('id', '<>', $c->id)
+                ->whereIn('statut', [CalendrierAcademique::SIGNE, CalendrierAcademique::PUBLIE])->get();
+            foreach ($remplaces as $ancien) {
+                $this->actes->reporterVersion($ancien, $c);
+                $ancien->forceFill(['statut' => CalendrierAcademique::REMPLACE])->save();
+            }
             $c->forceFill(['statut' => CalendrierAcademique::SIGNE, 'signataire' => mb_substr(trim($signataire), 0, 255), 'signe_le' => $date,
                 'signe_par' => $auteur->id, 'piece_signee_path' => $chemin, 'piece_signee_sha256' => hash('sha256', $contenu)])->save();
+            $this->actes->generer($c);
         });
     }
 
