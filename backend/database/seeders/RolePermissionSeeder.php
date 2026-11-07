@@ -107,6 +107,9 @@ final class RolePermissionSeeder extends Seeder
                     'lmd.jury_signer',
                     'lmd.documents_revoquer',
                     'lmd.documents_lever',
+                    'lmd.requetes_coter',
+                    'lmd.requetes_jury',
+                    'lmd.requetes_valider',
                     'journal.view',
                     'document.publish',
                     'library.thesaurus',
@@ -173,7 +176,7 @@ final class RolePermissionSeeder extends Seeder
                     'lmd.maquette_valider', 'lmd.regles', 'lmd.parcours_changer',
                     'lmd.notes_verrouiller', 'lmd.notes_rouvrir', 'lmd.derogation_rattrapage',
                     'lmd.deliberation_arreter', 'lmd.deliberation_publier', 'lmd.jury_signer',
-                    'lmd.documents_revoquer', 'lmd.documents_lever'],
+                    'lmd.documents_revoquer', 'lmd.documents_lever', 'lmd.requetes_coter', 'lmd.requetes_jury'],
             ],
             'enseignant' => [
                 'label' => 'Enseignant',
@@ -186,6 +189,12 @@ final class RolePermissionSeeder extends Seeder
                 'description' => 'Consultation des délibérations de ses jurys et signature de leurs PV.',
                 'modules' => [],
                 'sensitive' => ['lmd.jury_signer'],
+            ],
+            'chef_commission_requetes' => [
+                'label' => 'Chef de la commission des requêtes',
+                'description' => 'Validation définitive des PV du jury des requêtes : les notes changent à ce moment.',
+                'modules' => [],
+                'sensitive' => ['lmd.requetes_valider'],
             ],
             'library_manager' => [
                 'label' => 'Responsable de la bibliothèque',

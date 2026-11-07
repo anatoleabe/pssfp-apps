@@ -142,6 +142,7 @@ final class ModulePermissionMap
                     'lmd.inscrire',
                     'lmd.notes_saisir',
                     'lmd.deliberation_preparer',
+                    'lmd.requetes_traiter',
                 ],
                 'sensitive_description' => 'À cocher explicitement : préparer une maquette n\'emporte pas le droit de la valider, ni saisir des notes celui de verrouiller une étape.',
                 'sensitive' => [
@@ -157,8 +158,11 @@ final class ModulePermissionMap
                     'lmd.jury_signer' => 'Consulter les délibérations de ses jurys et signer leur PV (membre de jury)',
                     'lmd.documents_revoquer' => 'Révoquer un document officiel délivré (relevé, attestation, certificat)',
                     'lmd.documents_lever' => 'Lever la restriction « en règle » sur les documents d\'un auditeur',
+                    'lmd.requetes_coter' => 'Coter les requêtes, les déclarer irrecevables',
+                    'lmd.requetes_jury' => 'Tenir les séances du jury des requêtes (mentions, clôture du PV)',
+                    'lmd.requetes_valider' => 'Valider définitivement les PV de requêtes (chef de la commission)',
                 ],
-                'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer'],
+                'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider'],
             ],
             'bibliotheque' => [
                 'label' => 'Module 3 — Bibliothèque',

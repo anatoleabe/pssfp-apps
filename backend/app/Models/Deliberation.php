@@ -39,6 +39,7 @@ class Deliberation extends Model
         'arretee_at' => 'datetime',
         'publiee_at' => 'datetime',
         'requetes_jusqu_au' => 'immutable_date',
+        'a_rectifier_at' => 'datetime',
     ];
 
     public function uniqueIds(): array

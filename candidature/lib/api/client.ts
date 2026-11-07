@@ -476,6 +476,42 @@ export function verifierDocument(code: string): Promise<ApiResult<DocumentVerifi
   return apiGet<DocumentVerifie>(`/documents/verification/${encodeURIComponent(code)}`, { noStore: true });
 }
 
+export interface RequeteEtape {
+  statut: string;
+  libelle: string;
+  le: string | null;
+}
+
+export interface MaRequete {
+  id: string;
+  numero: string;
+  type: 'note' | 'document';
+  objet: string;
+  statut: string;
+  statut_libelle: string;
+  deposee_le: string | null;
+  empreinte: string;
+  annulable: boolean;
+  mention: string | null;
+  note_retenue: number | null;
+  motif_decision: string | null;
+  document_disponible: boolean;
+  etapes: RequeteEtape[];
+}
+
+export interface MesRequetes {
+  requetes: MaRequete[];
+  /** ECUE (code) et notes sur lesquels une requête est recevable aujourd'hui. */
+  cibles: { ecue: string; intitule: string; session: 'normale' | 'rattrapage'; notes: ('cc' | 'assiduite' | 'examen')[] }[];
+  motifs: Record<string, string>;
+  documents: Record<string, string>;
+}
+
+/** Requêtes de l'auditeur connecté et cibles recevables. */
+export function getMyRequetes(token: string): Promise<ApiResult<MesRequetes>> {
+  return apiGet<MesRequetes>('/applications/me/requetes', { token, noStore: true });
+}
+
 /** Mot de passe FOAD, à la demande seulement : jamais présent dans la page initiale. */
 export function revelerAcces(token: string): Promise<ApiResult<AccesRevele>> {
   return apiPost<AccesRevele>('/applications/me/acces/reveler', {}, { token, noStore: true });

@@ -40,4 +40,12 @@ final class PermissionsLmd
     public const DOCUMENTS_REVOQUER = 'lmd.documents_revoquer';
 
     public const DOCUMENTS_LEVER = 'lmd.documents_lever';
+
+    public const REQUETES_TRAITER = 'lmd.requetes_traiter';
+
+    public const REQUETES_COTER = 'lmd.requetes_coter';
+
+    public const REQUETES_JURY = 'lmd.requetes_jury';
+
+    public const REQUETES_VALIDER = 'lmd.requetes_valider';
 }

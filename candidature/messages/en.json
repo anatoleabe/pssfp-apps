@@ -1107,6 +1107,7 @@
       "accueil": "Home",
       "parcours": "My programme",
       "resultats": "My results",
+      "requetes": "My requests",
       "scolarite": "My fees",
       "acces": "My access",
       "documents": "My documents",
@@ -1213,6 +1214,47 @@
       "certificatTitre": "Certificate of enrolment",
       "certificat": "Certificate of enrolment for the current year (PDF)",
       "erreurDocument": "The document could not be issued. Please try again; if the problem persists, contact the registry."
+    },
+    "requetes": {
+      "eyebrow": "My requests",
+      "nouvelle": "New request",
+      "aide": "One request per course. A grade appeal is accepted once the mark is locked, until the deadline shown with your results.",
+      "suivi": "Tracking my requests",
+      "aucune": "You have not filed any request.",
+      "noteCorrigee": "Corrected mark: {note} / 20",
+      "decision": "Decision: {motif}",
+      "telecharger": "Download the document",
+      "annuler": "Cancel the request",
+      "annulee": "Request cancelled.",
+      "erreur": "The operation failed. Please try again or contact the registry.",
+      "formulaire": {
+        "type": "Subject",
+        "typeNote": "A mark",
+        "typeDocument": "A document",
+        "aucuneCible": "No mark is open to appeals at the moment.",
+        "ecue": "Course",
+        "choisir": "Choose the course",
+        "session": {
+          "normale": "regular session",
+          "rattrapage": "resit"
+        },
+        "noteVisee": "Mark concerned",
+        "notes": {
+          "cc": "Continuous assessment",
+          "assiduite": "Attendance",
+          "examen": "Exam"
+        },
+        "motif": "Reason",
+        "document": "Document requested",
+        "description": "Explain your request",
+        "pieces": "Supporting documents",
+        "piecesAide": "PDF, JPEG or PNG, 5 MB each at most, five at most.",
+        "deposer": "File the request",
+        "envoi": "Sending…",
+        "erreur": "The request could not be saved. Please try again.",
+        "accuse": "Request saved. Acknowledgement no. {numero}.",
+        "empreinte": "Filing fingerprint: {empreinte}"
+      }
     }
   },
   "verification": {
