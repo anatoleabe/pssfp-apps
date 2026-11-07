@@ -12,6 +12,7 @@ use App\Models\Maquette;
 use App\Models\MaquetteEcue;
 use App\Models\NoteEcue;
 use App\Models\User;
+use App\Services\Lmd\Assiduite;
 use App\Services\Lmd\NotesExcel;
 use App\Services\Lmd\PermissionsLmd;
 use App\Services\Lmd\SaisieNotes as ServiceSaisie;
@@ -197,6 +198,19 @@ class SaisieNotes extends Page implements HasForms
                 ->visible(fn (): bool => $statut() === EtapeSaisie::VERROUILLEE && $this->utilisateur()->can(PermissionsLmd::NOTES_ROUVRIR))
                 ->form(MessagesValidation::appliquer([Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(10)->maxLength(500)]))
                 ->action(fn (array $data) => $this->executer(fn (EtapeSaisie $e) => app(ServiceSaisie::class)->rouvrir($e, $this->utilisateur(), (string) $data['motif']), 'Étape rouverte')),
+            Action::make('reporterAssiduite')->label('Reporter l\'assiduité calculée')->icon('heroicon-o-calendar-days')->color('gray')
+                ->visible(fn (): bool => $statut() === EtapeSaisie::OUVERTE && $this->etapeCourante()?->etape === EtapeSaisie::ASSIDUITE
+                    && $this->utilisateur()->can(PermissionsLmd::ASSIDUITE))
+                ->requiresConfirmation()
+                ->modalDescription('La note d\'assiduité de chaque auditeur est calculée sur les séances tenues de l\'ECUE (D12) et écrite ici, avec historique.')
+                ->action(function (): void {
+                    $etape = $this->etapeCourante();
+                    if ($etape === null) {
+                        return;
+                    }
+                    $this->executer(fn () => app(Assiduite::class)->reporter($etape->ecue, $this->utilisateur()), 'Assiduité reportée');
+                    $this->charger();
+                }),
             Action::make('modele')->label('Modèle Excel')->icon('heroicon-o-arrow-down-tray')->color('gray')
                 ->visible(fn (): bool => $this->etapeCourante() !== null)
                 ->action(function (): ?StreamedResponse {
