@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\Applications\CandidatureController;
+use App\Http\Controllers\Api\Applications\MemoireController;
 use App\Http\Controllers\Api\Applications\ParcoursController;
 use App\Http\Controllers\Api\Applications\QrCandidatureController;
 use App\Http\Controllers\Api\Applications\RequetesController;
@@ -154,6 +155,14 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
         Route::post('/me/requetes', [RequetesController::class, 'store'])->middleware(['ability:application:read', 'throttle:20,60'])->name('me.requetes.store');
         Route::post('/me/requetes/{uuid}/annuler', [RequetesController::class, 'annuler'])->middleware('ability:application:read')->name('me.requetes.annuler');
         Route::get('/me/requetes/{uuid}/document', [RequetesController::class, 'document'])->middleware('ability:application:read')->name('me.requetes.document');
+
+        // Mémoire de l'auditeur (spec module 4, lot 11).
+        Route::get('/me/memoire', [MemoireController::class, 'show'])->middleware('ability:application:read')->name('me.memoire');
+        Route::post('/me/memoire/depots/{etape}', [MemoireController::class, 'deposer'])
+            ->whereIn('etape', ['cadrage', 'depot_projet', 'presoutenance1', 'presoutenance2', 'depot_final'])
+            ->middleware(['ability:application:read', 'throttle:20,60'])->name('me.memoire.deposer');
+        Route::get('/me/memoire/attestation', [MemoireController::class, 'attestation'])
+            ->middleware(['ability:application:read', 'throttle:releve-scolarite'])->name('me.memoire.attestation');
 
         Route::get('/me/releve-scolarite', [ScolariteController::class, 'releve'])
             ->middleware(['ability:application:read', 'throttle:releve-scolarite'])

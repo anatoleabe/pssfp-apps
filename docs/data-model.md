@@ -945,6 +945,18 @@ Détail : `docs/specs/module-4-lmd-lot6-deliberations.md`.
 | `seances` | Séance d'un ECUE | `uuid` ; date, horaires (fin après début), modalité, salle, lien ; prévue, tenue, annulée (motif) |
 | `pointages` | Présence d'un auditeur à une séance | présent, absent, justifié (motif obligatoire) ; mode signature, manuel, Zoom ; durée de connexion |
 
+### Mémoires (module 4, lot 11)
+
+| Table | Rôle | Points clés |
+|---|---|---|
+| `dossiers_memoire` | Mémoire d'un auditeur AS | `uuid` ; unique par auditeur et inscription ; thème, structure d'accueil, stage, encadreurs (compte facultatif), vague, soutenance ; en rédaction, prêt, soutenu, suspendu ou abandon (motif) |
+| `etapes_memoire` | Étape datée et pondérée (D32) | début 0, cadrage 5, projet 15, pré-soutenances 30 + 30, dépôt final 10, soutenance 10 ; à faire, déposée, validée, ajournée, dispensée ; note 0-20 ; document et SHA-256 ; retard autorisé (motif obligatoire) |
+| `suivis_memoire` | Fiche de suivi d'encadrement | date, mode, avancement estimé, chapitres, observations |
+| `avis_memoire` | Avis de dépôt d'un encadreur | académique ou professionnel ; le plus récent fait foi |
+| `rapports_similitude` | Rapport anti-plagiat | outil, taux 0-100, date ; le plus récent fait foi (seuil 20 %) |
+
+L'attestation d'autorisation de dépôt est un `documents_delivres` de type `autorisation_depot` (`AD-AAAA-NNNNNN`).
+
 ## 11. Préparation Phase II (placeholders)
 
 Tables créées en Phase I avec un schéma minimal pour préparer la Phase II sans migration cassante. Aucune logique métier n'est attachée à ces tables en Phase I — elles existent simplement pour stabiliser les FK.

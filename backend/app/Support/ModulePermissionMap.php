@@ -144,6 +144,7 @@ final class ModulePermissionMap
                     'lmd.deliberation_preparer',
                     'lmd.requetes_traiter',
                     'lmd.assiduite',
+                    'lmd.memoires_suivre',
                 ],
                 'sensitive_description' => 'À cocher explicitement : préparer une maquette n\'emporte pas le droit de la valider, ni saisir des notes celui de verrouiller une étape.',
                 'sensitive' => [
@@ -164,6 +165,7 @@ final class ModulePermissionMap
                     'lmd.requetes_valider' => 'Valider définitivement les PV de requêtes (chef de la commission)',
                     'lmd.anonymat_gerer' => 'Gérer les anonymats (numéros, constats, levée avec la clé) — sans saisir de notes',
                     'lmd.anonymat_saisir' => 'Saisir les notes d\'examen sur les numéros d\'anonymat (opérateur)',
+                    'lmd.memoires_attester' => 'Délivrer l\'attestation d\'autorisation de dépôt du mémoire, autoriser un retard d\'étape (chef de la scolarité)',
                 ],
                 'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir'],
             ],
