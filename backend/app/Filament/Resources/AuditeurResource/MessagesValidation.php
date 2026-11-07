@@ -34,16 +34,19 @@ final class MessagesValidation
     ];
 
     /**
+     * `$particuliers` remplace un message pour ce formulaire (ex. « unique »).
+     *
      * @param  list<Component>  $composants
+     * @param  array<string, string>  $particuliers
      * @return list<Component>
      */
-    public static function appliquer(array $composants): array
+    public static function appliquer(array $composants, array $particuliers = []): array
     {
         foreach ($composants as $composant) {
             if ($composant instanceof Field) {
-                $composant->validationMessages(self::MESSAGES);
+                $composant->validationMessages(array_replace(self::MESSAGES, $particuliers));
             }
-            self::appliquer($composant->getChildComponents());
+            self::appliquer($composant->getChildComponents(), $particuliers);
         }
 
         return $composants;

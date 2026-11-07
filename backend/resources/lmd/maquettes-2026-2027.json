@@ -1,0 +1,1287 @@
+{
+ "annee_academique": "2026-2027",
+ "source": "Programmes de formation du PSSFP, septembre 2026 (grilles des enseignements). Memoire du S10 scinde en UE distincte (D2, D22 point 2) ; codes du M1 harmonises MPMPP (D22).",
+ "parcours": [
+  {
+   "code": "TC",
+   "niveau": "M1",
+   "libelle": "Tronc commun",
+   "specialite": null,
+   "ues": [
+    {
+     "code": "MPMPP71",
+     "intitule": "Cadre stratégique de gestion des finances publiques",
+     "semestre": 7,
+     "credits": 8,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPMPP711",
+       "intitule": "Planification stratégique et programmation du développement",
+       "credits": 3,
+       "cm": 30,
+       "td": 5,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPMPP712",
+       "intitule": "Élaboration et évaluation des politiques publiques",
+       "credits": 3,
+       "cm": 30,
+       "td": 10,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPMPP713",
+       "intitule": "Programmation financière",
+       "credits": 2,
+       "cm": 25,
+       "td": 5,
+       "tp": 0,
+       "tpe": 0
+      }
+     ]
+    },
+    {
+     "code": "MPMPP72",
+     "intitule": "Gestion des finances publiques de l’État",
+     "semestre": 7,
+     "credits": 13,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPMPP721",
+       "intitule": "Réforme budgétaire en zone CEMAC",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 0,
+       "tpe": 15
+      },
+      {
+       "code": "MPMPP722",
+       "intitule": "Budget de l’État : préparation, élaboration, exécution et contrôle",
+       "credits": 4,
+       "cm": 40,
+       "td": 5,
+       "tp": 0,
+       "tpe": 15
+      },
+      {
+       "code": "MPMPP723",
+       "intitule": "Négociation et gestion de la dette de l’État",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPMPP724",
+       "intitule": "Gestion de la trésorerie de l’État",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      }
+     ]
+    },
+    {
+     "code": "MPMPP73",
+     "intitule": "Finances publiques locales",
+     "semestre": 7,
+     "credits": 9,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPMPP731",
+       "intitule": "Décentralisation au Cameroun",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPMPP732",
+       "intitule": "Gouvernance territoriale et action publique locale",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPMPP733",
+       "intitule": "Finances publiques locales et fiscalité locale",
+       "credits": 3,
+       "cm": 30,
+       "td": 10,
+       "tp": 0,
+       "tpe": 5
+      }
+     ]
+    },
+    {
+     "code": "MPMPP81",
+     "intitule": "Contrôle de l’exécution des finances publiques",
+     "semestre": 8,
+     "credits": 12,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPMPP811",
+       "intitule": "Contrôle de l’exécution des finances publiques (contrôle interne et externe)",
+       "credits": 4,
+       "cm": 30,
+       "td": 15,
+       "tp": 0,
+       "tpe": 15
+      },
+      {
+       "code": "MPMPP812",
+       "intitule": "Audit des finances publiques",
+       "credits": 4,
+       "cm": 30,
+       "td": 15,
+       "tp": 0,
+       "tpe": 15
+      },
+      {
+       "code": "MPMPP813",
+       "intitule": "Prévention et gestion des risques",
+       "credits": 4,
+       "cm": 30,
+       "td": 15,
+       "tp": 0,
+       "tpe": 15
+      }
+     ]
+    },
+    {
+     "code": "MPMPP82",
+     "intitule": "Gestion comptable et financière",
+     "semestre": 8,
+     "credits": 9,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPMPP821",
+       "intitule": "Comptabilité Générale",
+       "credits": 3,
+       "cm": 30,
+       "td": 5,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPMPP822",
+       "intitule": "Fiscalité Générale",
+       "credits": 3,
+       "cm": 30,
+       "td": 5,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPMPP823",
+       "intitule": "Institutions financières et statistiques monétaires",
+       "credits": 3,
+       "cm": 30,
+       "td": 5,
+       "tp": 0,
+       "tpe": 10
+      }
+     ]
+    },
+    {
+     "code": "MPMPP83",
+     "intitule": "Compétences transversales",
+     "semestre": 8,
+     "credits": 9,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPMPP831",
+       "intitule": "Analyse et gestion des projets publics",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 0,
+       "tpe": 15
+      },
+      {
+       "code": "MPMPP832",
+       "intitule": "Gouvernance numérique, IA et modernisation de l’action publique",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 0,
+       "tpe": 15
+      },
+      {
+       "code": "MPMPP833",
+       "intitule": "Méthodologie de recherche et rédaction scientifique",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 0,
+       "tpe": 15
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "FFCP",
+   "niveau": "M2",
+   "libelle": "Fiscalité, Finance et Comptabilité Publique",
+   "specialite": "Fiscalité, Finance et Comptabilité Publique",
+   "ues": [
+    {
+     "code": "MPFFC91",
+     "intitule": "Fiscalité",
+     "semestre": 9,
+     "credits": 15,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPFFC911",
+       "intitule": "Fiscalité générale approfondie",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPFFC912",
+       "intitule": "Fiscalité locale",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPFFC913",
+       "intitule": "Régime douanier et fiscalité internationale",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPFFC914",
+       "intitule": "Procédures douanières",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPFFC915",
+       "intitule": "Contentieux fiscal et douanier",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPFFC916",
+       "intitule": "Fiscalité des ressources naturelles",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      }
+     ]
+    },
+    {
+     "code": "MPFFC92",
+     "intitule": "Finance et comptabilité publique",
+     "semestre": 9,
+     "credits": 15,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPFFC921",
+       "intitule": "Secteur bancaire national et financement de l’économie",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPFFC922",
+       "intitule": "Régulation financière",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPFFC923",
+       "intitule": "Marchés, émission et gestion des titres souverains",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPFFC924",
+       "intitule": "Finance moderne et nouveaux paradigmes vers la finance de demain",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPFFC925",
+       "intitule": "Institutions financières internationales, politiques budgétaires et fiscales",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPFFC926",
+       "intitule": "Comptabilité publique : État, EPA et CTD",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      }
+     ]
+    },
+    {
+     "code": "MPFFC101",
+     "intitule": "Techniques d’analyse et projet",
+     "semestre": 10,
+     "credits": 14,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPFFC1011",
+       "intitule": "Communication",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPFFC1012",
+       "intitule": "Rédaction administrative",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPFFC1013",
+       "intitule": "Techniques de mobilisation des financements extérieurs",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPFFC1014",
+       "intitule": "Méthodologie de la recherche",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPFFC1015",
+       "intitule": "Séminaires thématiques et conférences Surveillance multilatérale ; Organisation budgétaire des institutions internationales Responsabilité des acteurs financiers publics Informatique appliquée à la gestion publique (PROBMIS, PSE, etc.) Cadrage macro-budgétaire et priorisation des interventions publiques",
+       "credits": 2,
+       "cm": 15,
+       "td": 0,
+       "tp": 0,
+       "tpe": 15
+      }
+     ]
+    },
+    {
+     "code": "MPFFC102",
+     "intitule": "Mémoire et stage pratique professionnel",
+     "semestre": 10,
+     "credits": 16,
+     "partie": "soutenance",
+     "ecues": [
+      {
+       "code": "MPFFC1016",
+       "intitule": "Mémoire et stage pratique professionnel",
+       "credits": 16,
+       "cm": 0,
+       "td": 0,
+       "tp": 0,
+       "tpe": 240
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "GTFP",
+   "niveau": "M2",
+   "libelle": "Gouvernance Territoriale et Finances Publiques Locales",
+   "specialite": "Gouvernance Territoriale et Finances Publiques locales",
+   "ues": [
+    {
+     "code": "MPGTF91",
+     "intitule": "Gestion budgétaire des CTD",
+     "semestre": 9,
+     "credits": 11,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPGTF911",
+       "intitule": "Cadre stratégique du développement des CTD",
+       "credits": 2,
+       "cm": 20,
+       "td": 5,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPGTF912",
+       "intitule": "Budget des CTD : préparation, élaboration, exécution et contrôle",
+       "credits": 3,
+       "cm": 30,
+       "td": 5,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPGTF913",
+       "intitule": "Gestion du patrimoine local",
+       "credits": 3,
+       "cm": 30,
+       "td": 5,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPGTF914",
+       "intitule": "Coopération décentralisée",
+       "credits": 3,
+       "cm": 30,
+       "td": 5,
+       "tp": 0,
+       "tpe": 10
+      }
+     ]
+    },
+    {
+     "code": "MPGTF92",
+     "intitule": "Gestion financière et comptable des CTD",
+     "semestre": 9,
+     "credits": 11,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPGTF921",
+       "intitule": "Comptabilité générale et budgétaire des CTD",
+       "credits": 3,
+       "cm": 30,
+       "td": 5,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPGTF922",
+       "intitule": "Fiscalité locale",
+       "credits": 2,
+       "cm": 20,
+       "td": 5,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPGTF923",
+       "intitule": "Analyse financière des CTD",
+       "credits": 2,
+       "cm": 20,
+       "td": 5,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPGTF924",
+       "intitule": "Économie locale et action fiscale locale",
+       "credits": 2,
+       "cm": 20,
+       "td": 5,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPGTF925",
+       "intitule": "Comptabilité matières des CTD",
+       "credits": 2,
+       "cm": 20,
+       "td": 5,
+       "tp": 0,
+       "tpe": 5
+      }
+     ]
+    },
+    {
+     "code": "MPGTF93",
+     "intitule": "Audit et contrôle des CTD",
+     "semestre": 9,
+     "credits": 8,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPGTF931",
+       "intitule": "Tutelle administrative et pilotage des CTD",
+       "credits": 2,
+       "cm": 20,
+       "td": 5,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPGTF932",
+       "intitule": "Gouvernance financière locale et participation citoyenne",
+       "credits": 3,
+       "cm": 30,
+       "td": 5,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPGTF933",
+       "intitule": "Techniques d’audit et contrôle des CTD",
+       "credits": 3,
+       "cm": 30,
+       "td": 5,
+       "tp": 0,
+       "tpe": 10
+      }
+     ]
+    },
+    {
+     "code": "MPGTF101",
+     "intitule": "Techniques d’analyse et projet",
+     "semestre": 10,
+     "credits": 14,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPGTF1011",
+       "intitule": "Communication",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPGTF1012",
+       "intitule": "Rédaction administrative",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPGTF1013",
+       "intitule": "Techniques de mobilisation des financements extérieurs",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPGTF1014",
+       "intitule": "Méthodologie de la recherche",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPGTF1015",
+       "intitule": "Séminaires thématiques et conférences Surveillance multilatérale ; Organisation budgétaire des institutions internationales Responsabilité des acteurs financiers publics Informatique appliquée à la gestion publique (PROBMIS, PSE, etc.) Cadrage macro-budgétaire et priorisation des interventions publiques",
+       "credits": 2,
+       "cm": 15,
+       "td": 0,
+       "tp": 0,
+       "tpe": 15
+      }
+     ]
+    },
+    {
+     "code": "MPGTF102",
+     "intitule": "Mémoire et stage pratique professionnel",
+     "semestre": 10,
+     "credits": 16,
+     "partie": "soutenance",
+     "ecues": [
+      {
+       "code": "MPGTF1016",
+       "intitule": "Mémoire et stage pratique professionnel",
+       "credits": 16,
+       "cm": 0,
+       "td": 0,
+       "tp": 0,
+       "tpe": 240
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "ACFP",
+   "niveau": "M2",
+   "libelle": "Audit et Contrôle des Finances Publiques",
+   "specialite": "Audit et contrôle des Finances Publiques",
+   "ues": [
+    {
+     "code": "MPACF91",
+     "intitule": "Environnement du contrôle et de l’audit",
+     "semestre": 9,
+     "credits": 8,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPACF911",
+       "intitule": "Initiation aux normes IFRS",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPACF912",
+       "intitule": "Initiation aux normes INTOSAI",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPACF913",
+       "intitule": "Procédures de recettes et de dépenses publiques",
+       "credits": 3,
+       "cm": 30,
+       "td": 10,
+       "tp": 0,
+       "tpe": 5
+      }
+     ]
+    },
+    {
+     "code": "MPACF92",
+     "intitule": "Contrôle des finances publiques",
+     "semestre": 9,
+     "credits": 14,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPACF921",
+       "intitule": "Contrôle et audit des finances publiques – jugement des comptes (contrôle juridictionnel)",
+       "credits": 3,
+       "cm": 30,
+       "td": 10,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPACF922",
+       "intitule": "Contrôle de performance et évaluation des politiques publiques",
+       "credits": 3,
+       "cm": 30,
+       "td": 10,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPACF923",
+       "intitule": "Contrôle de gestion dans les administrations publiques",
+       "credits": 3,
+       "cm": 30,
+       "td": 10,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPACF924",
+       "intitule": "Procédures et contrôle de l’administration publique (contrôle administratif des finances publiques)",
+       "credits": 3,
+       "cm": 30,
+       "td": 10,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPACF925",
+       "intitule": "Contrôle et audit des systèmes d’information",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      }
+     ]
+    },
+    {
+     "code": "MPACF93",
+     "intitule": "Audit des finances publiques",
+     "semestre": 9,
+     "credits": 8,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPACF931",
+       "intitule": "Analyse financière",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPACF932",
+       "intitule": "Audit et contrôle des marchés publics",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPACF933",
+       "intitule": "Certification du compte général de l’État et contrôle de l’exécution de la loi de finances",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      }
+     ]
+    },
+    {
+     "code": "MPACF101",
+     "intitule": "Communication, méthodologie, stage et mémoire",
+     "semestre": 10,
+     "credits": 14,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPACF1011",
+       "intitule": "Communication",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPACF1012",
+       "intitule": "Rédaction administrative",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPACF1013",
+       "intitule": "Techniques de mobilisation des financements extérieurs",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPACF1014",
+       "intitule": "Méthodologie de la recherche",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPACF1015",
+       "intitule": "Séminaires thématiques et conférences Surveillance multilatérale ; Organisation budgétaire des institutions internationales Responsabilité des acteurs financiers publics Informatique appliquée à la gestion publique (PROBMIS, PSE, etc.) Cadrage macro-budgétaire et priorisation des interventions publiques",
+       "credits": 2,
+       "cm": 15,
+       "td": 0,
+       "tp": 0,
+       "tpe": 15
+      }
+     ]
+    },
+    {
+     "code": "MPACF102",
+     "intitule": "Mémoire et stage pratique professionnel",
+     "semestre": 10,
+     "credits": 16,
+     "partie": "soutenance",
+     "ecues": [
+      {
+       "code": "MPACF1016",
+       "intitule": "Mémoire et stage pratique professionnel",
+       "credits": 16,
+       "cm": 0,
+       "td": 0,
+       "tp": 0,
+       "tpe": 240
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "EPGP",
+   "niveau": "M2",
+   "libelle": "Économie Publique et Gestion Publique",
+   "specialite": "Économie Publique et Gestion Publique",
+   "ues": [
+    {
+     "code": "MPEPG91",
+     "intitule": "Économie publique",
+     "semestre": 9,
+     "credits": 15,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPEPG911",
+       "intitule": "Politique économique",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPEPG912",
+       "intitule": "Statistique des finances publiques",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPEPG913",
+       "intitule": "Cadrage macroéconomique",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPEPG914",
+       "intitule": "L’État et le secteur public",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPEPG915",
+       "intitule": "Conjoncture et prévision économiques",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPEPG916",
+       "intitule": "Analyse de la viabilité de la dette publique",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      }
+     ]
+    },
+    {
+     "code": "MPEPG92",
+     "intitule": "Gestion publique",
+     "semestre": 9,
+     "credits": 15,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPEPG921",
+       "intitule": "Comptabilité publique (comptabilité générale, budgétaire et matière)",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPEPG922",
+       "intitule": "Élaboration des politiques publiques",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPEPG923",
+       "intitule": "Budget de l’État : élaboration, préparation, exécution et contrôle",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPEPG924",
+       "intitule": "Contrôle de gestion et évaluation des politiques publiques",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPEPG925",
+       "intitule": "Planification et programmation budgétaire (Vision, CDMT, CBMT, programme économique)",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPEPG926",
+       "intitule": "Gestion des investissements publics",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      }
+     ]
+    },
+    {
+     "code": "MPEPG101",
+     "intitule": "Communication, méthodologie, stage et mémoire",
+     "semestre": 10,
+     "credits": 14,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPEPG1011",
+       "intitule": "Communication",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPEPG1012",
+       "intitule": "Rédaction administrative",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPEPG1013",
+       "intitule": "Techniques de mobilisation des financements extérieurs",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPEPG1014",
+       "intitule": "Méthodologie de la recherche",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPEPG1015",
+       "intitule": "Séminaires thématiques et conférences Surveillance multilatérale ; Organisation budgétaire des institutions internationales Responsabilité des acteurs financiers publics Informatique appliquée à la gestion publique (PROBMIS, PSE, etc.) Cadrage macro-budgétaire et priorisation des interventions publiques",
+       "credits": 2,
+       "cm": 15,
+       "td": 0,
+       "tp": 0,
+       "tpe": 15
+      }
+     ]
+    },
+    {
+     "code": "MPEPG102",
+     "intitule": "Mémoire et stage pratique professionnel",
+     "semestre": 10,
+     "credits": 16,
+     "partie": "soutenance",
+     "ecues": [
+      {
+       "code": "MPEPG1016",
+       "intitule": "Mémoire et stage pratique professionnel",
+       "credits": 16,
+       "cm": 0,
+       "td": 0,
+       "tp": 0,
+       "tpe": 240
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "MPP",
+   "niveau": "M2",
+   "libelle": "Marchés Publics et Partenariats Public-Privé",
+   "specialite": "Marchés Publics et Partenariats Public-Privés",
+   "ues": [
+    {
+     "code": "MPMPP91",
+     "intitule": "Planification et programmation des marchés publics",
+     "semestre": 9,
+     "credits": 11,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPMPP911",
+       "intitule": "Introduction à la commande publique : cycle des projets",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPMPP912",
+       "intitule": "Programmation et budgétisation des marchés publics",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPMPP913",
+       "intitule": "Techniques d’élaboration des documents de passation des marchés publics",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPMPP914",
+       "intitule": "Procédures des bailleurs de fonds en matière de commande publique",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      }
+     ]
+    },
+    {
+     "code": "MPMPP92",
+     "intitule": "Éxécution et contrôle des marchés publics",
+     "semestre": 9,
+     "credits": 10,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPMPP921",
+       "intitule": "Gestion des risques et garanties dans les marchés publics",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPMPP922",
+       "intitule": "Éxécution financière",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPMPP923",
+       "intitule": "Contrôle, sanction et contentieux des marchés publics",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPMPP924",
+       "intitule": "Régulation des marchés publics",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      }
+     ]
+    },
+    {
+     "code": "MPMPP93",
+     "intitule": "Partenariats public-privé",
+     "semestre": 9,
+     "credits": 9,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPMPP931",
+       "intitule": "Management des commissions de passation des marchés publics",
+       "credits": 3,
+       "cm": 25,
+       "td": 10,
+       "tp": 0,
+       "tpe": 10
+      },
+      {
+       "code": "MPMPP932",
+       "intitule": "Théorie générale des PPP",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPMPP933",
+       "intitule": "Analyse et gestion financière des projets PPP",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      },
+      {
+       "code": "MPMPP934",
+       "intitule": "Modèle de financement des PPP et gestion des risques",
+       "credits": 2,
+       "cm": 25,
+       "td": 0,
+       "tp": 0,
+       "tpe": 5
+      }
+     ]
+    },
+    {
+     "code": "MPMPP101",
+     "intitule": "Communication, méthodologie, stage et mémoire",
+     "semestre": 10,
+     "credits": 14,
+     "partie": "ecrite",
+     "ecues": [
+      {
+       "code": "MPMPP1011",
+       "intitule": "Communication",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPMPP1012",
+       "intitule": "Rédaction administrative",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPMPP1013",
+       "intitule": "Techniques de mobilisation des financements extérieurs",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPMPP1014",
+       "intitule": "Méthodologie de la recherche",
+       "credits": 3,
+       "cm": 25,
+       "td": 5,
+       "tp": 5,
+       "tpe": 10
+      },
+      {
+       "code": "MPMPP1015",
+       "intitule": "Séminaires thématiques et conférences Surveillance multilatérale ; Organisation budgétaire des institutions internationales Responsabilité des acteurs financiers publics Informatique appliquée à la gestion publique (PROBMIS, PSE, etc.) Cadrage macro-budgétaire et priorisation des interventions publiques",
+       "credits": 2,
+       "cm": 15,
+       "td": 0,
+       "tp": 0,
+       "tpe": 15
+      }
+     ]
+    },
+    {
+     "code": "MPMPP102",
+     "intitule": "Mémoire et stage pratique professionnel",
+     "semestre": 10,
+     "credits": 16,
+     "partie": "soutenance",
+     "ecues": [
+      {
+       "code": "MPMPP1016",
+       "intitule": "Mémoire et stage pratique professionnel",
+       "credits": 16,
+       "cm": 0,
+       "td": 0,
+       "tp": 0,
+       "tpe": 240
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

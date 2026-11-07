@@ -383,6 +383,42 @@ export function getMyScolarite(token: string): Promise<ApiResult<MaScolarite>> {
   return apiGet<MaScolarite>('/applications/me/scolarite', { token, noStore: true });
 }
 
+export interface ParcoursEcue {
+  code: string;
+  intitule: string;
+  credits: number;
+  heures_cm: number;
+  heures_td: number;
+  heures_tp: number;
+  heures_tpe: number;
+}
+
+export interface ParcoursUe {
+  code: string;
+  intitule: string;
+  credits: number;
+  /** `soutenance` : le mémoire, ouvert après l'autorisation de soutenir. */
+  partie: 'ecrite' | 'soutenance';
+  heures: number;
+  ecues: ParcoursEcue[];
+}
+
+export interface MonParcours {
+  annee_academique: string;
+  niveau: string;
+  parcours: { code: string; libelle: string } | null;
+  /** La maquette n'est montrée qu'une fois validée par la scolarité. */
+  maquette_validee: boolean;
+  inscrit: boolean;
+  credits_total: number;
+  semestres: { numero: number; credits: number; ues: ParcoursUe[] }[];
+}
+
+/** Parcours et maquette de l'inscription en cours ; 404 `auditeur_missing` sans inscription. */
+export function getMyParcours(token: string): Promise<ApiResult<MonParcours>> {
+  return apiGet<MonParcours>('/applications/me/parcours', { token, noStore: true });
+}
+
 /** Mot de passe FOAD, à la demande seulement : jamais présent dans la page initiale. */
 export function revelerAcces(token: string): Promise<ApiResult<AccesRevele>> {
   return apiPost<AccesRevele>('/applications/me/acces/reveler', {}, { token, noStore: true });

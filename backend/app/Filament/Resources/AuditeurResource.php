@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Resources\AuditeurResource\Pages;
+use App\Filament\Resources\AuditeurResource\ParcoursActions;
 use App\Filament\Resources\AuditeurResource\RelationManagers\VersementsRelationManager;
 use App\Filament\Resources\CandidatureResource\ComptesEcampusActions;
 use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
@@ -14,6 +15,7 @@ use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
+use App\Services\Lmd\PermissionsLmd;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\LibelleSituation;
 use App\Support\BelongsToModule;
@@ -153,6 +155,12 @@ class AuditeurResource extends Resource
                         ->color(fn (string $state): string => self::couleurStatut($state)),
                     Infolists\Components\TextEntry::make('statut_depuis')->label('Depuis le')->date('d/m/Y')->placeholder('—'),
                     Infolists\Components\TextEntry::make('statut_motif')->label('Motif')->placeholder('—'),
+                ]),
+            Infolists\Components\Section::make('Parcours LMD')
+                ->visible(fn (): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER))
+                ->schema([
+                    Infolists\Components\TextEntry::make('parcours_lmd')->hiddenLabel()
+                        ->getStateUsing(fn (Auditeur $record): string => ParcoursActions::resume($record)),
                 ]),
             Infolists\Components\Section::make('Situation financière')
                 ->description(fn (Auditeur $record): ?string => $record->inscriptionCourante === null ? null

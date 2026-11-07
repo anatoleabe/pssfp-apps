@@ -1105,6 +1105,7 @@
     "navLabel": "Rubriques de mon espace",
     "nav": {
       "accueil": "Accueil",
+      "parcours": "Mon parcours",
       "scolarite": "Ma scolarité",
       "acces": "Mes accès",
       "documents": "Mes documents",
@@ -1148,6 +1149,29 @@
     "messages": {
       "aucun": "Vous n'avez reçu aucun message de l'administration."
     },
-    "eyebrow": "Espace auditeur"
+    "eyebrow": "Espace auditeur",
+    "parcours": {
+      "eyebrow": "Mon parcours",
+      "title": "{niveau} · {libelle}",
+      "annee": "Année académique {annee}",
+      "creditsTotal": "{credits} crédits",
+      "sansParcours": "Votre parcours n'est pas encore défini. La scolarité vous inscrira sur votre option.",
+      "enPreparation": "La maquette de votre parcours est en cours de validation par la scolarité. Elle apparaîtra ici dès sa publication.",
+      "nonInscrit": "La maquette est publiée : votre inscription aux unités d'enseignement sera faite par la scolarité.",
+      "semestre": "Semestre {numero}",
+      "creditsSemestre": "{credits} crédits",
+      "credits": "{credits, plural, one {# crédit} other {# crédits}}",
+      "heures": "{heures} h",
+      "soutenance": "Stage et mémoire, soutenus devant un jury",
+      "colonnes": {
+        "ecue": "Élément constitutif",
+        "cm": "CM",
+        "td": "TD",
+        "tp": "TP",
+        "tpe": "TPE",
+        "credits": "Crédits"
+      },
+      "legende": "CM : cours magistral · TD : travaux dirigés · TP : travaux pratiques · TPE : travail personnel de l’étudiant (heures)"
+    }
   }
 }
