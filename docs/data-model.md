@@ -929,6 +929,14 @@ Détail : `docs/specs/module-4-lmd-lot6-deliberations.md`.
 | `seances_requetes` | Séance du jury des requêtes | PV `PVR-AAAA-NNNN` scellé à la clôture ; validation définitive par le chef de la commission |
 | `deliberations.a_rectifier_at` | Requête appliquée après l'arrêt | signale la délibération à rectifier |
 
+### Anonymat des copies (module 4, lot 9)
+
+| Table | Rôle | Points clés |
+|---|---|---|
+| `epreuves_anonymes` | ECUE × session sous anonymat | préparation, anonymisée, verrouillée, levée ; sel et vérificateur de la clé (la phrase secrète n'est jamais stockée) ; témoin et PV de levée scellé |
+| `copies_anonymes` | Numéro d'anonymat d'un candidat | 9 caractères (alphabet de 32 signes, caractère de contrôle) ; correspondance chiffrée AES-256-GCM ; ordre aléatoire ; constat |
+| `saisies_anonymes` | Note saisie sur un numéro | correction 1 à 3 × saisie 1 à 3 ; ajout seul (déclencheur) |
+
 ## 11. Préparation Phase II (placeholders)
 
 Tables créées en Phase I avec un schéma minimal pour préparer la Phase II sans migration cassante. Aucune logique métier n'est attachée à ces tables en Phase I — elles existent simplement pour stabiliser les FK.
