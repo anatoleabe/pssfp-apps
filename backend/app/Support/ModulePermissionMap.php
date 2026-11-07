@@ -161,8 +161,10 @@ final class ModulePermissionMap
                     'lmd.requetes_coter' => 'Coter les requêtes, les déclarer irrecevables',
                     'lmd.requetes_jury' => 'Tenir les séances du jury des requêtes (mentions, clôture du PV)',
                     'lmd.requetes_valider' => 'Valider définitivement les PV de requêtes (chef de la commission)',
+                    'lmd.anonymat_gerer' => 'Gérer les anonymats (numéros, constats, levée avec la clé) — sans saisir de notes',
+                    'lmd.anonymat_saisir' => 'Saisir les notes d\'examen sur les numéros d\'anonymat (opérateur)',
                 ],
-                'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider'],
+                'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir'],
             ],
             'bibliotheque' => [
                 'label' => 'Module 3 — Bibliothèque',
