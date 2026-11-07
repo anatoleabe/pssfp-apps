@@ -162,6 +162,11 @@ class AuditeurResource extends Resource
                     Infolists\Components\TextEntry::make('parcours_lmd')->hiddenLabel()
                         ->getStateUsing(fn (Auditeur $record): string => ParcoursActions::resume($record)),
                 ]),
+            Infolists\Components\Section::make('Notes de l\'année')->collapsible()
+                ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER) && $record->inscriptionCourante?->parcours_id !== null)
+                ->schema([
+                    Infolists\Components\ViewEntry::make('notes_lmd')->hiddenLabel()->view('filament.lmd.notes-auditeur'),
+                ]),
             Infolists\Components\Section::make('Situation financière')
                 ->description(fn (Auditeur $record): ?string => $record->inscriptionCourante === null ? null
                     : $record->inscriptionCourante->annee_academique.' · '.(BaremeScolarite::NIVEAUX[$record->inscriptionCourante->niveau] ?? $record->inscriptionCourante->niveau))

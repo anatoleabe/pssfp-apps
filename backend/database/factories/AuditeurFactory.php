@@ -36,4 +36,31 @@ class AuditeurFactory extends Factory
             },
         ];
     }
+
+    /**
+     * Auditeurs d'une même campagne : les numéros de dossier se suivent au lieu
+     * de dépendre d'un préfixe tiré au hasard (collisions quand un test en crée beaucoup).
+     */
+    public function campagneCommune(): static
+    {
+        return $this->state(fn (): array => [
+            'candidature_id' => function (): int {
+                $campagne = CampagneCandidature::query()->where('slug', 'auditeurs-de-test')->first()
+                    ?? CampagneCandidature::factory()->create(['slug' => 'auditeurs-de-test']);
+                $candidature = Candidature::factory()->forCampagne($campagne)->submitted()->create([
+                    'statut' => Candidature::STATUT_ACCEPTE,
+                    'phone_e164' => '+2376'.random_int(10000000, 99999999),
+                    'email' => Str::random(10).'@example.org',
+                ]);
+                $candidature->forceFill([
+                    'matricule' => '26EFP'.random_int(100000, 999999),
+                    'rang_retenu' => (int) Candidature::query()->where('campagne_id', $campagne->id)->max('rang_retenu') + 1,
+                    'moodle_password' => 'Ab3@efghjk',
+                    'matricule_attribue_at' => now(),
+                ])->save();
+
+                return (int) $candidature->id;
+            },
+        ]);
+    }
 }

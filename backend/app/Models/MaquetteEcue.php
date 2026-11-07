@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** Élément constitutif d'une UE : crédits et volumes horaires (CM, TD, TP, TPE). */
 class MaquetteEcue extends Model
@@ -36,5 +37,20 @@ class MaquetteEcue extends Model
     public function heuresTotales(): int
     {
         return $this->heures_cm + $this->heures_td + $this->heures_tp + $this->heures_tpe;
+    }
+
+    public function etapes(): HasMany
+    {
+        return $this->hasMany(EtapeSaisie::class);
+    }
+
+    public function attributions(): HasMany
+    {
+        return $this->hasMany(AttributionEcue::class);
+    }
+
+    public function libelle(): string
+    {
+        return $this->code.' — '.$this->intitule;
     }
 }

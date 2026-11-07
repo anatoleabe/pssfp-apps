@@ -49,7 +49,7 @@ it('liste les maquettes avec leurs contrôles', function (): void {
 
 it('fait valider la maquette par le responsable, qui inscrit alors les auditeurs du parcours', function (): void {
     $bareme = BaremeScolarite::factory()->create(['annee_academique' => '2026-2027', 'niveau' => 'M1']);
-    $inscription = InscriptionAnnuelle::factory()->create(['auditeur_id' => Auditeur::factory(), 'bareme_id' => $bareme->id]);
+    $inscription = InscriptionAnnuelle::factory()->create(['auditeur_id' => Auditeur::factory()->campagneCommune(), 'bareme_id' => $bareme->id]);
 
     $this->actingAs(($this->compte)('scolarite_agent'));
     $this->livewire(ViewMaquette::class, ['record' => $this->tc->getRouteKey()])->assertActionHidden('valider');
@@ -101,7 +101,7 @@ it('réserve les règles d\'évaluation au titulaire de lmd.regles', function ()
 
 it('montre le parcours sur la fiche auditeur et propose l\'inscription au parcours', function (): void {
     $bareme = BaremeScolarite::factory()->create(['annee_academique' => '2026-2027', 'niveau' => 'M1']);
-    $inscription = InscriptionAnnuelle::factory()->create(['auditeur_id' => Auditeur::factory(), 'bareme_id' => $bareme->id]);
+    $inscription = InscriptionAnnuelle::factory()->create(['auditeur_id' => Auditeur::factory()->campagneCommune(), 'bareme_id' => $bareme->id]);
     $this->tc->forceFill(['statut' => Maquette::VALIDEE, 'validee_at' => now()])->save();
     $this->actingAs(($this->compte)('scolarite_agent'));
 

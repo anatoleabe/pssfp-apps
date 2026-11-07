@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Filament\Resources\AuditeurResource;
 
 use App\Models\Auditeur;
+use App\Models\InscriptionPedagogique;
 use App\Models\Maquette;
 use App\Models\Parcours;
+use App\Services\Lmd\DerogationsRattrapage;
 use App\Services\Lmd\InscriptionsPedagogiques;
 use App\Services\Lmd\PermissionsLmd;
 use Filament\Actions\Action;
@@ -66,6 +68,38 @@ final class ParcoursActions
                 Notification::make()->success()->title('Parcours changé')
                     ->body($r['issue'] === InscriptionsPedagogiques::INSCRITE ? "{$r['ues']} UE inscrites ({$r['parcours']})." : 'La maquette de ce parcours n\'est pas encore validée : l\'inscription pédagogique se fera à sa validation.')
                     ->send();
+            });
+    }
+
+    public static function derogationRattrapage(): Action
+    {
+        return Action::make('derogationRattrapage')
+            ->label('Dérogation au rattrapage')
+            ->icon('heroicon-o-document-check')
+            ->visible(fn (Auditeur $record): bool => $record->inscriptionCourante !== null
+                && (bool) auth()->user()?->can(PermissionsLmd::DEROGATION_RATTRAPAGE))
+            ->modalDescription('Autorise le rattrapage d\'une UE malgré des notes incomplètes (D11). L\'acte est consigné.')
+            ->form(fn (Auditeur $record): array => MessagesValidation::appliquer([
+                Forms\Components\Select::make('inscription_pedagogique_id')->label('UE')->required()->native(false)
+                    ->options($record->inscriptionCourante?->inscriptionsPedagogiques()->doesntHave('derogationRattrapage')
+                        ->with('maquetteUe.ue')->get()
+                        ->mapWithKeys(fn (InscriptionPedagogique $ip): array => [$ip->id => $ip->maquetteUe?->ue?->code.' — '.$ip->maquetteUe?->ue?->intitule])->all() ?? []),
+                Forms\Components\TextInput::make('accordee_par')->label('Autorité')->required()->maxLength(255)->default('Le Chef de la structure'),
+                Forms\Components\TextInput::make('reference_acte')->label('Référence de l\'acte')->required()->maxLength(120),
+                Forms\Components\DatePicker::make('date_acte')->label('Date de l\'acte')->required()->native(false)->displayFormat('d/m/Y')
+                    ->maxDate(now()->endOfDay()),
+                Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(10)->maxLength(500),
+            ]))
+            ->action(function (Auditeur $record, array $data): void {
+                $ip = $record->inscriptionCourante?->inscriptionsPedagogiques()->findOrFail((int) $data['inscription_pedagogique_id']);
+                try {
+                    app(DerogationsRattrapage::class)->accorder($ip, $data, auth()->user());
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title('Dérogation refusée')->body($e->getMessage())->send();
+
+                    return;
+                }
+                Notification::make()->success()->title('Dérogation enregistrée')->send();
             });
     }
 
