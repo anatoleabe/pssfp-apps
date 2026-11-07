@@ -7,6 +7,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /** Inscription d'un auditeur à une UE de sa maquette de référence, pour une année. */
 class InscriptionPedagogique extends Model
@@ -39,5 +41,15 @@ class InscriptionPedagogique extends Model
     public function maquetteUe(): BelongsTo
     {
         return $this->belongsTo(MaquetteUe::class);
+    }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(NoteEcue::class);
+    }
+
+    public function derogationRattrapage(): HasOne
+    {
+        return $this->hasOne(DerogationRattrapage::class);
     }
 }

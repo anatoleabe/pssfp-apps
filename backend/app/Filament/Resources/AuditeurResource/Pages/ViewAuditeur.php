@@ -83,6 +83,7 @@ class ViewAuditeur extends ViewRecord
             ActionGroup::make([
                 ParcoursActions::inscrire(),
                 ParcoursActions::changerParcours(),
+                ParcoursActions::derogationRattrapage(),
             ])->label('Parcours')->icon('heroicon-o-academic-cap')->button()->color('gray'),
             ActionGroup::make([
                 AuditeurActions::changerStatut(),

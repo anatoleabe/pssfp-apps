@@ -43,7 +43,7 @@ class RegleEvaluationResource extends Resource
         $pourcent = fn (string $champ, string $libelle): Forms\Components\TextInput => Forms\Components\TextInput::make($champ)
             ->label($libelle)->required()->numeric()->minValue(0)->maxValue(100)->step(0.01)->suffix('%')
             ->formatStateUsing(fn ($state): ?string => $state === null ? null : rtrim(rtrim(number_format((float) $state * 100, 2, '.', ''), '0'), '.'))
-            ->dehydrateStateUsing(fn ($state): float => round((float) $state / 100, 4));
+            ->dehydrateStateUsing(fn ($state): string => number_format((float) $state / 100, 4, '.', ''));
 
         return $form->schema(MessagesValidation::appliquer([
             Forms\Components\Section::make('Année')->schema([
