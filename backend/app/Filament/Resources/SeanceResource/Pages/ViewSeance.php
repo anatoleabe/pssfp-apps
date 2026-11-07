@@ -25,7 +25,7 @@ class ViewSeance extends ViewRecord
     {
         $s = fn (): Seance => $this->getRecord()->refresh()->load('ecue');
         $u = fn (): User => auth()->user();
-        $peut = fn (): bool => $s()->statut !== 'annulee' && app(Assiduite::class)->peutGerer($s()->ecue, $u());
+        $peut = fn (): bool => ! in_array($s()->statut, ['annulee', 'reportee'], true) && app(Assiduite::class)->peutGerer($s()->ecue, $u());
         $options = fn (): array => app(SaisieNotes::class)->inscrits($s()->ecue)->mapWithKeys(fn ($ip): array => [$ip->id => $ip->inscriptionAnnuelle?->auditeur?->candidature?->matricule
             .' — '.trim(mb_strtoupper((string) $ip->inscriptionAnnuelle?->auditeur?->candidature?->nom).' '.$ip->inscriptionAnnuelle?->auditeur?->candidature?->prenom)])->all();
 

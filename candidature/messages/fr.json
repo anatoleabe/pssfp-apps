@@ -1106,6 +1106,7 @@
     "nav": {
       "accueil": "Accueil",
       "parcours": "Mon parcours",
+      "emploi": "Mon emploi du temps",
       "resultats": "Mes résultats",
       "memoire": "Mon mémoire",
       "requetes": "Mes requêtes",
@@ -1311,6 +1312,34 @@
         "erreur": "Le dépôt n'a pas abouti. Réessayez.",
         "accuse": "Document reçu.",
         "empreinte": "Empreinte SHA-256 : {empreinte}"
+      }
+    },
+    "emploi": {
+      "eyebrow": "Mon emploi du temps",
+      "titre": "Semaine du {debut} au {fin}",
+      "precedente": "Semaine précédente",
+      "suivante": "Semaine suivante",
+      "navLabel": "Changer de semaine",
+      "aucunePublication": "L'emploi du temps de votre parcours n'est pas encore publié par la scolarité.",
+      "semaineVide": "Aucune séance cette semaine.",
+      "periode": "Emploi du temps publié du {premiere} au {derniere}.",
+      "enseignant": "Enseignant : {nom}",
+      "salle": "Salle : {salle}",
+      "rejoindre": "Rejoindre la séance en ligne",
+      "rejoindreLibelle": "Rejoindre en ligne la séance {ecue} du {date}",
+      "annulee": "Annulée",
+      "reportee": "Reportée au {date}",
+      "tenue": "Tenue",
+      "nature": {
+        "CM": "Cours magistral",
+        "TD": "Travaux dirigés",
+        "TP": "Travaux pratiques",
+        "evaluation": "Évaluation"
+      },
+      "modalite": {
+        "presentiel": "Présentiel",
+        "distanciel": "À distance",
+        "hybride": "Hybride"
       }
     }
   },

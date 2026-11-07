@@ -147,6 +147,7 @@ final class ModulePermissionMap
                     'lmd.memoires_suivre',
                     'lmd.calendrier_preparer',
                     'lmd.actes_produire',
+                    'lmd.emplois_du_temps',
                 ],
                 'sensitive_description' => 'À cocher explicitement : préparer une maquette n\'emporte pas le droit de la valider, ni saisir des notes celui de verrouiller une étape.',
                 'sensitive' => [

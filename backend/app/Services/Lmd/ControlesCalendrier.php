@@ -238,6 +238,9 @@ final class ControlesCalendrier
     {
         $tous = $c->evenements()->withCount('modifications')->with(['actes' => fn ($q) => $q->where('statut', '<>', Acte::ANNULE)->orderBy('echeance'), 'actes.modele:id,code,libelle'])->orderBy('ordre')->orderBy('debut_prevu')->orderBy('id')->get();
         $enfants = $tous->where('type', '<>', 'phase')->groupBy(fn ($e) => (string) $e->parent_id);
+        // Avancement d'une période de cours : heures tenues de ses emplois du temps publiés (lot 12c, D21).
+        $periodes = app(EmploisDuTemps::class)->avancementPeriodes($c);
+        $avancement = fn (EvenementCalendrier $x): int => $x->statut === 'realise' ? 100 : ($periodes[$x->id] ?? $x->avancement_pct);
         $ligne = fn (EvenementCalendrier $e, bool $phase, ?Collection $sous = null): array => [
             'id' => $e->uuid,
             'phase' => $phase,
@@ -253,8 +256,7 @@ final class ControlesCalendrier
             'debut_reel' => $phase && $sous?->isNotEmpty() ? $sous->min('debut_reel') : $e->debut_reel,
             'fin_reelle' => $phase && $sous?->isNotEmpty() ? ($sous->every(fn ($x) => $x->fin_reelle !== null || $x->statut === 'annule') ? $sous->max('fin_reelle') : null) : $e->fin_reelle,
             'statut' => $e->statut,
-            'avancement' => $phase && $sous?->isNotEmpty() ? (int) round($sous->avg(fn ($x) => $x->statut === 'realise' ? 100 : $x->avancement_pct))
-                : ($e->statut === 'realise' ? 100 : $e->avancement_pct),
+            'avancement' => $phase && $sous?->isNotEmpty() ? (int) round($sous->avg($avancement)) : $avancement($e),
             'jalon' => ! $phase && $e->estJalon(),
             'retard' => ! $phase && $e->enRetard(),
             'glissement' => $phase ? null : $e->glissement(),

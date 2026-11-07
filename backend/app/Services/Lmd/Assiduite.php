@@ -193,8 +193,8 @@ final class Assiduite
 
     private function modifiable(Seance $seance): void
     {
-        if ($seance->statut === 'annulee') {
-            throw new InvalidArgumentException('Séance annulée.');
+        if (in_array($seance->statut, ['annulee', 'reportee'], true)) {
+            throw new InvalidArgumentException($seance->statut === 'annulee' ? 'Séance annulée.' : 'Séance reportée : pointez la séance de remplacement.');
         }
         $etape = $this->saisie->etape($seance->ecue, EtapeSaisie::NORMALE, EtapeSaisie::ASSIDUITE);
         if ($etape->statut === EtapeSaisie::VERROUILLEE) {

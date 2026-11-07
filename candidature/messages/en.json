@@ -1106,6 +1106,7 @@
     "nav": {
       "accueil": "Home",
       "parcours": "My programme",
+      "emploi": "My timetable",
       "resultats": "My results",
       "memoire": "My dissertation",
       "requetes": "My requests",
@@ -1311,6 +1312,34 @@
         "erreur": "The submission failed. Please try again.",
         "accuse": "Document received.",
         "empreinte": "SHA-256 fingerprint: {empreinte}"
+      }
+    },
+    "emploi": {
+      "eyebrow": "My timetable",
+      "titre": "Week of {debut} to {fin}",
+      "precedente": "Previous week",
+      "suivante": "Next week",
+      "navLabel": "Change week",
+      "aucunePublication": "Your track's timetable has not been published by the registrar yet.",
+      "semaineVide": "No sessions this week.",
+      "periode": "Timetable published from {premiere} to {derniere}.",
+      "enseignant": "Lecturer: {nom}",
+      "salle": "Room: {salle}",
+      "rejoindre": "Join the online session",
+      "rejoindreLibelle": "Join the {ecue} session of {date} online",
+      "annulee": "Cancelled",
+      "reportee": "Moved to {date}",
+      "tenue": "Held",
+      "nature": {
+        "CM": "Lecture",
+        "TD": "Tutorial",
+        "TP": "Practical",
+        "evaluation": "Assessment"
+      },
+      "modalite": {
+        "presentiel": "On site",
+        "distanciel": "Remote",
+        "hybride": "Hybrid"
       }
     }
   },
