@@ -155,6 +155,8 @@ final class ModulePermissionMap
                     'lmd.deliberation_arreter' => 'Arrêter et rectifier une délibération (résultats figés, PV numéroté)',
                     'lmd.deliberation_publier' => 'Publier les résultats d\'une délibération',
                     'lmd.jury_signer' => 'Consulter les délibérations de ses jurys et signer leur PV (membre de jury)',
+                    'lmd.documents_revoquer' => 'Révoquer un document officiel délivré (relevé, attestation, certificat)',
+                    'lmd.documents_lever' => 'Lever la restriction « en règle » sur les documents d\'un auditeur',
                 ],
                 'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer'],
             ],

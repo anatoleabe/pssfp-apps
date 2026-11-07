@@ -84,6 +84,8 @@ class ViewAuditeur extends ViewRecord
                 ParcoursActions::inscrire(),
                 ParcoursActions::changerParcours(),
                 ParcoursActions::derogationRattrapage(),
+                ParcoursActions::leverRestriction(),
+                ParcoursActions::revoquerDocument(),
             ])->label('Parcours')->icon('heroicon-o-academic-cap')->button()->color('gray'),
             ActionGroup::make([
                 AuditeurActions::changerStatut(),

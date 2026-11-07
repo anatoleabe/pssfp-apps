@@ -1121,6 +1121,12 @@ Routes réelles, sous `/v1/applications`, authentifiées par le jeton du portail
 | `GET /me/releve-scolarite` | PDF du relevé de situation, généré à la demande, sans mot de passe. |
 | `POST /me/acces/reveler` | Identifiant, mot de passe FOAD et adresse d'eCampus si l'accès est `disponible`. 403 sinon, et toujours 403 pour un agent en consultation de l'espace. 10 demandes par heure et par compte. `no-store`. Chaque affichage est journalisé, sans le mot de passe. |
 | `GET /me/parcours` | Lot 4. Année, niveau, parcours (`code`, `libelle`), `maquette_validee`, `inscrit`, `credits_total`, semestres (numéro, crédits, UE : code, intitulé, crédits, partie, heures, ECUE avec heures CM, TD, TP, TPE et crédits). La maquette n'apparaît qu'une fois validée. 404 `auditeur_missing` sans inscription. `no-store`. Aucun identifiant interne. |
+| `GET /me/resultats` | Lot 7. Résultats des délibérations arrêtées, publiées et non rectifiées : année, session, décision, crédits, moyenne, MGP, mention, date limite des requêtes, UE (code, intitulé, crédits, note, grade, mode d'acquisition) ; disponibilité des documents. Rien avant la publication. `no-store`. |
+| `GET /me/documents-officiels/{type}` | Lot 7. PDF du relevé de notes ou de l'attestation de réussite (`?deliberation=uuid`) ou du certificat de scolarité. Délivré à la première demande (numéroté, scellé), puis toujours le même fichier. 409 `document_indisponible` avec le motif. |
+
+### Vérification publique d'un document (module 4, lot 7)
+
+`GET /v1/documents/verification/{code}` : sans authentification, 30 demandes par minute. Type, libellé, numéro, date de délivrance, titulaire, statut (`authentique`, `revoque`). Aucune note, aucun matricule. 404 `document_inconnu`.
 
 ## 10. Domaine — Contact
 

@@ -292,6 +292,9 @@ final class Deliberations
                 (string) $r->inscriptionAnnuelle->auditeur?->candidature?->matricule, $r->credits_acquis, $r->moyenne, $r->mgp, $r->decision, $r->decision_calculee, $r->mesures,
             ]))->sort()->implode("\n"));
             $d->forceFill(['statut' => Deliberation::ARRETEE, 'arretee_par' => $auteur->id, 'arretee_at' => now(), 'numero_pv' => $numero, 'pv_sha256' => $sceau])->save();
+            if ($d->rectifie_id !== null) {
+                app(DocumentsOfficiels::class)->revoquerPourRectification($d->rectifiee, $d);
+            }
             $this->journal($d, $auteur, 'deliberation_arretee', 'Délibération arrêtée', ['numero_pv' => $numero, 'resultats' => $resultats->count(), 'sceau' => $sceau]);
 
             return $numero;
@@ -326,6 +329,27 @@ final class Deliberations
         }
         $participation->forceFill(['signe_at' => now()])->save();
         $this->journal($d, $membre, 'pv_signe', 'PV de délibération signé', ['membre' => $participation->membre->libelle()]);
+    }
+
+    /**
+     * Signature d'un membre présent sans compte, constatée sur le PV papier signé,
+     * par le titulaire du droit de publication ; tracée au journal.
+     */
+    public function constaterSignature(Deliberation $d, MembreJury $membre, User $auteur): void
+    {
+        abort_unless($auteur->can(PermissionsLmd::DELIBERATION_PUBLIER), 403);
+        if ($d->statut !== Deliberation::ARRETEE) {
+            throw new InvalidArgumentException('Seul un PV arrêté se signe.');
+        }
+        $participation = $d->participations()->where('membre_jury_id', $membre->id)->first();
+        if ($participation === null || ! $participation->present) {
+            throw new InvalidArgumentException('Un membre absent à la séance ne signe pas le PV.');
+        }
+        if ($participation->signe_at !== null) {
+            throw new InvalidArgumentException('PV déjà signé par ce membre.');
+        }
+        $participation->forceFill(['signe_at' => now(), 'signature_constatee_par' => $auteur->id])->save();
+        $this->journal($d, $auteur, 'signature_constatee', 'Signature constatée sur le PV papier', ['membre' => $membre->libelle()]);
     }
 
     public function publier(Deliberation $d, User $auteur): CarbonImmutable

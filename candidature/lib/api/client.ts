@@ -419,6 +419,63 @@ export function getMyParcours(token: string): Promise<ApiResult<MonParcours>> {
   return apiGet<MonParcours>('/applications/me/parcours', { token, noStore: true });
 }
 
+export interface ResultatUe {
+  code: string;
+  intitule: string;
+  semestre: number;
+  credits: number;
+  partie: 'ecrite' | 'soutenance';
+  note: number | null;
+  grade: string | null;
+  /** acquise, par décision du jury, capitalisée (année), non acquise. */
+  mode: 'acquise' | 'deliberation' | 'capitalisee' | 'non_acquise';
+  annee_acquisition: string | null;
+}
+
+export interface ResultatPublie {
+  deliberation: string;
+  annee_academique: string;
+  niveau: string;
+  parcours: string | null;
+  session: 'normale' | 'rattrapage';
+  publie_le: string | null;
+  requetes_jusqu_au: string | null;
+  decision: 'AD' | 'AS' | 'AJ';
+  credits: number;
+  moyenne: number | null;
+  mgp: number | null;
+  mention: string | null;
+  ues: ResultatUe[];
+  /** null : disponible ; sinon le motif de l'indisponibilité. */
+  documents: { releve_notes: string | null; attestation_reussite: string | null };
+}
+
+export interface MesResultats {
+  resultats: ResultatPublie[];
+  /** null : disponible ; sinon le motif. */
+  certificat_scolarite: string | null;
+}
+
+export interface DocumentVerifie {
+  type: string;
+  libelle: string;
+  numero: string;
+  delivre_le: string | null;
+  titulaire: string;
+  statut: 'authentique' | 'revoque';
+  revoque_le: string | null;
+}
+
+/** Résultats publiés de l'auditeur connecté (rien avant la publication). */
+export function getMyResultats(token: string): Promise<ApiResult<MesResultats>> {
+  return apiGet<MesResultats>('/applications/me/resultats', { token, noStore: true });
+}
+
+/** Vérification publique d'un document officiel par son code (sans connexion). */
+export function verifierDocument(code: string): Promise<ApiResult<DocumentVerifie>> {
+  return apiGet<DocumentVerifie>(`/documents/verification/${encodeURIComponent(code)}`, { noStore: true });
+}
+
 /** Mot de passe FOAD, à la demande seulement : jamais présent dans la page initiale. */
 export function revelerAcces(token: string): Promise<ApiResult<AccesRevele>> {
   return apiPost<AccesRevele>('/applications/me/acces/reveler', {}, { token, noStore: true });

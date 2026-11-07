@@ -112,6 +112,20 @@ class ViewDeliberation extends ViewRecord
 
                     return 'PV signé.';
                 })),
+            Action::make('constaterSignatures')->label('Signatures du PV papier')->icon('heroicon-o-document-check')->color('gray')
+                ->visible(fn (): bool => $d()->statut === Deliberation::ARRETEE && $d()->publiee_at === null && $peut(PermissionsLmd::DELIBERATION_PUBLIER)
+                    && app(Deliberations::class)->signaturesManquantes($d()) !== [])
+                ->modalDescription('Pour les membres présents qui ont signé le PV papier sans signer dans la plateforme. Chaque constat est tracé à votre nom.')
+                ->form(fn (): array => [Forms\Components\CheckboxList::make('membres')->label('Membres dont la signature figure sur le PV papier')->required()
+                    ->options($d()->participations()->with('membre')->where('present', true)->whereNull('signe_at')->get()
+                        ->mapWithKeys(fn ($p): array => [$p->membre_jury_id => $p->membre->libelle()])->all())])
+                ->action(fn (array $data) => $this->executer(function () use ($data, $d): string {
+                    foreach ((array) $data['membres'] as $id) {
+                        app(Deliberations::class)->constaterSignature($d(), $d()->jury->membres()->findOrFail((int) $id), $this->utilisateur());
+                    }
+
+                    return count((array) $data['membres']).' signature(s) constatée(s).';
+                })),
             Action::make('publier')->label('Publier')->icon('heroicon-o-megaphone')->color('success')
                 ->visible(fn (): bool => $d()->statut === Deliberation::ARRETEE && $d()->publiee_at === null && $peut(PermissionsLmd::DELIBERATION_PUBLIER))
                 ->requiresConfirmation()
