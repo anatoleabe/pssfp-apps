@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { EspaceGabarit } from '@/components/espace/EspaceGabarit';
 import { EspaceParcours } from '@/components/espace/EspaceParcours';
-import { getMyParcours } from '@/lib/api/client';
+import { getMyAssiduite, getMyParcours } from '@/lib/api/client';
 import { getCandidatToken } from '@/lib/auth/session';
 import { chargerEspaceAuditeur } from '@/lib/espace/charger';
 import { redirect } from '@/navigation';
@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ParcoursPage(): Promise<JSX.Element> {
   const { candidature, scolarite } = await chargerEspaceAuditeur();
   const token = await getCandidatToken();
-  const parcours = token ? await getMyParcours(token) : null;
+  const [parcours, assiduite] = token ? await Promise.all([getMyParcours(token), getMyAssiduite(token)]) : [null, null];
   if (!parcours?.ok) {
     if (parcours?.status === 401) {
       redirect('/auth/session-expired');
@@ -27,7 +27,7 @@ export default async function ParcoursPage(): Promise<JSX.Element> {
 
   return (
     <EspaceGabarit candidature={candidature} scolarite={scolarite} rubrique="parcours">
-      <EspaceParcours parcours={parcours.data} />
+      <EspaceParcours parcours={parcours.data} assiduite={assiduite?.ok ? assiduite.data : []} />
     </EspaceGabarit>
   );
 }

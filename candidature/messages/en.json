@@ -1173,7 +1173,15 @@
         "tpe": "TPE",
         "credits": "Credits"
       },
-      "legende": "CM: lectures · TD: tutorials · TP: practical work · TPE: personal study (hours)"
+      "legende": "CM: lectures · TD: tutorials · TP: practical work · TPE: personal study (hours)",
+      "assiduite": {
+        "titre": "My attendance",
+        "aide": "Provisional mark out of 20, based on the sessions held: an excused absence counts as attendance.",
+        "seances": "Sessions",
+        "presences": "Present",
+        "justifiees": "Excused",
+        "note": "Mark"
+      }
     },
     "resultats": {
       "eyebrow": "My results",

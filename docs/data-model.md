@@ -937,6 +937,14 @@ Détail : `docs/specs/module-4-lmd-lot6-deliberations.md`.
 | `copies_anonymes` | Numéro d'anonymat d'un candidat | 9 caractères (alphabet de 32 signes, caractère de contrôle) ; correspondance chiffrée AES-256-GCM ; ordre aléatoire ; constat |
 | `saisies_anonymes` | Note saisie sur un numéro | correction 1 à 3 × saisie 1 à 3 ; ajout seul (déclencheur) |
 
+### Assiduité (module 4, lot 10)
+
+| Table | Rôle | Points clés |
+|---|---|---|
+| `regles_assiduite` | Règle d'une année | temps requis à distance (75 %), retard toléré, absence justifiée comptée, note maximale ; journalisée |
+| `seances` | Séance d'un ECUE | `uuid` ; date, horaires (fin après début), modalité, salle, lien ; prévue, tenue, annulée (motif) |
+| `pointages` | Présence d'un auditeur à une séance | présent, absent, justifié (motif obligatoire) ; mode signature, manuel, Zoom ; durée de connexion |
+
 ## 11. Préparation Phase II (placeholders)
 
 Tables créées en Phase I avec un schéma minimal pour préparer la Phase II sans migration cassante. Aucune logique métier n'est attachée à ces tables en Phase I — elles existent simplement pour stabiliser les FK.

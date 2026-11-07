@@ -143,6 +143,7 @@ final class ModulePermissionMap
                     'lmd.notes_saisir',
                     'lmd.deliberation_preparer',
                     'lmd.requetes_traiter',
+                    'lmd.assiduite',
                 ],
                 'sensitive_description' => 'À cocher explicitement : préparer une maquette n\'emporte pas le droit de la valider, ni saisir des notes celui de verrouiller une étape.',
                 'sensitive' => [
