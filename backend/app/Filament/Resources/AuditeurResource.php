@@ -14,6 +14,7 @@ use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
 use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
+use App\Models\ResultatAnnuel;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
 use App\Services\Lmd\PermissionsLmd;
 use App\Services\Scolarite\AccesEcampus;
@@ -161,6 +162,19 @@ class AuditeurResource extends Resource
                 ->schema([
                     Infolists\Components\TextEntry::make('parcours_lmd')->hiddenLabel()
                         ->getStateUsing(fn (Auditeur $record): string => ParcoursActions::resume($record)),
+                ]),
+            Infolists\Components\Section::make('Résultats arrêtés')
+                ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER) && $record->inscriptionCourante !== null
+                    && ResultatAnnuel::query()->where('inscription_annuelle_id', $record->inscriptionCourante->id)->exists())
+                ->schema([
+                    Infolists\Components\TextEntry::make('resultats_lmd')->hiddenLabel()->listWithLineBreaks()
+                        ->getStateUsing(fn (Auditeur $record): array => ResultatAnnuel::query()->where('inscription_annuelle_id', $record->inscriptionCourante?->id)
+                            ->whereHas('deliberation', fn ($q) => $q->where('statut', 'arretee'))->with('deliberation')->get()
+                            ->map(fn (ResultatAnnuel $r): string => sprintf('%s (%s) : %s, %d crédits, moyenne %s%s',
+                                $r->deliberation->numero_pv, $r->deliberation->session === 'rattrapage' ? 'rattrapage' : 'session normale',
+                                ResultatAnnuel::DECISIONS[$r->decision] ?? $r->decision, $r->credits_acquis,
+                                $r->moyenne === null ? '—' : number_format((float) $r->moyenne, 2, ',', ' '),
+                                $r->deliberation->publiee_at ? ' · publié' : ' · non publié'))->all()),
                 ]),
             Infolists\Components\Section::make('Notes de l\'année')->collapsible()
                 ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER) && $record->inscriptionCourante?->parcours_id !== null)
