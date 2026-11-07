@@ -111,6 +111,8 @@ final class RolePermissionSeeder extends Seeder
                     'lmd.requetes_jury',
                     'lmd.requetes_valider',
                     'lmd.memoires_attester',
+                    'lmd.calendrier_reajuster',
+                    'lmd.calendrier_signer',
                     'journal.view',
                     'document.publish',
                     'library.thesaurus',
@@ -178,7 +180,7 @@ final class RolePermissionSeeder extends Seeder
                     'lmd.notes_verrouiller', 'lmd.notes_rouvrir', 'lmd.derogation_rattrapage',
                     'lmd.deliberation_arreter', 'lmd.deliberation_publier', 'lmd.jury_signer',
                     'lmd.documents_revoquer', 'lmd.documents_lever', 'lmd.requetes_coter', 'lmd.requetes_jury',
-                    'lmd.memoires_attester'],
+                    'lmd.memoires_attester', 'lmd.calendrier_reajuster'],
             ],
             'enseignant' => [
                 'label' => 'Enseignant',
@@ -209,6 +211,12 @@ final class RolePermissionSeeder extends Seeder
                 'description' => 'Saisie des notes d\'examen sur les numéros d\'anonymat, sans accès à la correspondance.',
                 'modules' => [],
                 'sensitive' => ['lmd.anonymat_saisir'],
+            ],
+            'chef_structure' => [
+                'label' => 'Chef de la structure',
+                'description' => 'Signature du calendrier académique préparé par la scolarité, ou renvoi en préparation.',
+                'modules' => [],
+                'sensitive' => ['lmd.calendrier_signer'],
             ],
             'library_manager' => [
                 'label' => 'Responsable de la bibliothèque',

@@ -751,3 +751,27 @@ export interface MonMemoire {
 export function getMyMemoire(token: string): Promise<ApiResult<MonMemoire | null>> {
   return apiGet<MonMemoire | null>('/applications/me/memoire', { token, noStore: true });
 }
+
+export interface EvenementCalendrierAuditeur {
+  libelle: string;
+  type: string;
+  type_libelle: string;
+  debut: string;
+  fin: string;
+  jalon: boolean;
+  statut: 'prevu' | 'en_cours' | 'realise' | 'reporte' | 'annule';
+  statut_libelle: string;
+  reporte: boolean;
+}
+
+export interface CalendrierAuditeur {
+  annee_academique: string;
+  version: number;
+  publie_le: string | null;
+  evenements: EvenementCalendrierAuditeur[];
+}
+
+/** GET /applications/me/calendrier — `data` null tant qu'aucun calendrier n'est publié. */
+export function getMyCalendrier(token: string): Promise<ApiResult<CalendrierAuditeur | null>> {
+  return apiGet<CalendrierAuditeur | null>('/applications/me/calendrier', { token, noStore: true });
+}

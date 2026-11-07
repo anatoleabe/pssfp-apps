@@ -957,6 +957,16 @@ Détail : `docs/specs/module-4-lmd-lot6-deliberations.md`.
 
 L'attestation d'autorisation de dépôt est un `documents_delivres` de type `autorisation_depot` (`AD-AAAA-NNNNNN`).
 
+### Calendrier académique (module 4, lot 12a)
+
+| Table | Rôle | Points clés |
+|---|---|---|
+| `calendriers_academiques` | Calendrier d'une année, versionné | `uuid` ; bornes de l'année ; brouillon, soumis, signé, publié, remplacé ; renvoi motivé ; signataire, date, pièce signée (MinIO, SHA-256) ; référence figée |
+| `evenements_calendrier` | Événement ou phase du Gantt | `uuid` ; type (29), niveau, parcours, promotion, session, vague ; dates prévues, réelles, de référence ; prévu, en cours, réalisé, reporté ou annulé (motif) ; avancement ; dates bornées à l'année (déclencheur) |
+| `dependances_evenement` | Lien du Gantt | fin-début, début-début, fin-fin, début-fin ; écart minimal et maximal ; règle (D11, D20…) ; bloquant ou alerte |
+| `modifications_evenement` | Journal des réajustements | anciennes et nouvelles dates et statuts, motif, auteur ; ajout seul (déclencheur) |
+| `jours_non_ouvres` | Fêtes et fermetures | jour unique, libellé |
+
 ## 11. Préparation Phase II (placeholders)
 
 Tables créées en Phase I avec un schéma minimal pour préparer la Phase II sans migration cassante. Aucune logique métier n'est attachée à ces tables en Phase I — elles existent simplement pour stabiliser les FK.

@@ -58,4 +58,10 @@ final class PermissionsLmd
     public const MEMOIRES_SUIVRE = 'lmd.memoires_suivre';
 
     public const MEMOIRES_ATTESTER = 'lmd.memoires_attester';
+
+    public const CALENDRIER_PREPARER = 'lmd.calendrier_preparer';
+
+    public const CALENDRIER_REAJUSTER = 'lmd.calendrier_reajuster';
+
+    public const CALENDRIER_SIGNER = 'lmd.calendrier_signer';
 }

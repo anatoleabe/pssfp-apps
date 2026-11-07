@@ -1182,6 +1182,11 @@
         "presences": "Present",
         "justifiees": "Excused",
         "note": "Mark"
+      },
+      "calendrier": {
+        "titre": "Academic calendar {annee}",
+        "aide": "Calendar published by the registrar: events for your level and shared events.",
+        "dateModifiee": "Date changed"
       }
     },
     "resultats": {

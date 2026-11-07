@@ -25,8 +25,10 @@ Chaque lot a sa spec, sa branche, ses tests, et se déploie seul.
 | 8 | **Requêtes** : dépôt dans la fenêtre, accusé de réception, cotation, instruction, jury des requêtes, validation définitive, application aux notes, demandes de documents | D26 à D28 | PR #76 |
 | 9 | **Anonymat des copies** | D36 | PR #77 |
 | 10 | **Assiduité** : séances, pointage présentiel et à distance (export Zoom), justifications, note d'assiduité | D12, D13 | PR #78 |
-| 11 | **Mémoires** et attestation d'autorisation de dépôt | D32 à D34 | En cours |
-| 12 | **Calendrier académique**, actes, Gantt, emplois du temps | D18 à D22 | À faire |
+| 11 | **Mémoires** et attestation d'autorisation de dépôt | D32 à D34 | PR #79 |
+| 12a | **Calendrier académique** : circuit de signature, exécution, réajustement, contrôles, Gantt | D18 à D21 | En cours |
+| 12b | **Actes** produits à partir du calendrier (notes de service, communiqués, PV, listes) | D18, D19 | À faire |
+| 12c | **Emplois du temps**, quotas horaires et programmation des enseignants | D21, D22 | À faire |
 | 13 | **Enseignants et paie**, rapprochement, contrôle de gestion | D23 à D25, D38 | À faire |
 | 14 | **Supervision**, messagerie interne, demandes d'autorisation | D30, D31 | À faire |
 | 15 | **Archivage numérique** et reprise de l'historique d'ACMA | D29 ; plan de reprise | À faire |
@@ -40,7 +42,7 @@ Chaque lot a sa spec, sa branche, ses tests, et se déploie seul.
 | UE acquise | moyenne d'UE au moins 12/20, sans note éliminatoire ; capitalisée définitivement | D1 |
 | Note éliminatoire | examen inférieur à 7/20, à partir de 2026-2027 ; porte sur l'examen de l'UE | D16 ; portée **proposée** |
 | Compensation | aucune entre UE | D1 ; Chef USI, 06/11 |
-| Rattrapage | **la note de rattrapage remplace la moyenne de l'UE** pour 2026-2027 | Chef USI, 06/11. **Contredit D10** (remplace l'examen seulement) : à trancher avec la Scolarité ; c'est un paramètre de l'année |
+| Rattrapage | **la note de rattrapage remplace la moyenne de l'UE** (CC, assiduité et examen) | Chef USI, 06/11, **confirmé le 07/11** : prime sur D10 (qui ne remplaçait que l'examen). Reste un paramètre de l'année |
 | Décision annuelle | M1 : 60 crédits = AD, sinon AJ. M2 : 44 crédits écrits = AS, 60 avec le mémoire = AD, moins de 44 = AJ | D2, D4 |
 | Mémoire | UE distincte de 16 crédits (partie « soutenance ») ; le reste du S10 forme une UE écrite de 14 crédits | D2 ; proposition D22 (point 2) |
 | MGP, mentions | MGP sur 4 par les crédits acquis (classement) ; mention du diplôme par la moyenne du cycle : 12, 14, 16, 18 (félicitations proposées) | D14, D15 |
@@ -55,8 +57,7 @@ Chaque lot a sa spec, sa branche, ses tests, et se déploie seul.
 
 ## 5. Questions ouvertes
 
-1. Rattrapage pour 2026-2027 : remplace-t-il la moyenne de l'UE (instruction du 06/11) ou seulement l'examen (D10) ?
-2. Note d'UE à partir des ECUE : moyenne pondérée par les crédits (proposé), ou validation ECUE par ECUE ?
-3. Note éliminatoire : sur l'examen de l'UE (proposé) ou sur l'examen de chaque ECUE ?
-4. Auditeurs P13 non admis en M2 (100 dossiers) : réinscription en M1 2026-2027 avec leurs UE capitalisées ? Leurs notes de M1 sont dans ACMA : il faut la copie de la base pour les reprendre.
-5. Textes à fournir (T-01 à T-06 du registre) : règlement des études et des examens, textes LMD, taux de paie, procédure d'anonymat.
+1. Note d'UE à partir des ECUE : moyenne pondérée par les crédits (proposé), ou validation ECUE par ECUE ?
+2. Note éliminatoire : sur l'examen de l'UE (proposé) ou sur l'examen de chaque ECUE ?
+3. Auditeurs P13 non admis en M2 (100 dossiers) : réinscription en M1 2026-2027 avec leurs UE capitalisées ? Leurs notes de M1 sont dans ACMA : il faut la copie de la base pour les reprendre.
+4. Textes à fournir (T-01 à T-06 du registre) : règlement des études et des examens, textes LMD, taux de paie, procédure d'anonymat.

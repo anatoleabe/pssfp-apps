@@ -1,0 +1,454 @@
+{
+  "source": "Planning synoptique « Enseignements et examens du Master en finances publiques, 1re et 2e années, 2026-2027 » et planning de suivi des mémoires de la 12e promotion, signés par le chef de la structure (dossier PSSFP Système, reprise/25_calendrier_2026_2027.sql).",
+  "annee_academique": "2026-2027",
+  "date_debut": "2026-10-01",
+  "date_fin": "2027-08-31",
+  "signataire": "Le Chef de la structure",
+  "acte_validation": "Planning synoptique 2026-2027 signé par le chef de la structure",
+  "phases": [
+    "Admission et rentrée",
+    "Enseignements et vie académique (M1 et M2)",
+    "M1 : PROMO 14",
+    "M2 : PROMO 13",
+    "Mémoires : PROMO 12",
+    "Fin d'année"
+  ],
+  "evenements": [
+    {
+      "type": "publication_admis",
+      "libelle": "Publication de la liste des admis en M1 : PROMO 14",
+      "niveau": "M1",
+      "promotion": 14,
+      "session": null,
+      "debut": "2026-10-01",
+      "fin": "2026-10-20",
+      "phase": "Admission et rentrée"
+    },
+    {
+      "type": "publication_admis",
+      "libelle": "Publication de la liste des admis au niveau II (M2) : PROMO 13",
+      "niveau": "M2",
+      "promotion": 13,
+      "session": null,
+      "debut": "2026-10-01",
+      "fin": "2026-10-20",
+      "phase": "Admission et rentrée"
+    },
+    {
+      "type": "inscriptions",
+      "libelle": "Préinscription et inscription académique et administrative : PROMO 14 (M1)",
+      "niveau": "M1",
+      "promotion": 14,
+      "session": null,
+      "debut": "2026-10-20",
+      "fin": "2026-11-03",
+      "phase": "Admission et rentrée"
+    },
+    {
+      "type": "inscriptions",
+      "libelle": "Préinscription et inscription académique et administrative : PROMO 13 (M2)",
+      "niveau": "M2",
+      "promotion": 13,
+      "session": null,
+      "debut": "2026-10-20",
+      "fin": "2026-11-03",
+      "phase": "Admission et rentrée"
+    },
+    {
+      "type": "paiement",
+      "libelle": "Date limite : frais d'inscription et 1re tranche des frais de scolarité (M1 et M2)",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2026-11-03",
+      "fin": "2026-11-03",
+      "phase": "Admission et rentrée"
+    },
+    {
+      "type": "ceremonie",
+      "libelle": "Cérémonie de rentrée solennelle M1 (PROMO 14) et M2 (PROMO 13)",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2026-11-04",
+      "fin": "2026-11-04",
+      "phase": "Admission et rentrée"
+    },
+    {
+      "type": "periode_cours",
+      "libelle": "Première période de programmation des cours (M1 et M2)",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2026-11-04",
+      "fin": "2026-12-19",
+      "phase": "Enseignements et vie académique (M1 et M2)"
+    },
+    {
+      "type": "activite_periacademique",
+      "libelle": "Lancement des activités péri-académiques",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2026-11-21",
+      "fin": "2026-11-21",
+      "phase": "Enseignements et vie académique (M1 et M2)"
+    },
+    {
+      "type": "conference",
+      "libelle": "Conférence thématique",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2026-11-25",
+      "fin": "2026-11-25",
+      "phase": "Enseignements et vie académique (M1 et M2)"
+    },
+    {
+      "type": "vacances",
+      "libelle": "Première interruption des activités académiques",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2026-12-20",
+      "fin": "2027-01-04",
+      "phase": "Enseignements et vie académique (M1 et M2)"
+    },
+    {
+      "type": "periode_cours",
+      "libelle": "Seconde période de programmation des cours (M1 et M2)",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2027-01-05",
+      "fin": "2027-02-05",
+      "phase": "Enseignements et vie académique (M1 et M2)"
+    },
+    {
+      "type": "conference",
+      "libelle": "Conférence thématique",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2027-01-08",
+      "fin": "2027-01-08",
+      "phase": "Enseignements et vie académique (M1 et M2)"
+    },
+    {
+      "type": "paiement",
+      "libelle": "Date limite : 2e tranche des frais de scolarité (M1 et M2)",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2027-01-29",
+      "fin": "2027-01-29",
+      "phase": "Enseignements et vie académique (M1 et M2)"
+    },
+    {
+      "type": "examens",
+      "libelle": "Examens de la session normale du 1er semestre M1 : PROMO 14",
+      "niveau": "M1",
+      "promotion": 14,
+      "session": "normale",
+      "debut": "2027-02-16",
+      "fin": "2027-02-28",
+      "phase": "M1 : PROMO 14"
+    },
+    {
+      "type": "examens",
+      "libelle": "Examens de la session normale des semestres 3 et 4 M2 : PROMO 13",
+      "niveau": "M2",
+      "promotion": 13,
+      "session": "normale",
+      "debut": "2027-02-16",
+      "fin": "2027-02-28",
+      "phase": "M2 : PROMO 13"
+    },
+    {
+      "type": "periode_cours",
+      "libelle": "Période de programmation des cours M1 (semestre 2) : PROMO 14",
+      "niveau": "M1",
+      "promotion": 14,
+      "session": null,
+      "debut": "2027-03-02",
+      "fin": "2027-06-15",
+      "phase": "M1 : PROMO 14"
+    },
+    {
+      "type": "ceremonie",
+      "libelle": "Cérémonie de sortie solennelle des promotions 10 et 11 (date selon les autorités)",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2027-03-15",
+      "fin": "2027-03-25",
+      "phase": "Enseignements et vie académique (M1 et M2)"
+    },
+    {
+      "type": "publication",
+      "libelle": "Publication des résultats de la session normale S1-M1 : PROMO 14",
+      "niveau": "M1",
+      "promotion": 14,
+      "session": "normale",
+      "debut": "2027-03-20",
+      "fin": "2027-03-20",
+      "phase": "M1 : PROMO 14"
+    },
+    {
+      "type": "publication",
+      "libelle": "Publication des résultats de la session normale S3 et S4-M2 : PROMO 13",
+      "niveau": "M2",
+      "promotion": 13,
+      "session": "normale",
+      "debut": "2027-03-20",
+      "fin": "2027-03-20",
+      "phase": "M2 : PROMO 13"
+    },
+    {
+      "type": "soutenances",
+      "libelle": "Soutenance des mémoires : PROMO 12 (planning synoptique)",
+      "niveau": "M2",
+      "promotion": 12,
+      "session": null,
+      "debut": "2027-04-10",
+      "fin": "2027-04-10",
+      "phase": "Mémoires : PROMO 12"
+    },
+    {
+      "type": "rattrapage",
+      "libelle": "Examens de la session de rattrapage M2 (S3 et S4) : PROMO 13",
+      "niveau": "M2",
+      "promotion": 13,
+      "session": "rattrapage",
+      "debut": "2027-04-13",
+      "fin": "2027-04-17",
+      "phase": "M2 : PROMO 13"
+    },
+    {
+      "type": "deliberation_rattrapage",
+      "libelle": "Jury de délibération M2 : PROMO 13",
+      "niveau": "M2",
+      "promotion": 13,
+      "session": "rattrapage",
+      "debut": "2027-04-22",
+      "fin": "2027-04-22",
+      "phase": "M2 : PROMO 13"
+    },
+    {
+      "type": "publication",
+      "libelle": "Publication des PV M2 : PROMO 13",
+      "niveau": "M2",
+      "promotion": 13,
+      "session": "rattrapage",
+      "debut": "2027-04-22",
+      "fin": "2027-04-22",
+      "phase": "M2 : PROMO 13"
+    },
+    {
+      "type": "conference",
+      "libelle": "Conférence thématique",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2027-05-10",
+      "fin": "2027-05-10",
+      "phase": "Enseignements et vie académique (M1 et M2)"
+    },
+    {
+      "type": "examens",
+      "libelle": "Examens du second semestre M1 : PROMO 14",
+      "niveau": "M1",
+      "promotion": 14,
+      "session": "normale",
+      "debut": "2027-06-22",
+      "fin": "2027-06-27",
+      "phase": "M1 : PROMO 14"
+    },
+    {
+      "type": "publication",
+      "libelle": "Publication des notes du second semestre M1 : PROMO 14",
+      "niveau": "M1",
+      "promotion": 14,
+      "session": "normale",
+      "debut": "2027-06-22",
+      "fin": "2027-06-27",
+      "phase": "M1 : PROMO 14"
+    },
+    {
+      "type": "rattrapage",
+      "libelle": "Examens de rattrapage des 1er et 2e semestres M1 : PROMO 14",
+      "niveau": "M1",
+      "promotion": 14,
+      "session": "rattrapage",
+      "debut": "2027-06-22",
+      "fin": "2027-06-27",
+      "phase": "M1 : PROMO 14"
+    },
+    {
+      "type": "publication",
+      "libelle": "Publication des notes définitives M1 : PROMO 14",
+      "niveau": "M1",
+      "promotion": 14,
+      "session": "rattrapage",
+      "debut": "2027-06-22",
+      "fin": "2027-06-27",
+      "phase": "M1 : PROMO 14"
+    },
+    {
+      "type": "appel_candidatures",
+      "libelle": "Lancement de l'appel à candidatures de la 15e promotion",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2027-07-01",
+      "fin": "2027-07-01",
+      "phase": "Fin d'année"
+    },
+    {
+      "type": "deliberation",
+      "libelle": "Jury de synthèse (fin d'année M1 et M2)",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2027-07-15",
+      "fin": "2027-07-15",
+      "phase": "Fin d'année"
+    },
+    {
+      "type": "publication",
+      "libelle": "Publication des résultats de fin d'année sur PV de synthèse : PROMO 14 (M1)",
+      "niveau": "M1",
+      "promotion": 14,
+      "session": null,
+      "debut": "2027-07-20",
+      "fin": "2027-07-20",
+      "phase": "Fin d'année"
+    },
+    {
+      "type": "publication",
+      "libelle": "Publication des listes des admis et des autorisés à soutenir : PROMO 13 (M2)",
+      "niveau": "M2",
+      "promotion": 13,
+      "session": null,
+      "debut": "2027-07-20",
+      "fin": "2027-07-20",
+      "phase": "Fin d'année"
+    },
+    {
+      "type": "stages",
+      "libelle": "Stages et voyages d'étude",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2027-07-23",
+      "fin": "2027-07-31",
+      "phase": "Fin d'année"
+    },
+    {
+      "type": "production_documents",
+      "libelle": "Production des relevés de notes, attestations de réussite et diplômes",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2027-07-31",
+      "fin": "2027-07-31",
+      "phase": "Fin d'année"
+    },
+    {
+      "type": "vacances",
+      "libelle": "Vacances",
+      "niveau": null,
+      "promotion": null,
+      "session": null,
+      "debut": "2027-08-01",
+      "fin": "2027-08-31",
+      "phase": "Fin d'année"
+    },
+    {
+      "type": "redaction_memoires",
+      "libelle": "Début de la rédaction des mémoires : PROMO 12",
+      "niveau": "M2",
+      "promotion": 12,
+      "session": null,
+      "debut": "2026-10-12",
+      "fin": "2026-10-12",
+      "phase": "Mémoires : PROMO 12"
+    },
+    {
+      "type": "reunion",
+      "libelle": "Réunion de cadrage des mémoires : PROMO 12",
+      "niveau": "M2",
+      "promotion": 12,
+      "session": null,
+      "debut": "2026-11-04",
+      "fin": "2026-11-04",
+      "phase": "Mémoires : PROMO 12"
+    },
+    {
+      "type": "depot_memoires",
+      "libelle": "Dépôt des projets de mémoire validés par les deux encadreurs : PROMO 12",
+      "niveau": "M2",
+      "promotion": 12,
+      "session": null,
+      "debut": "2026-12-01",
+      "fin": "2026-12-01",
+      "phase": "Mémoires : PROMO 12"
+    },
+    {
+      "type": "pre_soutenance",
+      "libelle": "1re pré-soutenance : projet et chapitres 1 et 2 : PROMO 12",
+      "niveau": "M2",
+      "promotion": 12,
+      "session": null,
+      "debut": "2027-01-26",
+      "fin": "2027-01-26",
+      "phase": "Mémoires : PROMO 12"
+    },
+    {
+      "type": "pre_soutenance",
+      "libelle": "2e pré-soutenance : mémoire complet (fond et forme) : PROMO 12",
+      "niveau": "M2",
+      "promotion": 12,
+      "session": null,
+      "debut": "2027-03-02",
+      "fin": "2027-03-02",
+      "phase": "Mémoires : PROMO 12"
+    },
+    {
+      "type": "soutenances",
+      "libelle": "Soutenance des mémoires de Master : PROMO 12 (planning des mémoires)",
+      "niveau": "M2",
+      "promotion": 12,
+      "session": null,
+      "debut": "2027-04-15",
+      "fin": "2027-05-15",
+      "phase": "Mémoires : PROMO 12"
+    }
+  ],
+  "jours_non_ouvres": [
+    {
+      "jour": "2026-12-25",
+      "libelle": "Noël"
+    },
+    {
+      "jour": "2027-01-01",
+      "libelle": "Jour de l'an"
+    },
+    {
+      "jour": "2027-02-11",
+      "libelle": "Fête de la jeunesse"
+    },
+    {
+      "jour": "2027-05-01",
+      "libelle": "Fête du travail"
+    },
+    {
+      "jour": "2027-05-20",
+      "libelle": "Fête nationale"
+    },
+    {
+      "jour": "2027-08-15",
+      "libelle": "Assomption"
+    }
+  ]
+}
