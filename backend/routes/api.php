@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\Applications\CandidatureController;
 use App\Http\Controllers\Api\Applications\ParcoursController;
 use App\Http\Controllers\Api\Applications\QrCandidatureController;
+use App\Http\Controllers\Api\Applications\RequetesController;
 use App\Http\Controllers\Api\Applications\ResultatsController;
 use App\Http\Controllers\Api\Applications\ScolariteController;
 use App\Http\Controllers\Api\Articles\ArticleController;
@@ -143,6 +144,12 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
             ->whereIn('type', ['releve_notes', 'attestation_reussite', 'certificat_scolarite'])
             ->middleware(['ability:application:read', 'throttle:releve-scolarite'])
             ->name('me.documents-officiels');
+
+        // Requêtes de l'auditeur (spec module 4, lot 8).
+        Route::get('/me/requetes', [RequetesController::class, 'index'])->middleware('ability:application:read')->name('me.requetes');
+        Route::post('/me/requetes', [RequetesController::class, 'store'])->middleware(['ability:application:read', 'throttle:20,60'])->name('me.requetes.store');
+        Route::post('/me/requetes/{uuid}/annuler', [RequetesController::class, 'annuler'])->middleware('ability:application:read')->name('me.requetes.annuler');
+        Route::get('/me/requetes/{uuid}/document', [RequetesController::class, 'document'])->middleware('ability:application:read')->name('me.requetes.document');
 
         Route::get('/me/releve-scolarite', [ScolariteController::class, 'releve'])
             ->middleware(['ability:application:read', 'throttle:releve-scolarite'])

@@ -1123,6 +1123,10 @@ Routes réelles, sous `/v1/applications`, authentifiées par le jeton du portail
 | `GET /me/parcours` | Lot 4. Année, niveau, parcours (`code`, `libelle`), `maquette_validee`, `inscrit`, `credits_total`, semestres (numéro, crédits, UE : code, intitulé, crédits, partie, heures, ECUE avec heures CM, TD, TP, TPE et crédits). La maquette n'apparaît qu'une fois validée. 404 `auditeur_missing` sans inscription. `no-store`. Aucun identifiant interne. |
 | `GET /me/resultats` | Lot 7. Résultats des délibérations arrêtées, publiées et non rectifiées : année, session, décision, crédits, moyenne, MGP, mention, date limite des requêtes, UE (code, intitulé, crédits, note, grade, mode d'acquisition) ; disponibilité des documents. Rien avant la publication. `no-store`. |
 | `GET /me/documents-officiels/{type}` | Lot 7. PDF du relevé de notes ou de l'attestation de réussite (`?deliberation=uuid`) ou du certificat de scolarité. Délivré à la première demande (numéroté, scellé), puis toujours le même fichier. 409 `document_indisponible` avec le motif. |
+| `GET /me/requetes` | Lot 8. Requêtes de l'auditeur (numéro, objet, étape, étapes visibles, décision une fois appliquée ou clôturée), ECUE recevables (code, session, notes), motifs et documents. Jamais l'agent ni le détail interne. |
+| `POST /me/requetes` | Lot 8. Multipart : `type` (`note`/`document`), `ecue` (code), `session`, `note_visee`, `motif` ou `type_document`, `description`, `pieces[]` (5 au plus, PDF/JPEG/PNG, 5 Mo). 201 : numéro `RQ-AAAA-NNNNNN`, empreinte. 422 `requete_refusee` avec le motif. 403 en consultation. 20 dépôts par heure. |
+| `POST /me/requetes/{uuid}/annuler` | Lot 8. Avant la vérification seulement ; 409 sinon. |
+| `GET /me/requetes/{uuid}/document` | Lot 8. PDF déposé par la scolarité pour une demande de document. |
 
 ### Vérification publique d'un document (module 4, lot 7)
 
