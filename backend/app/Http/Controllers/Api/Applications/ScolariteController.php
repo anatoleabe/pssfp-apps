@@ -12,6 +12,7 @@ use App\Services\DocumentsAuditeurs\LettreAccesFoadPdf;
 use App\Services\EspaceCandidat\ConsultationEspaceCandidat;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use App\Services\Scolarite\AccesEcampus;
+use App\Services\Scolarite\DossierAuditeurConnecte;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -107,21 +108,9 @@ final class ScolariteController extends Controller
         ] + self::SANS_CACHE);
     }
 
-    /**
-     * Dernier dossier retenu, non retiré et doté d'une fiche auditeur du compte :
-     * un brouillon dans une campagne suivante ne masque pas la scolarité en cours.
-     */
     private function dossier(Request $request): ?Candidature
     {
-        return Candidature::query()
-            ->where('user_id', $request->user()->id)
-            ->where('statut', Candidature::STATUT_ACCEPTE)
-            ->whereNull('withdrawn_at')
-            ->whereHas('auditeur')
-            ->with(['campagne', 'auditeur.inscriptionCourante.bareme'])
-            ->orderByDesc('matricule_attribue_at')
-            ->orderByDesc('id')
-            ->first();
+        return app(DossierAuditeurConnecte::class)->pour($request->user());
     }
 
     /**

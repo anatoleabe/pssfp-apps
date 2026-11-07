@@ -10,6 +10,7 @@ use App\Models\Candidature;
 use App\Models\InscriptionAnnuelle;
 use App\Models\User;
 use App\Models\Versement;
+use App\Services\Lmd\InscriptionsPedagogiques;
 use Illuminate\Database\UniqueConstraintViolationException;
 use InvalidArgumentException;
 
@@ -78,6 +79,8 @@ final class OuvertureAuditeur
             ->withProperties(['annee' => $annee, 'niveau' => $bareme->niveau, 'dossier' => $dossier->numero_dossier])
             ->log('Inscription annuelle créée');
         $this->reprendrePointage($inscription, $dossier);
+        // Lot 4 : inscription pédagogique dès que la maquette du parcours est validée (sans effet sinon).
+        app(InscriptionsPedagogiques::class)->inscrire($inscription);
         $auditeur->unsetRelation('inscriptionCourante');
 
         return $inscription;

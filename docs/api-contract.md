@@ -1120,6 +1120,7 @@ Routes réelles, sous `/v1/applications`, authentifiées par le jeton du portail
 | `GET /me/scolarite` | Matricule, identifiant, promotion, année, niveau, dû, remise, versé, reste, trop-perçu, paliers (dû, payé, reste, échéance, retard), versements valides (date, montant, mode, référence), accès (`bloque`, `en_preparation`, `disponible`). 404 `auditeur_missing` sans fiche ou pour un dossier retiré. `Cache-Control: no-store`. |
 | `GET /me/releve-scolarite` | PDF du relevé de situation, généré à la demande, sans mot de passe. |
 | `POST /me/acces/reveler` | Identifiant, mot de passe FOAD et adresse d'eCampus si l'accès est `disponible`. 403 sinon, et toujours 403 pour un agent en consultation de l'espace. 10 demandes par heure et par compte. `no-store`. Chaque affichage est journalisé, sans le mot de passe. |
+| `GET /me/parcours` | Lot 4. Année, niveau, parcours (`code`, `libelle`), `maquette_validee`, `inscrit`, `credits_total`, semestres (numéro, crédits, UE : code, intitulé, crédits, partie, heures, ECUE avec heures CM, TD, TP, TPE et crédits). La maquette n'apparaît qu'une fois validée. 404 `auditeur_missing` sans inscription. `no-store`. Aucun identifiant interne. |
 
 ## 10. Domaine — Contact
 

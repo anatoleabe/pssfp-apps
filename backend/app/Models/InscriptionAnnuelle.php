@@ -79,6 +79,17 @@ class InscriptionAnnuelle extends Model
         return $this->hasMany(Versement::class);
     }
 
+    /** Parcours LMD de l'inscription (lot 4) : seul InscriptionsPedagogiques le pose. */
+    public function parcours(): BelongsTo
+    {
+        return $this->belongsTo(Parcours::class);
+    }
+
+    public function inscriptionsPedagogiques(): HasMany
+    {
+        return $this->hasMany(InscriptionPedagogique::class);
+    }
+
     /** Versements qui comptent dans le cumul. */
     public function versementsValides(): HasMany
     {

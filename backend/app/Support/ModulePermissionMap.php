@@ -131,6 +131,23 @@ final class ModulePermissionMap
                     'scolarite.messages' => 'Envoyer un message aux auditeurs (relance des impayés)',
                 ],
             ],
+            'lmd' => [
+                'label' => 'Module 4 — Parcours LMD',
+                'description' => 'Parcours, maquettes, règles d\'évaluation et inscriptions pédagogiques des auditeurs.',
+                'read' => [
+                    'lmd.consulter',
+                ],
+                'manage' => [
+                    'lmd.referentiel',
+                    'lmd.inscrire',
+                ],
+                'sensitive_description' => 'À cocher explicitement : préparer une maquette n\'emporte pas le droit de la valider.',
+                'sensitive' => [
+                    'lmd.maquette_valider' => 'Valider ou rouvrir une maquette',
+                    'lmd.regles' => 'Modifier les règles d\'évaluation de l\'année',
+                    'lmd.parcours_changer' => 'Changer le parcours (option) d\'un auditeur',
+                ],
+            ],
             'bibliotheque' => [
                 'label' => 'Module 3 — Bibliothèque',
                 'description' => 'Documents de la bibliothèque virtuelle et thésaurus. La publication reste une action sensible.',

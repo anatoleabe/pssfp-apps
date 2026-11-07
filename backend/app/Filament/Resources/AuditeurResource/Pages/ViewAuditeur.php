@@ -6,6 +6,7 @@ namespace App\Filament\Resources\AuditeurResource\Pages;
 
 use App\Filament\Resources\AuditeurResource;
 use App\Filament\Resources\AuditeurResource\AuditeurActions;
+use App\Filament\Resources\AuditeurResource\ParcoursActions;
 use App\Filament\Resources\CandidatureResource;
 use App\Filament\Resources\CandidatureResource\AjoutRetenuActions;
 use App\Filament\Resources\CandidatureResource\ComptesEcampusActions;
@@ -79,6 +80,10 @@ class ViewAuditeur extends ViewRecord
                 LettresSigneesActions::voir(Action::make('voirLettreSignee')),
                 LettresSigneesActions::retirer(Action::make('retirerLettreSignee')),
             ])->label('Documents')->icon('heroicon-o-document-text')->button()->color('gray'),
+            ActionGroup::make([
+                ParcoursActions::inscrire(),
+                ParcoursActions::changerParcours(),
+            ])->label('Parcours')->icon('heroicon-o-academic-cap')->button()->color('gray'),
             ActionGroup::make([
                 AuditeurActions::changerStatut(),
                 AjoutRetenuActions::corrigerTelephone(Action::make('corrigerTelephone')),
