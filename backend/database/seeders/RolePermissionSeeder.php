@@ -196,6 +196,18 @@ final class RolePermissionSeeder extends Seeder
                 'modules' => [],
                 'sensitive' => ['lmd.requetes_valider'],
             ],
+            'gestionnaire_anonymats' => [
+                'label' => 'Gestionnaire des anonymats',
+                'description' => 'Épreuves anonymes : numéros, étiquettes, constats, verrouillage et levée avec la clé. Ne saisit pas de notes.',
+                'modules' => [],
+                'sensitive' => ['lmd.anonymat_gerer'],
+            ],
+            'operateur_saisie' => [
+                'label' => 'Opérateur de saisie',
+                'description' => 'Saisie des notes d\'examen sur les numéros d\'anonymat, sans accès à la correspondance.',
+                'modules' => [],
+                'sensitive' => ['lmd.anonymat_saisir'],
+            ],
             'library_manager' => [
                 'label' => 'Responsable de la bibliothèque',
                 'description' => 'Bibliothèque seulement : documents, thésaurus, publication, anciennes adresses et statistiques.',

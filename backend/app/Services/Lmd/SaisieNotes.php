@@ -136,6 +136,9 @@ final class SaisieNotes
                 throw new InvalidArgumentException(sprintf('Saisie refusée : étape « %s » %s. Correction par requête ou réouverture motivée.',
                     EtapeSaisie::ETAPES[$etape->etape], $etape->statut === EtapeSaisie::FERMEE ? 'fermée' : 'verrouillée'));
             }
+            if ($etape->etape === EtapeSaisie::EXAMEN && Anonymat::enCours($etape->maquette_ecue_id, $etape->session)) {
+                throw new InvalidArgumentException('Saisie refusée : cet examen est sous anonymat ; les notes se saisissent sur les numéros (D36).');
+            }
             $inscrits = $this->inscrits($etape->ecue)->keyBy('id');
             $existantes = NoteEcue::query()->where('maquette_ecue_id', $etape->maquette_ecue_id)->where('session', $etape->session)
                 ->whereIn('inscription_pedagogique_id', array_keys($lignes))->lockForUpdate()->get()->keyBy('inscription_pedagogique_id');

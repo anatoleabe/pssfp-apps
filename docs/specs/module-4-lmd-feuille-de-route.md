@@ -22,8 +22,8 @@ Chaque lot a sa spec, sa branche, ses tests, et se déploie seul.
 | 5 | **Notes** : saisie par ECUE et par étapes (CC, assiduité et TP, examen), verrouillage et réouverture motivée, historique en ajout seul, import Excel, moyennes, éligibilité au rattrapage | D10, D11, D16 | PR #73 |
 | 6 | **Délibérations** : jurys, préalables, scénarios et mesures du jury, séance et quorum, arrêt (résultats figés, PV numéroté et scellé), signatures, publication, rectification, PV en PDF, liste d'affichage, correspondances d'UE et acquis des redoublants | D4, D5, D17, D20, D35, D37 | PR (lot 6) ; correspondances d'UE et acquis des redoublants avec la reprise d'ACMA (lot 15) |
 | 7 | **Résultats et documents** : « Mes résultats », relevé de notes, attestation de réussite, certificat de scolarité ; documents numérotés, vérifiables par QR code, révocables | D9, D26 (documents), D37 | PR #75 |
-| 8 | **Requêtes** : dépôt dans la fenêtre, accusé de réception, cotation, instruction, jury des requêtes, validation définitive, application aux notes, demandes de documents | D26 à D28 | En cours |
-| 9 | **Anonymat des copies** | D36 | À faire |
+| 8 | **Requêtes** : dépôt dans la fenêtre, accusé de réception, cotation, instruction, jury des requêtes, validation définitive, application aux notes, demandes de documents | D26 à D28 | PR #76 |
+| 9 | **Anonymat des copies** | D36 | En cours |
 | 10 | **Assiduité** : séances, pointage présentiel et à distance (export Zoom), justifications, note d'assiduité | D12, D13 | À faire |
 | 11 | **Mémoires** et attestation d'autorisation de dépôt | D32 à D34 | À faire |
 | 12 | **Calendrier académique**, actes, Gantt, emplois du temps | D18 à D22 | À faire |

@@ -48,4 +48,8 @@ final class PermissionsLmd
     public const REQUETES_JURY = 'lmd.requetes_jury';
 
     public const REQUETES_VALIDER = 'lmd.requetes_valider';
+
+    public const ANONYMAT_GERER = 'lmd.anonymat_gerer';
+
+    public const ANONYMAT_SAISIR = 'lmd.anonymat_saisir';
 }
