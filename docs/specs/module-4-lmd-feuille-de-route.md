@@ -24,8 +24,8 @@ Chaque lot a sa spec, sa branche, ses tests, et se déploie seul.
 | 7 | **Résultats et documents** : « Mes résultats », relevé de notes, attestation de réussite, certificat de scolarité ; documents numérotés, vérifiables par QR code, révocables | D9, D26 (documents), D37 | PR #75 |
 | 8 | **Requêtes** : dépôt dans la fenêtre, accusé de réception, cotation, instruction, jury des requêtes, validation définitive, application aux notes, demandes de documents | D26 à D28 | PR #76 |
 | 9 | **Anonymat des copies** | D36 | PR #77 |
-| 10 | **Assiduité** : séances, pointage présentiel et à distance (export Zoom), justifications, note d'assiduité | D12, D13 | En cours |
-| 11 | **Mémoires** et attestation d'autorisation de dépôt | D32 à D34 | À faire |
+| 10 | **Assiduité** : séances, pointage présentiel et à distance (export Zoom), justifications, note d'assiduité | D12, D13 | PR #78 |
+| 11 | **Mémoires** et attestation d'autorisation de dépôt | D32 à D34 | En cours |
 | 12 | **Calendrier académique**, actes, Gantt, emplois du temps | D18 à D22 | À faire |
 | 13 | **Enseignants et paie**, rapprochement, contrôle de gestion | D23 à D25, D38 | À faire |
 | 14 | **Supervision**, messagerie interne, demandes d'autorisation | D30, D31 | À faire |

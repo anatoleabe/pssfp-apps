@@ -718,3 +718,36 @@ export async function deleteCandidatureDocument(
     };
   }
 }
+
+export interface EtapeMemoire {
+  etape: string;
+  libelle: string;
+  poids: number;
+  date_prevue: string | null;
+  statut: 'a_faire' | 'depose' | 'valide' | 'ajourne' | 'dispense';
+  statut_libelle: string;
+  realisee_le: string | null;
+  note: number | null;
+  appreciation: string | null;
+  document_depose: boolean;
+  deposable: boolean;
+}
+
+export interface MonMemoire {
+  theme: string | null;
+  structure_accueil: string | null;
+  encadreur_academique: string | null;
+  encadreur_professionnel: string | null;
+  statut: string;
+  statut_libelle: string;
+  date_soutenance: string | null;
+  avancement: { pourcentage: number; estime: number | null; prochaine: string | null; retards: string[] };
+  etapes: EtapeMemoire[];
+  conditions: { libelle: string; ok: boolean }[];
+  attestation: { numero: string; delivree_le: string | null } | null;
+}
+
+/** GET /applications/me/memoire — `data` null tant qu'aucun dossier de mémoire n'est ouvert. */
+export function getMyMemoire(token: string): Promise<ApiResult<MonMemoire | null>> {
+  return apiGet<MonMemoire | null>('/applications/me/memoire', { token, noStore: true });
+}

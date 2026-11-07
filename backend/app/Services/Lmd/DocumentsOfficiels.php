@@ -7,6 +7,7 @@ namespace App\Services\Lmd;
 use App\Models\Auditeur;
 use App\Models\Deliberation;
 use App\Models\DocumentDelivre;
+use App\Models\DossierMemoire;
 use App\Models\InscriptionAnnuelle;
 use App\Models\LeveeRestriction;
 use App\Models\ResultatAnnuel;
@@ -44,7 +45,45 @@ final class DocumentsOfficiels
             return $existant;
         }
 
-        return DB::transaction(function () use ($type, $auditeur, $inscription, $d, $resultat, $auteur): DocumentDelivre {
+        return $this->emettre($type, $auditeur, $inscription, $type === DocumentDelivre::CERTIFICAT ? null : $d,
+            fn (string $numero, string $code): string => $this->pdf($type, $numero, $code, $auditeur, $inscription, $d, $resultat), $auteur);
+    }
+
+    /**
+     * Attestation d'autorisation de dépôt du mémoire (D33, D34) : les conditions sont vérifiées par
+     * App\Services\Lmd\Memoires ; une seule attestation valide par mémoire.
+     *
+     * @param  list<array{libelle: string, detail: ?string}>  $conditions
+     */
+    public function delivrerAutorisationDepot(DossierMemoire $dossier, array $conditions, User $auteur): DocumentDelivre
+    {
+        $existant = DocumentDelivre::query()->where('type', DocumentDelivre::AUTORISATION_DEPOT)->where('inscription_annuelle_id', $dossier->inscription_annuelle_id)
+            ->whereNull('revoque_at')->first();
+        if ($existant !== null) {
+            throw new InvalidArgumentException('Une attestation valide existe déjà ('.$existant->numero.') : révoquez-la avant d\'en délivrer une autre.');
+        }
+        $dossier->loadMissing(['auditeur.candidature', 'inscriptionAnnuelle.parcours', 'etapes']);
+
+        return $this->emettre(DocumentDelivre::AUTORISATION_DEPOT, $dossier->auditeur, $dossier->inscriptionAnnuelle, null,
+            function (string $numero, string $code) use ($dossier, $conditions): string {
+                $url = config('pssfp.candidature_app_url').'/verifier/'.$code;
+
+                return Pdf::loadView('pdf.lmd.autorisation-depot', [
+                    'numero' => $numero, 'code' => $code, 'url' => $url,
+                    'qr' => 'data:image/svg+xml;base64,'.base64_encode((string) QrCode::format('svg')->size(110)->margin(0)->generate($url)),
+                    'dossier' => $dossier, 'candidat' => $dossier->auditeur->candidature, 'conditions' => $conditions, 'edite_le' => now('Africa/Douala'),
+                ])->setPaper('a4', 'portrait')->output();
+            }, $auteur);
+    }
+
+    /**
+     * Numérote, produit, conserve et scelle un document (RG-059).
+     *
+     * @param  callable(string, string): string  $produire  numéro, code → PDF
+     */
+    private function emettre(string $type, Auditeur $auditeur, InscriptionAnnuelle $inscription, ?Deliberation $d, callable $produire, ?User $auteur): DocumentDelivre
+    {
+        return DB::transaction(function () use ($type, $auditeur, $inscription, $d, $produire, $auteur): DocumentDelivre {
             $annee = (int) substr($inscription->annee_academique, 0, 4);
             DB::select('SELECT pg_advisory_xact_lock(?)', [crc32('document_'.$type.'_'.$annee)]);
             $prefixe = DocumentDelivre::PREFIXES[$type].'-'.$annee.'-';
@@ -54,7 +93,7 @@ final class DocumentsOfficiels
             $dossier = $auditeur->candidature;
             $titulaire = trim(mb_strtoupper((string) $dossier?->nom).' '.$dossier?->prenom);
 
-            $pdf = $this->pdf($type, $numero, $code, $auditeur, $inscription, $d, $resultat);
+            $pdf = $produire($numero, $code);
             $chemin = self::DOSSIER.'/'.Str::ulid().'.pdf';
             if (! Storage::disk(CandidatureObjectStorage::DISK)->put($chemin, $pdf)) {
                 throw new InvalidArgumentException('Le document n\'a pas pu être enregistré : réessayez dans quelques minutes.');
@@ -62,7 +101,7 @@ final class DocumentsOfficiels
 
             $document = DocumentDelivre::query()->create([
                 'type' => $type, 'numero' => $numero, 'code_verification' => $code, 'auditeur_id' => $auditeur->id,
-                'inscription_annuelle_id' => $inscription->id, 'deliberation_id' => $type === DocumentDelivre::CERTIFICAT ? null : $d?->id,
+                'inscription_annuelle_id' => $inscription->id, 'deliberation_id' => $d?->id,
                 'titulaire' => $titulaire, 'chemin' => $chemin, 'sha256' => hash('sha256', $pdf), 'delivre_par' => $auteur?->id,
             ]);
             activity('lmd')->causedBy($auteur)->performedOn($auditeur)->event('document_delivre')

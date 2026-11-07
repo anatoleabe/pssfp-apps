@@ -22,13 +22,16 @@ class DocumentDelivre extends Model
 
     public const CERTIFICAT = 'certificat_scolarite';
 
+    public const AUTORISATION_DEPOT = 'autorisation_depot';
+
     public const TYPES = [
         self::RELEVE => 'Relevé de notes',
         self::ATTESTATION => 'Attestation de réussite',
         self::CERTIFICAT => 'Certificat de scolarité',
+        self::AUTORISATION_DEPOT => 'Attestation d\'autorisation de dépôt du mémoire',
     ];
 
-    public const PREFIXES = [self::RELEVE => 'RN', self::ATTESTATION => 'AR', self::CERTIFICAT => 'CS'];
+    public const PREFIXES = [self::RELEVE => 'RN', self::ATTESTATION => 'AR', self::CERTIFICAT => 'CS', self::AUTORISATION_DEPOT => 'AD'];
 
     protected $table = 'documents_delivres';
 
