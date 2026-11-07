@@ -110,6 +110,7 @@ final class RolePermissionSeeder extends Seeder
                     'lmd.requetes_coter',
                     'lmd.requetes_jury',
                     'lmd.requetes_valider',
+                    'lmd.memoires_attester',
                     'journal.view',
                     'document.publish',
                     'library.thesaurus',
@@ -176,7 +177,8 @@ final class RolePermissionSeeder extends Seeder
                     'lmd.maquette_valider', 'lmd.regles', 'lmd.parcours_changer',
                     'lmd.notes_verrouiller', 'lmd.notes_rouvrir', 'lmd.derogation_rattrapage',
                     'lmd.deliberation_arreter', 'lmd.deliberation_publier', 'lmd.jury_signer',
-                    'lmd.documents_revoquer', 'lmd.documents_lever', 'lmd.requetes_coter', 'lmd.requetes_jury'],
+                    'lmd.documents_revoquer', 'lmd.documents_lever', 'lmd.requetes_coter', 'lmd.requetes_jury',
+                    'lmd.memoires_attester'],
             ],
             'enseignant' => [
                 'label' => 'Enseignant',
