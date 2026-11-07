@@ -52,4 +52,6 @@ final class PermissionsLmd
     public const ANONYMAT_GERER = 'lmd.anonymat_gerer';
 
     public const ANONYMAT_SAISIR = 'lmd.anonymat_saisir';
+
+    public const ASSIDUITE = 'lmd.assiduite';
 }

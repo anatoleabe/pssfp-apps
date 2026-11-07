@@ -135,6 +135,10 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
             ->middleware('ability:application:read')
             ->name('me.parcours');
 
+        Route::get('/me/assiduite', [ParcoursController::class, 'assiduite'])
+            ->middleware('ability:application:read')
+            ->name('me.assiduite');
+
         // Résultats publiés et documents officiels de l'auditeur (spec module 4, lot 7).
         Route::get('/me/resultats', [ResultatsController::class, 'index'])
             ->middleware('ability:application:read')

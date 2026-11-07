@@ -1173,7 +1173,15 @@
         "tpe": "TPE",
         "credits": "Crédits"
       },
-      "legende": "CM : cours magistral · TD : travaux dirigés · TP : travaux pratiques · TPE : travail personnel de l’étudiant (heures)"
+      "legende": "CM : cours magistral · TD : travaux dirigés · TP : travaux pratiques · TPE : travail personnel de l’étudiant (heures)",
+      "assiduite": {
+        "titre": "Mon assiduité",
+        "aide": "Note provisoire sur 20, calculée sur les séances tenues : une absence justifiée compte comme une présence.",
+        "seances": "Séances",
+        "presences": "Présences",
+        "justifiees": "Justifiées",
+        "note": "Note"
+      }
     },
     "resultats": {
       "eyebrow": "Mes résultats",

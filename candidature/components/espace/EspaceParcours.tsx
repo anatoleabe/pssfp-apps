@@ -1,11 +1,11 @@
 import { useTranslations } from 'next-intl';
 import { GraduationCap } from 'lucide-react';
-import type { MonParcours, ParcoursUe } from '@/lib/api/client';
+import type { AssiduiteEcue, MonParcours, ParcoursUe } from '@/lib/api/client';
 
 const CARTE = 'min-w-0 rounded-pssfp-card border border-[#F4EFFA] bg-white p-6 shadow-pssfp-soft md:p-7';
 
 /** Maquette de l'auditeur, semestre par semestre ; rien n'est montré avant la validation par la scolarité. */
-export function EspaceParcours({ parcours }: { parcours: MonParcours }): JSX.Element {
+export function EspaceParcours({ parcours, assiduite = [] }: { parcours: MonParcours; assiduite?: AssiduiteEcue[] }): JSX.Element {
   const t = useTranslations('espace.parcours');
 
   return (
@@ -43,6 +43,41 @@ export function EspaceParcours({ parcours }: { parcours: MonParcours }): JSX.Ele
       ))}
 
       {parcours.semestres.length > 0 && <p className="text-xs text-[#5C5C5C]">{t('legende')}</p>}
+
+      {assiduite.length > 0 && (
+        <section aria-labelledby="assiduite-heading" className={CARTE} data-testid="parcours-assiduite">
+          <h3 id="assiduite-heading" className="font-heading text-xl font-bold text-[#4A2E67]">{t('assiduite.titre')}</h3>
+          <p className="mt-2 text-sm text-[#3C3C3C]">{t('assiduite.aide')}</p>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[32rem] table-fixed text-sm">
+              <caption className="sr-only">{t('assiduite.titre')}</caption>
+              <thead>
+                <tr className="text-xs uppercase text-[#5C5C5C]">
+                  <th scope="col" className="py-2 pr-2 text-left font-semibold">{t('colonnes.ecue')}</th>
+                  <th scope="col" className="w-20 py-2 pr-2 text-right font-semibold">{t('assiduite.seances')}</th>
+                  <th scope="col" className="w-20 py-2 pr-2 text-right font-semibold">{t('assiduite.presences')}</th>
+                  <th scope="col" className="w-20 py-2 pr-2 text-right font-semibold">{t('assiduite.justifiees')}</th>
+                  <th scope="col" className="w-20 py-2 text-right font-semibold">{t('assiduite.note')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assiduite.map((a) => (
+                  <tr key={a.ecue} className="border-t border-[#F4EFFA] text-[#3C3C3C]">
+                    <th scope="row" className="py-2 pr-2 text-left font-normal">
+                      <span className="block font-mono text-xs text-[#5C3A7E]">{a.ecue}</span>
+                      {a.intitule}
+                    </th>
+                    <td className="py-2 pr-2 text-right tabular-nums">{a.tenues}</td>
+                    <td className="py-2 pr-2 text-right tabular-nums">{a.presents}</td>
+                    <td className="py-2 pr-2 text-right tabular-nums">{a.justifies}</td>
+                    <td className="py-2 text-right font-semibold tabular-nums">{a.note === null ? '—' : a.note.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

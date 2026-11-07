@@ -512,6 +512,20 @@ export function getMyRequetes(token: string): Promise<ApiResult<MesRequetes>> {
   return apiGet<MesRequetes>('/applications/me/requetes', { token, noStore: true });
 }
 
+export interface AssiduiteEcue {
+  ecue: string;
+  intitule: string;
+  tenues: number;
+  presents: number;
+  justifies: number;
+  note: number | null;
+}
+
+/** Assiduité provisoire de l'année, par ECUE (séances tenues seulement). */
+export function getMyAssiduite(token: string): Promise<ApiResult<AssiduiteEcue[]>> {
+  return apiGet<AssiduiteEcue[]>('/applications/me/assiduite', { token, noStore: true });
+}
+
 /** Mot de passe FOAD, à la demande seulement : jamais présent dans la page initiale. */
 export function revelerAcces(token: string): Promise<ApiResult<AccesRevele>> {
   return apiPost<AccesRevele>('/applications/me/acces/reveler', {}, { token, noStore: true });
