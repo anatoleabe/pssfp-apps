@@ -26,8 +26,8 @@ Chaque lot a sa spec, sa branche, ses tests, et se déploie seul.
 | 9 | **Anonymat des copies** | D36 | PR #77 |
 | 10 | **Assiduité** : séances, pointage présentiel et à distance (export Zoom), justifications, note d'assiduité | D12, D13 | PR #78 |
 | 11 | **Mémoires** et attestation d'autorisation de dépôt | D32 à D34 | PR #79 |
-| 12a | **Calendrier académique** : circuit de signature, exécution, réajustement, contrôles, Gantt | D18 à D21 | En cours |
-| 12b | **Actes** produits à partir du calendrier (notes de service, communiqués, PV, listes) | D18, D19 | À faire |
+| 12a | **Calendrier académique** : circuit de signature, exécution, réajustement, contrôles, Gantt | D18 à D21 | PR #80 |
+| 12b | **Actes** produits à partir du calendrier (notes de service, communiqués, PV, listes) | D18, D19 | En cours |
 | 12c | **Emplois du temps**, quotas horaires et programmation des enseignants | D21, D22 | À faire |
 | 13 | **Enseignants et paie**, rapprochement, contrôle de gestion | D23 à D25, D38 | À faire |
 | 14 | **Supervision**, messagerie interne, demandes d'autorisation | D30, D31 | À faire |
