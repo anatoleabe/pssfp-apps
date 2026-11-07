@@ -911,6 +911,14 @@ Détail : `docs/specs/module-4-lmd-lot6-deliberations.md`.
 | `resultats_annuels` | Résultats arrêtés | ajout seul, garanti par un déclencheur |
 | `acquis_ue` | UE capitalisées | unique (`auditeur_id`, `maquette_ue_id`) ; origine évaluation, délibération, reprise, équivalence |
 
+### Documents officiels (module 4, lot 7)
+
+| Table | Rôle | Points clés |
+|---|---|---|
+| `documents_delivres` | Relevé de notes, attestation de réussite, certificat de scolarité | `uuid` ; numéro `RN`/`AR`/`CS-AAAA-NNNNNN` unique ; code de vérification ; PDF conservé (stockage privé) et son SHA-256 ; révocation motivée, jamais de modification ; un seul document valide par objet (index partiel) |
+| `levees_restriction` | Levée de la condition « en règle » (D9) | inscription, motif, auteur |
+| `participations_deliberation.signature_constatee_par` | Signature d'un membre sans compte constatée sur le PV papier | tracée au journal |
+
 ## 11. Préparation Phase II (placeholders)
 
 Tables créées en Phase I avec un schéma minimal pour préparer la Phase II sans migration cassante. Aucune logique métier n'est attachée à ces tables en Phase I — elles existent simplement pour stabiliser les FK.

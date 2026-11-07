@@ -36,4 +36,8 @@ final class PermissionsLmd
     public const DELIBERATION_PUBLIER = 'lmd.deliberation_publier';
 
     public const JURY_SIGNER = 'lmd.jury_signer';
+
+    public const DOCUMENTS_REVOQUER = 'lmd.documents_revoquer';
+
+    public const DOCUMENTS_LEVER = 'lmd.documents_lever';
 }

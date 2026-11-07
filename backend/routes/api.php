@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\Applications\CandidatureController;
 use App\Http\Controllers\Api\Applications\ParcoursController;
 use App\Http\Controllers\Api\Applications\QrCandidatureController;
+use App\Http\Controllers\Api\Applications\ResultatsController;
 use App\Http\Controllers\Api\Applications\ScolariteController;
 use App\Http\Controllers\Api\Articles\ArticleController;
 use App\Http\Controllers\Api\Auth\AuthCandidatController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Api\Library\DownloadController;
 use App\Http\Controllers\Api\Library\SearchController;
 use App\Http\Controllers\Api\Library\ViewController;
 use App\Http\Controllers\Api\Pages\PageController;
+use App\Http\Controllers\Api\Public\VerificationDocumentController;
 use App\Http\Controllers\Api\Reference\ReferenceController;
 use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +28,11 @@ use Illuminate\Support\Facades\Route;
  */
 
 Route::get('/health', HealthController::class)->name('api.health');
+
+// Vérification publique d'un document officiel (spec module 4, lot 7) : minimum de données.
+Route::get('/documents/verification/{code}', VerificationDocumentController::class)
+    ->middleware('throttle:30,1')
+    ->name('documents.verification');
 
 /*
  * Auth candidat (cf. ADR-0007 + spec module 5 §M4).
@@ -126,6 +133,16 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
         Route::get('/me/parcours', [ParcoursController::class, 'show'])
             ->middleware('ability:application:read')
             ->name('me.parcours');
+
+        // Résultats publiés et documents officiels de l'auditeur (spec module 4, lot 7).
+        Route::get('/me/resultats', [ResultatsController::class, 'index'])
+            ->middleware('ability:application:read')
+            ->name('me.resultats');
+
+        Route::get('/me/documents-officiels/{type}', [ResultatsController::class, 'document'])
+            ->whereIn('type', ['releve_notes', 'attestation_reussite', 'certificat_scolarite'])
+            ->middleware(['ability:application:read', 'throttle:releve-scolarite'])
+            ->name('me.documents-officiels');
 
         Route::get('/me/releve-scolarite', [ScolariteController::class, 'releve'])
             ->middleware(['ability:application:read', 'throttle:releve-scolarite'])
