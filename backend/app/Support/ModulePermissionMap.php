@@ -140,13 +140,19 @@ final class ModulePermissionMap
                 'manage' => [
                     'lmd.referentiel',
                     'lmd.inscrire',
+                    'lmd.notes_saisir',
                 ],
-                'sensitive_description' => 'À cocher explicitement : préparer une maquette n\'emporte pas le droit de la valider.',
+                'sensitive_description' => 'À cocher explicitement : préparer une maquette n\'emporte pas le droit de la valider, ni saisir des notes celui de verrouiller une étape.',
                 'sensitive' => [
                     'lmd.maquette_valider' => 'Valider ou rouvrir une maquette',
                     'lmd.regles' => 'Modifier les règles d\'évaluation de l\'année',
                     'lmd.parcours_changer' => 'Changer le parcours (option) d\'un auditeur',
+                    'lmd.notes_verrouiller' => 'Ouvrir et verrouiller les étapes de saisie des notes',
+                    'lmd.notes_rouvrir' => 'Rouvrir une étape de saisie verrouillée (avec motif)',
+                    'lmd.derogation_rattrapage' => 'Accorder une dérogation pour le rattrapage',
+                    'lmd.notes_enseignant' => 'Saisir le contrôle continu et l\'assiduité de ses ECUE (enseignant)',
                 ],
+                'standalone' => ['lmd.notes_enseignant'],
             ],
             'bibliotheque' => [
                 'label' => 'Module 3 — Bibliothèque',

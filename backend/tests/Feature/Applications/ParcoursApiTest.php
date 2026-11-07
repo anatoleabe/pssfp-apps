@@ -20,7 +20,7 @@ beforeEach(function (): void {
     $this->seed([PaysSeeder::class, RegionsCamerounSeeder::class, DepartementsCamerounSeeder::class, RolePermissionSeeder::class]);
     app(ImportMaquettes::class)->importer(json_decode((string) file_get_contents(resource_path('lmd/maquettes-2026-2027.json')), true), true);
     $bareme = BaremeScolarite::factory()->create(['annee_academique' => '2026-2027', 'niveau' => 'M2']);
-    $this->auditeur = Auditeur::factory()->create();
+    $this->auditeur = Auditeur::factory()->campagneCommune()->create();
     $dossier = $this->auditeur->candidature;
     $dossier->forceFill(['specialite' => 'Gouvernance Territoriale et Finances Publiques locales', 'user_id' => User::factory()->create()->id])->save();
     $this->inscription = InscriptionAnnuelle::factory()->create(['auditeur_id' => $this->auditeur->id, 'bareme_id' => $bareme->id]);

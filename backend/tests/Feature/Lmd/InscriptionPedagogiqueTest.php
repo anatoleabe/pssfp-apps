@@ -34,7 +34,7 @@ function inscriptionLmd(string $niveau, ?string $specialite = null): Inscription
 {
     $bareme = BaremeScolarite::query()->firstOrCreate(['annee_academique' => '2026-2027', 'niveau' => $niveau],
         ['montant_inscription' => $niveau === 'M1' ? 185000 : 135000, 'montant_tranche1' => 500000, 'montant_tranche2' => 500000]);
-    $auditeur = Auditeur::factory()->create();
+    $auditeur = Auditeur::factory()->campagneCommune()->create();
     $auditeur->candidature->forceFill(['specialite' => $specialite])->save();
 
     return InscriptionAnnuelle::factory()->create(['auditeur_id' => $auditeur->id, 'bareme_id' => $bareme->id]);

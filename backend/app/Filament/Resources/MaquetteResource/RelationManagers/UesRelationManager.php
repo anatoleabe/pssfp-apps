@@ -55,7 +55,7 @@ class UesRelationManager extends RelationManager
         $pourcent = fn (string $champ, string $libelle): Forms\Components\TextInput => Forms\Components\TextInput::make($champ)
             ->label($libelle)->required()->numeric()->minValue(0)->maxValue(100)->step(0.01)->suffix('%')
             ->formatStateUsing(fn ($state): ?string => $state === null ? null : rtrim(rtrim(number_format((float) $state * 100, 2, '.', ''), '0'), '.'))
-            ->dehydrateStateUsing(fn ($state): float => round((float) $state / 100, 4));
+            ->dehydrateStateUsing(fn ($state): string => number_format((float) $state / 100, 4, '.', ''));
         /** @var Maquette $maquette */
         $maquette = $this->getOwnerRecord();
         $regle = RegleEvaluation::pourAnnee($maquette->annee_academique);
@@ -71,9 +71,9 @@ class UesRelationManager extends RelationManager
                 ]),
             Forms\Components\TextInput::make('semestre')->label('Semestre')->required()->integer()->minValue(1)->maxValue(12),
             Forms\Components\TextInput::make('credits')->label('Crédits')->required()->integer()->minValue(0)->maxValue(60),
-            $pourcent('pcc', 'Contrôle continu')->default((float) $regle->pcc_defaut),
-            $pourcent('ptp', 'Assiduité (TP)')->default((float) $regle->ptp_defaut),
-            $pourcent('pexam', 'Examen')->default((float) $regle->pexam_defaut),
+            $pourcent('pcc', 'Contrôle continu')->default((string) $regle->pcc_defaut),
+            $pourcent('ptp', 'Assiduité (TP)')->default((string) $regle->ptp_defaut),
+            $pourcent('pexam', 'Examen')->default((string) $regle->pexam_defaut),
             Forms\Components\Select::make('partie')->label('Partie')->required()->native(false)->options(MaquetteUe::PARTIES)->default(MaquetteUe::ECRITE),
             Forms\Components\Repeater::make('ecues')->label('ECUE')->relationship()->columnSpanFull()->columns(8)
                 ->orderColumn('ordre')->defaultItems(0)->addActionLabel('Ajouter un ECUE')
