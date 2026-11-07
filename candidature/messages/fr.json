@@ -1182,6 +1182,11 @@
         "presences": "Présences",
         "justifiees": "Justifiées",
         "note": "Note"
+      },
+      "calendrier": {
+        "titre": "Calendrier académique {annee}",
+        "aide": "Calendrier publié par la scolarité : événements de votre niveau et événements communs.",
+        "dateModifiee": "Date modifiée"
       }
     },
     "resultats": {
