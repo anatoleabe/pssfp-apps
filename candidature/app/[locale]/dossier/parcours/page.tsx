@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('parcours'), robots: { index: false, follow: false } };
 }
 
-export default async function ParcoursPage(): Promise<JSX.Element> {
+export default async function ParcoursPage({ searchParams }: { searchParams: { erreur?: string } }): Promise<JSX.Element> {
   const { candidature, scolarite } = await chargerEspaceAuditeur();
   const token = await getCandidatToken();
   const [parcours, assiduite, calendrier] = token
@@ -32,7 +32,7 @@ export default async function ParcoursPage(): Promise<JSX.Element> {
     <EspaceGabarit candidature={candidature} scolarite={scolarite} rubrique="parcours">
       <div className="grid min-w-0 gap-6">
         <EspaceParcours parcours={parcours.data} assiduite={assiduite?.ok ? assiduite.data : []} />
-        {calendrier?.ok && calendrier.data && <CalendrierAnnee calendrier={calendrier.data} />}
+        {calendrier?.ok && calendrier.data && <CalendrierAnnee calendrier={calendrier.data} erreurCommunique={searchParams.erreur === 'communique'} />}
       </div>
     </EspaceGabarit>
   );

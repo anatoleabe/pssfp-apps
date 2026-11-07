@@ -966,6 +966,8 @@ L'attestation d'autorisation de dépôt est un `documents_delivres` de type `aut
 | `dependances_evenement` | Lien du Gantt | fin-début, début-début, fin-fin, début-fin ; écart minimal et maximal ; règle (D11, D20…) ; bloquant ou alerte |
 | `modifications_evenement` | Journal des réajustements | anciennes et nouvelles dates et statuts, motif, auteur ; ajout seul (déclencheur) |
 | `jours_non_ouvres` | Fêtes et fermetures | jour unique, libellé |
+| `modeles_acte` | Modèle d'acte (lot 12b, D18, D19) | code unique, libellé, type d'événement déclencheur, signataire, délai en jours (négatif : avant le début), gabarit, diffusé aux auditeurs, actif ; neuf modèles livrés par la migration |
+| `actes` | Acte produit à partir d'un événement | `uuid` ; modèle et événement (unique ensemble) ; objet, échéance, texte ; à produire, brouillon, soumis, signé, diffusé, annulé ; numéro (unique), date, signataire et pièce signée (MinIO, SHA-256) obligatoires une fois signé (CHECK) ; motif d'annulation ou de renvoi ; auteurs et dates de chaque étape |
 
 ## 11. Préparation Phase II (placeholders)
 

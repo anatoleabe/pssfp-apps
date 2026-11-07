@@ -26,6 +26,7 @@
             <span><span style="display:inline-block;width:.6rem;height:.6rem;background:#D4AF6A;transform:rotate(45deg);vertical-align:middle;"></span> jalon</span>
             <span><span style="display:inline-block;width:1.4rem;height:.6rem;border:2px solid #B42318;vertical-align:middle;"></span> en retard</span>
             <span><span style="display:inline-block;width:2px;height:.8rem;background:#B42318;vertical-align:middle;"></span> aujourd'hui</span>
+            <span><span style="display:inline-block;width:.45rem;height:.45rem;border-radius:50%;background:#0F3A4A;vertical-align:middle;"></span> échéance d'un acte (rouge : en retard, vert : signé)</span>
         </div>
         <div style="overflow-x:auto;">
             <div style="min-width:68rem;">
@@ -42,7 +43,8 @@
                         $titre = $l['libelle'].' : '.$l['debut_prevu']->format('d/m/Y').($l['jalon'] ? '' : ' au '.$l['fin_prevue']->format('d/m/Y'))
                             .($l['debut_signe'] ? ' ; référence '.$l['debut_signe']->format('d/m/Y').' au '.$l['fin_signe']->format('d/m/Y') : '')
                             .($l['glissement'] ? ' ; glissement '.($l['glissement'] > 0 ? '+' : '').$l['glissement'].' j' : '')
-                            .' ; '.($l['phase'] ? 'avancement '.$l['avancement'].' %' : (\App\Models\EvenementCalendrier::STATUTS[$l['statut']] ?? $l['statut']));
+                            .' ; '.($l['phase'] ? 'avancement '.$l['avancement'].' %' : (\App\Models\EvenementCalendrier::STATUTS[$l['statut']] ?? $l['statut']))
+                            .implode('', array_map(fn ($a) => ' ; '.$a['libelle'].' : '.$a['echeance']->format('d/m/Y').' ('.(\App\Models\Acte::STATUTS[$a['statut']] ?? $a['statut']).')', $l['actes']));
                         $fond = $l['phase'] ? 'rgb(var(--gray-50))' : 'transparent';
                     @endphp
                     <div style="display:flex;align-items:center;min-height:1.75rem;border-bottom:1px solid rgb(var(--gray-100));background:{{ $fond }};" title="{{ $titre }}">
@@ -70,6 +72,9 @@
                                     @endif
                                 </span>
                             @endif
+                            @foreach ($l['actes'] as $a)
+                                <span style="position:absolute;left:calc({{ $pct($a['echeance']) }}% - .22rem);top:.1rem;width:.45rem;height:.45rem;border-radius:50%;background:{{ in_array($a['statut'], ['signe', 'diffuse'], true) ? '#1F6B3A' : ($a['alerte'] === 'en_retard' ? '#B42318' : '#0F3A4A') }};"></span>
+                            @endforeach
                             @if ($l['debut_reel'])
                                 <span style="position:absolute;left:{{ $pct($l['debut_reel']) }}%;width:{{ $largeur($l['debut_reel'], $l['fin_reelle'] ?? $aujourdhui) }}%;top:6%;height:3px;background:#1F6B3A;"></span>
                             @endif

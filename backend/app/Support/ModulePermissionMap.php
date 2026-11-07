@@ -146,6 +146,7 @@ final class ModulePermissionMap
                     'lmd.assiduite',
                     'lmd.memoires_suivre',
                     'lmd.calendrier_preparer',
+                    'lmd.actes_produire',
                 ],
                 'sensitive_description' => 'À cocher explicitement : préparer une maquette n\'emporte pas le droit de la valider, ni saisir des notes celui de verrouiller une étape.',
                 'sensitive' => [
@@ -169,8 +170,9 @@ final class ModulePermissionMap
                     'lmd.memoires_attester' => 'Délivrer l\'attestation d\'autorisation de dépôt du mémoire, autoriser un retard d\'étape (chef de la scolarité)',
                     'lmd.calendrier_reajuster' => 'Réajuster un calendrier signé (dates, avec motif) et le publier',
                     'lmd.calendrier_signer' => 'Signer le calendrier académique ou le renvoyer en préparation (chef de la structure)',
+                    'lmd.actes_signer' => 'Enregistrer la signature d\'un acte (numéro, date, pièce signée), le renvoyer ou le diffuser',
                 ],
-                'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir', 'lmd.calendrier_signer'],
+                'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir', 'lmd.calendrier_signer', 'lmd.actes_signer'],
             ],
             'bibliotheque' => [
                 'label' => 'Module 3 — Bibliothèque',

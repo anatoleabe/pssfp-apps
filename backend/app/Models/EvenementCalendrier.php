@@ -96,6 +96,11 @@ class EvenementCalendrier extends Model
         return $this->hasMany(ModificationEvenement::class, 'evenement_id');
     }
 
+    public function actes(): HasMany
+    {
+        return $this->hasMany(Acte::class, 'evenement_id');
+    }
+
     public function estPhase(): bool
     {
         return $this->type === 'phase';

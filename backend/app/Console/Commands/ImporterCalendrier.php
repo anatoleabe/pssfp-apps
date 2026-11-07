@@ -19,7 +19,7 @@ final class ImporterCalendrier extends Command
         {fichier=resources/lmd/calendrier-2026-2027.json : Fichier JSON du calendrier}
         {--appliquer : Écrire en base (sinon essai à blanc)}';
 
-    protected $description = 'Reprend un calendrier académique signé (événements, phases, jours non ouvrés, dépendances)';
+    protected $description = 'Reprend un calendrier académique signé (événements, phases, jours non ouvrés, dépendances, actes)';
 
     public function handle(ImportCalendrier $import): int
     {
@@ -42,10 +42,17 @@ final class ImporterCalendrier extends Command
         }
 
         $this->info(($appliquer ? 'Reprise' : 'Essai à blanc').' du calendrier '.$b['annee'].' : '.$b['evenements'].' événements, '
-            .$b['phases'].' phases, '.$b['jours'].' jours non ouvrés, '.$b['dependances'].' dépendances.');
+            .$b['phases'].' phases, '.$b['jours'].' jours non ouvrés, '.$b['dependances'].' dépendances, '.$b['actes'].' actes à produire.');
         $this->line(count($b['anomalies']).' anomalie(s) bloquante(s) à arbitrer par la scolarité :');
         foreach ($b['anomalies'] as $a) {
             $this->warn('  '.$a);
+        }
+
+        if ($b['alertes'] !== []) {
+            $this->line(count($b['alertes']).' acte(s) dû(s) pendant une interruption :');
+            foreach ($b['alertes'] as $a) {
+                $this->warn('  '.$a);
+            }
         }
 
         return self::SUCCESS;

@@ -1186,7 +1186,12 @@
       "calendrier": {
         "titre": "Academic calendar {annee}",
         "aide": "Calendar published by the registrar: events for your level and shared events.",
-        "dateModifiee": "Date changed"
+        "dateModifiee": "Date changed",
+        "communiquesTitre": "Registrar's notices",
+        "communique": "No. {numero} of {date}",
+        "telecharger": "Download",
+        "telechargerLibelle": "Download the signed notice: {objet}",
+        "erreurCommunique": "The notice could not be downloaded. Please try again in a few minutes."
       }
     },
     "resultats": {

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Lmd;
 
+use App\Models\Acte;
 use App\Models\CalendrierAcademique;
 use App\Models\DependanceEvenement;
 use App\Models\EvenementCalendrier;
+use App\Models\JourNonOuvre;
 use App\Models\RegleEvaluation;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -128,7 +130,7 @@ final class ControlesCalendrier
     }
 
     /**
-     * Contrôles de cohérence (D11, D20, D21).
+     * Contrôles de cohérence (D11, D18, D20, D21).
      *
      * @return list<array{controle: string, evenement: EvenementCalendrier, detail: string, bloquant: bool}>
      */
@@ -168,6 +170,41 @@ final class ControlesCalendrier
         foreach ($ev->filter(fn (EvenementCalendrier $e): bool => $e->enRetard()) as $e) {
             $sortie[] = ['controle' => 'retard_execution', 'evenement' => $e, 'detail' => 'Échu le '.$e->fin_prevue->format('d/m/Y').' sans être déclaré réalisé.', 'bloquant' => false];
         }
+        foreach ($this->actesPendantInterruption($c, $ev) as $k) {
+            $sortie[] = $k;
+        }
+
+        return $sortie;
+    }
+
+    /**
+     * Actes non signés dont l'échéance tombe pendant une interruption ou un jour non ouvré (D18, non bloquant).
+     *
+     * @param  Collection<int, EvenementCalendrier>  $ev
+     * @return list<array{controle: string, evenement: EvenementCalendrier, detail: string, bloquant: bool}>
+     */
+    private function actesPendantInterruption(CalendrierAcademique $c, Collection $ev): array
+    {
+        $actes = Acte::query()->whereIn('evenement_id', $ev->pluck('id'))->whereIn('statut', Acte::EN_COURS)->orderBy('echeance')->orderBy('id')->get();
+        if ($actes->isEmpty()) {
+            return [];
+        }
+        $interruptions = $ev->where('type', 'vacances');
+        $joursNonOuvres = JourNonOuvre::query()->whereBetween('jour', [$actes->min('echeance'), $actes->max('echeance')])->get()
+            ->keyBy(fn (JourNonOuvre $j): string => $j->jour->toDateString());
+        $parId = $ev->keyBy('id');
+        $sortie = [];
+        foreach ($actes as $a) {
+            $i = $interruptions->first(fn (EvenementCalendrier $v): bool => $a->echeance->betweenIncluded($v->debut_prevu, $v->fin_prevue));
+            $jour = $joursNonOuvres->get($a->echeance->toDateString());
+            if ($i === null && $jour === null) {
+                continue;
+            }
+            $veille = ($i?->debut_prevu ?? $a->echeance)->subDay();
+            $sortie[] = ['controle' => 'acte_pendant_interruption', 'evenement' => $parId[$a->evenement_id],
+                'detail' => $a->objet.' : échéance le '.$a->echeance->format('d/m/Y').' ('.($i !== null ? $i->libelle : $jour->libelle).'). Produire l\'acte avant le '.$veille->format('d/m/Y').'.',
+                'bloquant' => false];
+        }
 
         return $sortie;
     }
@@ -199,7 +236,7 @@ final class ControlesCalendrier
      */
     public function gantt(CalendrierAcademique $c): array
     {
-        $tous = $c->evenements()->withCount('modifications')->orderBy('ordre')->orderBy('debut_prevu')->orderBy('id')->get();
+        $tous = $c->evenements()->withCount('modifications')->with(['actes' => fn ($q) => $q->where('statut', '<>', Acte::ANNULE)->orderBy('echeance'), 'actes.modele:id,code,libelle'])->orderBy('ordre')->orderBy('debut_prevu')->orderBy('id')->get();
         $enfants = $tous->where('type', '<>', 'phase')->groupBy(fn ($e) => (string) $e->parent_id);
         $ligne = fn (EvenementCalendrier $e, bool $phase, ?Collection $sous = null): array => [
             'id' => $e->uuid,
@@ -222,6 +259,8 @@ final class ControlesCalendrier
             'retard' => ! $phase && $e->enRetard(),
             'glissement' => $phase ? null : $e->glissement(),
             'modifications' => $e->modifications_count,
+            'actes' => $phase ? [] : $e->actes->map(fn (Acte $a): array => ['echeance' => $a->echeance, 'libelle' => $a->modele->libelle,
+                'statut' => $a->statut, 'alerte' => $a->alerte()])->values()->all(),
         ];
 
         $lignes = [];

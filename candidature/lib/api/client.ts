@@ -764,11 +764,20 @@ export interface EvenementCalendrierAuditeur {
   reporte: boolean;
 }
 
+export interface CommuniqueAuditeur {
+  uuid: string;
+  objet: string;
+  numero: string;
+  date_signature: string | null;
+}
+
 export interface CalendrierAuditeur {
   annee_academique: string;
   version: number;
   publie_le: string | null;
   evenements: EvenementCalendrierAuditeur[];
+  /** Communiqués signés et diffusés de son niveau (lot 12b). */
+  communiques: CommuniqueAuditeur[];
 }
 
 /** GET /applications/me/calendrier — `data` null tant qu'aucun calendrier n'est publié. */

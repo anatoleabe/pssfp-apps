@@ -144,6 +144,11 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
             ->middleware('ability:application:read')
             ->name('me.calendrier');
 
+        Route::get('/me/calendrier/communiques/{uuid}', [ParcoursController::class, 'communique'])
+            ->middleware(['ability:application:read', 'throttle:30,1'])
+            ->whereUuid('uuid')
+            ->name('me.calendrier.communique');
+
         // Résultats publiés et documents officiels de l'auditeur (spec module 4, lot 7).
         Route::get('/me/resultats', [ResultatsController::class, 'index'])
             ->middleware('ability:application:read')

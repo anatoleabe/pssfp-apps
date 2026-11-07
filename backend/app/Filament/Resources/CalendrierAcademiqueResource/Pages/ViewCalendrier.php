@@ -8,6 +8,7 @@ use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\CalendrierAcademiqueResource;
 use App\Models\CalendrierAcademique;
 use App\Models\User;
+use App\Services\Lmd\Actes;
 use App\Services\Lmd\Calendriers;
 use App\Services\Lmd\ControlesCalendrier;
 use App\Services\Lmd\PermissionsLmd;
@@ -79,6 +80,9 @@ class ViewCalendrier extends ViewRecord
                 Action::make('dependances')->label('Générer les dépendances des règles')->icon('heroicon-o-link')
                     ->visible(fn (): bool => $c()->estModifiable() && $peut($c()->estSigne() ? PermissionsLmd::CALENDRIER_REAJUSTER : PermissionsLmd::CALENDRIER_PREPARER))
                     ->action(fn () => $this->executer(fn (): string => app(ControlesCalendrier::class)->genererDependances($c()).' lien(s) créé(s).')),
+                Action::make('actes')->label('Générer les actes')->icon('heroicon-o-document-plus')
+                    ->visible(fn (): bool => $c()->estSigne() && $peut(PermissionsLmd::ACTES_PRODUIRE))
+                    ->action(fn () => $this->executer(fn (): string => app(Actes::class)->generer($c(), $u()).' acte(s) généré(s).')),
                 Action::make('version')->label('Nouvelle version (révision majeure)')->icon('heroicon-o-document-duplicate')
                     ->visible(fn (): bool => $c()->estSigne() && $peut(PermissionsLmd::CALENDRIER_PREPARER))
                     ->requiresConfirmation()->modalDescription('Les événements et les liens sont copiés dans un brouillon ; la version actuelle reste en vigueur jusqu\'à la signature de la nouvelle.')

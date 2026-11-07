@@ -1186,7 +1186,12 @@
       "calendrier": {
         "titre": "Calendrier académique {annee}",
         "aide": "Calendrier publié par la scolarité : événements de votre niveau et événements communs.",
-        "dateModifiee": "Date modifiée"
+        "dateModifiee": "Date modifiée",
+        "communiquesTitre": "Communiqués de la scolarité",
+        "communique": "N° {numero} du {date}",
+        "telecharger": "Télécharger",
+        "telechargerLibelle": "Télécharger le communiqué signé : {objet}",
+        "erreurCommunique": "Le communiqué n'a pas pu être téléchargé. Réessayez dans quelques minutes."
       }
     },
     "resultats": {
