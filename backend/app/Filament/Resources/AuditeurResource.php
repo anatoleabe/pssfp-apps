@@ -14,6 +14,7 @@ use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
 use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
+use App\Models\DocumentDelivre;
 use App\Models\ResultatAnnuel;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
 use App\Services\Lmd\PermissionsLmd;
@@ -175,6 +176,16 @@ class AuditeurResource extends Resource
                                 ResultatAnnuel::DECISIONS[$r->decision] ?? $r->decision, $r->credits_acquis,
                                 $r->moyenne === null ? '—' : number_format((float) $r->moyenne, 2, ',', ' '),
                                 $r->deliberation->publiee_at ? ' · publié' : ' · non publié'))->all()),
+                ]),
+            Infolists\Components\Section::make('Documents officiels délivrés')->collapsible()
+                ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER)
+                    && DocumentDelivre::query()->where('auditeur_id', $record->id)->exists())
+                ->schema([
+                    Infolists\Components\TextEntry::make('documents_lmd')->hiddenLabel()->listWithLineBreaks()
+                        ->getStateUsing(fn (Auditeur $record): array => DocumentDelivre::query()->where('auditeur_id', $record->id)->latest('id')->get()
+                            ->map(fn (DocumentDelivre $d): string => sprintf('%s — %s, délivré le %s%s', $d->numero, DocumentDelivre::TYPES[$d->type],
+                                $d->created_at?->timezone('Africa/Douala')->format('d/m/Y'),
+                                $d->estRevoque() ? ' · révoqué le '.$d->revoque_at->timezone('Africa/Douala')->format('d/m/Y').' ('.$d->revoque_motif.')' : ''))->all()),
                 ]),
             Infolists\Components\Section::make('Notes de l\'année')->collapsible()
                 ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER) && $record->inscriptionCourante?->parcours_id !== null)

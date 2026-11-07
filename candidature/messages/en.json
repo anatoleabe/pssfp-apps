@@ -1106,6 +1106,7 @@
     "nav": {
       "accueil": "Home",
       "parcours": "My programme",
+      "resultats": "My results",
       "scolarite": "My fees",
       "acces": "My access",
       "documents": "My documents",
@@ -1172,6 +1173,57 @@
         "credits": "Credits"
       },
       "legende": "CM: lectures · TD: tutorials · TP: practical work · TPE: personal study (hours)"
+    },
+    "resultats": {
+      "eyebrow": "My results",
+      "aucunTitre": "No results published yet",
+      "aucun": "Your results will appear here as soon as they are published, after the jury's deliberation.",
+      "annee": "Year {annee} · {session}",
+      "session": {
+        "normale": "regular session",
+        "rattrapage": "after resit"
+      },
+      "decision": {
+        "AD": "Passed",
+        "AS": "Authorised to defend",
+        "AJ": "Deferred"
+      },
+      "credits": "Credits",
+      "moyenne": "Average / 20",
+      "mgp": "GPA / 4",
+      "mention": "Honours",
+      "requetes": "Grade appeals accepted until {date}.",
+      "caption": "Teaching units and how they were obtained",
+      "colonnes": {
+        "code": "Code",
+        "ue": "Teaching unit",
+        "credits": "Credits",
+        "note": "Mark",
+        "grade": "Grade",
+        "acquisition": "Status"
+      },
+      "mode": {
+        "acquise": "Passed",
+        "deliberation": "Passed by jury decision",
+        "capitalisee": "Carried over",
+        "non_acquise": "Not passed"
+      },
+      "releve": "Transcript (PDF)",
+      "attestation": "Certificate of achievement (PDF)",
+      "certificatTitre": "Certificate of enrolment",
+      "certificat": "Certificate of enrolment for the current year (PDF)",
+      "erreurDocument": "The document could not be issued. Please try again; if the problem persists, contact the registry."
     }
+  },
+  "verification": {
+    "title": "Document verification",
+    "inconnu": "No PSSFP document matches this code. Check the code or contact the registry.",
+    "authentique": "Authentic document",
+    "revoque": "Document revoked on {date}",
+    "type": "Document",
+    "numero": "Number",
+    "titulaire": "Holder",
+    "date": "Issued on",
+    "aide": "Compare these details with the document presented. A revoked document is no longer valid."
   }
 }

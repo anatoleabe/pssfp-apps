@@ -1106,6 +1106,7 @@
     "nav": {
       "accueil": "Accueil",
       "parcours": "Mon parcours",
+      "resultats": "Mes résultats",
       "scolarite": "Ma scolarité",
       "acces": "Mes accès",
       "documents": "Mes documents",
@@ -1172,6 +1173,57 @@
         "credits": "Crédits"
       },
       "legende": "CM : cours magistral · TD : travaux dirigés · TP : travaux pratiques · TPE : travail personnel de l’étudiant (heures)"
+    },
+    "resultats": {
+      "eyebrow": "Mes résultats",
+      "aucunTitre": "Pas encore de résultats publiés",
+      "aucun": "Vos résultats apparaîtront ici dès leur publication, après la délibération du jury.",
+      "annee": "Année {annee} · {session}",
+      "session": {
+        "normale": "session normale",
+        "rattrapage": "après rattrapage"
+      },
+      "decision": {
+        "AD": "Admis(e)",
+        "AS": "Autorisé(e) à soutenir",
+        "AJ": "Ajourné(e)"
+      },
+      "credits": "Crédits",
+      "moyenne": "Moyenne / 20",
+      "mgp": "MGP / 4",
+      "mention": "Mention",
+      "requetes": "Requêtes recevables jusqu'au {date}.",
+      "caption": "Unités d'enseignement et mode d'acquisition",
+      "colonnes": {
+        "code": "Code",
+        "ue": "Unité d’enseignement",
+        "credits": "Crédits",
+        "note": "Note",
+        "grade": "Grade",
+        "acquisition": "Acquisition"
+      },
+      "mode": {
+        "acquise": "Acquise",
+        "deliberation": "Acquise par décision du jury",
+        "capitalisee": "Capitalisée",
+        "non_acquise": "Non acquise"
+      },
+      "releve": "Relevé de notes (PDF)",
+      "attestation": "Attestation de réussite (PDF)",
+      "certificatTitre": "Certificat de scolarité",
+      "certificat": "Certificat de scolarité de l'année en cours (PDF)",
+      "erreurDocument": "Le document n'a pas pu être délivré. Réessayez ; si le problème persiste, rapprochez-vous de la scolarité."
     }
+  },
+  "verification": {
+    "title": "Vérification d'un document",
+    "inconnu": "Aucun document du PSSFP ne correspond à ce code. Vérifiez le code ou rapprochez-vous de la scolarité.",
+    "authentique": "Document authentique",
+    "revoque": "Document révoqué le {date}",
+    "type": "Document",
+    "numero": "Numéro",
+    "titulaire": "Titulaire",
+    "date": "Délivré le",
+    "aide": "Comparez ces informations avec le document présenté. Un document révoqué n'a plus de valeur."
   }
 }

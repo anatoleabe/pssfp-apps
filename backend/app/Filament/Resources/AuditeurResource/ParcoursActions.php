@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Filament\Resources\AuditeurResource;
 
 use App\Models\Auditeur;
+use App\Models\DocumentDelivre;
 use App\Models\InscriptionPedagogique;
 use App\Models\Maquette;
 use App\Models\Parcours;
 use App\Services\Lmd\DerogationsRattrapage;
+use App\Services\Lmd\DocumentsOfficiels;
 use App\Services\Lmd\InscriptionsPedagogiques;
 use App\Services\Lmd\PermissionsLmd;
 use Filament\Actions\Action;
@@ -100,6 +102,57 @@ final class ParcoursActions
                     return;
                 }
                 Notification::make()->success()->title('Dérogation enregistrée')->send();
+            });
+    }
+
+    public static function leverRestriction(): Action
+    {
+        return Action::make('leverRestriction')
+            ->label('Lever la restriction sur les documents')
+            ->icon('heroicon-o-lock-open')
+            ->visible(fn (Auditeur $record): bool => $record->inscriptionCourante !== null
+                && (bool) auth()->user()?->can(PermissionsLmd::DOCUMENTS_LEVER))
+            ->modalDescription('Autorise l\'attestation de réussite et le certificat de scolarité malgré une échéance en retard (D9). La levée est tracée.')
+            ->form(MessagesValidation::appliquer([
+                Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(10)->maxLength(500),
+            ]))
+            ->action(function (Auditeur $record, array $data): void {
+                try {
+                    app(DocumentsOfficiels::class)->leverRestriction($record->inscriptionCourante, (string) $data['motif'], auth()->user());
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title('Levée refusée')->body($e->getMessage())->send();
+
+                    return;
+                }
+                Notification::make()->success()->title('Restriction levée pour l\'année en cours')->send();
+            });
+    }
+
+    public static function revoquerDocument(): Action
+    {
+        return Action::make('revoquerDocument')
+            ->label('Révoquer un document')
+            ->icon('heroicon-o-no-symbol')
+            ->color('danger')
+            ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(PermissionsLmd::DOCUMENTS_REVOQUER)
+                && DocumentDelivre::query()->where('auditeur_id', $record->id)->whereNull('revoque_at')->exists())
+            ->modalDescription('Le document reste enregistré, marqué « révoqué » à la vérification. L\'auditeur pourra en obtenir un nouveau.')
+            ->form(fn (Auditeur $record): array => MessagesValidation::appliquer([
+                Forms\Components\Select::make('document')->label('Document')->required()->native(false)
+                    ->options(DocumentDelivre::query()->where('auditeur_id', $record->id)->whereNull('revoque_at')->latest('id')->get()
+                        ->mapWithKeys(fn (DocumentDelivre $d): array => [$d->id => $d->numero.' — '.DocumentDelivre::TYPES[$d->type]])->all()),
+                Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(10)->maxLength(500),
+            ]))
+            ->action(function (Auditeur $record, array $data): void {
+                $document = DocumentDelivre::query()->where('auditeur_id', $record->id)->findOrFail((int) $data['document']);
+                try {
+                    app(DocumentsOfficiels::class)->revoquer($document, (string) $data['motif'], auth()->user());
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title('Révocation refusée')->body($e->getMessage())->send();
+
+                    return;
+                }
+                Notification::make()->success()->title('Document '.$document->numero.' révoqué')->send();
             });
     }
 
