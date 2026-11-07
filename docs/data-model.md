@@ -885,6 +885,32 @@ Ajout du 7 novembre 2026 (ADR-0011). Détail : `docs/specs/module-4-lmd-lot4-ref
 | `inscriptions_annuelles.parcours_id` | Parcours de l'inscription | posé à l'inscription pédagogique ou au changement de parcours |
 | `inscriptions_pedagogiques` | Inscription × UE de la maquette de référence | unique (`inscription_annuelle_id`, `maquette_ue_id`) ; statut inscrit, dispensé, capitalisée (motif obligatoire hors « inscrit ») |
 
+### Notes (module 4, lot 5)
+
+Détail : `docs/specs/module-4-lmd-lot5-notes.md`.
+
+| Table | Rôle | Points clés |
+|---|---|---|
+| `etapes_saisie` | ECUE × session × étape (cc, assiduite, examen) | fermée, ouverte, verrouillée ; réouverture motivée ; le rattrapage n'a que l'examen |
+| `notes_ecue` | Inscription pédagogique × ECUE × session | CC, assiduité, examen entre 0 et 20 ; présence à l'examen ; un absent n'a pas de note |
+| `historique_notes` | Chaque changement de note | ajout seul, garanti par un déclencheur |
+| `derogations_rattrapage` | Dérogation à l'éligibilité au rattrapage | une par inscription pédagogique ; autorité, acte, motif |
+| `attributions_ecue` | ECUE confié à un enseignant | responsable ou intervenant |
+
+### Délibérations (module 4, lot 6)
+
+Détail : `docs/specs/module-4-lmd-lot6-deliberations.md`.
+
+| Table | Rôle | Points clés |
+|---|---|---|
+| `jurys`, `membres_jury` | Jury désigné par note de service | un président et un rapporteur (index partiels) ; acte numérisé dans le stockage privé |
+| `deliberations` | Année × niveau × parcours × session | `uuid` ; simulation, arrêtée, rectifiée ; PV `PVD-AAAA-AAAA-NNNN`, sceau SHA-256 des résultats et du PDF ; publication, date limite des requêtes ; rectification liée |
+| `participations_deliberation` | Présence, motif d'absence, signature | un absent ne signe pas (contrainte) |
+| `scenarios`, `mesures_jury` | Base stricte et variantes ; relèvement, repêchage, cas particulier | un seul scénario retenu (index partiel) |
+| `resultats_scenario_ue`, `resultats_scenario` | Projection d'un scénario | recalculée à chaque calcul |
+| `resultats_annuels` | Résultats arrêtés | ajout seul, garanti par un déclencheur |
+| `acquis_ue` | UE capitalisées | unique (`auditeur_id`, `maquette_ue_id`) ; origine évaluation, délibération, reprise, équivalence |
+
 ## 11. Préparation Phase II (placeholders)
 
 Tables créées en Phase I avec un schéma minimal pour préparer la Phase II sans migration cassante. Aucune logique métier n'est attachée à ces tables en Phase I — elles existent simplement pour stabiliser les FK.

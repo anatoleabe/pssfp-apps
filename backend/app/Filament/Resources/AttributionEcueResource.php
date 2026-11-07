@@ -33,6 +33,8 @@ class AttributionEcueResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
+    protected static ?string $navigationLabel = 'Attributions des ECUE';
+
     protected static ?string $navigationGroup = 'Parcours LMD';
 
     protected static ?int $navigationSort = 50;

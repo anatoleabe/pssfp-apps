@@ -141,6 +141,7 @@ final class ModulePermissionMap
                     'lmd.referentiel',
                     'lmd.inscrire',
                     'lmd.notes_saisir',
+                    'lmd.deliberation_preparer',
                 ],
                 'sensitive_description' => 'À cocher explicitement : préparer une maquette n\'emporte pas le droit de la valider, ni saisir des notes celui de verrouiller une étape.',
                 'sensitive' => [
@@ -151,8 +152,11 @@ final class ModulePermissionMap
                     'lmd.notes_rouvrir' => 'Rouvrir une étape de saisie verrouillée (avec motif)',
                     'lmd.derogation_rattrapage' => 'Accorder une dérogation pour le rattrapage',
                     'lmd.notes_enseignant' => 'Saisir le contrôle continu et l\'assiduité de ses ECUE (enseignant)',
+                    'lmd.deliberation_arreter' => 'Arrêter et rectifier une délibération (résultats figés, PV numéroté)',
+                    'lmd.deliberation_publier' => 'Publier les résultats d\'une délibération',
+                    'lmd.jury_signer' => 'Consulter les délibérations de ses jurys et signer leur PV (membre de jury)',
                 ],
-                'standalone' => ['lmd.notes_enseignant'],
+                'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer'],
             ],
             'bibliotheque' => [
                 'label' => 'Module 3 — Bibliothèque',

@@ -32,6 +32,8 @@ class RegleEvaluationResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-adjustments-horizontal';
 
+    protected static ?string $navigationLabel = 'Règles d\'évaluation';
+
     protected static ?string $navigationGroup = 'Parcours LMD';
 
     protected static ?int $navigationSort = 30;
