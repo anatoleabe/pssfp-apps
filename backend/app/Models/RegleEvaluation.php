@@ -121,9 +121,9 @@ class RegleEvaluation extends Model
     }
 
     /**
-     * Valeurs par défaut d'une année. Rattrapage : instruction du Chef USI du
-     * 06/11/2026 (remplace la moyenne) ; D10 retenait le remplacement de
-     * l'examen seul. C'est un paramètre de l'année, à confirmer.
+     * Valeurs par défaut d'une année. Rattrapage : la note de rattrapage
+     * remplace la moyenne de l'UE (Chef USI, 06/11/2026, confirmé le
+     * 07/11/2026) ; elle prime sur D10, qui ne remplaçait que l'examen.
      *
      * @return array<string, mixed>
      */

@@ -55,7 +55,7 @@ Contraintes en base (ADR-0011) :
 6. **Règles d'évaluation 2026-2027** (créées par défaut, modifiables avec la permission `lmd.regles`, chaque modification journalisée) :
    - pondération par défaut : CC 30 %, TP (assiduité) 15 %, examen 55 % ;
    - seuil 12/20 ; note éliminatoire 7/20 sur l'examen de l'UE ;
-   - rattrapage : remplace la moyenne de l'UE (instruction du 06/11, à confirmer face à D10) ;
+   - rattrapage : remplace la moyenne de l'UE (instruction du 06/11, confirmée le 07/11 ; prime sur D10) ;
    - note d'UE : moyenne des ECUE pondérée par les crédits ;
    - crédits : 60 par niveau, 44 crédits écrits en M2 ;
    - grades et points de la grille nationale (D1) ;
