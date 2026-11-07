@@ -1107,6 +1107,7 @@
       "accueil": "Accueil",
       "parcours": "Mon parcours",
       "resultats": "Mes résultats",
+      "requetes": "Mes requêtes",
       "scolarite": "Ma scolarité",
       "acces": "Mes accès",
       "documents": "Mes documents",
@@ -1213,6 +1214,47 @@
       "certificatTitre": "Certificat de scolarité",
       "certificat": "Certificat de scolarité de l'année en cours (PDF)",
       "erreurDocument": "Le document n'a pas pu être délivré. Réessayez ; si le problème persiste, rapprochez-vous de la scolarité."
+    },
+    "requetes": {
+      "eyebrow": "Mes requêtes",
+      "nouvelle": "Nouvelle requête",
+      "aide": "Une requête par matière. Une requête de note n'est recevable qu'une fois la note verrouillée, et jusqu'à la date limite affichée avec vos résultats.",
+      "suivi": "Suivi de mes requêtes",
+      "aucune": "Vous n'avez déposé aucune requête.",
+      "noteCorrigee": "Note corrigée : {note} / 20",
+      "decision": "Décision : {motif}",
+      "telecharger": "Télécharger le document",
+      "annuler": "Annuler la requête",
+      "annulee": "Requête annulée.",
+      "erreur": "L'opération n'a pas abouti. Réessayez ou rapprochez-vous de la scolarité.",
+      "formulaire": {
+        "type": "Objet de la requête",
+        "typeNote": "Une note",
+        "typeDocument": "Un document",
+        "aucuneCible": "Aucune note n'est ouverte aux requêtes pour le moment.",
+        "ecue": "Matière",
+        "choisir": "Choisir la matière",
+        "session": {
+          "normale": "session normale",
+          "rattrapage": "rattrapage"
+        },
+        "noteVisee": "Note visée",
+        "notes": {
+          "cc": "Contrôle continu",
+          "assiduite": "Assiduité",
+          "examen": "Examen"
+        },
+        "motif": "Motif",
+        "document": "Document demandé",
+        "description": "Expliquez votre requête",
+        "pieces": "Pièces justificatives",
+        "piecesAide": "PDF, JPEG ou PNG, 5 Mo au plus chacune, cinq au plus.",
+        "deposer": "Déposer la requête",
+        "envoi": "Envoi…",
+        "erreur": "La requête n'a pas pu être enregistrée. Réessayez.",
+        "accuse": "Requête enregistrée. Accusé de réception n° {numero}.",
+        "empreinte": "Empreinte du dépôt : {empreinte}"
+      }
     }
   },
   "verification": {

@@ -919,6 +919,16 @@ Détail : `docs/specs/module-4-lmd-lot6-deliberations.md`.
 | `levees_restriction` | Levée de la condition « en règle » (D9) | inscription, motif, auteur |
 | `participations_deliberation.signature_constatee_par` | Signature d'un membre sans compte constatée sur le PV papier | tracée au journal |
 
+### Requêtes (module 4, lot 8)
+
+| Table | Rôle | Points clés |
+|---|---|---|
+| `requetes` | Requête de note (une par ECUE) ou demande de document | `uuid` ; numéro `RQ-AAAA-NNNNNN` ; empreinte SHA-256 du dépôt ; agent coté ; séance ; mention et note retenue ; états fermés (contrainte) |
+| `requete_pieces` | Pièces de l'auditeur et éléments de vérification | stockage privé ; empreinte ; constat de l'agent |
+| `requete_evenements` | Étapes de la requête | ajout seul (déclencheur) ; libellé public, détail interne |
+| `seances_requetes` | Séance du jury des requêtes | PV `PVR-AAAA-NNNN` scellé à la clôture ; validation définitive par le chef de la commission |
+| `deliberations.a_rectifier_at` | Requête appliquée après l'arrêt | signale la délibération à rectifier |
+
 ## 11. Préparation Phase II (placeholders)
 
 Tables créées en Phase I avec un schéma minimal pour préparer la Phase II sans migration cassante. Aucune logique métier n'est attachée à ces tables en Phase I — elles existent simplement pour stabiliser les FK.

@@ -202,6 +202,25 @@ final class SaisieNotes
     }
 
     /**
+     * Correction d'une note par une voie autorisée (requête validée définitivement, D27) :
+     * l'étape peut être verrouillée ; le motif (numéro de requête) entre à l'historique.
+     */
+    public function corrigerParVoieAutorisee(InscriptionPedagogique $ip, MaquetteEcue $ecue, string $session, string $champ, string $valeur, string $motif, User $auteur): void
+    {
+        if (! in_array($champ, [EtapeSaisie::CC, EtapeSaisie::ASSIDUITE, EtapeSaisie::EXAMEN], true)) {
+            throw new InvalidArgumentException('Note inconnue.');
+        }
+        DB::transaction(function () use ($ip, $ecue, $session, $champ, $valeur, $motif, $auteur): void {
+            $note = NoteEcue::query()->lockForUpdate()->firstOrNew(['inscription_pedagogique_id' => $ip->id, 'maquette_ecue_id' => $ecue->id, 'session' => $session]);
+            $avant = $note->getAttribute($champ);
+            $valeurs = [$champ => $valeur] + ($champ === EtapeSaisie::EXAMEN ? ['presence_examen' => NoteEcue::PRESENT] : []);
+            $note->forceFill([...$valeurs, 'modifie_par' => $auteur->id])->save();
+            HistoriqueNote::query()->create(['note_ecue_id' => $note->id, 'champ' => $champ, 'ancienne_valeur' => $avant === null ? null : (string) $avant,
+                'nouvelle_valeur' => $valeur, 'motif' => mb_substr($motif, 0, 500), 'auteur_id' => $auteur->id]);
+        });
+    }
+
+    /**
      * Matricules des auditeurs attendus sans note pour l'étape. En rattrapage, seuls
      * les éligibles (UE non acquise en session normale) sont attendus.
      *

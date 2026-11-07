@@ -73,7 +73,8 @@ class DeliberationResource extends Resource
                 Tables\Columns\TextColumn::make('niveau')->label('Niveau')->badge(),
                 Tables\Columns\TextColumn::make('parcours.code')->label('Parcours')->placeholder('Tous'),
                 Tables\Columns\TextColumn::make('session')->label('Session')->formatStateUsing(fn (string $state): string => EtapeSaisie::SESSIONS[$state] ?? $state),
-                Tables\Columns\TextColumn::make('numero_pv')->label('PV')->fontFamily('mono')->placeholder('—'),
+                Tables\Columns\TextColumn::make('numero_pv')->label('PV')->fontFamily('mono')->placeholder('—')
+                    ->description(fn (Deliberation $r): ?string => $r->a_rectifier_at !== null && $r->statut === Deliberation::ARRETEE ? 'À rectifier' : null),
                 Tables\Columns\TextColumn::make('statut')->label('Statut')->badge()
                     ->formatStateUsing(fn (string $state, Deliberation $record): string => (Deliberation::STATUTS[$state] ?? $state).($record->publiee_at ? ' · publiée' : ''))
                     ->color(fn (string $state, Deliberation $record): string => match (true) {
@@ -100,6 +101,8 @@ class DeliberationResource extends Resource
                         : 'Ouverte le '.$r->seance_ouverte_at->timezone('Africa/Douala')->format('d/m/Y à H:i').' · quorum '.($r->quorum_atteint ? 'atteint' : 'NON atteint')),
                 Infolists\Components\TextEntry::make('decision_jury')->label('Décision du jury')->placeholder('—')
                     ->formatStateUsing(fn (?string $state): string => $state === 'sans_deliberation' ? 'Sans délibération (aucune mesure)' : 'Avec délibération (mesures)'),
+                Infolists\Components\TextEntry::make('a_rectifier_motif')->label('À rectifier')->color('danger')->columnSpanFull()
+                    ->visible(fn (Deliberation $r): bool => $r->a_rectifier_at !== null && $r->statut === Deliberation::ARRETEE),
                 Infolists\Components\TextEntry::make('requetes_jusqu_au')->label('Requêtes jusqu\'au')->date('d/m/Y')->placeholder('—'),
                 Infolists\Components\TextEntry::make('motif_rectification')->label('Rectification')->placeholder('—')
                     ->visible(fn (Deliberation $r): bool => $r->rectifie_id !== null)
