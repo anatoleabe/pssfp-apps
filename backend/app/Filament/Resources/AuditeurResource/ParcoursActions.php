@@ -1,0 +1,88 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Filament\Resources\AuditeurResource;
+
+use App\Models\Auditeur;
+use App\Models\Maquette;
+use App\Models\Parcours;
+use App\Services\Lmd\InscriptionsPedagogiques;
+use App\Services\Lmd\PermissionsLmd;
+use Filament\Actions\Action;
+use Filament\Forms;
+use Filament\Notifications\Notification;
+use InvalidArgumentException;
+
+/** Gestes LMD sur la fiche auditeur (spec module 4, lot 4) : inscription pédagogique et changement de parcours. */
+final class ParcoursActions
+{
+    public static function inscrire(): Action
+    {
+        return Action::make('inscrirePedagogique')
+            ->label('Inscrire au parcours')
+            ->icon('heroicon-o-academic-cap')
+            ->visible(fn (Auditeur $record): bool => $record->inscriptionCourante !== null
+                && (bool) auth()->user()?->can(PermissionsLmd::INSCRIRE))
+            ->requiresConfirmation()
+            ->modalDescription('Inscrit l\'auditeur à toutes les UE de la maquette validée de son parcours, pour l\'année en cours. Sans effet sur les UE déjà inscrites.')
+            ->action(function (Auditeur $record): void {
+                $r = app(InscriptionsPedagogiques::class)->inscrire($record->inscriptionCourante, auth()->user());
+                match ($r['issue']) {
+                    InscriptionsPedagogiques::SANS_PARCOURS => Notification::make()->warning()->title('Parcours introuvable')
+                        ->body('La spécialité du dossier ne correspond à aucune option active : choisissez le parcours avec « Changer de parcours ».')->send(),
+                    InscriptionsPedagogiques::SANS_MAQUETTE => Notification::make()->warning()->title('Maquette non validée')
+                        ->body("Le parcours {$r['parcours']} n'a pas encore de maquette validée pour cette année.")->send(),
+                    default => Notification::make()->success()->title('Inscription pédagogique')
+                        ->body($r['ues'] > 0 ? "{$r['ues']} UE inscrites ({$r['parcours']})." : 'L\'auditeur était déjà inscrit à toutes les UE.')->send(),
+                };
+            });
+    }
+
+    public static function changerParcours(): Action
+    {
+        return Action::make('changerParcours')
+            ->label('Changer de parcours')
+            ->icon('heroicon-o-arrows-right-left')
+            ->visible(fn (Auditeur $record): bool => $record->inscriptionCourante !== null
+                && (bool) auth()->user()?->can(PermissionsLmd::CHANGER_PARCOURS))
+            ->modalDescription('Les UE de l\'ancien parcours sont retirées et l\'auditeur est inscrit à celles du nouveau, si sa maquette est validée.')
+            ->form(fn (Auditeur $record): array => MessagesValidation::appliquer([
+                Forms\Components\Select::make('parcours_id')->label('Nouveau parcours')->required()->native(false)
+                    ->options(Parcours::query()->where('actif', true)->where('niveau', $record->inscriptionCourante?->niveau)
+                        ->whereKeyNot((int) $record->inscriptionCourante?->parcours_id)->orderBy('ordre')->get()
+                        ->mapWithKeys(fn (Parcours $p): array => [$p->id => $p->libelleComplet()])->all()),
+                Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(10)->maxLength(500),
+            ]))
+            ->action(function (Auditeur $record, array $data): void {
+                try {
+                    $r = app(InscriptionsPedagogiques::class)->changerParcours(
+                        $record->inscriptionCourante, Parcours::query()->findOrFail((int) $data['parcours_id']), auth()->user(), (string) $data['motif']);
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title('Changement refusé')->body($e->getMessage())->send();
+
+                    return;
+                }
+                Notification::make()->success()->title('Parcours changé')
+                    ->body($r['issue'] === InscriptionsPedagogiques::INSCRITE ? "{$r['ues']} UE inscrites ({$r['parcours']})." : 'La maquette de ce parcours n\'est pas encore validée : l\'inscription pédagogique se fera à sa validation.')
+                    ->send();
+            });
+    }
+
+    /** Ligne « Parcours LMD » de la fiche : parcours, maquette, UE inscrites. */
+    public static function resume(Auditeur $auditeur): string
+    {
+        $inscription = $auditeur->inscriptionCourante;
+        if ($inscription === null) {
+            return 'Aucune inscription pour l\'année en cours.';
+        }
+        $parcours = $inscription->parcours;
+        $ues = $inscription->inscriptionsPedagogiques()->count();
+        if ($parcours === null) {
+            return 'Pas encore inscrit à un parcours.';
+        }
+        $maquette = Maquette::reference($inscription->annee_academique, $parcours->id);
+
+        return $parcours->libelleComplet().' · '.($maquette === null ? 'maquette '.$inscription->annee_academique.' non validée' : $ues.' UE inscrites');
+    }
+}

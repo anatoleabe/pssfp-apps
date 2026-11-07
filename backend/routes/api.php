@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\Applications\CandidatureController;
+use App\Http\Controllers\Api\Applications\ParcoursController;
 use App\Http\Controllers\Api\Applications\QrCandidatureController;
 use App\Http\Controllers\Api\Applications\ScolariteController;
 use App\Http\Controllers\Api\Articles\ArticleController;
@@ -120,6 +121,11 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
         Route::get('/me/scolarite', [ScolariteController::class, 'show'])
             ->middleware('ability:application:read')
             ->name('me.scolarite');
+
+        // Parcours LMD de l'auditeur (spec module 4, lot 4).
+        Route::get('/me/parcours', [ParcoursController::class, 'show'])
+            ->middleware('ability:application:read')
+            ->name('me.parcours');
 
         Route::get('/me/releve-scolarite', [ScolariteController::class, 'releve'])
             ->middleware(['ability:application:read', 'throttle:releve-scolarite'])

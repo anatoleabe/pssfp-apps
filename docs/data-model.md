@@ -870,6 +870,21 @@ Ajout du 6 novembre 2026 (ADR-0010). Détail : `docs/specs/module-4-scolarite-lo
 
 La situation (cumul, paliers, reste) n'est jamais stockée : `App\Services\Scolarite\SituationFinanciere` la recalcule, et les scopes d'`InscriptionAnnuelle` en sont l'équivalent SQL.
 
+### Parcours LMD (module 4, lot 4)
+
+Ajout du 7 novembre 2026 (ADR-0011). Détail : `docs/specs/module-4-lmd-lot4-referentiel.md`.
+
+| Table | Rôle | Points clés |
+|---|---|---|
+| `parcours` | Tronc commun (M1) et options (M2) | `code` unique ; `specialite` = intitulé de la spécialité du dossier de candidature |
+| `unites_enseignement` | Catalogue des UE | `code` unique, partagé entre maquettes |
+| `maquettes` | Maquette d'un parcours pour une année | `uuid` public ; unique (`annee_academique`, `parcours_id`) ; `statut` brouillon, validée, archivée ; validée = figée |
+| `maquette_ues` | UE d'une maquette | semestre, crédits, pondérations `pcc` + `ptp` + `pexam` = 1 (contrainte), `partie` écrite ou soutenance |
+| `maquette_ecues` | ECUE d'une UE | crédits, heures CM, TD, TP, TPE ; unique (`maquette_ue_id`, `code`) |
+| `regles_evaluation` | Règles d'une année | seuil, note éliminatoire et sa portée, mode de rattrapage, pondérations par défaut, crédits, grilles (grades, mentions) et paramètres du jury en JSON ; journalisées |
+| `inscriptions_annuelles.parcours_id` | Parcours de l'inscription | posé à l'inscription pédagogique ou au changement de parcours |
+| `inscriptions_pedagogiques` | Inscription × UE de la maquette de référence | unique (`inscription_annuelle_id`, `maquette_ue_id`) ; statut inscrit, dispensé, capitalisée (motif obligatoire hors « inscrit ») |
+
 ## 11. Préparation Phase II (placeholders)
 
 Tables créées en Phase I avec un schéma minimal pour préparer la Phase II sans migration cassante. Aucune logique métier n'est attachée à ces tables en Phase I — elles existent simplement pour stabiliser les FK.

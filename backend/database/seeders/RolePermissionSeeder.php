@@ -69,13 +69,13 @@ final class RolePermissionSeeder extends Seeder
             'super_admin' => [
                 'label' => 'Super administrateur',
                 'description' => 'Accès total, y compris réglages, rôles et suppressions définitives.',
-                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage, 'scolarite' => $manage],
+                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage, 'scolarite' => $manage, 'lmd' => $manage],
                 'sensitive' => array_keys(ModulePermissionMap::sensitiveActions()),
             ],
             'admin' => [
                 'label' => 'Administrateur',
                 'description' => 'Comptes, rôles, campagnes, réglages et exports.',
-                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage, 'scolarite' => $manage],
+                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage, 'scolarite' => $manage, 'lmd' => $manage],
                 'sensitive' => [
                     'candidature.export_csv',
                     'candidature.mark_depot_physique',
@@ -96,6 +96,9 @@ final class RolePermissionSeeder extends Seeder
                     'scolarite.promotion',
                     'scolarite.statut',
                     'scolarite.messages',
+                    'lmd.maquette_valider',
+                    'lmd.regles',
+                    'lmd.parcours_changer',
                     'journal.view',
                     'document.publish',
                     'library.thesaurus',
@@ -149,16 +152,17 @@ final class RolePermissionSeeder extends Seeder
             // les mots de passe FOAD.
             'scolarite_agent' => [
                 'label' => 'Agent de scolarité',
-                'description' => 'Consultation des auditeurs, enregistrement des versements et export de la situation financière.',
-                'modules' => ['scolarite' => $manage],
+                'description' => 'Consultation des auditeurs, enregistrement des versements et export de la situation financière ; préparation des maquettes et inscriptions pédagogiques.',
+                'modules' => ['scolarite' => $manage, 'lmd' => $manage],
                 'sensitive' => ['scolarite.export'],
             ],
             'scolarite_responsable' => [
                 'label' => 'Responsable de scolarité',
-                'description' => 'Droits de l\'agent, plus l\'annulation des versements, les remises, les barèmes, les réglages de promotion, le statut des auditeurs et les messages.',
-                'modules' => ['scolarite' => $manage],
+                'description' => 'Droits de l\'agent, plus l\'annulation des versements, les remises, les barèmes, les réglages de promotion, le statut des auditeurs, les messages, la validation des maquettes, les règles d\'évaluation et les changements de parcours.',
+                'modules' => ['scolarite' => $manage, 'lmd' => $manage],
                 'sensitive' => ['scolarite.export', 'scolarite.versement_annuler', 'scolarite.remise', 'scolarite.bareme',
-                    'scolarite.promotion', 'scolarite.statut', 'scolarite.messages'],
+                    'scolarite.promotion', 'scolarite.statut', 'scolarite.messages',
+                    'lmd.maquette_valider', 'lmd.regles', 'lmd.parcours_changer'],
             ],
             'library_manager' => [
                 'label' => 'Responsable de la bibliothèque',

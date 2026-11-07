@@ -155,6 +155,7 @@ it('round-trips levels through permissions without drift', function (): void {
         'site' => ModulePermissionMap::LEVEL_READ,
         'admissions' => ModulePermissionMap::LEVEL_MANAGE,
         'scolarite' => ModulePermissionMap::LEVEL_NONE,
+        'lmd' => ModulePermissionMap::LEVEL_NONE,
         'bibliotheque' => ModulePermissionMap::LEVEL_NONE,
         'administration' => ModulePermissionMap::LEVEL_NONE,
     ];
@@ -300,6 +301,7 @@ it('fait l\'aller-retour des actions autonomes sans dérive', function (): void 
         'site' => ModulePermissionMap::LEVEL_NONE,
         'admissions' => ModulePermissionMap::LEVEL_NONE,
         'scolarite' => ModulePermissionMap::LEVEL_NONE,
+        'lmd' => ModulePermissionMap::LEVEL_NONE,
         'bibliotheque' => ModulePermissionMap::LEVEL_NONE,
         'administration' => ModulePermissionMap::LEVEL_NONE,
     ];

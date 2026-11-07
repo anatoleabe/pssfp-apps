@@ -1105,6 +1105,7 @@
     "navLabel": "Sections of my space",
     "nav": {
       "accueil": "Home",
+      "parcours": "My programme",
       "scolarite": "My fees",
       "acces": "My access",
       "documents": "My documents",
@@ -1148,6 +1149,29 @@
     "messages": {
       "aucun": "You have not received any message from the administration."
     },
-    "eyebrow": "Student space"
+    "eyebrow": "Student space",
+    "parcours": {
+      "eyebrow": "My programme",
+      "title": "{niveau} · {libelle}",
+      "annee": "Academic year {annee}",
+      "creditsTotal": "{credits} credits",
+      "sansParcours": "Your programme has not been set yet. The registry will enrol you in your option.",
+      "enPreparation": "The curriculum of your programme is being validated by the registry. It will appear here once published.",
+      "nonInscrit": "The curriculum is published: the registry will enrol you in its teaching units.",
+      "semestre": "Semester {numero}",
+      "creditsSemestre": "{credits} credits",
+      "credits": "{credits, plural, one {# credit} other {# credits}}",
+      "heures": "{heures} h",
+      "soutenance": "Internship and dissertation, defended before a jury",
+      "colonnes": {
+        "ecue": "Course component",
+        "cm": "CM",
+        "td": "TD",
+        "tp": "TP",
+        "tpe": "TPE",
+        "credits": "Credits"
+      },
+      "legende": "CM: lectures · TD: tutorials · TP: practical work · TPE: personal study (hours)"
+    }
   }
 }

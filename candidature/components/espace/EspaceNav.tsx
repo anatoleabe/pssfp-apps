@@ -1,14 +1,15 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { FileText, House, KeyRound, MessageSquare, UserRound, Wallet } from 'lucide-react';
+import { FileText, GraduationCap, House, KeyRound, MessageSquare, UserRound, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link, usePathname } from '@/navigation';
 
-export type Rubrique = 'accueil' | 'scolarite' | 'acces' | 'documents' | 'messages' | 'profil';
+export type Rubrique = 'accueil' | 'parcours' | 'scolarite' | 'acces' | 'documents' | 'messages' | 'profil';
 
 const RUBRIQUES: { cle: Rubrique; href: string; icone: LucideIcon }[] = [
   { cle: 'accueil', href: '/dossier', icone: House },
+  { cle: 'parcours', href: '/dossier/parcours', icone: GraduationCap },
   { cle: 'scolarite', href: '/dossier/scolarite', icone: Wallet },
   { cle: 'acces', href: '/dossier/acces', icone: KeyRound },
   { cle: 'documents', href: '/dossier/documents', icone: FileText },
