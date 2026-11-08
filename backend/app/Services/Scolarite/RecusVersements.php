@@ -35,9 +35,15 @@ final class RecusVersements
         if ($v->estAnnule()) {
             return 'Ce versement est annulé : il ne reçoit pas de reçu.';
         }
-        $depuis = AppSettings::get(self::CLE_DEPUIS);
-        if (is_string($depuis) && $v->created_at !== null && $v->created_at->lt(CarbonImmutable::parse($depuis))) {
+        $depuis = $this->miseEnService();
+        if ($depuis === null) {
+            return 'La date de mise en service des reçus n\'est pas réglée : émission impossible.';
+        }
+        if ($v->created_at === null || $v->created_at->lt($depuis)) {
             return 'Ce versement a été enregistré avant la mise en service des reçus : il n\'en reçoit pas.';
+        }
+        if ($v->inscription?->auditeur?->candidature?->withdrawn_at !== null) {
+            return 'Le dossier de cet auditeur est retiré : il ne reçoit plus de reçu.';
         }
         if ($v->recus()->whereDoesntHave('annulation')->exists()) {
             return 'Ce versement a déjà un reçu en vigueur.';
@@ -51,6 +57,8 @@ final class RecusVersements
         abort_unless($auteur->can(self::PERMISSION_EMETTRE), 403);
 
         return DB::transaction(function () use ($versement, $auteur): RecuVersement {
+            // Verrou de l'inscription : il garantit l'invariant « un seul reçu en vigueur par versement », que la base
+            // ne peut pas exprimer (l'annulation vit dans une autre table). Toute création de reçu passe par ici.
             $inscription = InscriptionAnnuelle::query()->with(['auditeur.candidature', 'bareme'])->whereKey($versement->inscription_annuelle_id)->lockForUpdate()->firstOrFail();
             $v = Versement::query()->whereKey($versement->id)->firstOrFail();
             $raison = $this->raisonRefus($v);
@@ -99,12 +107,35 @@ final class RecusVersements
         return $this->ecrireAnnulation($recu, $motif, $auteur);
     }
 
-    /** Appelé par l'annulation d'un versement : son reçu en vigueur reçoit une écriture d'annulation. */
+    /**
+     * Appelé par l'annulation d'un versement : son reçu en vigueur reçoit une écriture d'annulation.
+     * Un reçu annulé entre-temps par un autre agent n'empêche pas l'annulation du versement.
+     */
     public function annulerPourVersement(Versement $versement, string $motifVersement, User $auteur): ?AnnulationRecu
     {
         $recu = $versement->recus()->whereDoesntHave('annulation')->first();
+        if ($recu === null) {
+            return null;
+        }
+        try {
+            return $this->ecrireAnnulation($recu, 'Versement annulé : '.$motifVersement, $auteur);
+        } catch (InvalidArgumentException) {
+            return null;
+        }
+    }
 
-        return $recu === null ? null : $this->ecrireAnnulation($recu, 'Versement annulé : '.$motifVersement, $auteur);
+    /** Date de mise en service des reçus ; null si le réglage manque ou n'est pas une date (l'émission est alors refusée). */
+    public function miseEnService(): ?CarbonImmutable
+    {
+        $v = AppSettings::get(self::CLE_DEPUIS);
+        if (! is_string($v) || $v === '') {
+            return null;
+        }
+        try {
+            return CarbonImmutable::parse($v);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function pdf(RecuVersement $recu): string

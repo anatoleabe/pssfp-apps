@@ -182,7 +182,7 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
         // Reçu d'un versement (spec module 4, Scolarité lot 4).
         Route::get('/me/scolarite/recus/{uuid}', [ScolariteController::class, 'recu'])
             ->whereUuid('uuid')
-            ->middleware(['ability:application:read', 'throttle:releve-scolarite'])
+            ->middleware(['ability:application:read', 'throttle:recus-scolarite'])
             ->name('me.scolarite.recu');
 
         Route::get('/me/releve-scolarite', [ScolariteController::class, 'releve'])

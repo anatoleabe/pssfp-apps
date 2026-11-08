@@ -38,9 +38,8 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Les droits de consultation restent : ils ont pu être accordés depuis l'écran des rôles.
         Permission::query()->where('guard_name', 'web')->where('name', self::EMETTRE)->delete();
-        Role::query()->where('guard_name', 'web')->where('name', 'service_financier')->get()
-            ->each(fn (Role $r) => $r->revokePermissionTo(self::CONSULTATION));
         AppSetting::query()->where('key', 'scolarite.recus_depuis')->delete();
         AppSettings::forget('scolarite.recus_depuis');
         app(PermissionRegistrar::class)->forgetCachedPermissions();

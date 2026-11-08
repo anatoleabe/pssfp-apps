@@ -12,7 +12,8 @@ use LogicException;
 
 /**
  * Reçu officiel d'un versement de scolarité (Scolarité lot 4 ; D7). Contenu figé à l'émission ;
- * un reçu ne se modifie jamais : son annulation est une écriture distincte (AnnulationRecu).
+ * un reçu ne se modifie jamais : son annulation est une écriture distincte (AnnulationRecu). Immuable aussi en base (déclencheur).
+ * Invariant : un seul reçu en vigueur par versement, garanti par le verrou de l'inscription dans RecusVersements::emettre.
  */
 class RecuVersement extends Model
 {

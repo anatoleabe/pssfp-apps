@@ -121,6 +121,11 @@ final class ScolariteController extends Controller
             return response()->json(['message' => 'Reçu introuvable.', 'code' => 'recu_missing'], Response::HTTP_NOT_FOUND);
         }
 
+        activity('scolarite')->causedBy($request->user())->performedOn($recu)
+            ->event('recu_telecharge')
+            ->withProperties(['numero' => $recu->numero, 'ip' => $request->ip(), 'connexion' => $request->user()->currentAccessToken()?->name])
+            ->log('Reçu téléchargé dans l\'espace');
+
         return response($recus->pdf($recu), Response::HTTP_OK, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="'.$recu->nomFichier().'"',

@@ -40,14 +40,16 @@ export async function GET(_request: Request, { params }: { params: { uuid: strin
     return redirectTo('/dossier?recu_error=1');
   }
 
-  const disposition = apiResponse.headers.get('Content-Disposition') ?? 'attachment; filename="recu.pdf"';
+  // En-tête reconstruit ici : seul un nom de reçu au format attendu est repris de l'API.
+  const nom = /filename="(rcpt-\d{4}-\d{6})\.pdf"/.exec(apiResponse.headers.get('Content-Disposition') ?? '')?.[1] ?? 'recu';
 
   return new NextResponse(apiResponse.body, {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': disposition,
+      'Content-Disposition': `attachment; filename="${nom}.pdf"`,
       'Cache-Control': 'no-store, private',
+      'X-Content-Type-Options': 'nosniff',
     },
   });
 }

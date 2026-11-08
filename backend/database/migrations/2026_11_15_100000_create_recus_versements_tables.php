@@ -40,7 +40,7 @@ return new class extends Migration
             $table->string('payeur', 20);
             $table->unsignedInteger('total_verse');
             $table->unsignedInteger('reste_a_payer');
-            $table->foreignId('emis_par')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('emis_par')->constrained('users')->restrictOnDelete();
             $table->string('emetteur_nom', 255);
             $table->timestampTz('emis_at');
             $table->timestampsTz();
@@ -57,7 +57,7 @@ return new class extends Migration
             $table->foreignId('recu_id')->unique()->constrained('recus_versements')->restrictOnDelete();
             $table->string('numero', 22)->unique();
             $table->string('motif', 500);
-            $table->foreignId('annule_par')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('annule_par')->constrained('users')->restrictOnDelete();
             $table->string('annuleur_nom', 255);
             $table->timestampTz('annule_at');
             $table->timestampsTz();
@@ -68,6 +68,16 @@ return new class extends Migration
         // SQL brut, ADR-0011 : montant positif, numéro au format, motif non vide.
         DB::statement("ALTER TABLE recus_versements ADD CONSTRAINT recus_versements_check CHECK (montant > 0 AND numero ~ '^RCPT-[0-9]{4}-[0-9]{6}$' AND niveau IN ('M1', 'M2'))");
         DB::statement("ALTER TABLE annulations_recus ADD CONSTRAINT annulations_recus_check CHECK (length(trim(motif)) >= 5 AND numero ~ '^RCPT-[0-9]{4}-[0-9]{6}-A$')");
+
+        // Pièces comptables immuables, même hors de l'application (requête directe, script de reprise) : ADR-0011.
+        DB::unprepared(<<<'SQL'
+            CREATE OR REPLACE FUNCTION recus_immuables() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              RAISE EXCEPTION 'Pièce comptable immuable (%) : passez une écriture d''annulation', TG_TABLE_NAME USING ERRCODE = 'check_violation';
+            END $$;
+            CREATE TRIGGER recus_versements_immuables BEFORE UPDATE OR DELETE ON recus_versements FOR EACH ROW EXECUTE FUNCTION recus_immuables();
+            CREATE TRIGGER annulations_recus_immuables BEFORE UPDATE OR DELETE ON annulations_recus FOR EACH ROW EXECUTE FUNCTION recus_immuables();
+            SQL);
     }
 
     public function down(): void
@@ -75,5 +85,6 @@ return new class extends Migration
         Schema::dropIfExists('annulations_recus');
         Schema::dropIfExists('recus_versements');
         Schema::dropIfExists('compteurs_recus');
+        DB::unprepared('DROP FUNCTION IF EXISTS recus_immuables()');
     }
 };

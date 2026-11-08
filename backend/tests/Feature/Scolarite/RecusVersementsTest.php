@@ -22,8 +22,10 @@ use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Activity;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses()->group('scolarite');
@@ -157,4 +159,39 @@ it('réserve l\'émission au service financier dans la fiche de l\'auditeur et l
     $this->get(RecuVersementResource::getUrl('index'))->assertOk()->assertSee('RCPT-2026-000001')->assertSee('ABENA Essai');
     $this->actingAs($this->agent);
     $this->get(RecuVersementResource::getUrl('index'))->assertOk()->assertDontSee('Annuler le reçu');
+});
+
+it('rend les reçus et leurs annulations immuables jusque dans la base', function (): void {
+    // Chaque tentative dans son point de sauvegarde : l'erreur PostgreSQL n'interrompt pas la transaction du test.
+    $r = $this->service->emettre(($this->verser)(185000), $this->financier);
+    $a = $this->service->annuler($r, 'Erreur sur le payeur', $this->financier);
+
+    expect(fn () => DB::transaction(fn () => RecuVersement::query()->whereKey($r->id)->update(['montant' => 1])))->toThrow(QueryException::class, 'immuable');
+    expect(fn () => DB::transaction(fn () => DB::table('recus_versements')->where('id', $r->id)->delete()))->toThrow(QueryException::class, 'immuable');
+    expect(fn () => DB::transaction(fn () => DB::table('annulations_recus')->where('id', $a->id)->update(['motif' => 'Autre motif inventé'])))->toThrow(QueryException::class, 'immuable');
+    expect(fn () => DB::transaction(fn () => $this->financier->delete()))->toThrow(QueryException::class);
+});
+
+it('refuse le reçu sans date de mise en service ou pour un dossier retiré', function (): void {
+    $v = ($this->verser)(185000);
+
+    AppSettings::set(RecusVersements::CLE_DEPUIS, null);
+    expect(fn () => $this->service->emettre($v, $this->financier))->toThrow(InvalidArgumentException::class, 'mise en service');
+    AppSettings::set(RecusVersements::CLE_DEPUIS, now()->subDay()->toIso8601String());
+
+    $this->awa->forceFill(['withdrawn_at' => now()])->save();
+    expect(fn () => $this->service->emettre($v->refresh(), $this->financier))->toThrow(InvalidArgumentException::class, 'retiré');
+});
+
+it('sert à l\'auditeur son reçu annulé, journalise le téléchargement, et répond 404 sans scolarité', function (): void {
+    $r = $this->service->emettre(($this->verser)(185000), $this->financier);
+    $this->service->annuler($r, 'Erreur sur le payeur', $this->financier);
+
+    $this->withToken(($this->jeton)($this->awa))->get('/v1/applications/me/scolarite/recus/'.$r->uuid)->assertOk();
+    expect(Activity::query()->where('event', 'recu_telecharge')->where('subject_id', $r->id)->exists())->toBeTrue();
+
+    $sansScolarite = User::factory()->create(['email' => Str::random(8).'@example.org']);
+    $this->app['auth']->forgetGuards();
+    $this->withToken($sansScolarite->createToken('candidat', ['application:read'])->plainTextToken)
+        ->getJson('/v1/applications/me/scolarite/recus/'.$r->uuid)->assertNotFound()->assertJsonPath('code', 'recu_missing');
 });

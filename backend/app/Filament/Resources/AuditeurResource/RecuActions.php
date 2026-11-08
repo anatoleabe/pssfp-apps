@@ -53,7 +53,12 @@ final class RecuActions
             ->modalDescription('Le reçu n\'est pas modifié : une écriture d\'annulation numérotée est passée à votre nom. Un nouveau reçu peut ensuite être émis.')
             ->form(self::formulaireMotif())
             ->action(function (Versement $record, array $data): void {
-                $a = self::executer(fn () => app(RecusVersements::class)->annuler($record->recuEnVigueur(), (string) $data['motif'], auth()->user()));
+                $a = self::executer(function () use ($record, $data) {
+                    $recu = $record->recus()->whereDoesntHave('annulation')->first()
+                        ?? throw new InvalidArgumentException('Ce reçu vient d\'être annulé par un autre agent.');
+
+                    return app(RecusVersements::class)->annuler($recu, (string) $data['motif'], auth()->user());
+                });
                 Notification::make()->success()->title('Écriture '.$a->numero.' passée')->send();
             });
     }
@@ -69,6 +74,8 @@ final class RecuActions
     public static function reponse(RecuVersement $recu): StreamedResponse
     {
         $pdf = app(RecusVersements::class)->pdf($recu);
+        activity('scolarite')->causedBy(auth()->user())->performedOn($recu)->event('recu_telecharge')
+            ->withProperties(['numero' => $recu->numero])->log('Reçu téléchargé dans l\'administration');
 
         return response()->streamDownload(function () use ($pdf): void {
             echo $pdf;
