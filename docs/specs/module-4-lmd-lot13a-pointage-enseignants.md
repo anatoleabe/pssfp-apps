@@ -40,7 +40,7 @@ Le dossier de paie de l'enseignant (statut, NIU, compte bancaire) est tenu par l
 3. **Validation** : la Scolarité valide le pointage, ou le rejette avec un motif.
    - Valider exige l'arrivée, le départ et le contenu enseigné.
    - **Une séance n'a qu'un pointage validé** : pas de co-animation payée deux fois.
-   - **Séparation des tâches** : personne ne valide ses propres heures, ni un pointage qu'il a saisi.
+   - **Séparation des tâches** : personne ne valide ses propres heures d'enseignement. L'agent valide les pointages qu'il a saisis (réponse de la Scolarité du 08/11/2026).
    - La validation marque la séance « tenue » : elle alimente l'avancement de la programmation et du Gantt (lot 12d).
    - Un pointage à valider ou rejeté se modifie ; un pointage validé qui est modifié repasse à valider, et la séance redevient « prévue » si plus rien ne la marque tenue.
    - Un pointage **payé** (rattaché à une ligne d'état de paie, lot 13b) ne se modifie plus ; il se régularise par un état rectificatif.
@@ -80,7 +80,7 @@ Le dossier de paie de l'enseignant (statut, NIU, compte bancaire) est tenu par l
 1. Un enseignant pointe sa séance passée (arrivée, départ, contenu) ; il ne peut pas pointer une séance future, ni la séance d'un autre cours sans programmation, ni pointer deux fois la même séance.
 2. Arrivée 20 min en retard sur une séance de 3 h : 2,5 h effectives (2 h 40 arrondies au quart d'heure inférieur). Un départ tardif ne dépasse pas la durée prévue.
 3. Valider sans contenu enseigné est refusé ; rejeter sans motif est refusé. La validation passe la séance à « tenue ».
-4. Un remplaçant programmé (programmation validée) sur le cours pointe la séance : le pointage trace l'enseignant remplacé. Une programmation seulement proposée ne suffit pas. Un remplaçant non programmé (saisi par la Scolarité) produit le contrôle 4. Une séance déjà validée pour un enseignant ne se valide pas pour un second ; l'auteur d'une saisie ne la valide pas.
+4. Un remplaçant programmé (programmation validée) sur le cours pointe la séance : le pointage trace l'enseignant remplacé. Une programmation seulement proposée ne suffit pas. Un remplaçant non programmé (saisi par la Scolarité) produit le contrôle 4. Une séance déjà validée pour un enseignant ne se valide pas pour un second ; un compte à la fois enseignant et agent ne valide pas ses propres heures.
 5. Un pointage payé ne se modifie plus.
 6. Les contrôles se déclenchent sur leurs cas : séance sans pointage, auditeurs sans enseignant, pointage en attente, chevauchement, heures validées au-delà de l'allocation, dossier incomplet.
 7. Le NIU et le compte sont chiffrés en base et absents du journal d'activité. Un agent de la scolarité ne les voit pas ; le service financier les voit et les saisit.

@@ -158,7 +158,7 @@ final class PointagesEnseignant
     }
 
     /**
-     * Valide un pointage : heures figées, séance « tenue ». Personne ne valide ses propres heures ni sa propre saisie ;
+     * Valide un pointage : heures figées, séance « tenue ». Personne ne valide ses propres heures d'enseignement ;
      * une séance n'a qu'un pointage validé.
      */
     public function valider(PointageEnseignant $p, User $auteur): void
@@ -168,7 +168,7 @@ final class PointagesEnseignant
             throw new InvalidArgumentException('Seul un pointage à valider se valide.');
         }
         if (! $this->peutValider($p, $auteur)) {
-            throw new InvalidArgumentException('Vous ne validez ni vos propres heures, ni un pointage que vous avez saisi.');
+            throw new InvalidArgumentException('Vous ne validez pas vos propres heures d\'enseignement : un autre membre de la Scolarité le fait.');
         }
         if ($p->arrivee === null || $p->depart === null || blank($p->contenu_enseigne)) {
             throw new InvalidArgumentException('Pour valider, le pointage donne l\'arrivée, le départ et le contenu enseigné (cahier de textes).');
@@ -187,10 +187,10 @@ final class PointagesEnseignant
         });
     }
 
-    /** Séparation des tâches : ni ses propres heures, ni sa propre saisie. */
+    /** Personne ne valide ses propres heures ; l'agent valide ce qu'il a saisi (Scolarité, 08/11/2026). */
     public function peutValider(PointageEnseignant $p, User $auteur): bool
     {
-        return $p->enseignant_id !== $auteur->id && $p->saisi_par !== $auteur->id;
+        return $p->enseignant_id !== $auteur->id;
     }
 
     public function rejeter(PointageEnseignant $p, string $motif, User $auteur): void

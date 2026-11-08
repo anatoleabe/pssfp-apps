@@ -224,7 +224,7 @@ class PointageEnseignantResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkAction::make('valider')->label('Valider')->icon('heroicon-o-check-badge')->visible($gestion)
                     ->requiresConfirmation()->deselectRecordsAfterCompletion()
-                    ->modalDescription('Seuls les pointages à valider et complets (arrivée, départ, contenu enseigné) sont validés. Sont ignorés : vos propres heures ou saisies, et une séance qui a déjà un pointage validé.')
+                    ->modalDescription('Seuls les pointages à valider et complets (arrivée, départ, contenu enseigné) sont validés. Sont ignorés : vos propres heures d\'enseignement, et une séance qui a déjà un pointage validé.')
                     ->action(fn (Collection $records) => ChampsProgrammation::executer(function () use ($records): string {
                         [$n, $ignores] = [0, 0];
                         foreach ($records as $p) {

@@ -151,13 +151,13 @@ it('exige le contenu enseigné pour valider et un motif pour rejeter ; un rejet 
         ->and($p->minutes_payables)->toBeNull()
         ->and($p->mode)->toBe('saisie')
         ->and($p->saisi_par)->toBe($this->agent->id)
-        ->and($this->seances[0]->refresh()->statut)->toBe('prevue')
-        ->and(fn () => $this->service->valider($p, $this->agent))->toThrow(InvalidArgumentException::class, 'Vous ne validez');
-    $this->service->valider($p, $this->responsable);
+        ->and($this->seances[0]->refresh()->statut)->toBe('prevue');
+    // L'agent valide ce qu'il a saisi.
+    $this->service->valider($p, $this->agent);
     expect($p->refresh()->minutes_payables)->toBe(120);
 });
 
-it('trace le remplacement, ne valide qu\'un pointage par séance et sépare saisie et validation', function (): void {
+it('trace le remplacement, ne valide qu\'un pointage par séance, ni ses propres heures', function (): void {
     ($this->remplacant)($this->prof2);
     $r = ($this->emarger)($this->seances[1], '08:00', '11:00', $this->prof2);
     expect($r->remplace_enseignant_id)->toBe($this->prof->id)
@@ -166,10 +166,14 @@ it('trace le remplacement, ne valide qu\'un pointage par séance et sépare sais
 
     // La Scolarité peut saisir un second pointage : il est signalé, et ne se valide pas si le premier l'est.
     $titulaire = $this->service->emarger($this->seances[1], $this->prof, ['arrivee' => '08:00', 'depart' => '11:00', 'contenu_enseigne' => 'Chapitre 2'], $this->agent);
-    expect(($this->controles)())->toContain('seance_plusieurs_enseignants')
-        ->and(fn () => $this->service->valider($titulaire, $this->agent))->toThrow(InvalidArgumentException::class, 'Vous ne validez');
+    expect(($this->controles)())->toContain('seance_plusieurs_enseignants');
     $this->service->valider($r, $this->agent);
     expect(fn () => $this->service->valider($titulaire, $this->responsable))->toThrow(InvalidArgumentException::class, 'déjà un pointage validé');
+
+    // Un compte à la fois enseignant et agent ne valide pas ses propres heures.
+    $double = tap(($this->compte)('enseignant'), fn (User $u) => $u->assignRole('scolarite_agent'));
+    $propre = $this->service->emarger($this->seances[0], $double, ['arrivee' => '08:00', 'depart' => '11:00', 'contenu_enseigne' => 'Chapitre 1'], $this->agent);
+    expect(fn () => $this->service->valider($propre, $double->fresh()))->toThrow(InvalidArgumentException::class, 'vos propres heures');
 
     // Remplaçant non programmé, saisi par la Scolarité (jamais en mode « signature »).
     $prof3 = ($this->compte)('enseignant');
@@ -282,7 +286,7 @@ it('ouvre les écrans par rôle : l\'enseignant ne voit que ses émargements', f
     Livewire::test(ListPointagesEnseignant::class)
         ->callTableAction('rejeter', $autre, ['motif' => 'non'])->assertHasTableActionErrors(['motif'])
         ->callTableBulkAction('valider', [$p, $autre])
-        // Saisie par la Scolarité : séance retrouvée par la date ; elle ne peut pas valider sa propre saisie.
+        // Saisie par la Scolarité : séance retrouvée par la date ; l'agent peut valider sa saisie.
         ->callAction('saisir', ['enseignant_id' => (string) $this->prof2->id, 'seance_id' => (string) $this->seances[0]->id, 'arrivee' => '08:00', 'depart' => '11:00',
             'nature' => 'CM', 'mode' => 'saisie', 'contenu_enseigne' => 'Co-animation'])
         ->assertHasNoActionErrors();
@@ -292,7 +296,7 @@ it('ouvre les écrans par rôle : l\'enseignant ne voit que ses émargements', f
         ->and($saisi->mode)->toBe('saisie')
         ->and($this->service->seancesPointablesPour($this->prof2, '16/11')->pluck('id')->all())->toBe([$this->seances[2]->id])
         ->and($this->service->seancesPointablesPour($this->prof2, 'mpmpp7')->pluck('id')->all())->toContain($this->seances[2]->id);
-    Livewire::test(ListPointagesEnseignant::class)->assertTableActionHidden('valider', $saisi);
+    Livewire::test(ListPointagesEnseignant::class)->assertTableActionVisible('valider', $saisi);
 
     $this->actingAs($this->prof);
     $this->get(PointageEnseignantResource::getUrl('index'))->assertOk()->assertSee('Mes émargements');
