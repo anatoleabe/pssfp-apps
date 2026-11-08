@@ -218,8 +218,8 @@ final class RolePermissionSeeder extends Seeder
             'service_financier' => [
                 'label' => 'Service administratif et financier',
                 'description' => 'Dossiers de paie des enseignants : NIU, banque et compte de virement.',
-                'modules' => [],
-                'sensitive' => ['lmd.dossier_paie', 'lmd.paie_payer'],
+                'modules' => ['scolarite' => $manage],
+                'sensitive' => ['lmd.dossier_paie', 'scolarite.recu_emettre', 'lmd.paie_payer'],
             ],
             'chef_structure' => [
                 'label' => 'Chef de la structure',

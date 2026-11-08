@@ -7,12 +7,14 @@ namespace App\Http\Controllers\Api\Applications;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ScolariteResource;
 use App\Models\Candidature;
+use App\Models\RecuVersement;
 use App\Services\DocumentsAuditeurs\DocumentsIncomplets;
 use App\Services\DocumentsAuditeurs\LettreAccesFoadPdf;
 use App\Services\EspaceCandidat\ConsultationEspaceCandidat;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\DossierAuditeurConnecte;
+use App\Services\Scolarite\RecusVersements;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -105,6 +107,28 @@ final class ScolariteController extends Controller
         return response($pdf->output(), Response::HTTP_OK, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="releve-scolarite.pdf"',
+        ] + self::SANS_CACHE);
+    }
+
+    /** Reçu d'un versement de l'auditeur connecté (Scolarité lot 4) ; 404 pour tout reçu d'un autre. */
+    public function recu(Request $request, string $uuid, RecusVersements $recus): HttpResponse|JsonResponse
+    {
+        $dossier = $this->dossier($request);
+        $auditeurId = $dossier?->auditeur?->id;
+        $recu = $auditeurId === null ? null : RecuVersement::query()->where('uuid', $uuid)
+            ->whereHas('inscription', fn ($q) => $q->where('auditeur_id', $auditeurId))->first();
+        if ($recu === null) {
+            return response()->json(['message' => 'Reçu introuvable.', 'code' => 'recu_missing'], Response::HTTP_NOT_FOUND);
+        }
+
+        activity('scolarite')->causedBy($request->user())->performedOn($recu)
+            ->event('recu_telecharge')
+            ->withProperties(['numero' => $recu->numero, 'ip' => $request->ip(), 'connexion' => $request->user()->currentAccessToken()?->name])
+            ->log('Reçu téléchargé dans l\'espace');
+
+        return response($recus->pdf($recu), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$recu->nomFichier().'"',
         ] + self::SANS_CACHE);
     }
 

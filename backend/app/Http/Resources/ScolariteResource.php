@@ -68,15 +68,17 @@ final class ScolariteResource extends JsonResource
         ];
     }
 
-    /** @return list<array{date: string, montant: int, mode: string, reference: string}> */
+    /** @return list<array{date: string, montant: int, mode: string, reference: string, recu: ?array{uuid: string, numero: string}}> */
     private static function versements(InscriptionAnnuelle $inscription): array
     {
-        return $inscription->versementsValides()->orderByDesc('date_versement')->orderByDesc('id')->get()
+        return $inscription->versementsValides()->with('recus.annulation')->orderByDesc('date_versement')->orderByDesc('id')->get()
             ->map(fn (Versement $v): array => [
                 'date' => $v->date_versement->toDateString(),
                 'montant' => $v->montant,
                 'mode' => $v->mode,
                 'reference' => $v->reference,
+                // Reçu en vigueur (Scolarité lot 4) : uuid public, jamais l'id interne.
+                'recu' => ($r = $v->recuEnVigueur()) === null ? null : ['uuid' => $r->uuid, 'numero' => $r->numero],
             ])->all();
     }
 }

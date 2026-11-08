@@ -179,6 +179,12 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
         Route::get('/me/memoire/attestation', [MemoireController::class, 'attestation'])
             ->middleware(['ability:application:read', 'throttle:releve-scolarite'])->name('me.memoire.attestation');
 
+        // Reçu d'un versement (spec module 4, Scolarité lot 4).
+        Route::get('/me/scolarite/recus/{uuid}', [ScolariteController::class, 'recu'])
+            ->whereUuid('uuid')
+            ->middleware(['ability:application:read', 'throttle:recus-scolarite'])
+            ->name('me.scolarite.recu');
+
         Route::get('/me/releve-scolarite', [ScolariteController::class, 'releve'])
             ->middleware(['ability:application:read', 'throttle:releve-scolarite'])
             ->name('me.releve-scolarite');

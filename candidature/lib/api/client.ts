@@ -349,6 +349,8 @@ export interface ScolariteVersement {
   montant: number;
   mode: string;
   reference: string;
+  /** Reçu en vigueur émis par le service financier, ou null. */
+  recu: { uuid: string; numero: string } | null;
 }
 
 export type AccesEtat = 'bloque' | 'en_preparation' | 'disponible';

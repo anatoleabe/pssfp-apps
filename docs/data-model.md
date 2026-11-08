@@ -867,6 +867,9 @@ Ajout du 6 novembre 2026 (ADR-0010). Détail : `docs/specs/module-4-scolarite-lo
 | `auditeurs` | Ancrage de la vie académique | `uuid` public, `candidature_id` unique ; matricule et compte restent sur la candidature ; `statut` (actif, suspendu, abandon, exclu, diplome), `statut_motif`, `statut_depuis`, `statut_par` (lot 2) |
 | `inscriptions_annuelles` | Auditeur × année × niveau | Copie des montants du barème, remise (montant, motif, agent), `acces_notifie_at` ; unique (`auditeur_id`, `annee_academique`) |
 | `versements` | Registre de l'argent | Jamais supprimé : annulation par `annule_*` ; index unique partiel (`mode`, `reference`) sur les lignes non annulées |
+| `recus_versements` | Reçu officiel d'un versement (Scolarité lot 4) | `uuid` ; numéro `RCPT-AAAA-NNNNNN` unique (CHECK), année et séquence uniques ensemble ; versement, inscription ; contenu figé à l'émission (auditeur, matricule, année, niveau, montant, objet, mode, référence, date, payeur, total versé, reste à payer, émetteur) ; jamais modifié ni supprimé (garde du modèle) |
+| `annulations_recus` | Écriture d'annulation d'un reçu | `uuid` ; reçu (unique) ; numéro `<reçu>-A` (CHECK) ; motif (5 caractères au moins, CHECK), auteur, date ; jamais modifiée ni supprimée |
+| `compteurs_recus` | Dernier numéro de reçu de l'année civile | clé `annee` ; lu sous verrou à chaque émission |
 
 La situation (cumul, paliers, reste) n'est jamais stockée : `App\Services\Scolarite\SituationFinanciere` la recalcule, et les scopes d'`InscriptionAnnuelle` en sont l'équivalent SQL.
 
