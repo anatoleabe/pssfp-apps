@@ -30,8 +30,11 @@ final class RecusVersements
     private const LIBELLES_PALIERS = [Palier::INSCRIPTION => 'droits d\'inscription', Palier::TRANCHE1 => '1re tranche', Palier::TRANCHE2 => '2e tranche'];
 
     /** Le versement peut-il recevoir un reçu (hors permission) ? null si oui, sinon la raison. */
-    public function raisonRefus(Versement $v): ?string
+    public function raisonRefus(Versement $v, ?User $auteur = null): ?string
     {
+        if ($auteur !== null && $v->saisi_par === $auteur->id) {
+            return 'Vous avez enregistré ce versement : son reçu est émis par un autre agent du service financier.';
+        }
         if ($v->estAnnule()) {
             return 'Ce versement est annulé : il ne reçoit pas de reçu.';
         }
@@ -61,7 +64,7 @@ final class RecusVersements
             // ne peut pas exprimer (l'annulation vit dans une autre table). Toute création de reçu passe par ici.
             $inscription = InscriptionAnnuelle::query()->with(['auditeur.candidature', 'bareme'])->whereKey($versement->inscription_annuelle_id)->lockForUpdate()->firstOrFail();
             $v = Versement::query()->whereKey($versement->id)->firstOrFail();
-            $raison = $this->raisonRefus($v);
+            $raison = $this->raisonRefus($v, $auteur);
             if ($raison !== null) {
                 throw new InvalidArgumentException($raison);
             }

@@ -97,6 +97,12 @@ it('refuse le reçu d\'un versement annulé, déjà couvert ou antérieur à la 
     app(RegistreVersements::class)->annuler($annule, 'Doublon de saisie', $this->responsable);
     expect(fn () => $this->service->emettre($annule->refresh(), $this->financier))->toThrow(InvalidArgumentException::class, 'annulé');
 
+    // Séparation des tâches (Chef USI, 08/11/2026) : qui enregistre le versement n'en émet pas le reçu.
+    $propre = app(RegistreVersements::class)->enregistrer($this->inscription,
+        ['montant' => 20000, 'date_versement' => '2026-11-03', 'mode' => 'especes', 'reference' => 'CAISSE-01', 'payeur' => 'auditeur'], $this->financier)->versement;
+    expect(fn () => $this->service->emettre($propre, $this->financier))->toThrow(InvalidArgumentException::class, 'Vous avez enregistré ce versement');
+    $this->service->emettre($propre, ($this->compte)('service_financier'));
+
     $ancien = ($this->verser)(10000);
     DB::table('versements')->where('id', $ancien->id)->update(['created_at' => now()->subMonth()]);
     expect(fn () => $this->service->emettre($ancien->refresh(), $this->financier))->toThrow(InvalidArgumentException::class, 'avant la mise en service');

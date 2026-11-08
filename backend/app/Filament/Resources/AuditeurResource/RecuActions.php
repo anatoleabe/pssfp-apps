@@ -28,7 +28,7 @@ final class RecuActions
     public static function emettre(): TableAction
     {
         return TableAction::make('emettreRecu')->label('Émettre le reçu')->icon('heroicon-o-document-check')->color('success')
-            ->visible(fn (Versement $record): bool => self::peutEmettre() && app(RecusVersements::class)->raisonRefus($record) === null)
+            ->visible(fn (Versement $record): bool => self::peutEmettre() && app(RecusVersements::class)->raisonRefus($record, auth()->user()) === null)
             ->requiresConfirmation()->modalHeading('Émettre le reçu de ce versement')
             ->modalDescription(fn (Versement $record): string => 'Un reçu numéroté de '.RecusVersements::fcfa($record->montant).' est émis à votre nom. Il ne se modifie plus : une erreur se corrige par une écriture d\'annulation.')
             ->action(function (Versement $record): void {

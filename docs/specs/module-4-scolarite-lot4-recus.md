@@ -8,7 +8,7 @@ Le service financier émet un reçu officiel numéroté pour chaque versement de
 
 ## 2. Règles
 
-1. **Un reçu par versement**, émis par le service financier (`scolarite.recu_emettre`). Le versement doit être enregistré après la mise en service des reçus (pas de reçu pour les versements antérieurs, question 22) et non annulé. Un versement n'a qu'un reçu en vigueur.
+1. **Un reçu par versement**, émis par le service financier (`scolarite.recu_emettre`). Le versement doit être enregistré après la mise en service des reçus (pas de reçu pour les versements antérieurs, question 22) et non annulé. Un versement n'a qu'un reçu en vigueur. **Séparation des tâches** (Chef USI, 08/11/2026) : l'agent qui a enregistré le versement n'en émet pas le reçu ; un autre agent du service financier le fait.
 2. **Numéro** : `RCPT-AAAA-NNNNNN` (« receipt », question 19), continu sur l'année civile de l'émission, attribué à l'émission, jamais réutilisé (verrou sur le compteur de l'année).
 3. **Contenu figé à l'émission** : numéro, date d'émission, auditeur (nom, matricule), année académique et niveau, montant en chiffres et en lettres, mode, référence du bordereau, date du versement, payeur, objet, total versé et reste à payer de l'année après ce versement, nom de l'agent émetteur (sans cachet, question 20). Le PDF se régénère à l'identique à partir de ces données. Le reçu est en français.
 4. **Objet** (question 21) : déduit de l'imputation du versement sur le barème de l'année, de l'inscription vers la dernière tranche (droits d'inscription, 1re tranche, 2e tranche, avec la part de chacun ; un excédent est un trop-perçu).
