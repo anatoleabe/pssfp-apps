@@ -70,4 +70,10 @@ final class PermissionsLmd
     public const ACTES_SIGNER = 'lmd.actes_signer';
 
     public const EMPLOIS_DU_TEMPS = 'lmd.emplois_du_temps';
+
+    public const PROGRAMMATION = 'lmd.programmation';
+
+    public const PROGRAMMATION_VALIDER = 'lmd.programmation_valider';
+
+    public const PROGRAMMATION_REPONDRE = 'lmd.programmation_repondre';
 }

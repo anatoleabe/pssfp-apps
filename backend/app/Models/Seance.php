@@ -68,6 +68,11 @@ class Seance extends Model
         return $this->belongsTo(User::class, 'enseignant_id');
     }
 
+    public function programmation(): BelongsTo
+    {
+        return $this->belongsTo(ProgrammationEnseignant::class, 'programmation_id');
+    }
+
     public function remplacement(): BelongsTo
     {
         return $this->belongsTo(self::class, 'reportee_vers_id');

@@ -101,6 +101,11 @@ class EvenementCalendrier extends Model
         return $this->hasMany(Acte::class, 'evenement_id');
     }
 
+    public function quotas(): HasMany
+    {
+        return $this->hasMany(QuotaHoraire::class, 'periode_id');
+    }
+
     public function estPhase(): bool
     {
         return $this->type === 'phase';

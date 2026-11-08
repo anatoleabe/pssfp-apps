@@ -9,6 +9,7 @@ use App\Models\CalendrierAcademique;
 use App\Models\DependanceEvenement;
 use App\Models\EvenementCalendrier;
 use App\Models\JourNonOuvre;
+use App\Models\ProgrammationEnseignant;
 use App\Models\RegleEvaluation;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -265,18 +266,39 @@ final class ControlesCalendrier
                 'statut' => $a->statut, 'alerte' => $a->alerte()])->values()->all(),
         ];
 
+        // Sous-barres des enseignants sous chaque période de cours (lot 12d, D22).
+        $enseignants = app(Programmations::class)->gantt($c->id);
+        $avecSous = function (EvenementCalendrier $e) use ($ligne, $enseignants): array {
+            return [$ligne($e, false), ...array_map(fn (array $p): array => $this->sousBarre($p), $enseignants[$e->id] ?? [])];
+        };
         $lignes = [];
         foreach ($tous->where('type', 'phase') as $ph) {
             $sous = $enfants->get((string) $ph->id, collect())->sortBy([['debut_prevu', 'asc'], ['id', 'asc']])->values();
             $lignes[] = $ligne($ph, true, $sous);
             foreach ($sous as $e) {
-                $lignes[] = $ligne($e, false);
+                array_push($lignes, ...$avecSous($e));
             }
         }
         foreach ($enfants->get('', collect()) as $e) {
-            $lignes[] = $ligne($e, false);
+            array_push($lignes, ...$avecSous($e));
         }
 
         return $lignes;
+    }
+
+    /**
+     * Ligne de Gantt d'une programmation d'enseignant (fenêtre prévue, à défaut séances réelles, à défaut la période).
+     *
+     * @param  array{libelle: string, debut: CarbonImmutable, fin: CarbonImmutable, avancement: int, statut: string, heures: string}  $p
+     * @return array<string, mixed>
+     */
+    private function sousBarre(array $p): array
+    {
+        return ['id' => null, 'phase' => false, 'sous_barre' => true, 'niveau_hierarchie' => 2, 'type' => 'programmation', 'libelle' => $p['libelle'],
+            'niveau' => null, 'session' => null, 'debut_prevu' => $p['debut'], 'fin_prevue' => $p['fin'], 'debut_signe' => null, 'fin_signe' => null,
+            'debut_reel' => null, 'fin_reelle' => null, 'statut' => $p['statut'], 'avancement' => $p['avancement'], 'jalon' => false, 'retard' => false,
+            'glissement' => null, 'modifications' => 0, 'actes' => [],
+            'titre' => $p['libelle'].' : '.$p['debut']->format('d/m/Y').' au '.$p['fin']->format('d/m/Y').' ; '.$p['heures']
+                .' ; '.mb_strtolower(ProgrammationEnseignant::STATUTS[$p['statut']] ?? $p['statut'])];
     }
 }

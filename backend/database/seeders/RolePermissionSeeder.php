@@ -114,6 +114,7 @@ final class RolePermissionSeeder extends Seeder
                     'lmd.calendrier_reajuster',
                     'lmd.calendrier_signer',
                     'lmd.actes_signer',
+                    'lmd.programmation_valider',
                     'journal.view',
                     'document.publish',
                     'library.thesaurus',
@@ -181,13 +182,13 @@ final class RolePermissionSeeder extends Seeder
                     'lmd.notes_verrouiller', 'lmd.notes_rouvrir', 'lmd.derogation_rattrapage',
                     'lmd.deliberation_arreter', 'lmd.deliberation_publier', 'lmd.jury_signer',
                     'lmd.documents_revoquer', 'lmd.documents_lever', 'lmd.requetes_coter', 'lmd.requetes_jury',
-                    'lmd.memoires_attester', 'lmd.calendrier_reajuster', 'lmd.actes_signer'],
+                    'lmd.memoires_attester', 'lmd.calendrier_reajuster', 'lmd.actes_signer', 'lmd.programmation_valider'],
             ],
             'enseignant' => [
                 'label' => 'Enseignant',
                 'description' => 'Saisie du contrôle continu et de l\'assiduité des ECUE qui lui sont attribués.',
                 'modules' => [],
-                'sensitive' => ['lmd.notes_enseignant'],
+                'sensitive' => ['lmd.notes_enseignant', 'lmd.programmation_repondre'],
             ],
             'membre_jury' => [
                 'label' => 'Membre de jury',

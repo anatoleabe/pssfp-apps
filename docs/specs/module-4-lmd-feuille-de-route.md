@@ -28,8 +28,8 @@ Chaque lot a sa spec, sa branche, ses tests, et se déploie seul.
 | 11 | **Mémoires** et attestation d'autorisation de dépôt | D32 à D34 | PR #79 |
 | 12a | **Calendrier académique** : circuit de signature, exécution, réajustement, contrôles, Gantt | D18 à D21 | PR #80 |
 | 12b | **Actes** produits à partir du calendrier (notes de service, communiqués, PV, listes) | D18, D19 | PR #81 |
-| 12c | **Emplois du temps** : salles, plages, séances programmées, conflits, volume horaire, espace auditeur | D21 | En cours |
-| 12d | **Programmation des enseignants** : quotas horaires par cours et par période, charge, circuit de notification | D22 | À faire |
+| 12c | **Emplois du temps** : salles, plages, séances programmées, conflits, volume horaire, espace auditeur | D21 | PR #82 |
+| 12d | **Programmation des enseignants** : quotas horaires par cours et par période, charge, circuit de notification | D22 | PR #83 |
 | 13 | **Enseignants et paie**, rapprochement, contrôle de gestion | D23 à D25, D38 | À faire |
 | 14 | **Supervision**, messagerie interne, demandes d'autorisation | D30, D31 | À faire |
 | 15 | **Archivage numérique** et reprise de l'historique d'ACMA | D29 ; plan de reprise | À faire |

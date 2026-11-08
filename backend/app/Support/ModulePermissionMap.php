@@ -148,6 +148,7 @@ final class ModulePermissionMap
                     'lmd.calendrier_preparer',
                     'lmd.actes_produire',
                     'lmd.emplois_du_temps',
+                    'lmd.programmation',
                 ],
                 'sensitive_description' => 'À cocher explicitement : préparer une maquette n\'emporte pas le droit de la valider, ni saisir des notes celui de verrouiller une étape.',
                 'sensitive' => [
@@ -172,8 +173,10 @@ final class ModulePermissionMap
                     'lmd.calendrier_reajuster' => 'Réajuster un calendrier signé (dates, avec motif) et le publier',
                     'lmd.calendrier_signer' => 'Signer le calendrier académique ou le renvoyer en préparation (chef de la structure)',
                     'lmd.actes_signer' => 'Enregistrer la signature d\'un acte (numéro, date, pièce signée), le renvoyer ou le diffuser',
+                    'lmd.programmation_valider' => 'Valider les quotas horaires et les programmations des enseignants, les notifier, fixer le plafond de charge',
+                    'lmd.programmation_repondre' => 'Voir ses programmations, les accepter ou les décliner, déclarer ses indisponibilités (enseignant)',
                 ],
-                'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir', 'lmd.calendrier_signer', 'lmd.actes_signer'],
+                'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir', 'lmd.calendrier_signer', 'lmd.actes_signer', 'lmd.programmation_repondre'],
             ],
             'bibliotheque' => [
                 'label' => 'Module 3 — Bibliothèque',

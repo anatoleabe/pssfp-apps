@@ -27,6 +27,7 @@
             <span><span style="display:inline-block;width:1.4rem;height:.6rem;border:2px solid #B42318;vertical-align:middle;"></span> en retard</span>
             <span><span style="display:inline-block;width:2px;height:.8rem;background:#B42318;vertical-align:middle;"></span> aujourd'hui</span>
             <span><span style="display:inline-block;width:.45rem;height:.45rem;border-radius:50%;background:#0F3A4A;vertical-align:middle;"></span> échéance d'un acte (rouge : en retard, vert : signé)</span>
+            <span><span style="display:inline-block;width:1.4rem;height:.45rem;background:#C9DCE3;vertical-align:middle;"></span> programmation d'un enseignant (heures tenues en bleu pétrole)</span>
         </div>
         <div style="overflow-x:auto;">
             <div style="min-width:68rem;">
@@ -40,7 +41,7 @@
                 </div>
                 @foreach ($lignes as $l)
                     @php
-                        $titre = $l['libelle'].' : '.$l['debut_prevu']->format('d/m/Y').($l['jalon'] ? '' : ' au '.$l['fin_prevue']->format('d/m/Y'))
+                        $titre = $l['titre'] ?? $l['libelle'].' : '.$l['debut_prevu']->format('d/m/Y').($l['jalon'] ? '' : ' au '.$l['fin_prevue']->format('d/m/Y'))
                             .($l['debut_signe'] ? ' ; référence '.$l['debut_signe']->format('d/m/Y').' au '.$l['fin_signe']->format('d/m/Y') : '')
                             .($l['glissement'] ? ' ; glissement '.($l['glissement'] > 0 ? '+' : '').$l['glissement'].' j' : '')
                             .' ; '.($l['phase'] ? 'avancement '.$l['avancement'].' %' : (\App\Models\EvenementCalendrier::STATUTS[$l['statut']] ?? $l['statut']))
@@ -48,7 +49,7 @@
                         $fond = $l['phase'] ? 'rgb(var(--gray-50))' : 'transparent';
                     @endphp
                     <div style="display:flex;align-items:center;min-height:1.75rem;border-bottom:1px solid rgb(var(--gray-100));background:{{ $fond }};" title="{{ $titre }}">
-                        <div style="{{ $label }}padding-left:{{ $l['niveau_hierarchie'] ? '1rem' : '0' }};{{ $l['phase'] ? 'font-weight:700;color:#3A2452;' : '' }}{{ $l['statut'] === 'annule' ? 'text-decoration:line-through;color:rgb(var(--gray-400));' : '' }}">
+                        <div style="{{ $label }}padding-left:{{ ['0', '1rem', '2rem'][$l['niveau_hierarchie']] }};{{ ($l['sous_barre'] ?? false) ? 'font-size:.72rem;color:rgb(var(--gray-600));' : '' }}{{ $l['phase'] ? 'font-weight:700;color:#3A2452;' : '' }}{{ $l['statut'] === 'annule' ? 'text-decoration:line-through;color:rgb(var(--gray-400));' : '' }}">
                             {{ \Illuminate\Support\Str::limit($l['libelle'], 64) }}
                             @if ($l['glissement'])<span style="color:{{ $l['glissement'] > 0 ? '#B42318' : '#1F6B3A' }};font-weight:600;"> {{ $l['glissement'] > 0 ? '+' : '' }}{{ $l['glissement'] }} j</span>@endif
                             @if ($l['modifications'] > 0)<span style="color:rgb(var(--gray-500));"> ({{ $l['modifications'] }} modif.)</span>@endif
@@ -66,9 +67,9 @@
                                     <span style="position:absolute;left:calc({{ $pct($l['debut_signe']) }}% - .25rem);top:1.15rem;width:.5rem;height:.5rem;border:1px solid rgb(var(--gray-400));transform:rotate(45deg);"></span>
                                 @endif
                             @else
-                                <span style="position:absolute;left:{{ $pct($l['debut_prevu']) }}%;width:{{ $largeur($l['debut_prevu'], $l['fin_prevue']) }}%;top:{{ $l['phase'] ? '35%' : '22%' }};height:{{ $l['phase'] ? '30%' : '45%' }};background:{{ $l['phase'] ? '#3A2452' : '#A592BD' }};border-radius:2px;overflow:hidden;{{ $l['retard'] ? 'outline:2px solid #B42318;' : '' }}{{ $l['statut'] === 'annule' ? 'opacity:.35;' : '' }}">
+                                <span style="position:absolute;left:{{ $pct($l['debut_prevu']) }}%;width:{{ $largeur($l['debut_prevu'], $l['fin_prevue']) }}%;top:{{ $l['phase'] ? '35%' : (($l['sous_barre'] ?? false) ? '32%' : '22%') }};height:{{ $l['phase'] ? '30%' : (($l['sous_barre'] ?? false) ? '30%' : '45%') }};background:{{ $l['phase'] ? '#3A2452' : (($l['sous_barre'] ?? false) ? '#C9DCE3' : '#A592BD') }};border-radius:2px;overflow:hidden;{{ $l['retard'] ? 'outline:2px solid #B42318;' : '' }}{{ $l['statut'] === 'annule' ? 'opacity:.35;' : '' }}">
                                     @if (! $l['phase'] && $l['avancement'] > 0)
-                                        <span style="display:block;height:100%;width:{{ $l['avancement'] }}%;background:#4A2E67;"></span>
+                                        <span style="display:block;height:100%;width:{{ $l['avancement'] }}%;background:{{ ($l['sous_barre'] ?? false) ? '#0F3A4A' : '#4A2E67' }};"></span>
                                     @endif
                                 </span>
                             @endif
