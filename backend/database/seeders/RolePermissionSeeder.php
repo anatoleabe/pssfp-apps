@@ -188,7 +188,7 @@ final class RolePermissionSeeder extends Seeder
                 'label' => 'Enseignant',
                 'description' => 'Saisie du contrôle continu et de l\'assiduité des ECUE qui lui sont attribués.',
                 'modules' => [],
-                'sensitive' => ['lmd.notes_enseignant', 'lmd.programmation_repondre'],
+                'sensitive' => ['lmd.notes_enseignant', 'lmd.programmation_repondre', 'lmd.pointage_emarger'],
             ],
             'membre_jury' => [
                 'label' => 'Membre de jury',
@@ -213,6 +213,12 @@ final class RolePermissionSeeder extends Seeder
                 'description' => 'Saisie des notes d\'examen sur les numéros d\'anonymat, sans accès à la correspondance.',
                 'modules' => [],
                 'sensitive' => ['lmd.anonymat_saisir'],
+            ],
+            'service_financier' => [
+                'label' => 'Service administratif et financier',
+                'description' => 'Dossiers de paie des enseignants : NIU, banque et compte de virement.',
+                'modules' => [],
+                'sensitive' => ['lmd.dossier_paie'],
             ],
             'chef_structure' => [
                 'label' => 'Chef de la structure',

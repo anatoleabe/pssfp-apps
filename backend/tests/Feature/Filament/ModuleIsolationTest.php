@@ -57,7 +57,7 @@ function isolationSeededRoles(): array
     return [
         'super_admin', 'admin', 'editor', 'admission_committee', 'receptionniste',
         'librarian', 'library_manager', 'library_contributor', 'library_viewer', 'caisse',
-        'scolarite_agent', 'scolarite_responsable', 'enseignant', 'membre_jury', 'chef_commission_requetes', 'gestionnaire_anonymats', 'operateur_saisie', 'chef_structure',
+        'scolarite_agent', 'scolarite_responsable', 'enseignant', 'membre_jury', 'chef_commission_requetes', 'gestionnaire_anonymats', 'operateur_saisie', 'chef_structure', 'service_financier',
         'teacher', 'auditor', 'candidat',
     ];
 }

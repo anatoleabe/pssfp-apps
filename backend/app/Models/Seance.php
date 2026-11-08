@@ -83,6 +83,12 @@ class Seance extends Model
         return $this->hasMany(Pointage::class);
     }
 
+    /** Émargements des enseignants (lot 13a). */
+    public function pointagesEnseignant(): HasMany
+    {
+        return $this->hasMany(PointageEnseignant::class);
+    }
+
     /** Durée de la séance en minutes. */
     public function duree(): int
     {
