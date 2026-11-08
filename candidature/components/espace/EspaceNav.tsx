@@ -1,15 +1,16 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Award, BookOpen, FileText, GraduationCap, House, Inbox, KeyRound, MessageSquare, UserRound, Wallet } from 'lucide-react';
+import { Award, BookOpen, CalendarDays, FileText, GraduationCap, House, Inbox, KeyRound, MessageSquare, UserRound, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link, usePathname } from '@/navigation';
 
-export type Rubrique = 'accueil' | 'parcours' | 'resultats' | 'memoire' | 'requetes' | 'scolarite' | 'acces' | 'documents' | 'messages' | 'profil';
+export type Rubrique = 'accueil' | 'parcours' | 'emploi' | 'resultats' | 'memoire' | 'requetes' | 'scolarite' | 'acces' | 'documents' | 'messages' | 'profil';
 
 const RUBRIQUES: { cle: Rubrique; href: string; icone: LucideIcon }[] = [
   { cle: 'accueil', href: '/dossier', icone: House },
   { cle: 'parcours', href: '/dossier/parcours', icone: GraduationCap },
+  { cle: 'emploi', href: '/dossier/emploi-du-temps', icone: CalendarDays },
   { cle: 'resultats', href: '/dossier/resultats', icone: Award },
   { cle: 'memoire', href: '/dossier/memoire', icone: BookOpen },
   { cle: 'requetes', href: '/dossier/requetes', icone: Inbox },

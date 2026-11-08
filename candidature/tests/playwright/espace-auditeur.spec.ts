@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test';
  * vérifie au navigateur avant la mise en production ; ici, sans session, chaque
  * rubrique renvoie à la connexion sans rien servir.
  */
-for (const rubrique of ['parcours', 'resultats', 'memoire', 'requetes', 'scolarite', 'acces', 'documents', 'messages', 'profil']) {
+for (const rubrique of ['parcours', 'emploi-du-temps', 'resultats', 'memoire', 'requetes', 'scolarite', 'acces', 'documents', 'messages', 'profil']) {
   test(`/dossier/${rubrique} sans session renvoie à la connexion`, async ({ page }) => {
     await page.goto(`/dossier/${rubrique}`, { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/login\?reason=session_expired/);

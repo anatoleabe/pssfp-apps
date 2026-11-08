@@ -747,6 +747,37 @@ export interface MonMemoire {
   attestation: { numero: string; delivree_le: string | null } | null;
 }
 
+export interface SeanceAuditeur {
+  id: string;
+  date: string;
+  debut: string;
+  fin: string;
+  ecue: string | null;
+  intitule: string | null;
+  nature: 'CM' | 'TD' | 'TP' | 'evaluation' | null;
+  enseignant: string | null;
+  salle: string | null;
+  lien_reunion: string | null;
+  modalite: 'presentiel' | 'distanciel' | 'hybride';
+  statut: 'prevue' | 'tenue' | 'annulee' | 'reportee';
+  reportee_au: string | null;
+}
+
+export interface EmploiDuTempsAuditeur {
+  semaine: string;
+  precedente: string;
+  suivante: string;
+  premiere: string | null;
+  derniere: string | null;
+  seances: SeanceAuditeur[];
+}
+
+/** GET /applications/me/emploi-du-temps — séances publiées du parcours, semaine contenant `semaine` (AAAA-MM-JJ). */
+export function getMyEmploiDuTemps(token: string, semaine?: string): Promise<ApiResult<EmploiDuTempsAuditeur>> {
+  const query = semaine ? `?semaine=${encodeURIComponent(semaine)}` : '';
+  return apiGet<EmploiDuTempsAuditeur>(`/applications/me/emploi-du-temps${query}`, { token, noStore: true });
+}
+
 /** GET /applications/me/memoire — `data` null tant qu'aucun dossier de mémoire n'est ouvert. */
 export function getMyMemoire(token: string): Promise<ApiResult<MonMemoire | null>> {
   return apiGet<MonMemoire | null>('/applications/me/memoire', { token, noStore: true });

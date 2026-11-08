@@ -68,4 +68,6 @@ final class PermissionsLmd
     public const ACTES_PRODUIRE = 'lmd.actes_produire';
 
     public const ACTES_SIGNER = 'lmd.actes_signer';
+
+    public const EMPLOIS_DU_TEMPS = 'lmd.emplois_du_temps';
 }

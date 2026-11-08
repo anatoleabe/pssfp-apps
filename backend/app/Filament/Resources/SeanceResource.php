@@ -90,7 +90,7 @@ class SeanceResource extends Resource
                 Tables\Columns\TextColumn::make('presence')->label('Présents')->getStateUsing(fn (Seance $s): string => $s->pointages_count > 0 ? $s->presents_count.' / '.$s->pointages_count : '—'),
                 Tables\Columns\TextColumn::make('statut')->label('État')->badge()->formatStateUsing(fn (string $state): string => Seance::STATUTS[$state] ?? $state)
                     ->color(fn (string $state): string => match ($state) {
-                        'tenue' => 'success', 'annulee' => 'gray', default => 'warning'
+                        'tenue' => 'success', 'annulee', 'reportee' => 'gray', default => 'warning'
                     }),
             ])
             ->filters([Tables\Filters\SelectFilter::make('statut')->label('État')->options(Seance::STATUTS)])

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\Applications\CandidatureController;
+use App\Http\Controllers\Api\Applications\EmploiDuTempsController;
 use App\Http\Controllers\Api\Applications\MemoireController;
 use App\Http\Controllers\Api\Applications\ParcoursController;
 use App\Http\Controllers\Api\Applications\QrCandidatureController;
@@ -143,6 +144,11 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
         Route::get('/me/calendrier', [ParcoursController::class, 'calendrier'])
             ->middleware('ability:application:read')
             ->name('me.calendrier');
+
+        // Emploi du temps de l'auditeur (spec module 4, lot 12c).
+        Route::get('/me/emploi-du-temps', [EmploiDuTempsController::class, 'show'])
+            ->middleware('ability:application:read')
+            ->name('me.emploi-du-temps');
 
         Route::get('/me/calendrier/communiques/{uuid}', [ParcoursController::class, 'communique'])
             ->middleware(['ability:application:read', 'throttle:30,1'])
