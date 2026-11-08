@@ -977,6 +977,13 @@ L'attestation d'autorisation de dépôt est un `documents_delivres` de type `aut
 | `modeles_acte` | Modèle d'acte (lot 12b, D18, D19) | code unique, libellé, type d'événement déclencheur, signataire, délai en jours (négatif : avant le début), gabarit, diffusé aux auditeurs, actif ; neuf modèles livrés par la migration |
 | `actes` | Acte produit à partir d'un événement | `uuid` ; modèle et événement (unique ensemble) ; objet, échéance, texte ; à produire, brouillon, soumis, signé, diffusé, annulé ; numéro (unique), date, signataire et pièce signée (MinIO, SHA-256) obligatoires une fois signé (CHECK) ; motif d'annulation ou de renvoi ; auteurs et dates de chaque étape |
 
+### Enseignants et paie (module 4, lot 13a)
+
+| Table | Rôle | Points clés |
+|---|---|---|
+| `dossiers_paie_enseignant` | Dossier de paie d'un enseignant (D23, D24) | `uuid` ; enseignant (`users`, unique) ; statut (permanent, vacataire, missionnaire, professionnel), catégorie, service dû annuel (CHECK) ; NIU et numéro de compte **chiffrés** par l'application (`encrypted`), hors du journal d'activité, réservés au service financier ; banque ; actif |
+| `pointages_enseignant` | Émargement d'une séance par l'enseignant qui a fait cours | `uuid` ; séance et enseignant (`users`), uniques ensemble ; enseignant remplacé ; mode (signature, badge, QR code, Zoom, saisie) ; arrivée et départ (`timestamptz`, départ après arrivée) ; nature (CM, TD, TP) ; contenu enseigné (cahier de textes) ; confirmation du délégué ; à valider, validé (arrivée, départ, contenu et minutes payables obligatoires, CHECK) ou rejeté (motif, CHECK) ; minutes payables figées à la validation (plafonnées à la séance, arrondies au pas inférieur) ; ligne d'état de paie (lot 13b) qui fige le pointage |
+
 ## 11. Préparation Phase II (placeholders)
 
 Tables créées en Phase I avec un schéma minimal pour préparer la Phase II sans migration cassante. Aucune logique métier n'est attachée à ces tables en Phase I — elles existent simplement pour stabiliser les FK.
