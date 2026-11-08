@@ -49,7 +49,7 @@
 
   @if (($etat->ecartes ?? []) !== [])
     <p class="note"><strong>Enseignants écartés de cet état</strong> (pointages conservés pour un état suivant) :
-      @foreach ($etat->ecartes as $e){{ $e['enseignant'] }} ({{ $e['raison'] }})@if (! $loop->last) ; @endif @endforeach.</p>
+      @foreach ($etat->ecartes as $e){{ $e['enseignant'] }} ({{ $e['raison'] }}){{ $loop->last ? '.' : ' ;' }} @endforeach</p>
   @endif
   <p class="note">Seules les heures de cours magistral sont rémunérées ; les heures de TD et de TP sont tracées sans être payées (D24). Les heures au-delà des heures allouées ne sont pas payées. Paiement par virement uniquement.</p>
 
