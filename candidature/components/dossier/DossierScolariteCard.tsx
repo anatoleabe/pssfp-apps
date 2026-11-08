@@ -111,7 +111,8 @@ export function DossierScolariteCard({ scolarite }: DossierScolariteCardProps): 
                   <th scope="col" className="py-2 pr-4">{t('colDate')}</th>
                   <th scope="col" className="py-2 pr-4 text-right">{t('colMontant')}</th>
                   <th scope="col" className="py-2 pr-4">{t('colMode')}</th>
-                  <th scope="col" className="py-2">{t('colReference')}</th>
+                  <th scope="col" className="py-2 pr-4">{t('colReference')}</th>
+                  <th scope="col" className="py-2">{t('colRecu')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F4EFFA]">
@@ -120,7 +121,22 @@ export function DossierScolariteCard({ scolarite }: DossierScolariteCardProps): 
                     <th scope="row" className="py-2 pr-4 font-normal">{formatDateLong(v.date, locale)}</th>
                     <td className="py-2 pr-4 text-right tabular-nums">{formatFcfa(v.montant, locale)}</td>
                     <td className="py-2 pr-4">{t.has(`modes.${v.mode}`) ? t(`modes.${v.mode}`) : t('modes.autre')}</td>
-                    <td className="py-2 font-mono">{v.reference}</td>
+                    <td className="py-2 pr-4 font-mono">{v.reference}</td>
+                    <td className="py-2">
+                      {v.recu ? (
+                        <a
+                          href={`/dossier/recus/${v.recu.uuid}`}
+                          data-testid="recu-download"
+                          className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-[#4A2E67] underline underline-offset-2 hover:text-[#3A2452] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
+                        >
+                          <FileDown size={14} aria-hidden="true" />
+                          <span className="sr-only">{t('recuTelecharger')} </span>
+                          <span className="font-mono">{v.recu.numero}</span>
+                        </a>
+                      ) : (
+                        <span className="text-[#5C5C5C]">{t('recuEnAttente')}</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
