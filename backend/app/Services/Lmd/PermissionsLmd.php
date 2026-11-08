@@ -76,4 +76,13 @@ final class PermissionsLmd
     public const PROGRAMMATION_VALIDER = 'lmd.programmation_valider';
 
     public const PROGRAMMATION_REPONDRE = 'lmd.programmation_repondre';
+
+    /** Lot 13a : pointages de tous les enseignants, statut des dossiers de paie, suivi des heures. */
+    public const POINTAGE = 'lmd.pointage_enseignants';
+
+    /** Lot 13a : pointer ses propres séances (enseignant). */
+    public const EMARGER = 'lmd.pointage_emarger';
+
+    /** Lot 13a : NIU, banque et compte de virement des enseignants (service financier). */
+    public const DOSSIER_PAIE = 'lmd.dossier_paie';
 }
