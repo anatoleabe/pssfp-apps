@@ -50,7 +50,7 @@ class EtatPaie extends Model
 
     protected $casts = [
         'periode_du' => 'immutable_date', 'periode_au' => 'immutable_date', 'paye_le' => 'immutable_date', 'ecartes' => 'array',
-        'verifie_at' => 'datetime', 'vise_at' => 'datetime', 'transmis_at' => 'datetime', 'pris_en_charge_at' => 'datetime',
+        'genere_at' => 'datetime', 'verifie_at' => 'datetime', 'vise_at' => 'datetime', 'transmis_at' => 'datetime', 'pris_en_charge_at' => 'datetime',
     ];
 
     public function uniqueIds(): array
@@ -72,6 +72,36 @@ class EtatPaie extends Model
     public function lignes(): HasMany
     {
         return $this->hasMany(LigneEtatPaie::class, 'etat_id');
+    }
+
+    public function creePar(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cree_par');
+    }
+
+    public function generePar(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'genere_par');
+    }
+
+    public function verifiePar(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verifie_par');
+    }
+
+    public function visePar(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'vise_par');
+    }
+
+    public function transmisPar(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'transmis_par');
+    }
+
+    public function prisEnChargePar(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pris_en_charge_par');
     }
 
     public function rectifie(): BelongsTo

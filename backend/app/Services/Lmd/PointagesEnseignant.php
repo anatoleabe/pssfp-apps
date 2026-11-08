@@ -101,7 +101,7 @@ final class PointagesEnseignant
             throw new InvalidArgumentException('Seul un compte qui a le rôle d\'enseignant pointe un cours.');
         }
         if (! $this->seancesPointables()->whereKey($seance->id)->exists()) {
-            throw new InvalidArgumentException('Cette séance ne se pointe pas : elle doit appartenir à un emploi du temps publié, être un cours (pas une évaluation), ne pas être annulée ni reportée, et être passée ou du jour.');
+            throw new InvalidArgumentException('Cette séance ne se pointe pas : elle doit appartenir à un emploi du temps publié, ne pas être annulée ni reportée, et être passée ou du jour.');
         }
         if ($pourSoi && $seance->enseignant_id !== $enseignant->id
             && ! Seance::query()->whereKey($seance->id)->whereExists($this->programmationSurSeance($enseignant))->exists()) {
@@ -170,7 +170,7 @@ final class PointagesEnseignant
             throw new InvalidArgumentException('Seul un pointage à valider se valide.');
         }
         if (! $this->peutValider($p, $auteur)) {
-            throw new InvalidArgumentException('Vous ne validez pas vos propres heures d\'enseignement : un autre membre de la Scolarité le fait.');
+            throw new InvalidArgumentException('Vous ne validez pas vos propres heures, ni un pointage dont vous avez changé la nature : un autre membre de la Scolarité le fait.');
         }
         if ($p->arrivee === null || $p->depart === null || blank($p->contenu_enseigne)) {
             throw new InvalidArgumentException('Pour valider, le pointage donne l\'arrivée, le départ et le contenu enseigné (cahier de textes).');
@@ -189,10 +189,18 @@ final class PointagesEnseignant
         });
     }
 
-    /** Personne ne valide ses propres heures ; l'agent valide ce qu'il a saisi (Scolarité, 08/11/2026). */
+    /**
+     * Personne ne valide ses propres heures ; l'agent valide ce qu'il a saisi (Scolarité, 08/11/2026), sauf s'il a changé
+     * la nature de la séance (un CM se paie, un TD non) : un autre agent valide alors.
+     */
     public function peutValider(PointageEnseignant $p, User $auteur): bool
     {
-        return $p->enseignant_id !== $auteur->id;
+        if ($p->enseignant_id === $auteur->id) {
+            return false;
+        }
+        $natureSeance = $p->seance?->nature;
+
+        return ! ($p->saisi_par === $auteur->id && in_array($natureSeance, self::NATURES, true) && $p->nature !== $natureSeance);
     }
 
     public function rejeter(PointageEnseignant $p, string $motif, User $auteur): void

@@ -9,6 +9,7 @@ use App\Models\EtapeSaisie;
 use App\Models\InscriptionPedagogique;
 use App\Models\MaquetteEcue;
 use App\Models\Pointage;
+use App\Models\PointageEnseignant;
 use App\Models\RegleAssiduite;
 use App\Models\Seance;
 use App\Models\User;
@@ -84,6 +85,9 @@ final class Assiduite
         $this->modifiable($seance);
         if (mb_strlen(trim($motif)) < 5) {
             throw new InvalidArgumentException('Indiquez le motif de l\'annulation.');
+        }
+        if ($seance->pointagesEnseignant()->where('statut', PointageEnseignant::VALIDE)->exists()) {
+            throw new InvalidArgumentException('Le pointage de l\'enseignant est validé : la séance a eu lieu et ne s\'annule plus.');
         }
         $seance->forceFill(['statut' => 'annulee', 'motif_annulation' => mb_substr(trim($motif), 0, 500)])->save();
     }

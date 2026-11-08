@@ -16,7 +16,7 @@ class LigneEtatPaie extends Model
     protected $fillable = [];
 
     protected $casts = [
-        'quantite' => 'float', 'montant_unitaire' => 'integer', 'taux_retenue' => 'float',
+        'quantite' => 'float', 'heures_service' => 'float', 'montant_unitaire' => 'integer', 'taux_retenue' => 'float',
         'montant_brut' => 'integer', 'montant_retenue' => 'integer', 'montant_net' => 'integer', 'heures_hors_quota' => 'float',
     ];
 

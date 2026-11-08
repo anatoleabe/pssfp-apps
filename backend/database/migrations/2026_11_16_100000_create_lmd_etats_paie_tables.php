@@ -24,12 +24,14 @@ return new class extends Migration
             $table->decimal('taux_retenue', 5, 2)->default(0);
             $table->string('statut', 10)->default('propose');
             $table->string('reference_texte', 255)->nullable();
+            $table->foreignId('modifie_par')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('valide_par')->nullable()->constrained('users')->nullOnDelete();
             $table->timestampTz('valide_at')->nullable();
             $table->timestampsTz();
 
             $table->unique(['annee_academique', 'nature']);
             $table->index('valide_par');
+            $table->index('modifie_par');
         });
 
         Schema::create('etats_paie', function (Blueprint $table): void {
@@ -42,6 +44,8 @@ return new class extends Migration
             $table->foreignId('rectificatif_de')->nullable()->constrained('etats_paie')->restrictOnDelete();
             $table->string('statut', 16)->default('brouillon');
             $table->jsonb('ecartes')->nullable();
+            $table->foreignId('genere_par')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestampTz('genere_at')->nullable();
             $table->foreignId('verifie_par')->nullable()->constrained('users')->nullOnDelete();
             $table->timestampTz('verifie_at')->nullable();
             $table->foreignId('vise_par')->nullable()->constrained('users')->nullOnDelete();
@@ -59,18 +63,20 @@ return new class extends Migration
 
             $table->index('periode_du');
             $table->index('rectificatif_de');
-            foreach (['verifie_par', 'vise_par', 'transmis_par', 'pris_en_charge_par', 'cree_par'] as $c) {
+            foreach (['genere_par', 'verifie_par', 'vise_par', 'transmis_par', 'pris_en_charge_par', 'cree_par'] as $c) {
                 $table->index($c);
             }
         });
 
         Schema::create('lignes_etat_paie', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('etat_id')->constrained('etats_paie')->cascadeOnDelete();
+            $table->foreignId('etat_id')->constrained('etats_paie')->restrictOnDelete();
             $table->foreignId('enseignant_id')->constrained('users')->restrictOnDelete();
             $table->foreignId('maquette_ecue_id')->nullable()->constrained('maquette_ecues')->restrictOnDelete();
+            $table->string('annee_academique', 9);
             $table->string('nature', 24);
             $table->decimal('quantite', 10, 4);
+            $table->decimal('heures_service', 8, 2)->default(0);
             $table->unsignedInteger('montant_unitaire');
             $table->decimal('taux_retenue', 5, 2)->default(0);
             $table->unsignedBigInteger('montant_brut');
@@ -82,19 +88,21 @@ return new class extends Migration
 
             $table->index('etat_id');
             $table->index(['enseignant_id', 'maquette_ecue_id', 'nature']);
+            $table->index(['enseignant_id', 'annee_academique']);
             $table->index('maquette_ecue_id');
         });
 
         Schema::table('pointages_enseignant', function (Blueprint $table): void {
             $table->string('nature', 12)->default('CM')->change();
-            $table->foreign('ligne_paie_id')->references('id')->on('lignes_etat_paie')->nullOnDelete();
+            $table->foreign('ligne_paie_id')->references('id')->on('lignes_etat_paie')->restrictOnDelete();
         });
 
         // SQL brut, ADR-0011 : valeurs fermées, montants cohérents, un seul état ordinaire par mois, circuit cohérent.
-        DB::statement("ALTER TABLE baremes_remuneration ADD CONSTRAINT baremes_remuneration_check CHECK (nature IN ('CM', 'TD', 'TP', 'surveillance', 'prime_animation', 'encadrement_memoire', 'jury_soutenance', 'jury_deliberation', 'autre') AND unite IN ('heure', 'seance', 'forfait', 'memoire') AND statut IN ('propose', 'valide') AND taux_retenue BETWEEN 0 AND 100)");
-        DB::statement("ALTER TABLE etats_paie ADD CONSTRAINT etats_paie_check CHECK (statut IN ('brouillon', 'verifie', 'vise', 'transmis', 'pris_en_charge', 'paye', 'rejete') AND periode_au >= periode_du AND (statut <> 'rejete' OR motif_rejet IS NOT NULL) AND (statut <> 'paye' OR (paye_le IS NOT NULL AND reference_paiement IS NOT NULL)) AND (statut NOT IN ('transmis', 'pris_en_charge', 'paye') OR reference_bordereau IS NOT NULL))");
+        DB::statement("ALTER TABLE baremes_remuneration ADD CONSTRAINT baremes_remuneration_check CHECK (nature IN ('CM', 'TD', 'TP', 'surveillance', 'prime_animation', 'encadrement_memoire', 'jury_soutenance', 'jury_deliberation', 'autre') AND unite IN ('heure', 'seance', 'forfait', 'memoire') AND statut IN ('propose', 'valide') AND taux_retenue BETWEEN 0 AND 100 AND montant_unitaire >= 0)");
+        DB::statement("ALTER TABLE etats_paie ADD CONSTRAINT etats_paie_check CHECK (statut IN ('brouillon', 'verifie', 'vise', 'transmis', 'pris_en_charge', 'paye', 'rejete') AND periode_au >= periode_du AND (statut <> 'rejete' OR motif_rejet IS NOT NULL) AND (statut <> 'paye' OR (paye_le IS NOT NULL AND reference_paiement IS NOT NULL)) AND (statut NOT IN ('transmis', 'pris_en_charge', 'paye') OR reference_bordereau IS NOT NULL) AND (statut IN ('brouillon', 'rejete') OR verifie_at IS NOT NULL) AND (statut NOT IN ('pris_en_charge', 'paye') OR pris_en_charge_at IS NOT NULL))");
         DB::statement("CREATE UNIQUE INDEX etats_paie_un_par_mois ON etats_paie (periode_du) WHERE rectificatif_de IS NULL AND statut <> 'rejete'");
-        DB::statement("ALTER TABLE lignes_etat_paie ADD CONSTRAINT lignes_etat_paie_check CHECK (quantite > 0 AND nature IN ('CM', 'TD', 'TP', 'surveillance', 'prime_animation') AND montant_net = montant_brut - montant_retenue)");
+        // Une ligne porte des heures payées, imputées au service dû ou hors quota : tout pointage examiné est rattaché.
+        DB::statement("ALTER TABLE lignes_etat_paie ADD CONSTRAINT lignes_etat_paie_check CHECK (quantite >= 0 AND heures_service >= 0 AND heures_hors_quota >= 0 AND (quantite > 0 OR heures_service > 0 OR heures_hors_quota > 0) AND nature IN ('CM', 'TD', 'TP', 'surveillance', 'prime_animation') AND montant_unitaire >= 0 AND taux_retenue BETWEEN 0 AND 100 AND montant_brut >= 0 AND montant_retenue >= 0 AND montant_retenue <= montant_brut AND montant_net = montant_brut - montant_retenue)");
         DB::statement('ALTER TABLE pointages_enseignant DROP CONSTRAINT pointages_enseignant_valeurs_check');
         DB::statement("ALTER TABLE pointages_enseignant ADD CONSTRAINT pointages_enseignant_valeurs_check CHECK (mode IN ('signature', 'badge', 'qr_code', 'zoom', 'saisie') AND nature IN ('CM', 'TD', 'TP', 'surveillance') AND statut IN ('a_valider', 'valide', 'rejete') AND (depart IS NULL OR arrivee IS NULL OR depart > arrivee) AND (remplace_enseignant_id IS NULL OR remplace_enseignant_id <> enseignant_id))");
 
@@ -115,8 +123,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::table('pointages_enseignant')->where('nature', 'surveillance')->exists() || DB::table('etats_paie')->exists()) {
+            throw new RuntimeException('Des états de paie ou des surveillances existent : retour arrière refusé (historique de paie).');
+        }
         DB::statement('ALTER TABLE pointages_enseignant DROP CONSTRAINT pointages_enseignant_valeurs_check');
-        DB::table('pointages_enseignant')->where('nature', 'surveillance')->delete();
         Schema::table('pointages_enseignant', function (Blueprint $table): void {
             $table->dropForeign(['ligne_paie_id']);
             $table->string('nature', 2)->default('CM')->change();

@@ -192,7 +192,7 @@ it('ne modifie plus un pointage payé', function (): void {
     // Ligne d'un état de paie (lot 13b) : le pointage est payé.
     $etat = (new EtatPaie)->forceFill(['numero' => 'EP-2026-11', 'periode_du' => '2026-11-01', 'periode_au' => '2026-11-30', 'objet' => 'Essai']);
     $etat->save();
-    $ligne = (new LigneEtatPaie)->forceFill(['etat_id' => $etat->id, 'enseignant_id' => $this->prof->id, 'maquette_ecue_id' => $this->ecue->id, 'nature' => 'CM',
+    $ligne = (new LigneEtatPaie)->forceFill(['etat_id' => $etat->id, 'enseignant_id' => $this->prof->id, 'maquette_ecue_id' => $this->ecue->id, 'annee_academique' => '2026-2027', 'nature' => 'CM',
         'quantite' => 3, 'montant_unitaire' => 17500, 'taux_retenue' => 11, 'montant_brut' => 52500, 'montant_retenue' => 5775, 'montant_net' => 46725]);
     $ligne->save();
     $p->refresh()->forceFill(['ligne_paie_id' => $ligne->id])->save();

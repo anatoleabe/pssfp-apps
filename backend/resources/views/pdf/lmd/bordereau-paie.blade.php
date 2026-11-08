@@ -15,9 +15,15 @@
     <h1>Bordereau de transmission au service financier</h1>
     <p>Édité le {{ $edite_le->format('d/m/Y à H:i') }}</p>
   </div>
+  @if ($etat->statut === \App\Models\EtatPaie::REJETE)
+    <div class="bandeau">REJETÉ — NE PAS PAYER ({{ $etat->motif_rejet }})</div>
+  @elseif (in_array($etat->statut, [\App\Models\EtatPaie::BROUILLON, \App\Models\EtatPaie::VERIFIE, \App\Models\EtatPaie::VISE], true))
+    <div class="bandeau">PROJET — NON TRANSMIS AU SERVICE FINANCIER</div>
+  @endif
 
   <table class="ident">
     <tr><td class="l">État de paie</td><td><strong>{{ $etat->numero }}</strong> — {{ $etat->objet }}</td></tr>
+    <tr><td class="l">Statut</td><td>{{ \App\Models\EtatPaie::STATUTS[$etat->statut] ?? $etat->statut }}</td></tr>
     <tr><td class="l">Période</td><td>du {{ $etat->periode_du->format('d/m/Y') }} au {{ $etat->periode_au->format('d/m/Y') }}</td></tr>
     <tr><td class="l">Référence du bordereau</td><td>{{ $etat->reference_bordereau ?? 'à attribuer à la transmission' }}</td></tr>
     <tr><td class="l">Enseignants</td><td>{{ $synthese['totaux']['enseignants'] }}</td></tr>

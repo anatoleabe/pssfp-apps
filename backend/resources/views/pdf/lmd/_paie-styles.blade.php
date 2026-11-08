@@ -15,5 +15,6 @@
   .ident td { border: none; padding: 1mm 0; }
   .ident td.l { color: #5C5C5C; width: 55mm; }
   .note { margin-top: 5mm; font-size: 8pt; color: #5C5C5C; border-left: 3px solid #D4AF6A; padding-left: 3mm; }
+  .bandeau { margin: 0 0 3mm; padding: 2mm 3mm; border: 2px solid #9B1C1C; color: #9B1C1C; font-weight: 700; text-align: center; letter-spacing: 1pt; }
   .signatures td { border: none; padding-top: 14mm; width: 33%; font-size: 8.5pt; color: #5C5C5C; }
 </style>

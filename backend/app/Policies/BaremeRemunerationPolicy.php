@@ -12,7 +12,8 @@ final class BaremeRemunerationPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->can(PermissionsLmd::PAIE_PREPARER) || $user->can(PermissionsLmd::PAIE_VERIFIER) || $user->can(PermissionsLmd::PAIE_PAYER);
+        return $user->can(PermissionsLmd::PAIE_PREPARER) || $user->can(PermissionsLmd::PAIE_VERIFIER)
+            || $user->can(PermissionsLmd::PAIE_VISER) || $user->can(PermissionsLmd::PAIE_PAYER);
     }
 
     public function view(User $user): bool

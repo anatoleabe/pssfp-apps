@@ -36,6 +36,11 @@ class BaremeRemuneration extends Model
             ->logOnly(['montant_unitaire', 'taux_retenue', 'statut', 'reference_texte'])->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 
+    public function modifiePar(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'modifie_par');
+    }
+
     public function validePar(): BelongsTo
     {
         return $this->belongsTo(User::class, 'valide_par');
