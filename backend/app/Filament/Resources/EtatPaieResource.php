@@ -37,7 +37,7 @@ class EtatPaieResource extends Resource
 
     protected static ?string $navigationGroup = 'Paie des enseignants';
 
-    protected static ?int $navigationSort = 50;
+    protected static ?int $navigationSort = 51;
 
     protected static ?string $slug = 'etats-paie';
 
@@ -111,7 +111,7 @@ class EtatPaieResource extends Resource
                     ->getStateUsing(fn (EtatPaie $e): string => $e->rectificatifs()->get()->map(fn (EtatPaie $r): string => $r->numero.' ('.mb_strtolower(EtatPaie::STATUTS[$r->statut]).')')->implode(', ') ?: '—'),
             ]),
             Infolists\Components\Section::make('Enseignants écartés')
-                ->description('Ils ne figurent pas sur l\'état ; leurs pointages restent disponibles pour un état suivant, une fois la raison levée.')
+                ->description('Ils ne figurent pas sur l\'état ; leurs pointages et primes d\'animation restent disponibles pour un état suivant, une fois la raison levée.')
                 ->visible(fn (EtatPaie $e): bool => ($e->ecartes ?? []) !== [])
                 ->schema([
                     Infolists\Components\RepeatableEntry::make('ecartes')->label('')->columns(2)->schema([
@@ -125,6 +125,8 @@ class EtatPaieResource extends Resource
                 Infolists\Components\TextEntry::make('t_service')->label('Heures imputées au service dû')->getStateUsing(fn (EtatPaie $e): string => str_replace('.', ',', (string) static::synthese($e)['totaux']['service']).' h'),
                 Infolists\Components\TextEntry::make('t_hors')->label('Heures hors quota (non payées)')->getStateUsing(fn (EtatPaie $e): string => str_replace('.', ',', (string) static::synthese($e)['totaux']['hors_quota']).' h'),
                 Infolists\Components\TextEntry::make('t_surv')->label('Surveillances')->getStateUsing(fn (EtatPaie $e): string => (string) static::synthese($e)['totaux']['surveillances']),
+                Infolists\Components\TextEntry::make('t_primes')->label('Primes d\'animation')
+                    ->getStateUsing(fn (EtatPaie $e): string => static::synthese($e)['totaux']['nb_primes'].' ('.EtatsPaie::fcfa((int) static::synthese($e)['totaux']['primes']).')'),
                 Infolists\Components\TextEntry::make('t_brut')->label('Brut')->getStateUsing(fn (EtatPaie $e): string => EtatsPaie::fcfa((int) static::synthese($e)['totaux']['brut'])),
                 Infolists\Components\TextEntry::make('t_retenue')->label('Retenue')->getStateUsing(fn (EtatPaie $e): string => EtatsPaie::fcfa((int) static::synthese($e)['totaux']['retenue'])),
                 Infolists\Components\TextEntry::make('t_net')->label('Net à virer')->weight('bold')->getStateUsing(fn (EtatPaie $e): string => EtatsPaie::fcfa((int) static::synthese($e)['totaux']['net'])),
