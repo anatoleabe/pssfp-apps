@@ -11,6 +11,7 @@ use App\Models\LigneEtatPaie;
 use App\Models\PointageEnseignant;
 use App\Models\ProgrammationEnseignant;
 use App\Models\Seance;
+use App\Models\SyntheseAnimation;
 use App\Models\User;
 use App\Support\AppSettings;
 use Carbon\CarbonImmutable;
@@ -24,6 +25,7 @@ use RuntimeException;
 /**
  * États de paie mensuels des enseignants (spec lot 13b-1 ; D23, D24 ; port de generer_etat_paie, avancer_etat_paie,
  * rejeter_etat_paie). Une heure n'est payée qu'une fois, si elle est validée et comprise dans l'allocation.
+ * Lot 13b-2 : les primes d'animation en ligne validées (D25) s'ajoutent à l'état du mois où le cours se termine.
  *
  * Tout pointage examiné est rattaché à une ligne, payée ou non : la ligne porte les heures payées, les heures imputées
  * au service dû d'un permanent et les heures hors quota. L'allocation consommée et le service dû restant se lisent
@@ -36,7 +38,7 @@ final class EtatsPaie
     /** Programmations qui ouvrent droit au paiement : validées, notifiées ou acceptées (pas une simple proposition). */
     public const PROGRAMMATIONS_PAYABLES = [ProgrammationEnseignant::VALIDE, ProgrammationEnseignant::NOTIFIE, ProgrammationEnseignant::ACCEPTE];
 
-    private const COURS = ['CM', 'TD', 'TP'];
+    public const PRIME = 'prime_animation';
 
     /** Étape du circuit → [statuts de départ admis, permission]. */
     private const ETAPES = [
@@ -100,8 +102,8 @@ final class EtatsPaie
                 if ($origine->rectificatifs()->whereNotIn('statut', [EtatPaie::REJETE, EtatPaie::PRIS_EN_CHARGE, EtatPaie::PAYE])->exists()) {
                     throw new InvalidArgumentException('Un rectificatif de cet état est déjà en cours : terminez-le ou rejetez-le d\'abord.');
                 }
-                if ($this->pointagesLibres($origine)->doesntExist()) {
-                    throw new InvalidArgumentException('Aucun pointage validé du mois n\'attend de paiement : pas de rectificatif à préparer.');
+                if ($this->pointagesLibres($origine)->doesntExist() && $this->synthesesLibres($origine)->doesntExist()) {
+                    throw new InvalidArgumentException('Aucun pointage ni aucune prime d\'animation validés du mois n\'attendent de paiement : pas de rectificatif à préparer.');
                 }
                 $n = $origine->rectificatifs()->count() + 1;
                 $etat = (new EtatPaie)->forceFill([
@@ -113,7 +115,9 @@ final class EtatsPaie
                     'cree_par' => $auteur->id,
                 ]);
                 $etat->save();
-                $this->generer($etat, $auteur);
+                if ($this->generer($etat, $auteur) === 0) {
+                    throw new InvalidArgumentException('Rien de payable dans ce qui reste du mois : pas de rectificatif à préparer.');
+                }
 
                 return $etat->refresh();
             });
@@ -151,7 +155,9 @@ final class EtatsPaie
         }
         $this->verrouPaie();
         $pointages = $this->pointagesLibres($etat)->with(['enseignant', 'seance.ecue.maquetteUe.maquette'])->orderBy('id')->lockForUpdate()->get();
-        $dossiers = DossierPaieEnseignant::query()->whereIn('enseignant_id', $pointages->pluck('enseignant_id')->unique())->get()->keyBy('enseignant_id');
+        $syntheses = $this->synthesesLibres($etat)->with(['enseignant', 'ecue', 'activites', 'programmation'])->orderBy('id')->lockForUpdate()->get();
+        $dossiers = DossierPaieEnseignant::query()->whereIn('enseignant_id', $pointages->pluck('enseignant_id')->merge($syntheses->pluck('enseignant_id'))->unique())
+            ->get()->keyBy('enseignant_id');
         $baremes = BaremeRemuneration::query()->where('statut', 'valide')->get()->keyBy(fn (BaremeRemuneration $b): string => $b->annee_academique.'|'.$b->nature);
         $restantService = [];
         $ecartes = [];
@@ -165,16 +171,8 @@ final class EtatsPaie
             $annee = (string) $ecue->maquetteUe->maquette->annee_academique;
             $nature = $premier->nature;
             $dossier = $dossiers->get($enseignant->id);
-            $raison = match (true) {
-                $dossier === null => 'pas de dossier de paie',
-                ! $dossier->actif => 'dossier de paie inactif',
-                ! $dossier->estComplet() => implode(' et ', $dossier->manques()).' manquant(s)',
-                default => null,
-            };
             $bareme = $baremes->get($annee.'|'.$nature);
-            if ($raison === null && $bareme === null) {
-                $raison = 'barème '.$nature.' '.$annee.' non validé';
-            }
+            $raison = $this->raisonEcart($dossier, $bareme, $nature, $annee);
             if ($raison !== null) {
                 // Écarté : ses pointages restent libres pour un état suivant, une fois la raison levée.
                 $ecartes[$enseignant->name.' — '.$raison] = ['enseignant' => $enseignant->name, 'raison' => $raison];
@@ -213,6 +211,7 @@ final class EtatsPaie
             }
             $n++;
         }
+        $n += $this->genererPrimes($etat, $syntheses, $dossiers, $baremes, $ecartes);
         $etat->forceFill(['ecartes' => array_values($ecartes), 'genere_par' => $auteur->id, 'genere_at' => now()])->save();
 
         return $n;
@@ -389,6 +388,8 @@ final class EtatsPaie
                 'service' => round($l->sum('heures_service'), 2),
                 'hors_quota' => round($l->sum('heures_hors_quota'), 2),
                 'surveillances' => (int) $l->where('nature', PointagesEnseignant::SURVEILLANCE)->sum('quantite'),
+                'primes' => (int) $l->where('nature', self::PRIME)->sum('montant_brut'),
+                'nb_primes' => $l->where('nature', self::PRIME)->count(),
                 'brut' => (int) $l->sum('montant_brut'),
                 'retenue' => (int) $l->sum('montant_retenue'),
                 'net' => (int) $l->sum('montant_net'),
@@ -403,6 +404,8 @@ final class EtatsPaie
                 'service' => round(array_sum(array_column($parEnseignant, 'service')), 2),
                 'hors_quota' => round(array_sum(array_column($parEnseignant, 'hors_quota')), 2),
                 'surveillances' => array_sum(array_column($parEnseignant, 'surveillances')),
+                'primes' => array_sum(array_column($parEnseignant, 'primes')),
+                'nb_primes' => array_sum(array_column($parEnseignant, 'nb_primes')),
                 'brut' => array_sum(array_column($parEnseignant, 'brut')),
                 'retenue' => array_sum(array_column($parEnseignant, 'retenue')),
                 'net' => array_sum(array_column($parEnseignant, 'net')),
@@ -429,6 +432,66 @@ final class EtatsPaie
         return PointageEnseignant::query()->where('statut', PointageEnseignant::VALIDE)->whereNull('ligne_paie_id')
             ->whereHas('seance', fn ($q) => $q->whereIn('statut', Seance::ACTIVES)->whereNotNull('maquette_ecue_id')
                 ->whereBetween('date_seance', [$etat->periode_du->toDateString(), $etat->periode_au->toDateString()]));
+    }
+
+    /** Synthèses d'animation validées, non rattachées, dont le cours se termine dans la période de l'état (D25). */
+    private function synthesesLibres(EtatPaie $etat): Builder
+    {
+        return SyntheseAnimation::query()->where('statut', SyntheseAnimation::VALIDE)->whereNull('ligne_paie_id')
+            ->whereBetween('periode_au', [$etat->periode_du->toDateString(), $etat->periode_au->toDateString()]);
+    }
+
+    /** Raison pour laquelle un enseignant n'est pas porté sur l'état, ou null. */
+    private function raisonEcart(?DossierPaieEnseignant $dossier, ?BaremeRemuneration $bareme, string $nature, string $annee): ?string
+    {
+        return match (true) {
+            $dossier === null => 'pas de dossier de paie',
+            ! $dossier->actif => 'dossier de paie inactif',
+            ! $dossier->estComplet() => implode(' et ', $dossier->manques()).' manquant(s)',
+            $bareme === null => 'barème '.$nature.' '.$annee.' non validé',
+            default => null,
+        };
+    }
+
+    /**
+     * Une ligne « prime d'animation » par synthèse validée du mois : quantité = coefficient (prorata ou seuil).
+     * Une synthèse dont la prime est nulle, ou d'un enseignant écarté, reste libre.
+     *
+     * @param  Collection<int, SyntheseAnimation>  $syntheses
+     * @param  Collection<int, DossierPaieEnseignant>  $dossiers
+     * @param  Collection<string, BaremeRemuneration>  $baremes
+     * @param  array<string, array{enseignant: string, raison: string}>  $ecartes
+     */
+    private function genererPrimes(EtatPaie $etat, Collection $syntheses, Collection $dossiers, Collection $baremes, array &$ecartes): int
+    {
+        $calcul = app(SynthesesAnimation::class);
+        $n = 0;
+        foreach ($syntheses as $s) {
+            $coefficient = $calcul->coefficient($s);
+            if ($coefficient <= 0) {
+                continue;
+            }
+            $bareme = $baremes->get($s->annee_academique.'|'.self::PRIME);
+            $raison = in_array($s->programmation?->statut, self::PROGRAMMATIONS_PAYABLES, true)
+                ? $this->raisonEcart($dossiers->get($s->enseignant_id), $bareme, self::PRIME, $s->annee_academique)
+                : 'programmation de '.$s->ecue?->code.' déclinée ou annulée (prime non due)';
+            if ($raison !== null) {
+                $ecartes[$s->enseignant->name.' — '.$raison] = ['enseignant' => $s->enseignant->name, 'raison' => $raison];
+
+                continue;
+            }
+            $taux = str_replace('.', ',', (string) $calcul->taux($s)['global']);
+            $ligne = $this->ligne($etat, $s->enseignant_id, $s->maquette_ecue_id, $s->annee_academique, self::PRIME, $coefficient, 0.0, 0.0, $bareme,
+                'Animation en ligne du cours : '.$taux.' % réalisé'.($calcul->mode() === SynthesesAnimation::SEUIL ? ' (seuil atteint)' : ''));
+            $rattachees = SyntheseAnimation::query()->whereKey($s->id)->where('statut', SyntheseAnimation::VALIDE)->whereNull('ligne_paie_id')
+                ->update(['ligne_paie_id' => $ligne->id, 'updated_at' => now()]);
+            if ($rattachees !== 1) {
+                throw new RuntimeException('Une prime d\'animation a été rattachée à un autre état pendant la génération : recommencez.');
+            }
+            $n++;
+        }
+
+        return $n;
     }
 
     /**
@@ -502,10 +565,11 @@ final class EtatsPaie
         return ['lignes' => $e->lignes()->count(), 'brut' => (int) $e->lignes()->sum('montant_brut'), 'net' => (int) $e->lignes()->sum('montant_net')];
     }
 
-    /** Les pointages portés sur l'état redeviennent libres. */
+    /** Les pointages et les primes d'animation portés sur l'état redeviennent libres. */
     private function liberer(EtatPaie $etat): void
     {
         PointageEnseignant::query()->whereIn('ligne_paie_id', $etat->lignes()->select('id'))->update(['ligne_paie_id' => null, 'updated_at' => now()]);
+        SyntheseAnimation::query()->whereIn('ligne_paie_id', $etat->lignes()->select('id'))->update(['ligne_paie_id' => null, 'updated_at' => now()]);
     }
 
     private function h(float $h): string

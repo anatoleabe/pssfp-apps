@@ -29,6 +29,7 @@
     <tr><td class="l">Enseignants</td><td>{{ $synthese['totaux']['enseignants'] }}</td></tr>
     <tr><td class="l">Heures de CM payées</td><td>{{ $h($synthese['totaux']['heures_cm']) }} h</td></tr>
     <tr><td class="l">Surveillances payées</td><td>{{ $synthese['totaux']['surveillances'] }}</td></tr>
+    <tr><td class="l">Primes d'animation en ligne</td><td>{{ $synthese['totaux']['nb_primes'] }} ({{ $fcfa($synthese['totaux']['primes']) }})</td></tr>
     <tr><td class="l">Montant brut</td><td>{{ $fcfa($synthese['totaux']['brut']) }}</td></tr>
     <tr><td class="l">Retenue à la source</td><td>{{ $fcfa($synthese['totaux']['retenue']) }}</td></tr>
     <tr><td class="l"><strong>Net à virer</strong></td><td><strong>{{ $fcfa($synthese['totaux']['net']) }}</strong></td></tr>

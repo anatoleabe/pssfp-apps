@@ -5,6 +5,7 @@ use App\Models\SearchLog;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use Illuminate\Support\Facades\Storage;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -29,3 +30,15 @@ Schedule::command('library:check-index')
 Schedule::command('model:prune', ['--model' => [SearchLog::class, DocumentDownload::class]])
     ->dailyAt('02:00')
     ->withoutOverlapping();
+
+// Envois temporaires de Livewire (dont les exports WhatsApp, lot 13b-2) : un envoi non utilisé ne reste pas plus
+// d'une heure sur le disque (le nettoyage de Livewire n'agit qu'après 24 h et seulement lors d'un nouvel envoi).
+Schedule::call(function (): void {
+    $disque = Storage::disk((string) (config('livewire.temporary_file_upload.disk') ?? 'local'));
+    $limite = now()->subHour()->getTimestamp();
+    foreach ($disque->files((string) (config('livewire.temporary_file_upload.directory') ?? 'livewire-tmp')) as $f) {
+        if ($disque->lastModified($f) < $limite) {
+            $disque->delete($f);
+        }
+    }
+})->name('purge-envois-livewire')->everyFifteenMinutes()->withoutOverlapping();

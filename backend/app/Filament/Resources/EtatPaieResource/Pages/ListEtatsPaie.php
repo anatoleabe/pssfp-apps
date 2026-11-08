@@ -21,7 +21,7 @@ class ListEtatsPaie extends ListRecords
 
     public function getSubheading(): ?string
     {
-        return 'Un état ordinaire par mois, préparé à partir des pointages validés. Circuit : vérification par le responsable de la scolarité, transmission au service financier, prise en charge, virement.';
+        return 'Un état ordinaire par mois, préparé à partir des pointages et des primes d\'animation validés. Circuit : vérification par le responsable de la scolarité, transmission au service financier, prise en charge, virement.';
     }
 
     protected function getHeaderActions(): array
@@ -47,7 +47,7 @@ class ListEtatsPaie extends ListRecords
                         ->disableOptionWhen(fn (string $value): bool => EtatPaie::query()->where('periode_du', $value.'-01')->whereNull('rectificatif_de')
                             ->where('statut', '<>', EtatPaie::REJETE)->exists())
                         ->default(fn (): string => now('Africa/Douala')->subMonthNoOverflow()->format('Y-m'))
-                        ->helperText('Les pointages validés dont la séance tombe dans le mois, et pas encore payés.'),
+                        ->helperText('Les pointages validés dont la séance tombe dans le mois, et les primes d\'animation validées des cours qui s\'y terminent, pas encore payés.'),
                 ]))
                 ->action(function (array $data): void {
                     $etat = null;
