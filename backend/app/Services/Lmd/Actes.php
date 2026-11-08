@@ -8,6 +8,7 @@ use App\Models\Acte;
 use App\Models\CalendrierAcademique;
 use App\Models\EvenementCalendrier;
 use App\Models\ModeleActe;
+use App\Models\ProgrammationEnseignant;
 use App\Models\User;
 use App\Support\CandidatureObjectStorage;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -125,7 +126,26 @@ final class Actes
             'signataire' => $m->signataire,
         ];
 
-        return strtr($m->gabarit, array_combine(array_map(fn (string $k): string => '{'.$k.'}', array_keys($valeurs)), array_values($valeurs)));
+        $texte = strtr($m->gabarit, array_combine(array_map(fn (string $k): string => '{'.$k.'}', array_keys($valeurs)), array_values($valeurs)));
+
+        return $m->code === 'PROGRAMMATION_ENSEIGNANTS' ? $texte.$this->listeProgrammations($e) : $texte;
+    }
+
+    /** Note de programmation (D22) : programmations validées, notifiées ou acceptées de la période, par enseignant. */
+    private function listeProgrammations(EvenementCalendrier $periode): string
+    {
+        $progs = ProgrammationEnseignant::query()
+            ->whereIn('statut', [ProgrammationEnseignant::VALIDE, ProgrammationEnseignant::NOTIFIE, ProgrammationEnseignant::ACCEPTE])
+            ->whereHas('quota', fn ($q) => $q->where('periode_id', $periode->id))
+            ->with(['enseignant:id,name', 'quota.ecue.maquetteUe.maquette.parcours'])->get()
+            ->sortBy(fn (ProgrammationEnseignant $p): string => $p->enseignant->name.' '.$p->quota->ecue->code);
+        if ($progs->isEmpty()) {
+            return "\n\nProgrammation des enseignants : aucune programmation validée à ce jour.";
+        }
+
+        return "\n\nProgrammation des enseignants :".$progs->groupBy('enseignant_id')->map(fn ($l): string => "\n\n".$l->first()->enseignant->name.' :'
+            .$l->map(fn (ProgrammationEnseignant $p): string => "\n- ".$p->quota->ecue->code.' '.$p->quota->ecue->intitule
+                .' ('.$p->quota->ecue->maquetteUe->maquette->parcours->code.') : '.$p->total().' h'.($p->fenetre() !== null ? ', '.$p->fenetre() : ''))->implode(''))->implode('');
     }
 
     public function rediger(Acte $a, string $contenu, User $auteur): void

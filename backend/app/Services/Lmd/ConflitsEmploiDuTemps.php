@@ -7,8 +7,10 @@ namespace App\Services\Lmd;
 use App\Models\AttributionEcue;
 use App\Models\EmploiDuTemps;
 use App\Models\EvenementCalendrier;
+use App\Models\IndisponibiliteEnseignant;
 use App\Models\InscriptionPedagogique;
 use App\Models\JourNonOuvre;
+use App\Models\QuotaHoraire;
 use App\Models\Seance;
 use Illuminate\Support\Collection;
 
@@ -17,6 +19,8 @@ use Illuminate\Support\Collection;
  * Bloquants : enseignant, salle ou parcours programmés deux fois, séance hors période, pendant une
  * interruption, les examens du niveau ou un jour non ouvré. Le même ECUE à la même heure dans deux
  * parcours du même niveau est un cours commun. Alertes : capacité, attribution, volume.
+ * Lot 12d (D22) : séance pendant une indisponibilité de l'enseignant (bloquant) ; séance sans programmation (alerte,
+ * dès que la période a un quota).
  */
 final class ConflitsEmploiDuTemps
 {
@@ -27,9 +31,11 @@ final class ConflitsEmploiDuTemps
         'hors_periode' => 'Hors de la période de cours',
         'pendant_evenement' => 'Pendant une interruption ou des examens',
         'jour_non_ouvre' => 'Jour non ouvré',
+        'enseignant_indisponible' => 'Enseignant indisponible',
         'capacite_salle' => 'Salle trop petite',
         'enseignant_non_attribue' => 'Enseignant sans attribution sur l\'ECUE',
         'volume_depasse' => 'Volume de la maquette dépassé',
+        'seance_sans_programmation' => 'Séance sans programmation de l\'enseignant',
     ];
 
     /** @return list<array{controle: string, seance: Seance, detail: string, bloquant: bool}> */
@@ -48,7 +54,9 @@ final class ConflitsEmploiDuTemps
         return [
             ...$this->doubles($miennes, $toutes->groupBy(fn (Seance $s): string => $s->date_seance->toDateString())),
             ...$this->dates($e, $miennes),
+            ...$this->indisponibilites($miennes),
             ...$this->alertes($miennes),
+            ...$this->programmation($e, $miennes),
         ];
     }
 
@@ -143,6 +151,38 @@ final class ConflitsEmploiDuTemps
         }
 
         return $sortie;
+    }
+
+    /**
+     * @param  Collection<int, Seance>  $miennes
+     * @return list<array{controle: string, seance: Seance, detail: string, bloquant: bool}>
+     */
+    private function indisponibilites(Collection $miennes): array
+    {
+        $indispos = IndisponibiliteEnseignant::query()->whereIn('enseignant_id', $miennes->pluck('enseignant_id')->filter()->unique())->get()->groupBy('enseignant_id');
+        $sortie = [];
+        foreach ($miennes->whereNotNull('enseignant_id') as $s) {
+            $i = $indispos->get($s->enseignant_id, collect())->first(fn (IndisponibiliteEnseignant $x): bool => $x->couvre($s));
+            if ($i !== null) {
+                $sortie[] = $this->ligne('enseignant_indisponible', $s, ($s->enseignant?->name ?? 'Enseignant').' indisponible '.$i->libelle().'.', true);
+            }
+        }
+
+        return $sortie;
+    }
+
+    /**
+     * @param  Collection<int, Seance>  $miennes
+     * @return list<array{controle: string, seance: Seance, detail: string, bloquant: bool}>
+     */
+    private function programmation(EmploiDuTemps $e, Collection $miennes): array
+    {
+        if (! QuotaHoraire::query()->where('periode_id', $e->periode_id)->exists()) {
+            return [];
+        }
+
+        return $miennes->whereNull('programmation_id')->map(fn (Seance $s): array => $this->ligne('seance_sans_programmation', $s,
+            ($s->enseignant?->name ?? 'Aucun enseignant').' : aucune programmation pour '.$s->ecue->code.' dans la période.', false))->values()->all();
     }
 
     private function chevauche(Seance $a, Seance $b): bool

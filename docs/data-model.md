@@ -957,7 +957,7 @@ Détail : `docs/specs/module-4-lmd-lot6-deliberations.md`.
 
 L'attestation d'autorisation de dépôt est un `documents_delivres` de type `autorisation_depot` (`AD-AAAA-NNNNNN`).
 
-### Calendrier académique (module 4, lot 12a)
+### Calendrier académique (module 4, lots 12a à 12d)
 
 | Table | Rôle | Points clés |
 |---|---|---|
@@ -970,6 +970,10 @@ L'attestation d'autorisation de dépôt est un `documents_delivres` de type `aut
 | `plages_horaires` | Grille horaire | code unique, heures de début et de fin (CHECK), ordre ; trois plages livrées (08:00-11:00, 11:30-14:30, 15:00-18:00) |
 | `emplois_du_temps` | Emploi du temps d'une période de cours pour un parcours | `uuid` ; période (`evenements_calendrier`) et parcours, uniques ensemble ; brouillon ou publié ; auteurs |
 | `seances` (lot 12c) | Colonnes ajoutées | emploi du temps, salle, plage, enseignant (`users`), nature (CM, TD, TP, évaluation), séance de remplacement et motif du report ; statut `reportee` (motif obligatoire, CHECK) |
+| `quotas_horaires` | Quota d'un ECUE pour une période de cours (lot 12d, D22) | `uuid` ; période (`evenements_calendrier`) et ECUE (`maquette_ecues`), uniques ensemble ; heures de CM, TD, TP (décimales, positives) ; proposé, validé ou modifié (motif obligatoire, CHECK) ; validé par et le |
+| `programmations_enseignant` | Part d'un quota confiée à un enseignant | `uuid` ; quota, enseignant (`users`), rôle (responsable ou intervenant) ; heures de CM, TD, TP ; fenêtre d'intervention (fin après début, CHECK) ; modalité ; proposée, validée, notifiée, acceptée, déclinée ou annulée (motif obligatoire pour les deux dernières, CHECK) ; une seule programmation non annulée par enseignant et par quota, un seul responsable actif par quota (index uniques partiels) ; dates de validation, de notification et de réponse |
+| `indisponibilites_enseignant` | Indisponibilité déclarée d'un enseignant | enseignant (`users`), début et fin (`timestamptz`, fin après début), motif ; auteur |
+| `seances` (lot 12d) | Colonne ajoutée | `programmation_id` : programmation consommée, rattachée automatiquement (enseignant, ECUE, période) |
 | `modeles_acte` | Modèle d'acte (lot 12b, D18, D19) | code unique, libellé, type d'événement déclencheur, signataire, délai en jours (négatif : avant le début), gabarit, diffusé aux auditeurs, actif ; neuf modèles livrés par la migration |
 | `actes` | Acte produit à partir d'un événement | `uuid` ; modèle et événement (unique ensemble) ; objet, échéance, texte ; à produire, brouillon, soumis, signé, diffusé, annulé ; numéro (unique), date, signataire et pièce signée (MinIO, SHA-256) obligatoires une fois signé (CHECK) ; motif d'annulation ou de renvoi ; auteurs et dates de chaque étape |
 

@@ -25,7 +25,7 @@ use InvalidArgumentException;
  */
 final class EmploisDuTemps
 {
-    public function __construct(private readonly ConflitsEmploiDuTemps $conflits) {}
+    public function __construct(private readonly ConflitsEmploiDuTemps $conflits, private readonly Programmations $programmations) {}
 
     public function creer(EvenementCalendrier $periode, Parcours $parcours, User $auteur): EmploiDuTemps
     {
@@ -83,6 +83,7 @@ final class EmploisDuTemps
                 $bilan['creees']++;
             }
         });
+        $this->programmations->rattacher($e->periode);
 
         return $bilan;
     }
@@ -96,6 +97,7 @@ final class EmploisDuTemps
         }
         $champs = $this->champs($s->emploiDuTemps, $data);
         $s->forceFill([...$champs, 'date_seance' => CarbonImmutable::parse((string) $data['date_seance'])->toDateString()])->save();
+        $this->programmations->rattacher($s->emploiDuTemps->periode);
     }
 
     /** Report (D21) : la séance passe à « reportée » et une séance de remplacement est créée, liée. @param array<string, mixed> $nouvelle */
@@ -114,7 +116,7 @@ final class EmploisDuTemps
             $data['fin'] = $s->fin;
         }
 
-        return DB::transaction(function () use ($s, $motif, $data, $auteur): Seance {
+        $r = DB::transaction(function () use ($s, $motif, $data, $auteur): Seance {
             $champs = $this->champs($s->emploiDuTemps, $data);
             $r = (new Seance)->forceFill([...$champs, 'date_seance' => CarbonImmutable::parse((string) $data['date_seance'])->toDateString(),
                 'emploi_du_temps_id' => $s->emploi_du_temps_id, 'cree_par' => $auteur->id]);
@@ -123,6 +125,9 @@ final class EmploisDuTemps
 
             return $r;
         });
+        $this->programmations->rattacher($s->emploiDuTemps->periode);
+
+        return $r->refresh();
     }
 
     public function annuler(Seance $s, string $motif, User $auteur): void
