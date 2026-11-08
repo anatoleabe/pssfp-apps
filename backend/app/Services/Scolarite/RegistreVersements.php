@@ -37,6 +37,7 @@ final class RegistreVersements
     public function __construct(
         private readonly ConnectionInterface $db,
         private readonly NotificationAcces $notification,
+        private readonly RecusVersements $recus,
     ) {}
 
     /**
@@ -135,6 +136,9 @@ final class RegistreVersements
             if ($modifies === 0) {
                 throw new InvalidArgumentException('Ce versement est déjà annulé.');
             }
+
+            // Le reçu en vigueur reçoit une écriture d'annulation (Scolarité lot 4) ; il n'est pas modifié.
+            $this->recus->annulerPourVersement($versement, $motif, $auteur);
 
             activity('scolarite')->causedBy($auteur)->performedOn($versement)
                 ->event('versement_annule')

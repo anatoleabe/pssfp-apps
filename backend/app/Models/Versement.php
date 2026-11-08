@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Versement d'un auditeur. Jamais supprimé : une annulation renseigne les champs
@@ -104,6 +105,17 @@ class Versement extends Model
     public function annulePar(): BelongsTo
     {
         return $this->belongsTo(User::class, 'annule_par');
+    }
+
+    /** Reçus émis pour ce versement (Scolarité lot 4) ; un seul en vigueur. */
+    public function recus(): HasMany
+    {
+        return $this->hasMany(RecuVersement::class);
+    }
+
+    public function recuEnVigueur(): ?RecuVersement
+    {
+        return $this->recus->first(fn (RecuVersement $r): bool => $r->annulation === null);
     }
 
     public function estAnnule(): bool

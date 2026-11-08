@@ -124,6 +124,7 @@ final class ModulePermissionMap
                 'sensitive' => [
                     'scolarite.export' => 'Exporter la situation financière des auditeurs',
                     'scolarite.versement_annuler' => 'Annuler un versement',
+                    'scolarite.recu_emettre' => 'Émettre les reçus des versements et passer leurs écritures d\'annulation (service financier)',
                     'scolarite.remise' => 'Accorder une remise',
                     'scolarite.bareme' => 'Modifier les barèmes',
                     'scolarite.promotion' => 'Modifier les réglages d\'une promotion (lettres, rentrée, consignes)',

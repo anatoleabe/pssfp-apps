@@ -262,6 +262,7 @@ final class AuditeurActions
             ->visible(fn (Versement $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_ANNULER) && ! $record->estAnnule())
             ->modalHeading('Annuler ce versement')
             ->modalDescription(fn (Versement $record): string => 'Le versement de '.LibelleSituation::fcfa($record->montant).' reste visible, barré, avec votre motif. Sa référence pourra être ressaisie.'
+                .($record->recus()->whereDoesntHave('annulation')->exists() ? ' Son reçu reçoit une écriture d\'annulation.' : '')
                 .(RegistreVersements::annulationRebloque($record) ? ' Attention : l\'inscription ne serait plus soldée ; le code disparaîtrait de l\'espace de l\'auditeur, mais resterait valable sur eCampus.' : ''))
             ->form(MessagesValidation::appliquer([
                 Forms\Components\Textarea::make('motif')->label('Motif de l\'annulation')->required()->maxLength(500)->rows(3),

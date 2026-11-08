@@ -33,6 +33,7 @@ interface DossierPageProps {
     recipisse_error?: string;
     lettre_error?: string;
     releve_error?: string;
+    recu_error?: string;
     welcome?: string;
   }>;
 }
@@ -50,7 +51,7 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
     redirect('/login?reason=session_expired');
   }
 
-  const { profile_pending, reason, init_error, recipisse_error, lettre_error, releve_error, welcome } = await searchParams;
+  const { profile_pending, reason, init_error, recipisse_error, lettre_error, releve_error, recu_error, welcome } = await searchParams;
   const result = await getMyCandidature(token);
   // Un agent qui consulte l'espace voit le dossier en lecture, sans aucune action.
   const consultation = await isConsultation();
@@ -160,6 +161,12 @@ export default async function DossierPage({ searchParams }: DossierPageProps): P
           <div role="alert" className="flex items-start gap-3 rounded-pssfp-card border border-red-200 bg-red-50/90 p-5 text-sm text-red-900 shadow-pssfp-soft">
             <AlertCircle size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-red-600" />
             <p className="font-semibold">{ts('releveError')}</p>
+          </div>
+        )}
+        {recu_error && (
+          <div role="alert" className="flex items-start gap-3 rounded-pssfp-card border border-red-200 bg-red-50/90 p-5 text-sm text-red-900 shadow-pssfp-soft">
+            <AlertCircle size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-red-600" />
+            <p className="font-semibold">{ts('recuError')}</p>
           </div>
         )}
         {lettre_error && (

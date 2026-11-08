@@ -6,6 +6,7 @@ namespace App\Filament\Resources\AuditeurResource\RelationManagers;
 
 use App\Filament\Concerns\ChecksModuleAccess;
 use App\Filament\Resources\AuditeurResource\AuditeurActions;
+use App\Filament\Resources\AuditeurResource\RecuActions;
 use App\Models\Auditeur;
 use App\Models\Versement;
 use App\Services\Scolarite\LibelleSituation;
@@ -51,7 +52,7 @@ class VersementsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['saisiPar', 'annulePar', 'inscription']))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['saisiPar', 'annulePar', 'inscription', 'recus.annulation']))
             ->defaultSort('date_versement', 'desc')
             ->recordTitleAttribute('reference')
             ->columns([
@@ -64,6 +65,10 @@ class VersementsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('payeur')->label('Payé par')->formatStateUsing(fn (string $state): string => Versement::PAYEURS[$state] ?? $state),
                 Tables\Columns\TextColumn::make('inscription.annee_academique')->label('Année'),
                 Tables\Columns\TextColumn::make('saisiPar.name')->label('Saisi par')->placeholder('—'),
+                Tables\Columns\TextColumn::make('recu')->label('Reçu')->fontFamily('mono')
+                    ->getStateUsing(fn (Versement $record): string => $record->recuEnVigueur()?->numero ?? '—')
+                    ->description(fn (Versement $record): ?string => ($a = $record->recus->sortByDesc('id')->first()?->annulation) !== null && $record->recuEnVigueur() === null
+                        ? 'annulé ('.$a->numero.')' : null),
                 Tables\Columns\TextColumn::make('etat')->label('État')->badge()
                     ->getStateUsing(fn (Versement $record): string => $record->estAnnule() ? 'Annulé' : 'Valide')
                     ->color(fn (Versement $record): string => $record->estAnnule() ? 'gray' : 'success')
@@ -77,6 +82,9 @@ class VersementsRelationManager extends RelationManager
                     AuditeurActions::voirJustificatif(),
                     AuditeurActions::ajouterJustificatif(),
                     AuditeurActions::annulerVersement(),
+                    RecuActions::emettre(),
+                    RecuActions::telechargerDepuisVersement(),
+                    RecuActions::annulerDepuisVersement(),
                 ])->tooltip('Actions sur ce versement'),
             ])
             ->bulkActions([]);
