@@ -39,7 +39,7 @@ class PointageEnseignantResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-finger-print';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = 'Paie des enseignants';
 
     protected static ?int $navigationSort = 46;
 
@@ -135,7 +135,11 @@ class PointageEnseignantResource extends Resource
         }
         $set('arrivee', substr((string) $s->debut, 0, 5));
         $set('depart', substr((string) $s->fin, 0, 5));
-        $set('nature', in_array($s->nature, ['CM', 'TD', 'TP'], true) ? $s->nature : 'CM');
+        $set('nature', match (true) {
+            $s->nature === 'evaluation' => 'surveillance',
+            in_array($s->nature, ['CM', 'TD', 'TP'], true) => $s->nature,
+            default => 'CM',
+        });
     }
 
     /**

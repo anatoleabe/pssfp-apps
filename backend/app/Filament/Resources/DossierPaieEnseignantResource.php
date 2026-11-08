@@ -35,7 +35,7 @@ class DossierPaieEnseignantResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-identification';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = 'Paie des enseignants';
 
     protected static ?string $navigationLabel = 'Dossiers de paie';
 

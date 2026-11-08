@@ -115,6 +115,7 @@ final class RolePermissionSeeder extends Seeder
                     'lmd.calendrier_signer',
                     'lmd.actes_signer',
                     'lmd.programmation_valider',
+                    'lmd.paie_verifier',
                     'journal.view',
                     'document.publish',
                     'library.thesaurus',
@@ -182,7 +183,7 @@ final class RolePermissionSeeder extends Seeder
                     'lmd.notes_verrouiller', 'lmd.notes_rouvrir', 'lmd.derogation_rattrapage',
                     'lmd.deliberation_arreter', 'lmd.deliberation_publier', 'lmd.jury_signer',
                     'lmd.documents_revoquer', 'lmd.documents_lever', 'lmd.requetes_coter', 'lmd.requetes_jury',
-                    'lmd.memoires_attester', 'lmd.calendrier_reajuster', 'lmd.actes_signer', 'lmd.programmation_valider'],
+                    'lmd.memoires_attester', 'lmd.calendrier_reajuster', 'lmd.actes_signer', 'lmd.programmation_valider', 'lmd.paie_verifier'],
             ],
             'enseignant' => [
                 'label' => 'Enseignant',
@@ -218,7 +219,7 @@ final class RolePermissionSeeder extends Seeder
                 'label' => 'Service administratif et financier',
                 'description' => 'Dossiers de paie des enseignants : NIU, banque et compte de virement.',
                 'modules' => [],
-                'sensitive' => ['lmd.dossier_paie'],
+                'sensitive' => ['lmd.dossier_paie', 'lmd.paie_payer'],
             ],
             'chef_structure' => [
                 'label' => 'Chef de la structure',

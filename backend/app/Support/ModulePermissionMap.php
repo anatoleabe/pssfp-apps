@@ -150,6 +150,7 @@ final class ModulePermissionMap
                     'lmd.emplois_du_temps',
                     'lmd.programmation',
                     'lmd.pointage_enseignants',
+                    'lmd.paie_preparer',
                 ],
                 'sensitive_description' => 'À cocher explicitement : préparer une maquette n\'emporte pas le droit de la valider, ni saisir des notes celui de verrouiller une étape.',
                 'sensitive' => [
@@ -178,8 +179,11 @@ final class ModulePermissionMap
                     'lmd.programmation_repondre' => 'Voir ses programmations, les accepter ou les décliner, déclarer ses indisponibilités (enseignant)',
                     'lmd.pointage_emarger' => 'Pointer ses séances (arrivée, départ, contenu enseigné) et suivre ses émargements (enseignant)',
                     'lmd.dossier_paie' => 'Voir et saisir le NIU, la banque et le compte de virement des enseignants (service financier)',
+                    'lmd.paie_verifier' => 'Valider le barème des enseignants, vérifier, transmettre et rejeter les états de paie',
+                    'lmd.paie_viser' => 'Viser les états de paie (contrôleur interne)',
+                    'lmd.paie_payer' => 'Prendre en charge et payer les états de paie des enseignants (service financier)',
                 ],
-                'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir', 'lmd.calendrier_signer', 'lmd.actes_signer', 'lmd.programmation_repondre', 'lmd.pointage_emarger', 'lmd.dossier_paie'],
+                'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir', 'lmd.calendrier_signer', 'lmd.actes_signer', 'lmd.programmation_repondre', 'lmd.pointage_emarger', 'lmd.dossier_paie', 'lmd.paie_viser', 'lmd.paie_payer'],
             ],
             'bibliotheque' => [
                 'label' => 'Module 3 — Bibliothèque',

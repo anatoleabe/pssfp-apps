@@ -40,6 +40,8 @@ final class PointagesEnseignant
 
     private const NATURES = ['CM', 'TD', 'TP'];
 
+    public const SURVEILLANCE = 'surveillance';
+
     private const LIMITE_LISTE = 200;
 
     /** Programmations qui autorisent un remplacement (D23) : validées, notifiées ou acceptées. */
@@ -370,7 +372,8 @@ final class PointagesEnseignant
     // ------------------------------------------------------------ interne
 
     /**
-     * Séances pointables : d'un emploi du temps publié, cours (pas une évaluation), prévues ou tenues, passées ou du jour.
+     * Séances pointables : d'un emploi du temps publié, prévues ou tenues, passées ou du jour. Une séance d'évaluation
+     * se pointe en surveillance (lot 13b-1 ; réponse de la Scolarité du 08/11/2026).
      *
      * @return Builder<Seance>
      */
@@ -378,7 +381,6 @@ final class PointagesEnseignant
     {
         return Seance::query()->whereIn('statut', Seance::ACTIVES)
             ->whereHas('emploiDuTemps', fn (Builder $q) => $q->where('statut', EmploiDuTemps::PUBLIE))
-            ->where(fn (Builder $q) => $q->whereNull('nature')->orWhereIn('nature', self::NATURES))
             ->whereDate('date_seance', '<=', now(self::FUSEAU)->toDateString());
     }
 
@@ -423,12 +425,16 @@ final class PointagesEnseignant
         if ($depart->lte($arrivee)) {
             throw new InvalidArgumentException('Le départ suit l\'arrivée.');
         }
-        // L'enseignant pointe la nature de la séance ; seule la Scolarité la change (D23).
-        $nature = ! $gestion && in_array($seance->nature, self::NATURES, true)
-            ? $seance->nature
-            : (string) ($data['nature'] ?? (in_array($seance->nature, self::NATURES, true) ? $seance->nature : 'CM'));
-        if (! in_array($nature, self::NATURES, true)) {
-            throw new InvalidArgumentException('La nature est CM, TD ou TP.');
+        // Évaluation : surveillance, toujours. Cours : l'enseignant pointe la nature de la séance ; seule la Scolarité la change (D23).
+        if ($seance->nature === 'evaluation') {
+            $nature = self::SURVEILLANCE;
+        } else {
+            $nature = ! $gestion && in_array($seance->nature, self::NATURES, true)
+                ? $seance->nature
+                : (string) ($data['nature'] ?? (in_array($seance->nature, self::NATURES, true) ? $seance->nature : 'CM'));
+            if (! in_array($nature, self::NATURES, true)) {
+                throw new InvalidArgumentException('La nature d\'un cours est CM, TD ou TP.');
+            }
         }
         $contenu = $this->texte($data['contenu_enseigne'] ?? null, 5000);
 

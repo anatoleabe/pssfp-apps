@@ -32,7 +32,7 @@ class PointageEnseignant extends Model
     /** Modes d'une saisie par la Scolarité (la signature est celle de l'enseignant lui-même). */
     public const MODES_SAISIE = ['saisie' => 'Saisie par la Scolarité', 'badge' => 'Badge', 'qr_code' => 'QR code', 'zoom' => 'Zoom'];
 
-    public const NATURES = ['CM' => 'Cours magistral', 'TD' => 'Travaux dirigés', 'TP' => 'Travaux pratiques'];
+    public const NATURES = ['CM' => 'Cours magistral', 'TD' => 'Travaux dirigés', 'TP' => 'Travaux pratiques', 'surveillance' => 'Surveillance d\'évaluation'];
 
     protected $table = 'pointages_enseignant';
 
