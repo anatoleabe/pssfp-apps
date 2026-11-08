@@ -85,4 +85,16 @@ final class PermissionsLmd
 
     /** Lot 13a : NIU, banque et compte de virement des enseignants (service financier). */
     public const DOSSIER_PAIE = 'lmd.dossier_paie';
+
+    /** Lot 13b : barème proposé, préparation et génération des états de paie. */
+    public const PAIE_PREPARER = 'lmd.paie_preparer';
+
+    /** Lot 13b : valider le barème, vérifier, transmettre et rejeter un état de paie. */
+    public const PAIE_VERIFIER = 'lmd.paie_verifier';
+
+    /** Lot 13b : visa du contrôleur interne (si le paramètre l'exige). */
+    public const PAIE_VISER = 'lmd.paie_viser';
+
+    /** Lot 13b : prise en charge et paiement d'un état de paie (service financier). */
+    public const PAIE_PAYER = 'lmd.paie_payer';
 }

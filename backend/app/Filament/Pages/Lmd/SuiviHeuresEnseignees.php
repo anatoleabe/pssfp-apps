@@ -29,7 +29,7 @@ class SuiviHeuresEnseignees extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = 'Paie des enseignants';
 
     protected static ?int $navigationSort = 48;
 
