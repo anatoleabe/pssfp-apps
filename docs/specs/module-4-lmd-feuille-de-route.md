@@ -30,8 +30,9 @@ Chaque lot a sa spec, sa branche, ses tests, et se déploie seul.
 | 12b | **Actes** produits à partir du calendrier (notes de service, communiqués, PV, listes) | D18, D19 | PR #81 |
 | 12c | **Emplois du temps** : salles, plages, séances programmées, conflits, volume horaire, espace auditeur | D21 | PR #82 |
 | 12d | **Programmation des enseignants** : quotas horaires par cours et par période, charge, circuit de notification | D22 | PR #83 |
-| 13a | **Dossier de paie et pointage des enseignants** : statut, NIU et compte chiffrés (service financier), émargement et cahier de textes, validation, heures effectives, contrôles | D23, D24 | PR #84 |
-| 13b | **États de paie** : barème, primes d'animation en ligne (export WhatsApp), état mensuel et son circuit, bordereau | D23 à D25 | À faire |
+| 13a | **Dossier de paie et pointage des enseignants** : statut, NIU et compte chiffrés (service financier), émargement et cahier de textes, validation, heures effectives, contrôles | D23, D24 | PR #84, déployée le 08/11 |
+| 13b-1 | **États de paie** : barème, état mensuel des heures et des surveillances, circuit jusqu'au virement, PDF de l'état et du bordereau | D23 à D25 | En cours |
+| 13b-2 | **Primes d'animation en ligne** : synthèses, import de l'export WhatsApp, ajout à l'état du mois | D25 | À faire |
 | 13c | **Rapprochement et contrôle de gestion** : avis de virement, budget, coûts, tableau de bord | D38 | À faire |
 | 14 | **Supervision**, messagerie interne, demandes d'autorisation | D30, D31 | À faire |
 | 15 | **Archivage numérique** et reprise de l'historique d'ACMA | D29 ; plan de reprise | À faire |
