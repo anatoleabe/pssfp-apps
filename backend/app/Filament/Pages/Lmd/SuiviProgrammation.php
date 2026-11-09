@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Pages\Lmd;
 
 use App\Filament\Concerns\ChecksModuleAccess;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\QuotaHoraireResource\ChampsProgrammation;
 use App\Models\EvenementCalendrier;
@@ -29,9 +30,9 @@ class SuiviProgrammation extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-bar';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = GroupeNavigation::PLANIFICATION;
 
-    protected static ?int $navigationSort = 45;
+    protected static ?int $navigationSort = 70;
 
     protected static ?string $title = 'Suivi de la programmation';
 

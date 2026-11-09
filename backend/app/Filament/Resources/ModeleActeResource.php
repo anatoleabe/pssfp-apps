@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\ModeleActeResource\Pages;
 use App\Models\EvenementCalendrier;
@@ -33,9 +34,9 @@ class ModeleActeResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-duplicate';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = GroupeNavigation::PLANIFICATION;
 
-    protected static ?int $navigationSort = 47;
+    protected static ?int $navigationSort = 30;
 
     public static function form(Form $form): Form
     {

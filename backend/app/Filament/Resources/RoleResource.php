@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\RoleResource\Pages;
 use App\Models\Role;
 use App\Support\BelongsToModule;
@@ -46,7 +47,7 @@ class RoleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-key';
 
-    protected static ?string $navigationGroup = 'Administration';
+    protected static ?string $navigationGroup = GroupeNavigation::ADMINISTRATION;
 
     protected static ?int $navigationSort = 20;
 

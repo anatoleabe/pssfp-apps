@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\EmploiDuTempsResource\Pages;
 use App\Filament\Resources\EmploiDuTempsResource\RelationManagers\SeancesRelationManager;
 use App\Models\EmploiDuTemps;
@@ -32,9 +33,9 @@ class EmploiDuTempsResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-table-cells';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = GroupeNavigation::PLANIFICATION;
 
-    protected static ?int $navigationSort = 41;
+    protected static ?int $navigationSort = 40;
 
     public static function table(Table $table): Table
     {

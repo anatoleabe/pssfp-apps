@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Events\CandidatureAccepted;
 use App\Events\CandidatureRefused;
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\CandidatureResource\AjoutRetenuActions;
 use App\Filament\Resources\CandidatureResource\ComptesEcampusActions;
 use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
@@ -73,7 +74,7 @@ class CandidatureResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?string $navigationGroup = 'Module 5 — Admissions';
+    protected static ?string $navigationGroup = GroupeNavigation::ADMISSIONS;
 
     protected static ?int $navigationSort = 10;
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Pages\Lmd;
 
 use App\Filament\Concerns\ChecksModuleAccess;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Models\CopieAnonyme;
 use App\Models\EpreuveAnonyme;
@@ -32,9 +33,9 @@ class SaisieAnonyme extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-hashtag';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = GroupeNavigation::EVALUATIONS;
 
-    protected static ?int $navigationSort = 46;
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $title = 'Saisie sur numéros';
 

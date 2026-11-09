@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\DossierPaieEnseignantResource\Pages;
 use App\Filament\Resources\QuotaHoraireResource\ChampsProgrammation;
@@ -35,13 +36,13 @@ class DossierPaieEnseignantResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-identification';
 
-    protected static ?string $navigationGroup = 'Paie des enseignants';
+    protected static ?string $navigationGroup = GroupeNavigation::ENSEIGNANTS_PAIE;
 
     protected static ?string $navigationLabel = 'Dossiers de paie';
 
     protected static ?string $breadcrumb = 'Dossiers de paie';
 
-    protected static ?int $navigationSort = 47;
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $slug = 'dossiers-paie';
 

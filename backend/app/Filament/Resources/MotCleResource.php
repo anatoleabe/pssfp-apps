@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\MotCleResource\Pages;
 use App\Models\Document;
 use App\Models\MotCle;
@@ -33,7 +34,7 @@ class MotCleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-tag';
 
-    protected static ?string $navigationGroup = 'Module 3 — Bibliothèque';
+    protected static ?string $navigationGroup = GroupeNavigation::BIBLIOTHEQUE;
 
     protected static ?int $navigationSort = 20;
 

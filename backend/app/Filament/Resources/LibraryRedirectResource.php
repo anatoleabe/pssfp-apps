@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\LibraryRedirectResource\Pages;
 use App\Models\LibraryRedirect;
 use App\Support\BelongsToModule;
@@ -30,7 +31,7 @@ class LibraryRedirectResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-uturn-right';
 
-    protected static ?string $navigationGroup = 'Module 3 — Bibliothèque';
+    protected static ?string $navigationGroup = GroupeNavigation::BIBLIOTHEQUE;
 
     protected static ?int $navigationSort = 30;
 

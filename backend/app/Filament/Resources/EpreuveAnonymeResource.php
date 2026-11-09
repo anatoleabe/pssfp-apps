@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\EpreuveAnonymeResource\Pages;
 use App\Models\EpreuveAnonyme;
@@ -36,9 +37,9 @@ class EpreuveAnonymeResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-eye-slash';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = GroupeNavigation::EVALUATIONS;
 
-    protected static ?int $navigationSort = 45;
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $slug = 'epreuves-anonymes';
 

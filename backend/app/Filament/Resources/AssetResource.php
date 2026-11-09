@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Forms\Components\PrivateFileUpload;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AssetResource\Pages;
 use App\Models\Asset;
 use App\Support\BelongsToModule;
@@ -41,9 +42,9 @@ class AssetResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-photo';
 
-    protected static ?string $navigationGroup = 'Module 1 — Site institutionnel';
+    protected static ?string $navigationGroup = GroupeNavigation::SITE;
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $recordTitleAttribute = 'filename';
 

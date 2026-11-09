@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\IndisponibiliteEnseignantResource\Pages;
 use App\Models\IndisponibiliteEnseignant;
 use App\Services\Lmd\PermissionsLmd;
@@ -30,11 +31,11 @@ class IndisponibiliteEnseignantResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-no-symbol';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = GroupeNavigation::PLANIFICATION;
 
     protected static ?string $breadcrumb = 'Indisponibilités';
 
-    protected static ?int $navigationSort = 44;
+    protected static ?int $navigationSort = 90;
 
     protected static ?string $slug = 'indisponibilites-enseignant';
 

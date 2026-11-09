@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\RecuActions;
 use App\Filament\Resources\RecuVersementResource\Pages;
 use App\Models\RecuVersement;
@@ -36,9 +37,9 @@ class RecuVersementResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-receipt-percent';
 
-    protected static ?string $navigationGroup = 'Vie académique';
+    protected static ?string $navigationGroup = GroupeNavigation::SCOLARITE;
 
-    protected static ?int $navigationSort = 11;
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $slug = 'recus-versements';
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AttributionEcueResource\Pages;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Models\AttributionEcue;
@@ -35,9 +36,9 @@ class AttributionEcueResource extends Resource
 
     protected static ?string $navigationLabel = 'Attributions des ECUE';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = GroupeNavigation::REFERENTIEL;
 
-    protected static ?int $navigationSort = 50;
+    protected static ?int $navigationSort = 40;
 
     public static function form(Form $form): Form
     {

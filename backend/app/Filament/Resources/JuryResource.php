@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\JuryResource\Pages;
 use App\Models\Jury;
@@ -43,9 +44,9 @@ class JuryResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-scale';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = GroupeNavigation::EVALUATIONS;
 
-    protected static ?int $navigationSort = 60;
+    protected static ?int $navigationSort = 40;
 
     public static function form(Form $form): Form
     {

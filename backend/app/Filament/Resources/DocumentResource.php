@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Forms\Components\PrivateFileUpload;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\DocumentResource\DocumentBulkActions;
 use App\Filament\Resources\DocumentResource\DocumentInfolist;
 use App\Filament\Resources\DocumentResource\Pages;
@@ -46,7 +47,7 @@ class DocumentResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
 
-    protected static ?string $navigationGroup = 'Module 3 — Bibliothèque';
+    protected static ?string $navigationGroup = GroupeNavigation::BIBLIOTHEQUE;
 
     protected static ?int $navigationSort = 10;
 

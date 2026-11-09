@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\CampagneCandidatureResource\ExportsRetenusActions;
 use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
@@ -54,9 +55,9 @@ class PromotionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $navigationGroup = 'Vie académique';
+    protected static ?string $navigationGroup = GroupeNavigation::SCOLARITE;
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 20;
 
     public static function canViewAny(): bool
     {

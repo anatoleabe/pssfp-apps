@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\RegleEvaluationResource\Pages;
 use App\Models\RegleEvaluation;
@@ -34,7 +35,7 @@ class RegleEvaluationResource extends Resource
 
     protected static ?string $navigationLabel = 'Règles d\'évaluation';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = GroupeNavigation::REFERENTIEL;
 
     protected static ?int $navigationSort = 30;
 

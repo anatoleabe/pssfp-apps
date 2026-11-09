@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\RequeteResource\Pages;
 use App\Models\Requete;
 use App\Models\RequetePiece;
@@ -30,9 +31,9 @@ class RequeteResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-inbox-stack';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = GroupeNavigation::EVALUATIONS;
 
-    protected static ?int $navigationSort = 80;
+    protected static ?int $navigationSort = 60;
 
     public static function getNavigationBadge(): ?string
     {
