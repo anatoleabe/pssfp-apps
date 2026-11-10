@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\Journaux;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
@@ -58,6 +59,6 @@ class LibraryRedirect extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnly(['from_path', 'to_path', 'status_code'])->logOnlyDirty()->dontSubmitEmptyLogs();
+        return LogOptions::defaults()->useLogName(Journaux::BIBLIOTHEQUE)->logOnly(['from_path', 'to_path', 'status_code'])->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

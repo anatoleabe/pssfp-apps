@@ -9,6 +9,7 @@ use App\Models\ProgrammationEnseignant;
 use App\Models\SyntheseAnimation;
 use App\Models\User;
 use App\Support\AppSettings;
+use App\Support\Journaux;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -93,7 +94,7 @@ final class SynthesesAnimation
             $this->remplir($l, $d);
             $apres = $this->instantane($l);
             if ($avant !== $apres) {
-                activity('lmd')->causedBy($auteur)->performedOn($l)->event('synthese_modifiee')
+                activity(Journaux::PAIE)->causedBy($auteur)->performedOn($l)->event('synthese_modifiee')
                     ->withProperties(['avant' => $avant, 'apres' => $apres])->log('Synthèse d\'animation modifiée');
             }
         });
@@ -125,7 +126,7 @@ final class SynthesesAnimation
                 'source' => 'export_whatsapp', 'justificatif' => mb_substr('export WhatsApp '.$nom.' sha256='.$lu['empreinte'], 0, 255),
                 'importe_par' => $auteur->id, 'importe_at' => now(),
             ])->save();
-            activity('lmd')->causedBy($auteur)->performedOn($s)->event('export_whatsapp_importe')
+            activity(Journaux::PAIE)->causedBy($auteur)->performedOn($s)->event('export_whatsapp_importe')
                 ->withProperties(['comptes' => $r['comptes'], 'lignes' => $r['lignes'], 'sha256' => $lu['empreinte']])->log('Export WhatsApp importé');
 
             return [...$r, 'absentes' => $absentes];
@@ -186,7 +187,7 @@ final class SynthesesAnimation
                 throw new InvalidArgumentException('La synthèse est déjà en brouillon.');
             }
             $l->forceFill(['statut' => SyntheseAnimation::BROUILLON, 'valide_par' => null, 'valide_at' => null, 'motif_rejet' => null])->save();
-            activity('lmd')->causedBy($auteur)->performedOn($l)->event('synthese_rouverte')->withProperties(['motif' => mb_substr($motif, 0, 500)])->log('Synthèse d\'animation rouverte');
+            activity(Journaux::PAIE)->causedBy($auteur)->performedOn($l)->event('synthese_rouverte')->withProperties(['motif' => mb_substr($motif, 0, 500)])->log('Synthèse d\'animation rouverte');
         });
     }
 
@@ -264,7 +265,7 @@ final class SynthesesAnimation
         AppSettings::set(self::CLE_MODE, $mode, $auteur->id);
         AppSettings::set(self::CLE_SEUIL, round($seuil, 1), $auteur->id);
         $this->reglage = null;
-        activity('lmd')->causedBy($auteur)->event('mode_prime_animation_regle')->withProperties(['mode' => $mode, 'seuil' => $seuil])
+        activity(Journaux::PAIE)->causedBy($auteur)->event('mode_prime_animation_regle')->withProperties(['mode' => $mode, 'seuil' => $seuil])
             ->log('Mode de calcul de la prime d\'animation réglé');
     }
 

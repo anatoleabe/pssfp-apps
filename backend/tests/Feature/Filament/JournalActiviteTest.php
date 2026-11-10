@@ -7,7 +7,9 @@ use App\Filament\Resources\JournalActiviteResource;
 use App\Filament\Resources\JournalActiviteResource\Pages\ListJournalActivite;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
+use App\Models\Document;
 use App\Models\User;
+use App\Support\Journaux;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
@@ -100,7 +102,7 @@ it('liste les entrées du journal pour un admin, avec leur auteur', function ():
     $this->livewire(ListJournalActivite::class)
         ->assertCanSeeTableRecords([$ligne])
         ->assertSee($admin->name)
-        ->filterTable('log_name', ['admin'])
+        ->filterTable('domaine', ['Administration'])
         ->assertCanSeeTableRecords([$ligne]);
 });
 
@@ -124,4 +126,27 @@ it('filtre le journal par auteur et par période', function (): void {
         ->filterTable('periode', ['du' => now()->subDay()->toDateString(), 'au' => now()->toDateString()])
         ->assertCanSeeTableRecords([$deAdmin, $deAutre])
         ->assertCanNotSeeTableRecords([$ancienne]);
+});
+
+it('regroupe par domaine les journaux anciens et nouveaux, sans réécrire l\'historique', function (): void {
+    $this->actingAs(($this->agent)('admin'));
+    $ancien = activity('documents')->log('Document publié (ancien journal)');
+    $nouveau = activity(Journaux::BIBLIOTHEQUE)->log('Document publié');
+    $autre = activity(Journaux::PAIE)->log('État de paie vérifié');
+
+    $this->livewire(ListJournalActivite::class)
+        ->filterTable('domaine', ['Bibliothèque'])
+        ->assertCanSeeTableRecords([$ancien, $nouveau])
+        ->assertCanNotSeeTableRecords([$autre]);
+});
+
+it('journalise chaque domaine dans son journal', function (): void {
+    $this->actingAs(($this->agent)('admin'));
+    $document = Document::factory()->create();
+    $compte = ($this->agent)('editor');
+    $compte->update(['name' => 'Agent renommé']);
+
+    expect(Activity::query()->where('subject_type', Document::class)->where('subject_id', $document->id)->value('log_name'))->toBe('bibliotheque')
+        ->and(Activity::query()->where('subject_type', User::class)->where('subject_id', $compte->id)->latest('id')->value('log_name'))->toBe('comptes')
+        ->and(Activity::query()->where('log_name', 'default')->count())->toBe(0);
 });

@@ -10,6 +10,7 @@ use App\Filament\Resources\QuotaHoraireResource\ChampsProgrammation;
 use App\Models\EtatPaie;
 use App\Services\Lmd\EtatsPaie;
 use App\Services\Lmd\PermissionsLmd;
+use App\Support\Journaux;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -176,7 +177,7 @@ class ViewEtatPaie extends ViewRecord
         $e = $this->etat();
         $contenu = Pdf::loadView($vue, ['etat' => $e, 'synthese' => app(EtatsPaie::class)->synthese($e), 'edite_le' => now('Africa/Douala')])
             ->setPaper('a4', $orientation)->output();
-        activity('lmd')->causedBy(auth()->user())->performedOn($e)->event('etat_paie_telecharge')->withProperties(['vue' => $vue])->log('PDF d\'état de paie téléchargé');
+        activity(Journaux::PAIE)->causedBy(auth()->user())->performedOn($e)->event('etat_paie_telecharge')->withProperties(['vue' => $vue])->log('PDF d\'état de paie téléchargé');
 
         return response()->streamDownload(function () use ($contenu): void {
             echo $contenu;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\Journaux;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -57,7 +58,7 @@ class PointageEnseignant extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->useLogName('lmd')
+        return LogOptions::defaults()->useLogName(Journaux::PAIE)
             ->logOnly(['enseignant_id', 'remplace_enseignant_id', 'mode', 'arrivee', 'depart', 'nature', 'confirme_delegue', 'statut', 'minutes_payables', 'motif_rejet', 'ligne_paie_id'])
             ->logOnlyDirty()->dontSubmitEmptyLogs();
     }

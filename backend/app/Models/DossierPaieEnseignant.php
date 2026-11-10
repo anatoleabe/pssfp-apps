@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\Journaux;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -49,7 +50,7 @@ class DossierPaieEnseignant extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->useLogName('lmd')
+        return LogOptions::defaults()->useLogName(Journaux::PAIE)
             ->logOnly(['statut_paie', 'categorie', 'service_du_heures', 'actif'])
             ->logOnlyDirty()->dontSubmitEmptyLogs();
     }

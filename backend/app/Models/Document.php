@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Observers\DocumentObserver;
+use App\Support\Journaux;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -215,7 +216,7 @@ class Document extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()
+        return LogOptions::defaults()->useLogName(Journaux::BIBLIOTHEQUE)
             ->logOnly(['title', 'type', 'status', 'access_level', 'price_xaf', 'file_path', 'external_url', 'cover_path'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();

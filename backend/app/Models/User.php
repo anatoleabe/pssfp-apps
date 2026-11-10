@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\Journaux;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
@@ -120,7 +121,7 @@ final class User extends Authenticatable implements FilamentUser, HasName, MustV
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()
+        return LogOptions::defaults()->useLogName(Journaux::COMPTES)
             ->logOnly(['name', 'email', 'phone_e164'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
