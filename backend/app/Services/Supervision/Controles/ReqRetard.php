@@ -37,6 +37,11 @@ final class ReqRetard implements Controle
         return 2;
     }
 
+    public function responsable(): string
+    {
+        return 'scolarite_agent';
+    }
+
     public function cas(): array
     {
         $cas = [];

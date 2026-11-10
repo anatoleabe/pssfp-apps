@@ -97,6 +97,7 @@ class AnomalieSystemeResource extends Resource
         $aujourdhui = fn (): string => CarbonImmutable::now(Supervision::FUSEAU)->toDateString();
 
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->withMax('relances', 'niveau'))
             ->defaultSort('echeance')
             ->columns([
                 Tables\Columns\TextColumn::make('controle_code')->label('Contrôle')->wrap()
@@ -120,6 +121,9 @@ class AnomalieSystemeResource extends Resource
                 Tables\Columns\TextColumn::make('echeance')->label('Échéance')->date('d/m/Y')->sortable()
                     ->color(fn (AnomalieSysteme $a): ?string => in_array($a->statut, AnomalieSysteme::A_TRAITER, true)
                         && $a->echeance->toDateString() < $aujourdhui() ? 'danger' : null),
+                Tables\Columns\TextColumn::make('relances_max_niveau')->label('Relance')->badge()->placeholder('—')
+                    ->formatStateUsing(fn ($state): string => 'Niveau '.$state)
+                    ->color(fn ($state): string => (int) $state >= 3 ? 'danger' : ((int) $state === 2 ? 'warning' : 'gray')),
                 Tables\Columns\TextColumn::make('premiere_detection')->label('Détectée le')->dateTime('d/m/Y', Supervision::FUSEAU)->sortable(),
                 Tables\Columns\TextColumn::make('assigneA.name')->label('Pris en charge par')->placeholder('—'),
                 Tables\Columns\TextColumn::make('justification')->label('Justification')->limit(60)->placeholder('—')->toggleable(isToggledHiddenByDefault: true),

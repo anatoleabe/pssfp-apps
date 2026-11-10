@@ -36,8 +36,8 @@ Chaque lot a sa spec, sa branche, ses tests, et se déploie seul.
 | 13c-1 | **Avis de virement et rapprochement** de la paie, contrôle des écarts (spec `module-4-lmd-lot13c1-rapprochement-virements.md`) | D38 | PR #98, en production le 10/11 |
 | 13c-2 | **Contrôle de gestion** : coûts par UE, par parcours et par auditeur, tableau de bord mensuel, dossiers en retard (spec `module-4-lmd-lot13c2-controle-gestion.md`) ; budget reporté (décision du 10/11) | D38 | PR #100, en production le 10/11 |
 | 14a | **Contrôle interne** : catalogue de contrôles, anomalies (ouverture, fermeture automatique, prise en charge, justification), tableau de bord (spec `module-4-lmd-lot14a-controle-interne.md`) | D30 | PR #102, en production le 10/11 ; 1re exécution : 16 cas SEC_SEPARATION sur 4 comptes d'administration |
-| 14b-1 | **Messagerie interne** : boîte de réception, fils, pièces jointes, accusés de lecture, copie externe limitée à l'objet (spec `module-4-lmd-lot14b1-messagerie.md`) | D31 | En cours |
-| 14b-2 | **Relances graduées** du contrôle interne, envoyées par la messagerie | D30, D31 | À faire |
+| 14b-1 | **Messagerie interne** : boîte de réception, fils, pièces jointes, accusés de lecture, copie externe limitée à l'objet (spec `module-4-lmd-lot14b1-messagerie.md`) | D31 | PR #104, en production le 10/11 |
+| 14b-2 | **Relances graduées** du contrôle interne (niveaux 1 à 3 par criticité, escalade, replis), envoyées par la messagerie (spec `module-4-lmd-lot14b2-relances.md`) | D30, D31 | En cours |
 | 14c | **Demandes d'autorisation** : levée de verrou, validation, annulation d'une opération validée ; routage et double décision | D31 | À faire |
 | 14d | **Audit renforcé** : chaîne d'empreintes du journal, verrouillage des comptes, revue des habilitations | D30 | À faire |
 | 15 | **Archivage numérique** et reprise de l'historique d'ACMA | D29 ; plan de reprise | À faire |

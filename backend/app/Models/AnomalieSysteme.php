@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** Anomalie détectée par un contrôle du contrôle interne (lot 14a, D30). Seul App\Services\Supervision\Supervision écrit ici. */
 class AnomalieSysteme extends Model
@@ -63,5 +64,10 @@ class AnomalieSysteme extends Model
     public function traitePar(): BelongsTo
     {
         return $this->belongsTo(User::class, 'traite_par');
+    }
+
+    public function relances(): HasMany
+    {
+        return $this->hasMany(RelanceAnomalie::class, 'anomalie_id');
     }
 }

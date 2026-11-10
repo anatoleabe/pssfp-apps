@@ -47,6 +47,11 @@ final class SecSeparation implements Controle
         return 3;
     }
 
+    public function responsable(): string
+    {
+        return 'admin';
+    }
+
     public function cas(): array
     {
         $cas = [];

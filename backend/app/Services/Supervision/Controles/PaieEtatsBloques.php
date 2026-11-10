@@ -37,6 +37,11 @@ final class PaieEtatsBloques implements Controle
         return 3;
     }
 
+    public function responsable(): string
+    {
+        return 'service_financier';
+    }
+
     public function cas(): array
     {
         $cas = [];

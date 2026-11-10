@@ -39,6 +39,11 @@ final class SecComptes implements Controle
         return 15;
     }
 
+    public function responsable(): string
+    {
+        return 'admin';
+    }
+
     public function cas(): array
     {
         $seuil = now()->subDays(self::JOURS);

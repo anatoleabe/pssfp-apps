@@ -14,7 +14,7 @@
                 <thead><tr class="text-gray-500 dark:text-gray-400" style="text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;">
                     <th scope="col" style="{{ $cellule }}">Contrôle</th><th scope="col" style="{{ $cellule }}">Criticité</th>
                     <th scope="col" style="{{ $droite }}">À traiter</th><th scope="col" style="{{ $droite }}">En retard</th><th scope="col" style="{{ $droite }}">Justifiées</th>
-                    <th scope="col" style="{{ $droite }}">Corrigées (30 j)</th><th scope="col" style="{{ $droite }}">Délai moyen</th><th scope="col" style="{{ $cellule }}">Dernière exécution</th>
+                    <th scope="col" style="{{ $droite }}">Corrigées (30 j)</th><th scope="col" style="{{ $droite }}">Délai moyen</th><th scope="col" style="{{ $droite }}">Relances</th><th scope="col" style="{{ $cellule }}">Dernière exécution</th>
                 </tr></thead>
                 <tbody>
                     @foreach ($lignes as $l)
@@ -26,6 +26,7 @@
                             <td style="{{ $droite }}">{{ $l['justifiees'] }}</td>
                             <td style="{{ $droite }}">{{ $l['corrigees_30j'] }}</td>
                             <td style="{{ $droite }}">{{ $l['delai_moyen'] === null ? '—' : str_replace('.', ',', (string) $l['delai_moyen']).' j' }}</td>
+                            <td style="{{ $droite }}">{{ $l['relances'] }}</td>
                             <td style="{{ $cellule }}">
                                 @if ($l['erreur'])
                                     <x-filament::badge color="danger">En erreur</x-filament::badge>

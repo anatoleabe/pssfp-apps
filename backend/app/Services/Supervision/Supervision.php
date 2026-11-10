@@ -13,6 +13,7 @@ use App\Services\Supervision\Controles\ReqRetard;
 use App\Services\Supervision\Controles\SecComptes;
 use App\Services\Supervision\Controles\SecSeparation;
 use App\Services\Supervision\Controles\SysControles;
+use App\Services\Supervision\Controles\SysDestinataires;
 use App\Support\Journaux;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +38,7 @@ final class Supervision
     /** Catalogue, dans l'ordre d'exécution ; SYS_CONTROLES en dernier (il lit les erreurs des autres). */
     public const CATALOGUE = [
         PaiRapprochement::class, PaieEtatsBloques::class, ReqRetard::class, ReqNonCotees::class,
-        SecSeparation::class, SecComptes::class, SysControles::class,
+        SecSeparation::class, SecComptes::class, SysDestinataires::class, SysControles::class,
     ];
 
     public static function peutConsulter(?User $user): bool
@@ -139,6 +140,7 @@ final class Supervision
         $aujourdhui = CarbonImmutable::now(self::FUSEAU)->toDateString();
         $depuis = now()->subDays(30);
         $lignes = [];
+        $relances = app(Relances::class)->parControle();
         foreach ($this->controles() as $code => $c) {
             $base = AnomalieSysteme::query()->where('controle_code', $code);
             $corrigees = (clone $base)->where('statut', AnomalieSysteme::CORRIGEE)->where('traite_le', '>=', $depuis)->get(['premiere_detection', 'traite_le']);
@@ -150,6 +152,7 @@ final class Supervision
                 'justifiees' => (clone $base)->where('statut', AnomalieSysteme::JUSTIFIEE)->count(),
                 'corrigees_30j' => $corrigees->count(),
                 'delai_moyen' => $corrigees->isEmpty() ? null : round($corrigees->avg(fn ($a): float => $a->premiere_detection->diffInHours($a->traite_le) / 24), 1),
+                'relances' => $relances[$code] ?? 0,
                 'derniere_execution' => $derniere?->fin,
                 'erreur' => $derniere?->erreur,
             ];

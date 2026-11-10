@@ -35,6 +35,11 @@ final class ReqNonCotees implements Controle
         return 1;
     }
 
+    public function responsable(): string
+    {
+        return 'scolarite_responsable';
+    }
+
     public function cas(): array
     {
         $cas = [];
