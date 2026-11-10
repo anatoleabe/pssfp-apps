@@ -25,6 +25,9 @@ interface Controle
 
     public function delaiJours(): int;
 
+    /** Rôle chargé de traiter les anomalies, relancé au niveau 1 (lot 14b-2). */
+    public function responsable(): string;
+
     /**
      * Cas anormaux, par clé stable. Le détail porte au moins `resume` (phrase lisible, sans donnée personnelle superflue).
      *

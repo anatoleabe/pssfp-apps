@@ -53,6 +53,11 @@ function controleFactice(string $code): Controle
             return 2;
         }
 
+        public function responsable(): string
+        {
+            return 'admin';
+        }
+
         public function cas(): array
         {
             return $this->cas;
@@ -135,6 +140,11 @@ it('n\'arrête pas les autres contrôles quand l\'un échoue, et le signale dans
         public function delaiJours(): int
         {
             return 1;
+        }
+
+        public function responsable(): string
+        {
+            return 'admin';
         }
 
         public function cas(): array

@@ -38,6 +38,11 @@ final class PaiRapprochement implements Controle
         return 5;
     }
 
+    public function responsable(): string
+    {
+        return 'service_financier';
+    }
+
     public function cas(): array
     {
         $cas = [];

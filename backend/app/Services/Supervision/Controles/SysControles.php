@@ -37,6 +37,11 @@ final class SysControles implements Controle
         return 1;
     }
 
+    public function responsable(): string
+    {
+        return 'admin';
+    }
+
     public function cas(): array
     {
         $dernieres = DB::table('executions_controles')->where('controle_code', '<>', self::CODE)
