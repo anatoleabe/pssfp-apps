@@ -46,6 +46,8 @@ final class Journaux
 
     public const PARAMETRES = 'parametres';
 
+    public const SUPERVISION = 'supervision';
+
     /** Nom de journal → libellé affiché dans la colonne « Journal ». */
     public const LIBELLES = [
         self::CANDIDATURES => 'Candidatures',
@@ -61,6 +63,7 @@ final class Journaux
         self::CONNEXIONS => 'Connexions du personnel',
         self::ADMIN => 'Modifications back-office',
         self::PARAMETRES => 'Paramètres',
+        self::SUPERVISION => 'Contrôle interne',
         'default' => 'Comptes et bibliothèque (avant le 10/11/2026)',
     ];
 
@@ -72,7 +75,7 @@ final class Journaux
         'Enseignants et paie' => [self::PAIE],
         'Bibliothèque' => [self::BIBLIOTHEQUE, 'documents'],
         'Comptes, rôles et connexions' => [self::COMPTES, self::ROLES, self::CONNEXIONS],
-        'Administration' => [self::ADMIN, self::PARAMETRES],
+        'Administration' => [self::ADMIN, self::PARAMETRES, self::SUPERVISION],
         'Historique non classé (avant le 10/11/2026)' => ['default'],
     ];
 

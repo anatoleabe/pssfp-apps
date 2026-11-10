@@ -222,7 +222,11 @@ final class ModulePermissionMap
                 ],
                 'sensitive' => [
                     'journal.view' => 'Consulter le journal d\'activité de toute l\'application (qui a fait quoi, quand)',
+                    'supervision.consulter' => 'Consulter le contrôle interne : anomalies détectées par les contrôles automatiques',
+                    'supervision.traiter' => 'Traiter les anomalies du contrôle interne : prise en charge, justification, exécution des contrôles',
                 ],
+                // Le contrôle interne s'ouvre sans autre droit d'administration (responsable de scolarité).
+                'standalone' => ['supervision.consulter', 'supervision.traiter'],
             ],
         ];
     }

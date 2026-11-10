@@ -42,3 +42,6 @@ Schedule::call(function (): void {
         }
     }
 })->name('purge-envois-livewire')->everyFifteenMinutes()->withoutOverlapping();
+
+// Contrôle interne (lot 14a, D30) : anomalies ouvertes, mises à jour, fermées chaque matin avant l'arrivée des agents.
+Schedule::command('supervision:executer')->dailyAt('05:30')->withoutOverlapping();
