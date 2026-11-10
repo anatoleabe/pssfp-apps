@@ -45,3 +45,6 @@ Schedule::call(function (): void {
 
 // Contrôle interne (lot 14a, D30) : anomalies ouvertes, mises à jour, fermées chaque matin avant l'arrivée des agents.
 Schedule::command('supervision:executer')->dailyAt('05:30')->withoutOverlapping();
+
+// Messagerie interne (lot 14b-1, D31) : copies externes (courriel, SMS) des messages, trois tentatives au plus.
+Schedule::command('messagerie:envoyer')->everyFiveMinutes()->withoutOverlapping();

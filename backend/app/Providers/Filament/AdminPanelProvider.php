@@ -67,6 +67,7 @@ final class AdminPanelProvider extends PanelProvider
             ])
             ->font('Source Sans 3', url: 'https://fonts.bunny.net/css?family=source-sans-3:400,500,600,700&display=swap')
             ->renderHook(PanelsRenderHook::STYLES_AFTER, static fn (): View => view('filament.theme.charte'))
+            ->renderHook(PanelsRenderHook::USER_MENU_BEFORE, static fn (): View => view('filament.messagerie.enveloppe'))
             ->maxContentWidth(MaxWidth::Full)
             ->navigationGroups(array_map(
                 static fn (string $groupe): NavigationGroup => NavigationGroup::make($groupe)->collapsible(),

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Filament\Pages\Lmd\RapprochementVirementsPage;
+use App\Filament\Resources\EtatPaieResource;
 use App\Filament\Resources\EtatPaieResource\Pages\ViewEtatPaie;
 use App\Filament\Widgets\ATraiterWidget;
 use App\Models\AvisVirement;
@@ -243,5 +244,5 @@ it('affiche la colonne du rapprochement dans la liste paginée des états', func
     ($this->ligne)($etat, $this->awa, 100000);
     $this->service->enregistrer($etat, [($this->avis)($this->awa, 100000, 'VIR-1')], $this->financier);
 
-    $this->actingAs($this->financier)->get(\App\Filament\Resources\EtatPaieResource::getUrl('index'))->assertOk()->assertSee('Complet');
+    $this->actingAs($this->financier)->get(EtatPaieResource::getUrl('index'))->assertOk()->assertSee('Complet');
 });

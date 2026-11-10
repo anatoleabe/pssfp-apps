@@ -277,7 +277,8 @@ function isolationVisibleScreens(): array
     $screens = isolationScreens();
 
     return [
-        'resources' => array_values(array_filter($screens['resource'], fn (string $r): bool => $r::canAccess())),
+        // Socle commun (la messagerie interne, lot 14b-1) : ouvert à tout le personnel, hors cloisonnement par module.
+        'resources' => array_values(array_filter($screens['resource'], fn (string $r): bool => $r::canAccess() && ModuleAccess::moduleOf($r) !== ModuleAccess::CORE)),
         'widgets' => array_values(array_filter($screens['widget'], fn (string $w): bool => $w::canView() && ModuleAccess::moduleOf($w) !== ModuleAccess::CORE)),
         'pages' => array_values(array_filter($screens['page'], fn (string $p): bool => $p::canAccess())),
     ];
