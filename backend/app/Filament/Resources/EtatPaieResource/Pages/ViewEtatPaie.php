@@ -7,9 +7,11 @@ namespace App\Filament\Resources\EtatPaieResource\Pages;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\EtatPaieResource;
 use App\Filament\Resources\QuotaHoraireResource\ChampsProgrammation;
+use App\Models\AvisVirement;
 use App\Models\EtatPaie;
 use App\Services\Lmd\EtatsPaie;
 use App\Services\Lmd\PermissionsLmd;
+use App\Services\Lmd\RapprochementVirements;
 use App\Support\Journaux;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action;
@@ -126,6 +128,53 @@ class ViewEtatPaie extends ViewRecord
                     $svc()->avancer($this->etat(), EtatPaie::PAYE, auth()->user(), (string) $data['reference'], (string) $data['date']);
 
                     return 'Virement enregistré : état payé.';
+                })),
+            // Lot 13c-1 : virements reçus par enseignant (relevé bancaire, avis du Trésor), rapprochés du net dû.
+            Action::make('enregistrerVirements')->label('Enregistrer des virements')->icon('heroicon-o-arrows-right-left')->color('gray')
+                ->visible(fn (): bool => in_array($statut(), RapprochementVirements::ETATS_RAPPROCHABLES, true) && RapprochementVirements::peutSaisir(auth()->user()))
+                ->modalWidth('6xl')->modalSubmitActionLabel('Enregistrer')
+                ->modalDescription('Saisissez la référence des virements reçus ; une ligne sans référence est ignorée. Un avis enregistré ne se modifie pas : il s\'annule.')
+                ->fillForm(fn (): array => ['virements' => collect(app(RapprochementVirements::class)->rapprochement($this->etat()))
+                    ->filter(fn (array $r): bool => $r['net_du'] > $r['vire'])
+                    ->map(fn (array $r): array => ['enseignant_id' => $r['enseignant_id'], 'enseignant' => $r['enseignant'],
+                        'montant' => $r['net_du'] - $r['vire'], 'date_valeur' => now('Africa/Douala')->toDateString(), 'reference' => null, 'source' => 'releve_bancaire'])
+                    ->values()->all()])
+                ->form(MessagesValidation::appliquer([
+                    Forms\Components\Repeater::make('virements')->label('Enseignants dont le net n\'est pas encore viré')
+                        ->addable(false)->reorderable(false)->columns(5)
+                        ->schema([
+                            Forms\Components\Hidden::make('enseignant_id'),
+                            Forms\Components\TextInput::make('enseignant')->label('Enseignant')->disabled()->dehydrated(false),
+                            Forms\Components\TextInput::make('montant')->label('Montant viré (FCFA)')->integer()->minValue(1)->required(),
+                            Forms\Components\DatePicker::make('date_valeur')->label('Date de valeur')->native(false)->displayFormat('d/m/Y')->maxDate(now('Africa/Douala'))->required(),
+                            Forms\Components\TextInput::make('reference')->label('Référence')->maxLength(100),
+                            Forms\Components\Select::make('source')->label('Source')->options(AvisVirement::SOURCES)->required()->native(false),
+                        ]),
+                ]))
+                ->action(fn (array $data) => $this->executer(function () use ($data): string {
+                    $lignes = collect($data['virements'] ?? [])->filter(fn (array $l): bool => trim((string) ($l['reference'] ?? '')) !== '')
+                        ->map(fn (array $l): array => ['enseignant_id' => (int) $l['enseignant_id'], 'montant' => (int) $l['montant'],
+                            'date_valeur' => (string) $l['date_valeur'], 'reference' => (string) $l['reference'], 'source' => (string) $l['source']])
+                        ->values()->all();
+                    $crees = app(RapprochementVirements::class)->enregistrer($this->etat(), $lignes, auth()->user());
+
+                    return $crees->count().' virement(s) enregistré(s).';
+                })),
+            Action::make('annulerAvis')->label('Annuler un avis de virement')->icon('heroicon-o-x-mark')->color('gray')
+                ->visible(fn (): bool => RapprochementVirements::peutSaisir(auth()->user())
+                    && AvisVirement::query()->enVigueur()->where('etat_id', $this->etat()->id)->exists())
+                ->modalSubmitActionLabel('Annuler l\'avis')
+                ->form(MessagesValidation::appliquer([
+                    Forms\Components\Select::make('avis')->label('Avis à annuler')->required()->native(false)
+                        ->options(fn (): array => AvisVirement::query()->enVigueur()->where('etat_id', $this->etat()->id)->with('enseignant:id,name')->orderBy('date_valeur')->get()
+                            ->mapWithKeys(fn (AvisVirement $a): array => [$a->uuid => $a->enseignant?->name.' — '.$a->reference.' — '.EtatsPaie::fcfa($a->montant)])->all()),
+                    Forms\Components\Textarea::make('motif')->label('Motif de l\'annulation')->required()->minLength(RapprochementVirements::MOTIF_MIN)->maxLength(500),
+                ]))
+                ->action(fn (array $data) => $this->executer(function () use ($data): string {
+                    $avis = AvisVirement::query()->where('uuid', (string) $data['avis'])->where('etat_id', $this->etat()->id)->firstOrFail();
+                    app(RapprochementVirements::class)->annuler($avis, (string) $data['motif'], auth()->user());
+
+                    return 'Avis annulé.';
                 })),
             ActionGroup::make([
                 Action::make('pdfEtat')->label('État (PDF)')->icon('heroicon-o-document-text')
