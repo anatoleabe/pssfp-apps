@@ -36,6 +36,14 @@ return [
             'serve' => true,
             'throw' => false,
             'report' => false,
+            // PHP-FPM (www-data) écrit, les tâches planifiées (pssfp) purgent :
+            // le privé reste fermé aux autres, ouvert au groupe partagé
+            // (www-data, dossier setgid). Sans cela, livewire-tmp était en 0700
+            // et la purge des envois (lot 13b-2) échouait toutes les 15 min.
+            'permissions' => [
+                'file' => ['public' => 0664, 'private' => 0660],
+                'dir' => ['public' => 0775, 'private' => 0770],
+            ],
         ],
 
         'public' => [
