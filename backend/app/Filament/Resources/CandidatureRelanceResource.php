@@ -92,6 +92,11 @@ class CandidatureRelanceResource extends Resource
         return $echecs > 0 ? (string) $echecs : null;
     }
 
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Envois en échec';
+    }
+
     public static function getNavigationBadgeColor(): ?string
     {
         return 'danger';

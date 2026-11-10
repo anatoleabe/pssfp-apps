@@ -201,3 +201,32 @@ it('sert à l\'auditeur son reçu annulé, journalise le téléchargement, et r�
     $this->withToken($sansScolarite->createToken('candidat', ['application:read'])->plainTextToken)
         ->getJson('/v1/applications/me/scolarite/recus/'.$r->uuid)->assertNotFound()->assertJsonPath('code', 'recu_missing');
 });
+
+it('liste les versements qui attendent leur reçu, sauf pour l\'agent qui les a saisis', function (): void {
+    $a = ($this->verser)(185000);
+    $b = ($this->verser)(300000, '2026-11-05');
+
+    expect($this->service->enAttente($this->financier)->pluck('id')->all())->toEqualCanonicalizing([$a->id, $b->id])
+        ->and($this->service->enAttente($this->agent)->count())->toBe(0);
+
+    $this->service->emettre($a, $this->financier);
+
+    expect($this->service->enAttente($this->financier)->pluck('id')->all())->toBe([$b->id]);
+});
+
+it('n\'attend aucun reçu tant que la mise en service n\'est pas réglée', function (): void {
+    ($this->verser)(185000);
+    AppSettings::set(RecusVersements::CLE_DEPUIS, null);
+
+    expect($this->service->enAttente($this->financier)->count())->toBe(0);
+});
+
+it('signale au service financier, dans le menu, les versements sans reçu', function (): void {
+    ($this->verser)(185000);
+
+    $this->actingAs($this->financier);
+    expect(RecuVersementResource::getNavigationBadge())->toBe('1');
+
+    $this->actingAs($this->agent);
+    expect(RecuVersementResource::getNavigationBadge())->toBeNull();
+});

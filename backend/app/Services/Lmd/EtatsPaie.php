@@ -49,6 +49,43 @@ final class EtatsPaie
         EtatPaie::PAYE => [[EtatPaie::PRIS_EN_CHARGE], PermissionsLmd::PAIE_PAYER],
     ];
 
+    /**
+     * Statuts de départ admis pour une étape, selon que le visa du contrôleur
+     * interne est requis. Source unique du circuit (avancer) et de la pastille
+     * « à traiter » (statutsATraiter).
+     *
+     * @param  list<string>  $depuis
+     * @return list<string>
+     */
+    private static function departsAdmis(string $etape, array $depuis, bool $visa): array
+    {
+        return match ($etape) {
+            EtatPaie::VISE => $visa ? $depuis : [],
+            // Un état déjà visé se transmet même si le visa a été désactivé depuis.
+            EtatPaie::TRANSMIS => $visa ? [EtatPaie::VISE] : [EtatPaie::VERIFIE, EtatPaie::VISE],
+            default => $depuis,
+        };
+    }
+
+    /**
+     * Statuts d'où cet utilisateur peut faire avancer un état de paie : ce
+     * qui l'attend dans le circuit (pastille du menu, tableau de bord).
+     *
+     * @return list<string>
+     */
+    public function statutsATraiter(User $user): array
+    {
+        $visa = $this->visaRequis();
+        $statuts = [];
+        foreach (self::ETAPES as $etape => [$depuis, $permission]) {
+            if ($user->can($permission)) {
+                $statuts = [...$statuts, ...self::departsAdmis($etape, $depuis, $visa)];
+            }
+        }
+
+        return array_values(array_unique($statuts));
+    }
+
     // ---------------------------------------------------------------- création et génération
 
     /** Crée et génère l'état ordinaire d'un mois (AAAA-MM) ; un seul par mois, hors états rejetés. */
@@ -230,12 +267,7 @@ final class EtatsPaie
         DB::transaction(function () use ($etat, $etape, $depuis, $auteur, $reference, $date, $empreinte): void {
             $e = EtatPaie::query()->whereKey($etat->id)->lockForUpdate()->firstOrFail();
             $visa = $this->visaRequis();
-            $admis = match ($etape) {
-                EtatPaie::VISE => $visa ? $depuis : [],
-                // Un état déjà visé se transmet même si le visa a été désactivé depuis.
-                EtatPaie::TRANSMIS => $visa ? [EtatPaie::VISE] : [EtatPaie::VERIFIE, EtatPaie::VISE],
-                default => $depuis,
-            };
+            $admis = self::departsAdmis($etape, $depuis, $visa);
             if (! in_array($e->statut, $admis, true)) {
                 throw new InvalidArgumentException('Étape « '.EtatPaie::STATUTS[$etape].' » impossible depuis « '.EtatPaie::STATUTS[$e->statut].' »'
                     .($etape === EtatPaie::TRANSMIS && $visa ? ' : le visa du contrôleur interne est requis.' : ($etape === EtatPaie::VISE && ! $visa ? ' : le visa n\'est pas requis.' : '.')));
