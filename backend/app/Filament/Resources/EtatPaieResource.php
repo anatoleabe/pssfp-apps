@@ -10,6 +10,7 @@ use App\Filament\Resources\EtatPaieResource\Pages;
 use App\Filament\Resources\EtatPaieResource\RelationManagers\LignesRelationManager;
 use App\Models\EtatPaie;
 use App\Services\Lmd\EtatsPaie;
+use App\Services\Lmd\RapprochementVirements;
 use App\Support\BelongsToModule;
 use Carbon\CarbonImmutable;
 use Filament\Infolists;
@@ -97,6 +98,20 @@ class EtatPaieResource extends Resource
                     ->getStateUsing(fn (EtatPaie $e): string => EtatsPaie::fcfa((int) $e->lignes()->sum('montant_brut'))),
                 Tables\Columns\TextColumn::make('net')->label('Net')->alignEnd()
                     ->getStateUsing(fn (EtatPaie $e): string => EtatsPaie::fcfa((int) $e->lignes()->sum('montant_net'))),
+                // Lot 13c-1 : virements reçus par enseignant, rapprochés du net dû.
+                Tables\Columns\TextColumn::make('rapprochement')->label('Rapprochement')->badge()
+                    ->visible(fn (): bool => RapprochementVirements::peutConsulter(auth()->user()))
+                    // Bilans de la page calculés ensemble (requêtes groupées), une fois par rendu.
+                    ->getStateUsing(fn (EtatPaie $e, Tables\Contracts\HasTable $livewire): ?string => once(
+                        fn (): array => app(RapprochementVirements::class)->bilans($livewire->getTableRecords()),
+                    )[$e->id] ?? null)
+                    ->formatStateUsing(fn (?string $state): string => self::BILANS_RAPPROCHEMENT[$state] ?? '—')
+                    ->color(fn (?string $state): string => match ($state) {
+                        'complet' => 'success',
+                        'ecarts' => 'danger',
+                        'a_faire' => 'warning',
+                        default => 'gray',
+                    }),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('statut')->label('État')->options(EtatPaie::STATUTS),
@@ -138,6 +153,23 @@ class EtatPaieResource extends Resource
                         Infolists\Components\TextEntry::make('raison')->label('Raison'),
                     ]),
                 ]),
+            Infolists\Components\Section::make('Virements')
+                ->description('Virements reçus par chaque enseignant, rapprochés de son net dû (lot 13c-1).')
+                ->visible(fn (EtatPaie $e): bool => in_array($e->statut, RapprochementVirements::ETATS_RAPPROCHABLES, true)
+                    && RapprochementVirements::peutConsulter(auth()->user()))
+                ->schema([
+                    Infolists\Components\RepeatableEntry::make('virements')->label('')->columns(5)
+                        ->state(fn (EtatPaie $e): array => app(RapprochementVirements::class)->rapprochement($e))
+                        ->schema([
+                            Infolists\Components\TextEntry::make('enseignant')->label('Enseignant'),
+                            Infolists\Components\TextEntry::make('net_du')->label('Net dû')->formatStateUsing(fn ($state): string => EtatsPaie::fcfa((int) $state)),
+                            Infolists\Components\TextEntry::make('vire')->label('Viré')->formatStateUsing(fn ($state): string => EtatsPaie::fcfa((int) $state)),
+                            Infolists\Components\TextEntry::make('situation')->label('Situation')->badge()
+                                ->formatStateUsing(fn (string $state): string => RapprochementVirements::SITUATIONS[$state] ?? $state)
+                                ->color(fn (string $state): string => $state === RapprochementVirements::RAPPROCHE ? 'success' : ($state === RapprochementVirements::NON_VIRE ? 'warning' : 'danger')),
+                            Infolists\Components\TextEntry::make('references')->label('Références')->placeholder('—'),
+                        ]),
+                ]),
             Infolists\Components\Section::make('Totaux')->columns(4)->schema([
                 Infolists\Components\TextEntry::make('t_enseignants')->label('Enseignants')->getStateUsing(fn (EtatPaie $e): string => (string) static::synthese($e)['totaux']['enseignants']),
                 Infolists\Components\TextEntry::make('t_cm')->label('Heures de CM payées')->getStateUsing(fn (EtatPaie $e): string => str_replace('.', ',', (string) static::synthese($e)['totaux']['heures_cm']).' h'),
@@ -152,6 +184,8 @@ class EtatPaieResource extends Resource
             ]),
         ]);
     }
+
+    public const BILANS_RAPPROCHEMENT = ['complet' => 'Complet', 'ecarts' => 'Écarts', 'a_faire' => 'À faire'];
 
     public static function getRelations(): array
     {

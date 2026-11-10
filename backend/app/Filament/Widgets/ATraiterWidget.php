@@ -9,6 +9,7 @@ use App\Filament\Navigation\GroupeNavigation;
 use App\Support\BelongsToModule;
 use App\Support\ModuleAccess;
 use Filament\Facades\Filament;
+use Filament\Pages\Page;
 use Filament\Resources\Resource;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -17,7 +18,7 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  * « À traiter » : en tête du tableau de bord, ce qui attend l'utilisateur
  * connecté, tous modules confondus (chantier « Socle », étape 3).
  *
- * Source unique : la pastille du menu de chaque écran. Un écran entre ici
+ * Source unique : la pastille du menu de chaque écran (ressource ou page). Un écran entre ici
  * dès qu'il définit getNavigationBadge() ; ce qu'il compte, et pour qui, se
  * décide dans l'écran (droits, périmètre de l'agent). Seuls les écrans que
  * l'utilisateur peut ouvrir sont lus.
@@ -61,8 +62,10 @@ final class ATraiterWidget extends StatsOverviewWidget
     {
         $elements = [];
 
-        /** @var class-string<resource> $ecran */
-        foreach (Filament::getPanel('admin')->getResources() as $ecran) {
+        $panel = Filament::getPanel('admin');
+
+        /** @var class-string<resource>|class-string<Page> $ecran */
+        foreach ([...$panel->getResources(), ...$panel->getPages()] as $ecran) {
             if (! $ecran::canAccess()) {
                 continue;
             }
@@ -76,7 +79,7 @@ final class ATraiterWidget extends StatsOverviewWidget
                 'groupe' => (string) $ecran::getNavigationGroup(),
                 'icone' => (string) $ecran::getNavigationIcon(),
                 'couleur' => is_string($couleur = $ecran::getNavigationBadgeColor()) ? $couleur : 'primary',
-                'url' => $ecran::getUrl('index'),
+                'url' => is_subclass_of($ecran, Page::class) ? $ecran::getUrl() : $ecran::getUrl('index'),
                 'ordre' => [(int) array_search($ecran::getNavigationGroup(), GroupeNavigation::ORDRE, true), (int) $ecran::getNavigationSort()],
             ];
         }
