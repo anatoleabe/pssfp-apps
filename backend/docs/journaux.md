@@ -12,7 +12,7 @@ Le Journal d'activité (admin › Administration) répond à « qui a fait quoi,
 | `paie` | Enseignants et paie | Pointages, dossiers de paie, barème, états de paie, primes |
 | `bibliotheque` | Bibliothèque | Documents, thésaurus, anciennes adresses |
 | `comptes`, `roles`, `connexions` | Comptes, rôles et connexions | Comptes du personnel, rôles, connexions à l'admin |
-| `admin`, `parametres` | Administration | Modifications faites dans l'admin, paramètres |
+| `admin`, `parametres`, `supervision`, `messagerie` | Administration | Modifications faites dans l'admin, paramètres, contrôle interne, envois de la messagerie interne (catégorie, nombre de destinataires et de pièces, canaux ; jamais l'objet ni le corps) |
 
 Plus aucune écriture dans `default`.
 
