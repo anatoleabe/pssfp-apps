@@ -51,9 +51,14 @@ Ensuite : LMD 13c → 14 → 15, chacun sur sa spec.
 |---|---|
 | 1 | Fait — PR #88, en production le 10/11 |
 | 2 | Fait — PR #90, en production le 10/11 |
+| 3 | Fait — PR #93, en production le 10/11. Encart « À traiter » et pastilles ; statuts des candidatures en clair |
 | 4 | Fait — PR #91, en production le 10/11. `teacher` et `auditor` retirés (aucun titulaire). **`librarian` conservé** : son périmètre est plus étroit que celui de `library_manager` (ni thésaurus, ni anciennes adresses, ni statistiques), contrairement au constat initial. Matrice réelle : `docs/ops/roles.md` |
+| 5 | Fait — PR #94, en production le 10/11. Journaux `paie`, `bibliotheque`, `comptes` ; filtre par domaine (la scolarité et le LMD y manquaient) ; convention `backend/docs/journaux.md` |
+| 6 | Fait — PR #94, en production le 10/11. Journal quotidien (30 jours, 0664), `X-Request-Id`, `user_id` |
+| 8 | Fait — ADR-0012 (proposée) : PWA de terrain, conventions d'API à appliquer dès maintenant |
+| 7 | Reste à faire : découpage de `CandidatureResource` |
 
-**Constat de la matrice (10/11)** : le visa des états de paie (« contrôleur interne », `lmd.paie_viser`) n'est porté par aucun rôle hors `super_admin`. Le circuit de paie ne peut donc pas être tenu sans le super administrateur. À décider : quel agent est contrôleur interne, et faut-il un rôle dédié.
+**Constat de la matrice (10/11)** : le visa des états de paie (« contrôleur interne », `lmd.paie_viser`) n'est porté par aucun rôle hors `super_admin`. Sans effet aujourd'hui : le visa est désactivé en prod (vérifié le 10/11). À décider avant de l'activer : quel agent est contrôleur interne, et faut-il un rôle dédié.
 
 ## 4. Vérification
 
