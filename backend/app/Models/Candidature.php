@@ -27,6 +27,14 @@ class Candidature extends Model
 
     public const STATUT_REFUSE = 'refuse';
 
+    /** Libellés des statuts, pour l'admin (badge, filtre, fiche). */
+    public const STATUTS = [
+        self::STATUT_POSTULANT => 'Postulant',
+        self::STATUT_CANDIDAT => 'En examen',
+        self::STATUT_ACCEPTE => 'Accepté',
+        self::STATUT_REFUSE => 'Refusé',
+    ];
+
     /** Catégories de matricule des retenus (ex. 26EFP001, 26EFSC002). */
     public const CATEGORIE_EFP = 'EFP';
 

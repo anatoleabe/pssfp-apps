@@ -12,6 +12,7 @@ use App\Models\Versement;
 use App\Support\AppSettings;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use NumberFormatter;
@@ -53,6 +54,26 @@ final class RecusVersements
         }
 
         return null;
+    }
+
+    /**
+     * Versements qui attendent leur reçu de la part de cet agent : la
+     * traduction en requête de raisonRefus() (pastille du menu, tableau de
+     * bord). Vide tant que la mise en service n'est pas réglée.
+     *
+     * @return Builder<Versement>
+     */
+    public function enAttente(User $agent): Builder
+    {
+        $depuis = $this->miseEnService();
+
+        return Versement::query()
+            ->when($depuis === null, fn (Builder $q) => $q->whereIn('id', []))
+            ->when($depuis !== null, fn (Builder $q) => $q->where('created_at', '>=', $depuis))
+            ->whereNull('annule_at')
+            ->where(fn (Builder $q) => $q->whereNull('saisi_par')->orWhere('saisi_par', '<>', $agent->id))
+            ->whereDoesntHave('recus', fn (Builder $q) => $q->whereDoesntHave('annulation'))
+            ->whereDoesntHave('inscription.auditeur.candidature', fn (Builder $q) => $q->whereNotNull('withdrawn_at'));
     }
 
     public function emettre(Versement $versement, User $auteur): RecuVersement

@@ -63,6 +63,24 @@ class EtatPaieResource extends Resource
         };
     }
 
+    /** États de paie que cet utilisateur peut faire avancer dans le circuit. */
+    public static function getNavigationBadge(): ?string
+    {
+        $u = auth()->user();
+        $statuts = $u === null ? [] : app(EtatsPaie::class)->statutsATraiter($u);
+        if ($statuts === []) {
+            return null;
+        }
+        $n = EtatPaie::query()->whereIn('statut', $statuts)->count();
+
+        return $n > 0 ? (string) $n : null;
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'États de paie à faire avancer';
+    }
+
     public static function table(Table $table): Table
     {
         return $table

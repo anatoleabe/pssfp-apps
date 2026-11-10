@@ -80,6 +80,25 @@ class CandidatureResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'numero_dossier';
 
+    /** Dossiers en examen, pour qui peut décider. */
+    public static function getNavigationBadge(): ?string
+    {
+        if (! auth()->user()?->can('candidature.accept')) {
+            return null;
+        }
+        $n = static::getEloquentQuery()
+            ->where('statut', Candidature::STATUT_CANDIDAT)
+            ->whereNull('withdrawn_at')
+            ->count();
+
+        return $n > 0 ? (string) $n : null;
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Dossiers en examen';
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
@@ -90,7 +109,8 @@ class CandidatureResource extends Resource
                 ->schema([
                     Forms\Components\TextInput::make('numero_dossier')->disabled(),
                     Forms\Components\TextInput::make('uuid')->disabled(),
-                    Forms\Components\TextInput::make('statut')->disabled(),
+                    Forms\Components\TextInput::make('statut')->disabled()
+                        ->formatStateUsing(fn (?string $state): ?string => Candidature::STATUTS[$state ?? ''] ?? $state),
                     Forms\Components\TextInput::make('phone_e164')->label('Téléphone (login)')->disabled(),
                     Forms\Components\TextInput::make('email')->disabled(),
                     Forms\Components\Select::make('campagne_id')
@@ -309,6 +329,7 @@ class CandidatureResource extends Resource
                     }),
                 Tables\Columns\TextColumn::make('statut')
                     ->badge()
+                    ->formatStateUsing(fn (string $state): string => Candidature::STATUTS[$state] ?? $state)
                     ->sortable()
                     ->color(fn (string $state) => match ($state) {
                         'postulant' => 'warning',
@@ -396,12 +417,7 @@ class CandidatureResource extends Resource
                     ->label('Campagne')
                     ->options(fn () => CampagneCandidature::orderByDesc('opens_at')->pluck('nom', 'id'))
                     ->default(fn () => CampagneCandidature::currentlyOpen()->value('id')),
-                Tables\Filters\SelectFilter::make('statut')->multiple()->options([
-                    'postulant' => 'Postulant',
-                    'candidat' => 'Candidat',
-                    'accepte' => 'Accepté',
-                    'refuse' => 'Refusé',
-                ]),
+                Tables\Filters\SelectFilter::make('statut')->multiple()->options(Candidature::STATUTS),
                 Tables\Filters\SelectFilter::make('region')
                     ->options(fn () => RegionCameroun::orderBy('order')->pluck('nom', 'code')),
                 Tables\Filters\TernaryFilter::make('frais_paye')

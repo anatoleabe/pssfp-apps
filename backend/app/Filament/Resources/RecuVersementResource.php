@@ -43,6 +43,23 @@ class RecuVersementResource extends Resource
 
     protected static ?string $slug = 'recus-versements';
 
+    /** Versements qui attendent leur reçu de la part de cet agent. */
+    public static function getNavigationBadge(): ?string
+    {
+        $u = auth()->user();
+        if ($u === null || ! $u->can(RecusVersements::PERMISSION_EMETTRE)) {
+            return null;
+        }
+        $n = app(RecusVersements::class)->enAttente($u)->count();
+
+        return $n > 0 ? (string) $n : null;
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Versements sans reçu';
+    }
+
     public static function table(Table $table): Table
     {
         return $table

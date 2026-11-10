@@ -43,6 +43,11 @@ class RequeteResource extends Resource
         return $n > 0 ? (string) $n : null;
     }
 
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Requêtes à traiter';
+    }
+
     public static function table(Table $table): Table
     {
         return $table

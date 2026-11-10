@@ -74,6 +74,11 @@ class ProgrammationEnseignantResource extends Resource
         return parent::getEloquentQuery()->when(static::enseignantSeul(), fn (Builder $q) => $q->where('enseignant_id', auth()->id()));
     }
 
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Programmations à accepter ou décliner';
+    }
+
     public static function table(Table $table): Table
     {
         $moi = fn (ProgrammationEnseignant $p): bool => $p->enseignant_id === auth()->id() && (bool) auth()->user()?->can(PermissionsLmd::PROGRAMMATION_REPONDRE);
