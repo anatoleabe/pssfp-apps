@@ -183,8 +183,9 @@ final class ModulePermissionMap
                     'lmd.paie_verifier' => 'Valider le barème des enseignants, vérifier, transmettre et rejeter les états de paie',
                     'lmd.paie_viser' => 'Viser les états de paie (contrôleur interne)',
                     'lmd.paie_payer' => 'Prendre en charge et payer les états de paie des enseignants (service financier)',
+                    'lmd.controle_gestion' => 'Consulter le contrôle de gestion : coûts par UE et par parcours, tableau de bord mensuel, dossiers en retard',
                 ],
-                'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir', 'lmd.calendrier_signer', 'lmd.actes_signer', 'lmd.programmation_repondre', 'lmd.pointage_emarger', 'lmd.dossier_paie', 'lmd.paie_viser', 'lmd.paie_payer'],
+                'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir', 'lmd.calendrier_signer', 'lmd.actes_signer', 'lmd.programmation_repondre', 'lmd.pointage_emarger', 'lmd.dossier_paie', 'lmd.paie_viser', 'lmd.paie_payer', 'lmd.controle_gestion'],
             ],
             'bibliotheque' => [
                 'label' => 'Bibliothèque',

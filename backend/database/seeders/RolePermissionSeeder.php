@@ -116,6 +116,7 @@ final class RolePermissionSeeder extends Seeder
                     'lmd.actes_signer',
                     'lmd.programmation_valider',
                     'lmd.paie_verifier',
+                    'lmd.controle_gestion',
                     'journal.view',
                     'document.publish',
                     'library.thesaurus',
@@ -219,7 +220,7 @@ final class RolePermissionSeeder extends Seeder
                 'label' => 'Service administratif et financier',
                 'description' => 'Dossiers de paie des enseignants : NIU, banque et compte de virement.',
                 'modules' => ['scolarite' => $manage],
-                'sensitive' => ['lmd.dossier_paie', 'scolarite.recu_emettre', 'lmd.paie_payer'],
+                'sensitive' => ['lmd.dossier_paie', 'scolarite.recu_emettre', 'lmd.paie_payer', 'lmd.controle_gestion'],
             ],
             'chef_structure' => [
                 'label' => 'Chef de la structure',

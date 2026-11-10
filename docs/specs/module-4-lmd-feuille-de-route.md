@@ -34,7 +34,7 @@ Chaque lot a sa spec, sa branche, ses tests, et se déploie seul.
 | 13b-1 | **États de paie** : barème, état mensuel des heures et des surveillances, circuit jusqu'au virement, PDF de l'état et du bordereau | D23 à D25 | PR #86, fusionnée le 08/11 |
 | 13b-2 | **Primes d'animation en ligne** : synthèses, import de l'export WhatsApp, ajout à l'état du mois | D25 | PR #87, fusionnée le 09/11 |
 | 13c-1 | **Avis de virement et rapprochement** de la paie, contrôle des écarts (spec `module-4-lmd-lot13c1-rapprochement-virements.md`) | D38 | PR #98, en production le 10/11 |
-| 13c-2 | **Contrôle de gestion** : budget et réalisé, coûts par UE et par parcours, tableau de bord mensuel, dossiers en retard | D38 | À faire |
+| 13c-2 | **Contrôle de gestion** : coûts par UE, par parcours et par auditeur, tableau de bord mensuel, dossiers en retard (spec `module-4-lmd-lot13c2-controle-gestion.md`) ; budget reporté (décision du 10/11) | D38 | En cours |
 | 14 | **Supervision**, messagerie interne, demandes d'autorisation | D30, D31 | À faire |
 | 15 | **Archivage numérique** et reprise de l'historique d'ACMA | D29 ; plan de reprise | À faire |
 

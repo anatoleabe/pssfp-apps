@@ -97,4 +97,7 @@ final class PermissionsLmd
 
     /** Lot 13b : prise en charge et paiement d'un état de paie (service financier). */
     public const PAIE_PAYER = 'lmd.paie_payer';
+
+    /** Lot 13c-2 : contrôle de gestion (coûts, tableau de bord mensuel, dossiers en retard), direction et service financier. */
+    public const CONTROLE_GESTION = 'lmd.controle_gestion';
 }

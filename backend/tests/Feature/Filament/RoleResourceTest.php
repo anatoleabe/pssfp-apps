@@ -310,7 +310,7 @@ it('fait l\'aller-retour des actions autonomes sans dérive', function (): void 
     expect(ModulePermissionMap::toLevels($permissions))->toBe($levels)
         ->and(RoleResource::sensitiveActionsByModule($permissions)['bibliotheque'])->toBe([])
         ->and(RoleResource::standaloneActionsByModule($permissions))->toBe(['lmd' => [], 'bibliotheque' => ['document.contribute']])
-        ->and(ModulePermissionMap::standaloneActions())->toBe(['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir', 'lmd.calendrier_signer', 'lmd.actes_signer', 'lmd.programmation_repondre', 'lmd.pointage_emarger', 'lmd.dossier_paie', 'lmd.paie_viser', 'lmd.paie_payer', 'document.contribute']);
+        ->and(ModulePermissionMap::standaloneActions())->toBe(['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir', 'lmd.calendrier_signer', 'lmd.actes_signer', 'lmd.programmation_repondre', 'lmd.pointage_emarger', 'lmd.dossier_paie', 'lmd.paie_viser', 'lmd.paie_payer', 'lmd.controle_gestion', 'document.contribute']);
 });
 
 it('range les nouvelles actions de la bibliothèque parmi ses actions sensibles', function (): void {
