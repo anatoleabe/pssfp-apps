@@ -50,3 +50,12 @@ it('ne laisse aucun groupe vide', function (): void {
 
     expect(array_values(array_diff(GroupeNavigation::ORDRE, $utilises)))->toBe([]);
 });
+
+it('sert le thème de la charte sur l\'écran de connexion', function (): void {
+    $this->get('/admin/login')
+        ->assertOk()
+        ->assertSee('--pssfp-prune: #4A2E67', false)
+        ->assertSee('family=source-sans-3', false)
+        ->assertSee('images/pssfp-logo.png', false)
+        ->assertDontSee('family=inter', false);
+});
