@@ -29,6 +29,9 @@ class Message extends Model
         self::DECISION => 'Décision', self::NOTIFICATION => 'Notification',
     ];
 
+    /** Catégories envoyées par le système, sans expéditeur. */
+    public const DU_SYSTEME = [self::RELANCE, self::NOTIFICATION];
+
     public const NORMALE = 'normale';
 
     public const HAUTE = 'haute';
@@ -86,6 +89,6 @@ class Message extends Model
 
     public function estDuSysteme(): bool
     {
-        return $this->expediteur_id === null && $this->categorie !== self::MESSAGE;
+        return $this->expediteur_id === null && in_array($this->categorie, self::DU_SYSTEME, true);
     }
 }
