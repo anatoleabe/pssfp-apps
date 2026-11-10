@@ -45,6 +45,16 @@
 
 Ensuite : LMD 13c → 14 → 15, chacun sur sa spec.
 
+### Avancement
+
+| # | État |
+|---|---|
+| 1 | Fait — PR #88, en production le 10/11 |
+| 2 | Fait — PR #90, en production le 10/11 |
+| 4 | Fait — PR #91, en production le 10/11. `teacher` et `auditor` retirés (aucun titulaire). **`librarian` conservé** : son périmètre est plus étroit que celui de `library_manager` (ni thésaurus, ni anciennes adresses, ni statistiques), contrairement au constat initial. Matrice réelle : `docs/ops/roles.md` |
+
+**Constat de la matrice (10/11)** : le visa des états de paie (« contrôleur interne », `lmd.paie_viser`) n'est porté par aucun rôle hors `super_admin`. Le circuit de paie ne peut donc pas être tenu sans le super administrateur. À décider : quel agent est contrôleur interne, et faut-il un rôle dédié.
+
 ## 4. Vérification
 
 Chaque étape : tests Pest verts, revue (`filament-reviewer`, `security-reviewer` pour les rôles, `a11y-reviewer` pour le thème), déploiement seul.
