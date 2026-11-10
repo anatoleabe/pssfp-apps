@@ -43,11 +43,6 @@ it('denies access to candidat role', function (): void {
     expect(makeUser('candidat')->canAccessPanel(filament()->getPanel('admin')))->toBeFalse();
 });
 
-it('denies access to teacher / auditor (V1 not in matrix)', function (string $role): void {
-    config()->set('pssfp.filament.require_2fa', false);
-    expect(makeUser($role)->canAccessPanel(filament()->getPanel('admin')))->toBeFalse();
-})->with(['teacher', 'auditor']);
-
 it('denies access when 2FA is required and the user has not enabled it', function (): void {
     config()->set('pssfp.filament.require_2fa', true);
     $u = makeUser('admission_committee');

@@ -34,15 +34,13 @@ final class User extends Authenticatable implements FilamentUser, HasName, MustV
      * Rôles qui n'ouvrent jamais le panneau d'administration, quel que soit
      * leur périmètre.
      *
-     * `candidat` est le rôle des comptes créés par apply.pssfp.org ; `teacher`
-     * et `auditor` sont des rôles d'API / de futurs espaces dédiés.
+     * `candidat` est le rôle des comptes créés par apply.pssfp.org. (`teacher`
+     * et `auditor`, rôles d'API jamais attribués, ont été retirés le 10/11/2026.)
      *
      * @var list<string>
      */
     public const NON_PANEL_ROLES = [
         'candidat',
-        'teacher',
-        'auditor',
     ];
 
     /**

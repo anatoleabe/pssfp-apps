@@ -58,7 +58,7 @@ function isolationSeededRoles(): array
         'super_admin', 'admin', 'editor', 'admission_committee', 'receptionniste',
         'librarian', 'library_manager', 'library_contributor', 'library_viewer', 'caisse',
         'scolarite_agent', 'scolarite_responsable', 'enseignant', 'membre_jury', 'chef_commission_requetes', 'gestionnaire_anonymats', 'operateur_saisie', 'chef_structure', 'service_financier',
-        'teacher', 'auditor', 'candidat',
+        'candidat',
     ];
 }
 
@@ -230,7 +230,7 @@ it('n\'ouvre à un rôle pris seul que les écrans des modules qu\'il donne', fu
     $dashboardUrl = Dashboard::getUrl(panel: 'admin');
 
     if (! $user->canAccessPanel($panel)) {
-        expect(['teacher', 'auditor', 'candidat'])->toContain($roleName);
+        expect($roleName)->toBe('candidat');
         $this->actingAs($user)->get($dashboardUrl)->assertForbidden();
 
         return;
@@ -398,8 +398,6 @@ it('montre les widgets des admissions aux rôles seedés selon leurs droits', fu
     'editor' => ['editor', false, false, false],
     'librarian' => ['librarian', false, false, false],
     'library_manager' => ['library_manager', false, false, false],
-    'teacher' => ['teacher', false, false, false],
-    'auditor' => ['auditor', false, false, false],
 ]);
 
 it('montre les widgets des admissions à un rôle créé depuis l\'écran des rôles', function (string $level, array $sensitive, bool $avancement, bool $depots, bool $quotas): void {

@@ -257,21 +257,6 @@ final class RolePermissionSeeder extends Seeder
                 'modules' => ['site' => $none, 'admissions' => $read, 'administration' => $none, 'bibliotheque' => $none],
                 'sensitive' => ['candidature.mark_paid'],
             ],
-            // `teacher` et `auditor` n'ouvrent pas le back-office (cf.
-            // User::NON_PANEL_ROLES) : ce sont des rôles d'API et de futurs
-            // espaces dédiés. Ils existent, sans périmètre admin.
-            'teacher' => [
-                'label' => 'Enseignant',
-                'description' => 'Rôle d\'API — espace enseignant prévu en Phase II. Aucun accès back-office.',
-                'modules' => ['site' => $none, 'admissions' => $none, 'administration' => $none, 'bibliotheque' => $none],
-                'sensitive' => [],
-            ],
-            'auditor' => [
-                'label' => 'Auditeur',
-                'description' => 'Rôle d\'API — espace auditeur prévu en Phase II. Aucun accès back-office.',
-                'modules' => ['site' => $none, 'admissions' => $none, 'administration' => $none, 'bibliotheque' => $none],
-                'sensitive' => [],
-            ],
         ];
 
         foreach ($roles as $name => $definition) {

@@ -36,7 +36,7 @@ URL : `/admin`. Sessions Laravel natives + 2FA TOTP **obligatoire** pour rôles 
 
 Resources principales (cf. spec module 6 §3) : `PageResource`, `ArticleResource`, `CategoryResource`, `TagResource`, `SpecialiteResource`, `UniteEnseignementResource`, `FormationContinueResource`, `CertificationResource`, `PromotionResource`, `EnseignantResource`, `EvenementResource`, `PartenaireResource`, `DocumentResource`, `MotCleResource`, `DocumentDownloadResource`, `CampagneCandidatureResource`, `CandidatureResource`, `CandidateProfileResource`, `UserResource`, `RoleResource`, `ContactMessageResource`, `RedirectResource`.
 
-Rôles Spatie (`spatie/laravel-permission`) : `admin`, `editor`, `librarian`, `admission_committee`, `teacher`, `auditor`. Matrice de permissions seedée via `RolePermissionSeeder`.
+Rôles Spatie (`spatie/laravel-permission`) : droits exprimés par module dans `App\Support\ModulePermissionMap` (source unique, partagée avec l'écran Rôles). Matrice réelle : `php artisan roles:matrice` (copie dans `docs/ops/roles.md`). `RolePermissionSeeder` pour une base neuve seulement ; en prod, toute évolution passe par une migration additive.
 
 **Activity Log** (`spatie/laravel-activitylog`) sur toutes les Resources stratégiques avec `logOnlyDirty()`.
 
