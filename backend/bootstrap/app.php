@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Console\Commands\PurgeExpiredOtps;
+use App\Http\Middleware\IdentifiantRequete;
 use App\Http\Middleware\IpVisiteurDuPortail;
 use App\Http\Middleware\SetLocaleFromRequest;
 use App\Http\Middleware\ThrottleCandidatLogin;
@@ -23,6 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: 'v1',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Identifiant de requête dans chaque ligne du journal technique.
+        $middleware->prepend(IdentifiantRequete::class);
         $middleware->statefulApi();
         $middleware->validateCsrfTokens(except: [
             // Endpoints publics dépourvus de CSRF (Sanctum couvre les requêtes stateful)
