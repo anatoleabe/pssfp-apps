@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\EtatPaieResource\Pages;
 use App\Filament\Resources\EtatPaieResource\RelationManagers\LignesRelationManager;
 use App\Models\EtatPaie;
@@ -35,9 +36,9 @@ class EtatPaieResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static ?string $navigationGroup = 'Paie des enseignants';
+    protected static ?string $navigationGroup = GroupeNavigation::ENSEIGNANTS_PAIE;
 
-    protected static ?int $navigationSort = 51;
+    protected static ?int $navigationSort = 60;
 
     protected static ?string $slug = 'etats-paie';
 

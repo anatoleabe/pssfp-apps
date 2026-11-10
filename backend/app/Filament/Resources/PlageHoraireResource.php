@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\PlageHoraireResource\Pages;
 use App\Models\PlageHoraire;
@@ -31,9 +32,9 @@ class PlageHoraireResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clock';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = GroupeNavigation::PLANIFICATION;
 
-    protected static ?int $navigationSort = 50;
+    protected static ?int $navigationSort = 110;
 
     public static function form(Form $form): Form
     {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\QuotaHoraireResource\ChampsProgrammation;
 use App\Filament\Resources\SyntheseAnimationResource\Pages;
@@ -46,7 +47,7 @@ class SyntheseAnimationResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-right';
 
-    protected static ?string $navigationGroup = 'Paie des enseignants';
+    protected static ?string $navigationGroup = GroupeNavigation::ENSEIGNANTS_PAIE;
 
     protected static ?int $navigationSort = 50;
 

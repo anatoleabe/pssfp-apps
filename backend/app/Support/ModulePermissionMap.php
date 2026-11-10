@@ -65,7 +65,7 @@ final class ModulePermissionMap
     {
         return [
             'site' => [
-                'label' => 'Module 1 — Site institutionnel',
+                'label' => 'Site institutionnel',
                 'description' => 'Pages, actualités et médiathèque de pssfp.org.',
                 'read' => [
                     'view_any_page', 'view_page',
@@ -80,7 +80,7 @@ final class ModulePermissionMap
                 'sensitive' => [],
             ],
             'admissions' => [
-                'label' => 'Module 5 — Admissions',
+                'label' => 'Admissions',
                 'description' => 'Dossiers de candidature et campagnes. Les campagnes restent en lecture seule hors administrateurs.',
                 'read' => [
                     'view_any_candidature', 'view_candidature',
@@ -112,7 +112,7 @@ final class ModulePermissionMap
                 ],
             ],
             'scolarite' => [
-                'label' => 'Module 4 — Scolarité',
+                'label' => 'Scolarité',
                 'description' => 'Auditeurs, versements et situation financière. La gestion donne le droit d\'enregistrer un versement.',
                 'read' => [
                     'view_any_auditeur', 'view_auditeur',
@@ -133,8 +133,8 @@ final class ModulePermissionMap
                 ],
             ],
             'lmd' => [
-                'label' => 'Module 4 — Parcours LMD',
-                'description' => 'Parcours, maquettes, règles d\'évaluation et inscriptions pédagogiques des auditeurs.',
+                'label' => 'Parcours LMD',
+                'description' => 'Menus « Référentiel pédagogique », « Planification », « Évaluations et jurys » et « Enseignants et paie ».',
                 'read' => [
                     'lmd.consulter',
                 ],
@@ -187,7 +187,7 @@ final class ModulePermissionMap
                 'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir', 'lmd.calendrier_signer', 'lmd.actes_signer', 'lmd.programmation_repondre', 'lmd.pointage_emarger', 'lmd.dossier_paie', 'lmd.paie_viser', 'lmd.paie_payer'],
             ],
             'bibliotheque' => [
-                'label' => 'Module 3 — Bibliothèque',
+                'label' => 'Bibliothèque',
                 'description' => 'Documents de la bibliothèque virtuelle et thésaurus. La publication reste une action sensible.',
                 'read' => [
                     'view_any_document', 'view_document',

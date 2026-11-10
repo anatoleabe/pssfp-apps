@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Pages\Lmd;
 
 use App\Filament\Concerns\ChecksModuleAccess;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Models\AttributionEcue;
 use App\Models\EtapeSaisie;
@@ -41,9 +42,9 @@ class SaisieNotes extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-pencil-square';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = GroupeNavigation::EVALUATIONS;
 
-    protected static ?int $navigationSort = 40;
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $title = 'Saisie des notes';
 

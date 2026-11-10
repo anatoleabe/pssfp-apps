@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Pages\Lmd;
 
 use App\Filament\Concerns\ChecksModuleAccess;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\QuotaHoraireResource\ChampsProgrammation;
 use App\Models\EvenementCalendrier;
@@ -29,9 +30,9 @@ class SuiviHeuresEnseignees extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static ?string $navigationGroup = 'Paie des enseignants';
+    protected static ?string $navigationGroup = GroupeNavigation::ENSEIGNANTS_PAIE;
 
-    protected static ?int $navigationSort = 48;
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $title = 'Suivi des heures enseignées';
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\CampagneCandidatureResource\ExportsRetenusActions;
 use App\Filament\Resources\CampagneCandidatureResource\Pages;
 use App\Filament\Resources\CampagneCandidatureResource\ResultatsSelectionActions;
@@ -37,7 +38,7 @@ class CampagneCandidatureResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-megaphone';
 
-    protected static ?string $navigationGroup = 'Module 5 — Admissions';
+    protected static ?string $navigationGroup = GroupeNavigation::ADMISSIONS;
 
     protected static ?int $navigationSort = 20;
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\BaremeScolariteResource\Pages;
 use App\Models\BaremeScolarite;
@@ -36,9 +37,9 @@ class BaremeScolariteResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-scale';
 
-    protected static ?string $navigationGroup = 'Vie académique';
+    protected static ?string $navigationGroup = GroupeNavigation::SCOLARITE;
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 40;
 
     public static function form(Form $form): Form
     {

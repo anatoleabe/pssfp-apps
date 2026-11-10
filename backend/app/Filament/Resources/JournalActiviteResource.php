@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\ChecksModuleAccess;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\JournalActiviteResource\Pages;
 use App\Models\Candidature;
 use App\Models\User;
@@ -58,9 +59,9 @@ class JournalActiviteResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationGroup = 'Administration';
+    protected static ?string $navigationGroup = GroupeNavigation::ADMINISTRATION;
 
-    protected static ?int $navigationSort = 90;
+    protected static ?int $navigationSort = 40;
 
     protected static ?string $slug = 'journal-activite';
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\DeliberationResource\Pages;
 use App\Filament\Resources\DeliberationResource\RelationManagers\MesuresRelationManager;
@@ -39,9 +40,9 @@ class DeliberationResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static ?string $navigationGroup = 'Parcours LMD';
+    protected static ?string $navigationGroup = GroupeNavigation::EVALUATIONS;
 
-    protected static ?int $navigationSort = 70;
+    protected static ?int $navigationSort = 50;
 
     public static function form(Form $form): Form
     {

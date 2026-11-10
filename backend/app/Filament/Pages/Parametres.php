@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Pages;
 
 use App\Filament\Concerns\ChecksModuleAccess;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Models\User;
 use App\Services\EnvoiTestService;
 use App\Services\Sms\ChecksConnectivity;
@@ -46,9 +47,9 @@ class Parametres extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
 
-    protected static ?string $navigationGroup = 'Administration';
+    protected static ?string $navigationGroup = GroupeNavigation::ADMINISTRATION;
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $title = 'Paramètres';
 

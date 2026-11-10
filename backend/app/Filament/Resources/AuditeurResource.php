@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
+use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\Pages;
 use App\Filament\Resources\AuditeurResource\ParcoursActions;
 use App\Filament\Resources\AuditeurResource\RelationManagers\VersementsRelationManager;
@@ -49,7 +50,7 @@ class AuditeurResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
 
-    protected static ?string $navigationGroup = 'Vie académique';
+    protected static ?string $navigationGroup = GroupeNavigation::SCOLARITE;
 
     protected static ?int $navigationSort = 10;
 
