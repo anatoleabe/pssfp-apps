@@ -6,6 +6,7 @@ use App\Http\Middleware\IdentifiantRequete;
 use App\Logging\AjouterUtilisateur;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Monolog\Handler\TestHandler;
 
 uses()->group('socle');
@@ -50,3 +51,13 @@ it('écrit le journal technique par jour, sur 30 jours, lisible par PHP-FPM et l
         ->and($quotidien['permission'])->toBe(0664)
         ->and($quotidien['tap'])->toContain(AjouterUtilisateur::class);
 })->skip(fn (): bool => env('LOG_STACK') !== null, 'LOG_STACK imposé par l\'environnement');
+
+it('ouvre les fichiers privés du disque local au groupe partagé (purge par les tâches planifiées)', function (): void {
+    $disque = Storage::disk('local');
+    $disque->put('test-permissions/envoi.txt', 'contenu', ['visibility' => 'private']);
+
+    expect(fileperms($disque->path('test-permissions/envoi.txt')) & 0777)->toBe(0660)
+        ->and(config('filesystems.disks.local.permissions.dir.private'))->toBe(0770);
+
+    $disque->deleteDirectory('test-permissions');
+});
