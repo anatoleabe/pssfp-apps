@@ -14,6 +14,7 @@ use App\Models\Seance;
 use App\Models\SyntheseAnimation;
 use App\Models\User;
 use App\Support\AppSettings;
+use App\Support\Journaux;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -177,7 +178,7 @@ final class EtatsPaie
             $this->liberer($e);
             $e->lignes()->delete();
             $this->generer($e, $auteur);
-            activity('lmd')->causedBy($auteur)->performedOn($e)->event('etat_paie_regenere')
+            activity(Journaux::PAIE)->causedBy($auteur)->performedOn($e)->event('etat_paie_regenere')
                 ->withProperties(['avant' => $avant, 'apres' => $this->totaux($e)])->log('État de paie régénéré');
         });
     }
@@ -358,7 +359,7 @@ final class EtatsPaie
     {
         abort_unless($auteur->can('settings.manage'), 403);
         AppSettings::set(self::CLE_VISA, $actif, $auteur->id);
-        activity('lmd')->causedBy($auteur)->event('visa_paie_regle')->withProperties(['actif' => $actif])->log('Visa du contrôleur interne '.($actif ? 'activé' : 'désactivé'));
+        activity(Journaux::PAIE)->causedBy($auteur)->event('visa_paie_regle')->withProperties(['actif' => $actif])->log('Visa du contrôleur interne '.($actif ? 'activé' : 'désactivé'));
     }
 
     // ---------------------------------------------------------------- barème

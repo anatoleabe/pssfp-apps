@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\Journaux;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\LogOptions;
@@ -32,7 +33,7 @@ class BaremeRemuneration extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->useLogName('lmd')
+        return LogOptions::defaults()->useLogName(Journaux::PAIE)
             ->logOnly(['montant_unitaire', 'taux_retenue', 'statut', 'reference_texte'])->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 

@@ -8,6 +8,7 @@ use App\Filament\Forms\Components\PrivateFileUpload;
 use App\Filament\Resources\DocumentResource;
 use App\Jobs\ProcessDocumentFile;
 use App\Models\Document;
+use App\Support\Journaux;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -41,7 +42,7 @@ class EditDocument extends EditRecord
 
                 ProcessDocumentFile::dispatch($record->id, forceCover: true);
 
-                activity('documents')->causedBy(auth()->user())->performedOn($record)
+                activity(Journaux::BIBLIOTHEQUE)->causedBy(auth()->user())->performedOn($record)
                     ->event('cover_regeneration_requested')
                     ->log('Régénération de la couverture demandée');
 

@@ -15,6 +15,7 @@ use App\Models\Document;
 use App\Models\User;
 use App\Services\Library\DocumentReviewNotifier;
 use App\Support\BelongsToModule;
+use App\Support\Journaux;
 use Closure;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -399,7 +400,7 @@ class DocumentResource extends Resource
 
         $document->update(['status' => Document::STATUS_DRAFT]);
 
-        activity('documents')->causedBy(auth()->user())->performedOn($document)
+        activity(Journaux::BIBLIOTHEQUE)->causedBy(auth()->user())->performedOn($document)
             ->withProperties(['from' => Document::STATUS_IN_REVIEW, 'to' => Document::STATUS_DRAFT, 'motif' => $reason])
             ->event('document_returned_to_draft')
             ->log('Renvoyé en brouillon');

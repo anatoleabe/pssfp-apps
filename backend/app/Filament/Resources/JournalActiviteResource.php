@@ -10,6 +10,7 @@ use App\Filament\Resources\JournalActiviteResource\Pages;
 use App\Models\Candidature;
 use App\Models\User;
 use App\Support\BelongsToModule;
+use App\Support\Journaux;
 use Filament\Forms;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
@@ -35,19 +36,6 @@ class JournalActiviteResource extends Resource
 
     /** Heure affichée : celle de Yaoundé (les dates sont stockées en UTC). */
     public const FUSEAU = 'Africa/Douala';
-
-    /** Journaux connus → libellé lisible. */
-    public const JOURNAUX = [
-        'admin' => 'Modifications back-office',
-        'connexions' => 'Connexions du personnel',
-        'candidatures' => 'Candidatures',
-        'auth.candidat' => 'Connexions des candidats',
-        'default' => 'Comptes, rôles et bibliothèque',
-        'roles' => 'Rôles',
-        'envois' => 'Envois SMS / e-mail',
-        'parametres' => 'Paramètres',
-        'documents' => 'Bibliothèque',
-    ];
 
     protected static ?string $model = Activity::class;
 
@@ -124,7 +112,7 @@ class JournalActiviteResource extends Resource
                 Tables\Columns\TextColumn::make('log_name')
                     ->label('Domaine')
                     ->badge()
-                    ->formatStateUsing(fn (?string $state): string => self::JOURNAUX[$state] ?? (string) $state)
+                    ->formatStateUsing(fn (?string $state): string => Journaux::libelle($state))
                     ->color(fn (?string $state): string => match ($state) {
                         'connexions', 'auth.candidat' => 'gray',
                         'admin' => 'info',
@@ -142,10 +130,19 @@ class JournalActiviteResource extends Resource
                     ->wrap(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('log_name')
+                // Par domaine métier : chaque domaine regroupe ses journaux,
+                // anciens noms compris (l'historique n'est pas réécrit).
+                Tables\Filters\SelectFilter::make('domaine')
                     ->label('Domaine')
                     ->multiple()
-                    ->options(self::JOURNAUX),
+                    ->options(array_combine(array_keys(Journaux::DOMAINES), array_keys(Journaux::DOMAINES)))
+                    ->query(fn (Builder $query, array $data): Builder => $query->when(
+                        $data['values'] ?? [],
+                        fn (Builder $q, array $domaines): Builder => $q->whereIn('log_name', array_merge(...array_map(
+                            fn (string $d): array => Journaux::DOMAINES[$d] ?? [],
+                            $domaines,
+                        ))),
+                    )),
                 Tables\Filters\SelectFilter::make('event')
                     ->label('Type d\'action')
                     ->multiple()
@@ -201,7 +198,7 @@ class JournalActiviteResource extends Resource
                 Infolists\Components\TextEntry::make('created_at')->label('Date')->dateTime('d/m/Y H:i:s', self::FUSEAU),
                 Infolists\Components\TextEntry::make('auteur')->label('Auteur')->state(fn (Activity $r): string => self::auteur($r)),
                 Infolists\Components\TextEntry::make('log_name')->label('Domaine')
-                    ->formatStateUsing(fn (?string $state): string => self::JOURNAUX[$state] ?? (string) $state),
+                    ->formatStateUsing(fn (?string $state): string => Journaux::libelle($state)),
                 Infolists\Components\TextEntry::make('event')->label('Type d\'action')->placeholder('—'),
                 Infolists\Components\TextEntry::make('description')->label('Action')->columnSpanFull(),
                 Infolists\Components\TextEntry::make('element')->label('Élément')->state(fn (Activity $r): string => self::element($r))->columnSpanFull(),

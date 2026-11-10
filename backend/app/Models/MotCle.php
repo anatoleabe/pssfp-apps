@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Exceptions\MotCleHasChildrenException;
+use App\Support\Journaux;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -115,6 +116,6 @@ class MotCle extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnly(['slug', 'label', 'parent_id'])->logOnlyDirty()->dontSubmitEmptyLogs();
+        return LogOptions::defaults()->useLogName(Journaux::BIBLIOTHEQUE)->logOnly(['slug', 'label', 'parent_id'])->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

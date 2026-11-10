@@ -262,7 +262,7 @@ it('chiffre le NIU et le compte, les garde hors du journal et les réserve au se
         ->and($d->estComplet())->toBeTrue()
         ->and($brut->niu)->not->toContain('P012345678901A')
         ->and($brut->compte_paiement)->not->toContain('0123456789')
-        ->and(DB::table('activity_log')->where('log_name', 'lmd')->count())->toBeGreaterThan(0)
+        ->and(DB::table('activity_log')->where('log_name', 'paie')->count())->toBeGreaterThan(0)
         ->and(json_encode(DB::table('activity_log')->pluck('properties')))->not->toContain('0123456789')->not->toContain('P0123')->not->toContain('Banque fictive')
         ->and($d->toArray())->not->toHaveKey('niu')
         ->and(fn () => $this->service->majDossier($d, ['statut_paie' => 'vacataire', 'niu' => 'abc'], $financier))->toThrow(InvalidArgumentException::class, 'NIU')

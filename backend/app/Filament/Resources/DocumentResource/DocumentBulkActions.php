@@ -9,6 +9,7 @@ use App\Models\Document;
 use App\Models\MotCle;
 use App\Models\User;
 use App\Services\Library\DocumentReviewNotifier;
+use App\Support\Journaux;
 use Closure;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -201,7 +202,7 @@ final class DocumentBulkActions
     /** Les thèmes sont un pivot : le journal automatique ne les voit pas. */
     private static function logThemes(Document $document, string $event, string $description, Collection $themes): void
     {
-        activity('documents')->causedBy(auth()->user())->performedOn($document)
+        activity(Journaux::BIBLIOTHEQUE)->causedBy(auth()->user())->performedOn($document)
             ->withProperties(['mots_cles' => $themes->pluck('slug')->values()->all()])
             ->event($event)
             ->log($description);
