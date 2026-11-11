@@ -9,12 +9,14 @@ use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Audit\RevueHabilitations;
 use App\Services\Audit\VerrouillageComptes;
 use App\Support\BelongsToModule;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Support\Exceptions\Halt;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -225,6 +227,31 @@ class UserResource extends Resource
                             ->body('L\'agent devra la reconfigurer à sa prochaine connexion.')
                             ->success()
                             ->send();
+                    }),
+                Tables\Actions\Action::make('revue_habilitations')
+                    ->label('Revue des habilitations')
+                    ->icon('heroicon-o-clipboard-document-check')
+                    ->color('gray')
+                    ->visible(fn (User $record): bool => ! $record->is(auth()->user()) && auth()->user()?->can('update', $record) === true
+                        && app(RevueHabilitations::class)->rolesRevisables($record) !== [])
+                    ->modalDescription('Revue annuelle : décochez les rôles dont ce compte n\'a plus besoin ; ils lui seront retirés.')
+                    ->fillForm(fn (User $record): array => ['maintenus' => app(RevueHabilitations::class)->rolesRevisables($record)])
+                    ->form(fn (User $record): array => [
+                        Forms\Components\CheckboxList::make('maintenus')->label('Rôles maintenus')
+                            ->options(array_combine($r = app(RevueHabilitations::class)->rolesRevisables($record), $r)),
+                        Forms\Components\Textarea::make('commentaire')->label('Commentaire (obligatoire si un rôle est retiré)')->maxLength(1000),
+                    ])
+                    ->action(function (User $record, array $data): void {
+                        /** @var User $auteur */
+                        $auteur = auth()->user();
+                        try {
+                            app(RevueHabilitations::class)->reviser($record, array_values((array) ($data['maintenus'] ?? [])), $data['commentaire'] ?? null, $auteur);
+                        } catch (\InvalidArgumentException $e) {
+                            Notification::make()->danger()->title('Revue refusée')->body($e->getMessage())->send();
+
+                            throw new Halt;
+                        }
+                        Notification::make()->title('Habilitations revues')->success()->send();
                     }),
                 Tables\Actions\Action::make('deverrouiller')
                     ->label('Déverrouiller')
