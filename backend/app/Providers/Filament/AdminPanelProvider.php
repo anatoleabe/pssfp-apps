@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Filament\GlobalSearch\RechercheGlobale;
 use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Pages\Auth\Connexion;
+use App\Filament\Pages\MaSecurite;
 use App\Http\Controllers\Admin\OuvrirEspaceCandidatController;
+use App\Http\Middleware\ExigerDoubleAuthentification;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\MenuItem;
 use Filament\Navigation\NavigationGroup;
 use Filament\Pages;
 use Filament\Panel;
@@ -95,8 +99,15 @@ final class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
+            // Persistant : Livewire rejoue l'obligation de double authentification sur ses échanges (revue de sécurité 14d-4).
             ->authMiddleware([
                 Authenticate::class,
+                ExigerDoubleAuthentification::class,
+            ], isPersistent: true)
+            ->globalSearch(RechercheGlobale::class)
+            ->userMenuItems([
+                'ma-securite' => MenuItem::make()->label('Ma sécurité')->icon('heroicon-o-key')
+                    ->url(fn (): string => MaSecurite::getUrl()),
             ])
             ->authenticatedRoutes(function (): void {
                 Route::get('candidatures/{candidature}/espace', OuvrirEspaceCandidatController::class)
