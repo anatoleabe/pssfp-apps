@@ -179,8 +179,8 @@ class JournalActiviteResource extends Resource
                     ])
                     ->columns(2)
                     ->query(fn (Builder $query, array $data): Builder => $query
-                        ->when($data['du'] ?? null, fn (Builder $q, $du) => $q->where('created_at', '>=', Carbon::parse($du, self::FUSEAU)->startOfDay()->utc()))
-                        ->when($data['au'] ?? null, fn (Builder $q, $au) => $q->where('created_at', '<=', Carbon::parse($au, self::FUSEAU)->endOfDay()->utc())))
+                        ->when($data['du'] ?? null, fn (Builder $q, $du) => $q->where('created_at', '>=', Carbon::parse($du, self::FUSEAU)->startOfDay()->setTimezone(config('app.timezone'))))
+                        ->when($data['au'] ?? null, fn (Builder $q, $au) => $q->where('created_at', '<=', Carbon::parse($au, self::FUSEAU)->endOfDay()->setTimezone(config('app.timezone')))))
                     ->indicateUsing(fn (array $data): ?string => ($data['du'] ?? null) || ($data['au'] ?? null)
                         ? 'Période : '.($data['du'] ?? '…').' → '.($data['au'] ?? '…') : null),
             ])

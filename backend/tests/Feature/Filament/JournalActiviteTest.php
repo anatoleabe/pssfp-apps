@@ -10,6 +10,7 @@ use App\Models\Candidature;
 use App\Models\Document;
 use App\Models\User;
 use App\Support\Journaux;
+use Carbon\CarbonImmutable;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
@@ -123,7 +124,7 @@ it('filtre le journal par auteur et par période', function (): void {
         ->assertCanSeeTableRecords([$deAdmin])
         ->assertCanNotSeeTableRecords([$deAutre, $ancienne])
         ->resetTableFilters()
-        ->filterTable('periode', ['du' => now()->subDay()->toDateString(), 'au' => now()->toDateString()])
+        ->filterTable('periode', ['du' => now('Africa/Douala')->subDay()->toDateString(), 'au' => now('Africa/Douala')->toDateString()])
         ->assertCanSeeTableRecords([$deAdmin, $deAutre])
         ->assertCanNotSeeTableRecords([$ancienne]);
 });
@@ -149,4 +150,15 @@ it('journalise chaque domaine dans son journal', function (): void {
     expect(Activity::query()->where('subject_type', Document::class)->where('subject_id', $document->id)->value('log_name'))->toBe('bibliotheque')
         ->and(Activity::query()->where('subject_type', User::class)->where('subject_id', $compte->id)->latest('id')->value('log_name'))->toBe('comptes')
         ->and(Activity::query()->where('log_name', 'default')->count())->toBe(0);
+});
+
+it('lit la période en dates de Douala, même entre minuit à Douala et minuit UTC', function (): void {
+    $this->actingAs(($this->agent)('admin'));
+    $this->travelTo(CarbonImmutable::parse('2026-11-11 00:30', 'Africa/Douala'));
+    $nuit = activity('candidatures')->causedByAnonymous()->event('nuit')->log('Action de 00:30 à Douala');
+
+    $this->livewire(ListJournalActivite::class)
+        ->filterTable('periode', ['du' => '2026-11-11', 'au' => '2026-11-11'])->assertCanSeeTableRecords([$nuit])
+        ->resetTableFilters()
+        ->filterTable('periode', ['du' => '2026-11-10', 'au' => '2026-11-10'])->assertCanNotSeeTableRecords([$nuit]);
 });
