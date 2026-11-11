@@ -106,9 +106,8 @@ final class User extends Authenticatable implements FilamentUser, HasName, MustV
             return false;
         }
 
-        if (config('pssfp.filament.require_2fa', true) && ! $this->hasEnabledTwoFactorAuthentication()) {
-            return false;
-        }
+        // Double authentification obligatoire : le compte entre, mais ExigerDoubleAuthentification le conduit sur
+        // « Ma sécurité » tant qu'il ne l'a pas activée (lot 14d-4 ; avant, il était refusé sans pouvoir l'activer).
 
         return true;
     }

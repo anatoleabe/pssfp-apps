@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Filament\Concerns\ChecksModuleAccess;
+use App\Filament\Pages\MaSecurite;
 use App\Filament\Pages\Parametres;
 use App\Filament\Resources\CampagneCandidatureResource;
 use App\Filament\Resources\CandidatureResource;
@@ -291,7 +292,8 @@ it('cantonne chaque rôle de la bibliothèque à la bibliothèque', function (st
 
     expect($visible['resources'])->toEqualCanonicalizing($resources)
         ->and($visible['widgets'])->toEqualCanonicalizing($widgets)
-        ->and($visible['pages'])->toBe([Dashboard::class])
+        // « Ma sécurité » (lot 14d-4) relève du socle commun : ouverte à tout le personnel.
+        ->and($visible['pages'])->toEqualCanonicalizing([Dashboard::class, MaSecurite::class])
         ->and(Parametres::canAccess())->toBeFalse();
 
     $this->get(Dashboard::getUrl(panel: 'admin'))->assertOk();

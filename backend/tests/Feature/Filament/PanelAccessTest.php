@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Filament\Pages\MaSecurite;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 
@@ -43,8 +44,9 @@ it('denies access to candidat role', function (): void {
     expect(makeUser('candidat')->canAccessPanel(filament()->getPanel('admin')))->toBeFalse();
 });
 
-it('denies access when 2FA is required and the user has not enabled it', function (): void {
+it('lets a user without 2FA in, but only to set it up, when 2FA is required (lot 14d-4)', function (): void {
     config()->set('pssfp.filament.require_2fa', true);
     $u = makeUser('admission_committee');
-    expect($u->canAccessPanel(filament()->getPanel('admin')))->toBeFalse();
+    expect($u->canAccessPanel(filament()->getPanel('admin')))->toBeTrue();
+    $this->actingAs($u)->get('/admin')->assertRedirect(MaSecurite::getUrl());
 });

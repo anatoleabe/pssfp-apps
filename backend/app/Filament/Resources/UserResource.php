@@ -9,6 +9,7 @@ use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Audit\AlertesSecurite;
 use App\Services\Audit\VerrouillageComptes;
 use App\Support\BelongsToModule;
 use Filament\Forms;
@@ -219,6 +220,10 @@ class UserResource extends Resource
                             'two_factor_recovery_codes' => null,
                             'two_factor_confirmed_at' => null,
                         ])->save();
+                        // Lot 14d-4 : nouveau jeton de rappel et alerte au titulaire (téléphone perdu, ou usurpation).
+                        app(AlertesSecurite::class)->signaler($record, 'double authentification réinitialisée par un administrateur');
+                        activity('comptes')->causedBy(auth()->user())->performedOn($record)->event('double_authentification_reinitialisee')
+                            ->log('Double authentification réinitialisée');
 
                         Notification::make()
                             ->title('Double authentification réinitialisée')
