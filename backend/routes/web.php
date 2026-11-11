@@ -10,6 +10,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Les routes HTTP de Fortify sont fermées (lot 14d-2) : « login » reste nommé pour les redirections d'invités de Laravel.
+Route::redirect('/login', '/admin/login')->name('login');
+
 /*
  * Sprint S5.1 — exposition publique du catalogue Formation continue 2026.
  *

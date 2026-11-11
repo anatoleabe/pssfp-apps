@@ -9,6 +9,7 @@ use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Audit\VerrouillageComptes;
 use App\Support\BelongsToModule;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -167,6 +168,15 @@ class UserResource extends Resource
                 Tables\Columns\IconColumn::make('email_verified_at')
                     ->label('Actif')
                     ->boolean(),
+                Tables\Columns\IconColumn::make('verrouille_le')
+                    ->label('Verrou')
+                    ->state(fn (User $record): bool => VerrouillageComptes::estVerrouille($record))
+                    ->icon(fn (bool $state): ?string => $state ? 'heroicon-s-lock-closed' : null)
+                    ->color('danger')
+                    ->tooltip(fn (User $record): ?string => ! VerrouillageComptes::estVerrouille($record) ? null
+                        : 'Verrouillé le '.$record->verrouille_le->setTimezone('Africa/Douala')->format('d/m/Y à H:i')
+                        .($record->verrouille_jusqua ? ' jusqu\'à '.$record->verrouille_jusqua->setTimezone('Africa/Douala')->format('H:i') : ' (levée manuelle)')
+                        .' — '.$record->verrouille_motif),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Créé le')
                     ->dateTime('d/m/Y')
@@ -215,6 +225,20 @@ class UserResource extends Resource
                             ->body('L\'agent devra la reconfigurer à sa prochaine connexion.')
                             ->success()
                             ->send();
+                    }),
+                Tables\Actions\Action::make('deverrouiller')
+                    ->label('Déverrouiller')
+                    ->icon('heroicon-o-lock-open')
+                    ->color('warning')
+                    ->visible(fn (User $record): bool => VerrouillageComptes::estVerrouille($record)
+                        && auth()->user()?->can(VerrouillageComptes::PERMISSION_DEVERROUILLER) === true)
+                    ->modalDescription('Vérifiez d\'abord dans le journal des connexions qu\'il ne s\'agit pas d\'une tentative d\'intrusion. Le titulaire recevra un lien pour choisir un nouveau mot de passe ; l\'ancien ne fonctionnera plus.')
+                    ->form([Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(10)->maxLength(500)])
+                    ->action(function (User $record, array $data): void {
+                        /** @var User $auteur */
+                        $auteur = auth()->user();
+                        app(VerrouillageComptes::class)->deverrouiller($record, $auteur, (string) $data['motif']);
+                        Notification::make()->title('Compte déverrouillé')->success()->send();
                     }),
                 Tables\Actions\DeleteAction::make(),
             ])

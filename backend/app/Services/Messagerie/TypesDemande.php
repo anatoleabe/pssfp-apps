@@ -11,6 +11,7 @@ use App\Models\Maquette;
 use App\Models\PointageEnseignant;
 use App\Models\QuotaHoraire;
 use App\Models\User;
+use App\Services\Audit\VerrouillageComptes;
 use App\Services\Lmd\DocumentsOfficiels;
 use App\Services\Lmd\EtatsPaie;
 use App\Services\Lmd\PermissionsLmd;
@@ -44,6 +45,8 @@ final class TypesDemande
 
     public const REJETER_ETAT_PAIE = 'rejeter_etat_paie';
 
+    public const DEVERROUILLER_COMPTE = 'deverrouiller_compte';
+
     public const LEVEE_VERROU = 'levee_verrou';
 
     public const VALIDATION = 'validation';
@@ -61,6 +64,7 @@ final class TypesDemande
         self::ANNULER_POINTAGE => ['libelle' => 'Annulation d\'un émargement d\'enseignant validé, non payé', 'famille' => self::ANNULATION, 'permission' => PermissionsLmd::POINTAGE, 'visa' => true, 'heures' => 48],
         self::REVOQUER_DOCUMENT => ['libelle' => 'Révocation d\'un document délivré', 'famille' => self::ANNULATION, 'permission' => PermissionsLmd::DOCUMENTS_REVOQUER, 'visa' => true, 'heures' => 48],
         self::REJETER_ETAT_PAIE => ['libelle' => 'Rejet d\'un état de paie vérifié, visé ou transmis', 'famille' => self::ANNULATION, 'permission' => PermissionsLmd::PAIE_VERIFIER, 'visa' => true, 'heures' => 48],
+        self::DEVERROUILLER_COMPTE => ['libelle' => 'Déverrouillage d\'un compte', 'famille' => self::LEVEE_VERROU, 'permission' => VerrouillageComptes::PERMISSION_DEVERROUILLER, 'visa' => false, 'heures' => 8],
     ];
 
     /**
@@ -77,12 +81,15 @@ final class TypesDemande
         self::ANNULER_POINTAGE => [PermissionsLmd::POINTAGE],
         self::REVOQUER_DOCUMENT => [PermissionsLmd::CONSULTER],
         self::REJETER_ETAT_PAIE => [PermissionsLmd::PAIE_PREPARER, PermissionsLmd::PAIE_VERIFIER, PermissionsLmd::PAIE_VISER, PermissionsLmd::PAIE_PAYER],
+        // Un collègue demande pour le compte verrouillé, qui ne peut plus se connecter.
+        self::DEVERROUILLER_COMPTE => [],
     ];
 
     /** @var array<string, class-string<Model>> */
     public const CLASSES = [
         self::ROUVRIR_ETAPE => EtapeSaisie::class, self::VALIDER_QUOTA => QuotaHoraire::class, self::VALIDER_MAQUETTE => Maquette::class,
         self::ANNULER_POINTAGE => PointageEnseignant::class, self::REVOQUER_DOCUMENT => DocumentDelivre::class, self::REJETER_ETAT_PAIE => EtatPaie::class,
+        self::DEVERROUILLER_COMPTE => User::class,
     ];
 
     public const ETATS_PAIE_REJETABLES = [EtatPaie::VERIFIE, EtatPaie::VISE, EtatPaie::TRANSMIS];
@@ -183,7 +190,8 @@ final class TypesDemande
             return null;
         }
         $sans = fn (Model $x): array => Arr::except($x->getAttributes(), ['updated_at']);
-        $donnees = $sans($m);
+        // Un compte change sans cesse (connexions, échecs comptés pendant le verrouillage) : seul son verrouillage compte ici.
+        $donnees = $m instanceof User ? ['id' => $m->id, 'verrouille_le' => $m->getAttributes()['verrouille_le'] ?? null] : $sans($m);
         if ($m instanceof Maquette) {
             $donnees['ues'] = $m->ues()->with('ecues')->orderBy('id')->get()
                 ->map(fn (Model $ue): array => $sans($ue) + ['ecues' => $ue->ecues->sortBy('id')->map($sans)->values()->all()])->all();
@@ -211,6 +219,7 @@ final class TypesDemande
                 app(DocumentsOfficiels::class)->revoquer($document, $motif, $auteur);
             }, 'Document révoqué (la vérification publique affiche « révoqué »)'),
             self::REJETER_ETAT_PAIE => $this->faire(fn () => app(EtatsPaie::class)->rejeter($objet(EtatPaie::class), $motif, $auteur), 'État de paie rejeté ; émargements libérés'),
+            self::DEVERROUILLER_COMPTE => $this->faire(fn () => app(VerrouillageComptes::class)->deverrouiller($objet(User::class), $auteur, $motif), 'Compte déverrouillé'),
             default => throw new InvalidArgumentException('Type de demande inconnu.'),
         };
     }
@@ -232,6 +241,7 @@ final class TypesDemande
                 ->with(['seance.ecue:id,code,intitule', 'enseignant:id,name']),
             self::REVOQUER_DOCUMENT => DocumentDelivre::query()->whereNull('revoque_at'),
             self::REJETER_ETAT_PAIE => EtatPaie::query()->whereIn('statut', self::ETATS_PAIE_REJETABLES),
+            self::DEVERROUILLER_COMPTE => VerrouillageComptes::verrouilles(),
             default => throw new InvalidArgumentException('Ce type de demande ne vise pas d\'objet.'),
         };
     }
@@ -247,6 +257,7 @@ final class TypesDemande
             self::ANNULER_POINTAGE => 'Séance du '.($m->seance?->date_seance?->format('d/m/Y') ?? '?').' — '.$ecue($m->seance?->ecue).' — '.($m->enseignant?->name ?? ''),
             self::REVOQUER_DOCUMENT => $m->numero.' — '.(DocumentDelivre::TYPES[$m->type] ?? $m->type),
             self::REJETER_ETAT_PAIE => $m->numero.' — '.(EtatPaie::STATUTS[$m->statut] ?? $m->statut),
+            self::DEVERROUILLER_COMPTE => $m->name.' — verrouillé le '.$m->verrouille_le?->setTimezone('Africa/Douala')->format('d/m/Y à H:i'),
             default => (string) $m->getKey(),
         }, 290);
     }
