@@ -39,9 +39,10 @@ Chaque lot a sa spec, sa branche, ses tests, et se déploie seul.
 | 14b-1 | **Messagerie interne** : boîte de réception, fils, pièces jointes, accusés de lecture, copie externe limitée à l'objet (spec `module-4-lmd-lot14b1-messagerie.md`) | D31 | PR #104, en production le 10/11 |
 | 14b-2 | **Relances graduées** du contrôle interne (niveaux 1 à 3 par criticité, escalade, replis), envoyées par la messagerie (spec `module-4-lmd-lot14b2-relances.md`) | D30, D31 | PR #105, en production le 10/11 ; 1res relances attendues le 13/11 (échéance des 16 cas SEC_SEPARATION) |
 | 14c | **Demandes d'autorisation** : levée de verrou, validation, annulation d'une opération validée ; routage et double décision (spec `module-4-lmd-lot14c-demandes-autorisation.md`) ; 7 types sur 10, reportés : déverrouillage de compte (14d), réouverture d'un PV de requêtes et annulation d'une requête de note (à ajouter au lot 8) | D31 | PR #107, en production le 11/11 |
-| 14d-1 | **Chaîne d'empreintes du journal d'activité** : scellement chaque minute, vérification, contrôle `SEC_JOURNAL` (spec `module-4-lmd-lot14d1-chaine-journal.md`) | D30 | En cours |
-| 14d-2 | **Connexions** : échecs journalisés, verrouillage après 5 échecs, déverrouillage (et sa demande d'autorisation), contrôle `SEC_CONNEXIONS` | D30, D31 | À faire |
+| 14d-1 | **Chaîne d'empreintes du journal d'activité** : scellement chaque minute, vérification, contrôle `SEC_JOURNAL` (spec `module-4-lmd-lot14d1-chaine-journal.md`) | D30 | PR #109, en production le 11/11 (8 592 entrées scellées, chaîne intacte) |
+| 14d-2 | **Connexions** : échecs comptés, verrou progressif (15 min, 1 h, puis manuel), refus avant vérification du mot de passe, levée avec nouveau mot de passe (écran, demande d'autorisation, console de secours), routes Fortify fermées, contrôle `SEC_CONNEXIONS` (spec `module-4-lmd-lot14d2-connexions.md`) | D30, D31 | En cours |
 | 14d-3 | **Revue annuelle des habilitations**, contrôle `SEC_REVUE` | D30 | À faire |
+| 14d-4 | **Double authentification (TOTP)** : écran de configuration, code demandé à la connexion, codes de secours, obligation progressive par rôle | CDC (2FA obligatoire) | À faire |
 | 15 | **Archivage numérique** et reprise de l'historique d'ACMA | D29 ; plan de reprise | À faire |
 
 Avant les lots 13c à 15 : chantier « Socle » (navigation, charte de l'admin, rôles, journaux, préparation du hors-ligne), cf. `docs/plans/2026-11-09-socle-plateforme-objectifs.md`.

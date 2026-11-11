@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers\Filament;
 
 use App\Filament\Navigation\GroupeNavigation;
+use App\Filament\Pages\Auth\Connexion;
 use App\Http\Controllers\Admin\OuvrirEspaceCandidatController;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -39,7 +40,7 @@ final class AdminPanelProvider extends PanelProvider
             ->brandLogo(asset('images/pssfp-logo.png'))
             ->brandLogoHeight('2.75rem')
             ->favicon(asset('favicon.ico'))
-            ->login()
+            ->login(Connexion::class)
             ->passwordReset()
             ->emailVerification()
             ->profile()

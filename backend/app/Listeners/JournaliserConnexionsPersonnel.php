@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Listeners;
 
 use App\Models\User;
+use App\Services\Audit\VerrouillageComptes;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
@@ -23,6 +24,14 @@ final class JournaliserConnexionsPersonnel
             return;
         }
 
+        if (VerrouillageComptes::estVerrouille($event->user)) {
+            // Mot de passe juste, mais compte verrouillé (lot 14d-2) : le panneau refusera l'accès ; le compteur n'est pas remis à zéro.
+            activity('connexions')->causedBy($event->user)->performedOn($event->user)->event('connexion_refusee_verrouille')
+                ->withProperties($this->contexte())->log('Connexion refusée : compte verrouillé');
+
+            return;
+        }
+        app(VerrouillageComptes::class)->succes($event->user);
         activity('connexions')->causedBy($event->user)->performedOn($event->user)
             ->event('connexion')
             ->withProperties($this->contexte())
@@ -31,7 +40,8 @@ final class JournaliserConnexionsPersonnel
 
     public function handleLogout(Logout $event): void
     {
-        if ($event->guard !== 'web' || ! $event->user instanceof User) {
+        // Un compte verrouillé n'a pas ouvert de session : sa « déconnexion » (refus du panneau) n'en est pas une.
+        if ($event->guard !== 'web' || ! $event->user instanceof User || VerrouillageComptes::estVerrouille($event->user)) {
             return;
         }
 
@@ -56,6 +66,9 @@ final class JournaliserConnexionsPersonnel
             $journal->performedOn($event->user);
         }
         $journal->log('Échec de connexion au back-office');
+        if ($event->user instanceof User) {
+            app(VerrouillageComptes::class)->echec($event->user);
+        }
     }
 
     /** @return array{ip: ?string, navigateur: string} */

@@ -24,11 +24,18 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Fortify\Fortify;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // Lot 14d-2 (revue de sécurité) : aucune application n'appelle les routes HTTP de Fortify ; le back-office passe par
+        // la connexion Filament. Ouvertes, elles offraient une inscription publique et une seconde page de connexion sans le
+        // contrôle du verrou (App\Providers\FortifyServiceProvider n'est pas chargé : ses limites de débit n'existaient pas).
+        // Les actions de Fortify (double authentification, mots de passe) restent utilisables en code.
+        Fortify::ignoreRoutes();
+
         $this->app->bind(SmsServiceInterface::class, function ($app) {
             return match (config('services.sms.provider', 'fake')) {
                 'africas_talking' => $app->make(AfricasTalkingProvider::class),

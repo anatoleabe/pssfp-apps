@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\Audit\VerrouillageComptes;
 use App\Support\Journaux;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -79,6 +80,9 @@ final class User extends Authenticatable implements FilamentUser, HasName, MustV
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'date_naissance' => 'date',
+            'verrouille_le' => 'datetime',
+            'verrouille_jusqua' => 'datetime',
+            'echecs_connexion' => 'integer',
         ];
     }
 
@@ -94,6 +98,11 @@ final class User extends Authenticatable implements FilamentUser, HasName, MustV
         }
 
         if (! $this->hasBackOfficePerimeter()) {
+            return false;
+        }
+
+        // Lot 14d-2 : un compte verrouillé (échecs répétés) n'ouvre plus le panneau, sessions en cours comprises.
+        if (VerrouillageComptes::estVerrouille($this)) {
             return false;
         }
 

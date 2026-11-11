@@ -183,7 +183,7 @@ it('ferme aux comptes sans consultation les types et leurs listes d\'objets, et 
     $editeur = ($this->compte)('editor');
     $etape = etapeVerrouillee();
 
-    expect(TypesDemande::libellesPour($editeur))->toBe([TypesDemande::VALIDER_AUTRE => TypesDemande::TYPES[TypesDemande::VALIDER_AUTRE]['libelle']])
+    expect(array_keys(TypesDemande::libellesPour($editeur)))->toBe([TypesDemande::VALIDER_AUTRE, TypesDemande::DEVERROUILLER_COMPTE])
         ->and(TypesDemande::libellesPour($this->demandeur))->toHaveKey(TypesDemande::ROUVRIR_ETAPE)
         ->and(fn () => $this->demandes->soumettre($editeur, TypesDemande::ROUVRIR_ETAPE, $etape->id, 'Je ne vois pas les notes'))->toThrow(InvalidArgumentException::class, 'pas ouvert');
 

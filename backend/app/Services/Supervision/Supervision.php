@@ -12,6 +12,7 @@ use App\Services\Supervision\Controles\PaiRapprochement;
 use App\Services\Supervision\Controles\ReqNonCotees;
 use App\Services\Supervision\Controles\ReqRetard;
 use App\Services\Supervision\Controles\SecComptes;
+use App\Services\Supervision\Controles\SecConnexions;
 use App\Services\Supervision\Controles\SecJournal;
 use App\Services\Supervision\Controles\SecSeparation;
 use App\Services\Supervision\Controles\SysControles;
@@ -40,7 +41,7 @@ final class Supervision
     /** Catalogue, dans l'ordre d'exécution ; SYS_CONTROLES en dernier (il lit les erreurs des autres). */
     public const CATALOGUE = [
         PaiRapprochement::class, PaieEtatsBloques::class, ReqRetard::class, ReqNonCotees::class, DemAttente::class,
-        SecSeparation::class, SecComptes::class, SecJournal::class, SysDestinataires::class, SysControles::class,
+        SecSeparation::class, SecComptes::class, SecConnexions::class, SecJournal::class, SysDestinataires::class, SysControles::class,
     ];
 
     public static function peutConsulter(?User $user): bool
@@ -80,7 +81,8 @@ final class Supervision
             }
             $execution = DB::table('executions_controles')->insertGetId(['controle_code' => $code, 'debut' => now()]);
             try {
-                $resultat = $this->appliquer($controle, $controle->cas());
+                // Point de sauvegarde : une requête en échec n'empoisonne pas une transaction englobante (l'erreur doit pouvoir s'enregistrer).
+                $resultat = $this->appliquer($controle, DB::transaction(fn (): array => $controle->cas()));
                 $erreur = null;
             } catch (Throwable $e) {
                 $resultat = ['trouves' => 0, 'nouveaux' => 0, 'corriges' => 0];
