@@ -48,3 +48,6 @@ Schedule::command('supervision:executer')->dailyAt('05:30')->withoutOverlapping(
 
 // Messagerie interne (lot 14b-1, D31) : copies externes (courriel, SMS) des messages, trois tentatives au plus.
 Schedule::command('messagerie:envoyer')->everyFiveMinutes()->withoutOverlapping();
+
+// Chaîne d'empreintes du journal (lot 14d-1, D30) : les nouvelles entrées sont scellées chaque minute.
+Schedule::command('audit:sceller-journal')->everyMinute()->withoutOverlapping();
