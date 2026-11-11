@@ -14,6 +14,7 @@ use App\Services\Supervision\Controles\ReqRetard;
 use App\Services\Supervision\Controles\SecComptes;
 use App\Services\Supervision\Controles\SecConnexions;
 use App\Services\Supervision\Controles\SecJournal;
+use App\Services\Supervision\Controles\SecRevue;
 use App\Services\Supervision\Controles\SecSeparation;
 use App\Services\Supervision\Controles\SysControles;
 use App\Services\Supervision\Controles\SysDestinataires;
@@ -41,7 +42,7 @@ final class Supervision
     /** Catalogue, dans l'ordre d'exécution ; SYS_CONTROLES en dernier (il lit les erreurs des autres). */
     public const CATALOGUE = [
         PaiRapprochement::class, PaieEtatsBloques::class, ReqRetard::class, ReqNonCotees::class, DemAttente::class,
-        SecSeparation::class, SecComptes::class, SecConnexions::class, SecJournal::class, SysDestinataires::class, SysControles::class,
+        SecSeparation::class, SecComptes::class, SecConnexions::class, SecJournal::class, SecRevue::class, SysDestinataires::class, SysControles::class,
     ];
 
     public static function peutConsulter(?User $user): bool
