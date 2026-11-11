@@ -13,6 +13,7 @@ use App\Models\ProgrammationEnseignant;
 use App\Models\Seance;
 use App\Models\User;
 use App\Support\AppSettings;
+use App\Support\Journaux;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
@@ -214,6 +215,30 @@ final class PointagesEnseignant
             throw new InvalidArgumentException('Le rejet exige un motif.');
         }
         $p->forceFill(['statut' => PointageEnseignant::REJETE, 'motif_rejet' => mb_substr($motif, 0, 500)])->save();
+    }
+
+    /**
+     * Lot 14c (D31) : annule un émargement validé qui n'est rattaché à aucune ligne de paie. Déjà payé, il faut un état rectificatif.
+     */
+    public function annulerValide(PointageEnseignant $p, string $motif, User $auteur): void
+    {
+        abort_unless($auteur->can(PermissionsLmd::POINTAGE), 403);
+        $motif = trim($motif);
+        if (mb_strlen($motif) < 10) {
+            throw new InvalidArgumentException('L\'annulation exige un motif (10 caractères au moins).');
+        }
+        DB::transaction(function () use ($p, $motif, $auteur): void {
+            $p = PointageEnseignant::query()->lockForUpdate()->findOrFail($p->id);
+            if ($p->statut !== PointageEnseignant::VALIDE) {
+                throw new InvalidArgumentException('Seul un émargement validé s\'annule ainsi.');
+            }
+            if ($p->ligne_paie_id !== null) {
+                throw new InvalidArgumentException('Émargement déjà porté sur un état de paie : passez par un état rectificatif.');
+            }
+            $p->forceFill(['statut' => PointageEnseignant::REJETE, 'motif_rejet' => mb_substr('Annulé : '.$motif, 0, 500)])->save();
+            activity(Journaux::PAIE)->causedBy($auteur)->performedOn($p)->event('pointage_annule')
+                ->withProperties(['motif' => $motif])->log('Émargement validé annulé');
+        });
     }
 
     /**

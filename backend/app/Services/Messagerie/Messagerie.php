@@ -67,12 +67,14 @@ final class Messagerie
         $objet = trim($objet);
         $corps = trim($corps);
         $this->verifierEntete($expediteur, $categorie, $priorite, $canaux, $objet, $corps);
-        $ids = $this->destinataires($expediteur, $destinataires);
+        // Débit et plafond ne bornent que les messages ordinaires : demandes et décisions (lot 14c) suivent l'activité du service.
+        $libre = $categorie === Message::MESSAGE;
+        $ids = $this->destinataires($expediteur, $destinataires, $libre);
         if ($reponseA !== null && ($reponseA->estDuSysteme() || $expediteur === null || ! $this->peutVoir($expediteur, $reponseA))) {
             throw new InvalidArgumentException('On ne répond qu\'à un fil dont on fait partie, et jamais à un message du système.');
         }
         $cle = 'messagerie:'.($expediteur?->id ?? 'systeme');
-        if ($expediteur !== null && RateLimiter::tooManyAttempts($cle, self::ENVOIS_PAR_HEURE)) {
+        if ($libre && RateLimiter::tooManyAttempts($cle, self::ENVOIS_PAR_HEURE)) {
             throw new InvalidArgumentException('Trop de messages envoyés en une heure : réessayez plus tard.');
         }
         $fichiers = $this->verifierPieces($pieces);
@@ -84,7 +86,7 @@ final class Messagerie
 
             throw $e;
         }
-        if ($expediteur !== null) {
+        if ($libre) {
             RateLimiter::hit($cle, 3600);
         }
 
@@ -204,8 +206,9 @@ final class Messagerie
         if (! array_key_exists($categorie, Message::CATEGORIES) || ! array_key_exists($priorite, Message::PRIORITES)) {
             throw new InvalidArgumentException('Catégorie ou priorité inconnue.');
         }
-        if (($expediteur === null) === ($categorie === Message::MESSAGE)) {
-            throw new InvalidArgumentException('Les relances, demandes, décisions et notifications viennent du système ; un message vient d\'un compte.');
+        // Relances et notifications viennent du système (sans expéditeur) ; message, demande et décision (lot 14c) d'un compte.
+        if (($expediteur === null) !== in_array($categorie, Message::DU_SYSTEME, true)) {
+            throw new InvalidArgumentException('Les relances et notifications viennent du système ; un message, une demande ou une décision vient d\'un compte.');
         }
         $permis = $expediteur === null ? EnvoiMessage::CANAUX : [EnvoiMessage::EMAIL];
         if (array_diff($canaux, $permis) !== []) {
@@ -223,14 +226,14 @@ final class Messagerie
      * @param  list<int>  $demandes
      * @return list<int>
      */
-    private function destinataires(?User $expediteur, array $demandes): array
+    private function destinataires(?User $expediteur, array $demandes, bool $plafonner = true): array
     {
         $ids = array_values(array_unique(array_filter(array_map('intval', $demandes),
             fn (int $id): bool => $id > 0 && $id !== $expediteur?->id)));
         if ($ids === []) {
             throw new InvalidArgumentException('Message sans destinataire.');
         }
-        if (count($ids) > self::DESTINATAIRES_MAX) {
+        if ($plafonner && count($ids) > self::DESTINATAIRES_MAX) {
             throw new InvalidArgumentException('Au plus '.self::DESTINATAIRES_MAX.' destinataires par message.');
         }
         if ($expediteur !== null && ! self::personnel()->whereKey($expediteur->id)->exists()) {

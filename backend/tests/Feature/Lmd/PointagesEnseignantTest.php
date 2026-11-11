@@ -320,3 +320,24 @@ it('ouvre les écrans par rôle : l\'enseignant ne voit que ses émargements', f
     $this->get(DossierPaieEnseignantResource::getUrl('index'))->assertOk();
     $this->get(PointageEnseignantResource::getUrl('index'))->assertForbidden();
 });
+
+it('annule un émargement validé non payé (lot 14c), jamais un émargement payé', function (): void {
+    $p = ($this->emarger)($this->seances[0]);
+    expect(fn () => $this->service->annulerValide($p, 'Séance non tenue en réalité', $this->agent))->toThrow(InvalidArgumentException::class, 'validé');
+    $this->service->valider($p, $this->agent);
+
+    expect(fn () => $this->service->annulerValide($p, 'Séance non tenue', $this->prof))->toThrow(HttpException::class)
+        ->and(fn () => $this->service->annulerValide($p, 'court', $this->agent))->toThrow(InvalidArgumentException::class, 'motif');
+    $this->service->annulerValide($p, 'Séance non tenue en réalité', $this->agent);
+    expect($p->refresh()->statut)->toBe(PointageEnseignant::REJETE)->and($p->motif_rejet)->toBe('Annulé : Séance non tenue en réalité');
+
+    $paye = ($this->emarger)($this->seances[1]);
+    $this->service->valider($paye, $this->agent);
+    $etat = (new EtatPaie)->forceFill(['numero' => 'EP-2026-12', 'periode_du' => '2026-11-01', 'periode_au' => '2026-11-30', 'objet' => 'Essai']);
+    $etat->save();
+    $ligne = (new LigneEtatPaie)->forceFill(['etat_id' => $etat->id, 'enseignant_id' => $this->prof->id, 'maquette_ecue_id' => $this->ecue->id, 'annee_academique' => '2026-2027', 'nature' => 'CM',
+        'quantite' => 3, 'montant_unitaire' => 17500, 'taux_retenue' => 11, 'montant_brut' => 52500, 'montant_retenue' => 5775, 'montant_net' => 46725]);
+    $ligne->save();
+    $paye->refresh()->forceFill(['ligne_paie_id' => $ligne->id])->save();
+    expect(fn () => $this->service->annulerValide($paye->refresh(), 'Séance non tenue en réalité', $this->agent))->toThrow(InvalidArgumentException::class, 'rectificatif');
+});
