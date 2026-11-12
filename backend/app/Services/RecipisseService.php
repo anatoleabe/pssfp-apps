@@ -119,11 +119,14 @@ class RecipisseService
      * doivent pouvoir être refaits depuis l'admin, sans toucher au statut ni
      * aux dates de transition du dossier.
      *
-     * @throws RuntimeException si le dossier n'a jamais été soumis
+     * Sert aussi à fabriquer le premier récépissé d'un retenu ajouté depuis
+     * l'admin, qui n'est jamais soumis en ligne.
+     *
+     * @throws RuntimeException si le dossier n'a jamais été soumis ni ajouté depuis l'admin
      */
     public function regenerate(Candidature $candidature): string
     {
-        if ($candidature->submitted_at === null) {
+        if (! $candidature->peutAvoirRecepisse()) {
             throw new RuntimeException(
                 "Le dossier {$candidature->numero_dossier} n'a pas été soumis : aucun récépissé à régénérer."
             );

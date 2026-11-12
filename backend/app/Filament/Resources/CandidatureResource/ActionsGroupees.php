@@ -259,7 +259,7 @@ final class ActionsGroupees
                     $echecs = [];
 
                     foreach ($records as $r) {
-                        if ($r->submitted_at === null) {
+                        if (! $r->peutAvoirRecepisse()) {
                             $ignores[] = $r->numero_dossier;
 
                             continue;

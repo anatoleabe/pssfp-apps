@@ -123,11 +123,13 @@ final class ActionsLigne
                     ->label('Modifier le dossier')
                     ->icon('heroicon-o-pencil-square'),
                 Tables\Actions\Action::make('regenerateRecipisse')
-                    ->label('Régénérer le récépissé')
+                    ->label(fn (Candidature $r): string => $r->recipisse_pdf_path === null
+                        ? 'Générer le récépissé'
+                        : 'Régénérer le récépissé')
                     ->icon('heroicon-o-arrow-path')
                     ->color('info')
                     ->visible(fn (Candidature $r): bool => auth()->user()?->can('candidature.regenerate_recipisse') === true
-                        && $r->submitted_at !== null)
+                        && $r->peutAvoirRecepisse())
                     ->requiresConfirmation()
                     ->modalHeading('Régénérer le récépissé PDF')
                     ->modalDescription('Le récépissé est refabriqué à partir des données actuelles du dossier (photo comprise) et remplace le fichier existant. Le statut, les dates et le numéro de dossier ne changent pas.')
