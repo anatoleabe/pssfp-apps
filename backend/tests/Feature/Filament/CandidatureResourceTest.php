@@ -277,6 +277,80 @@ it('hides the regeneration action on a dossier never submitted', function (): vo
         ->assertTableActionHidden('regenerateRecipisse', $cand);
 });
 
+/*
+ * Un retenu ajouté depuis l'admin n'est jamais soumis en ligne (`submitted_at`
+ * nul, exprès : hors dépôts et hors PV). Il doit pourtant pouvoir recevoir son
+ * récépissé, daté du jour de son enregistrement.
+ */
+it('generates the recipisse of a retenu added from the admin', function (): void {
+    Storage::fake('minio_candidatures');
+
+    $cand = Candidature::factory()->forCampagne($this->campagne)->create([
+        'user_id' => $this->candidat->id,
+        'statut' => Candidature::STATUT_ACCEPTE,
+        'submitted_at' => null,
+        'recipisse_pdf_path' => null,
+    ]);
+    $cand->forceFill(['ajoute_par' => $this->superAdmin->id])->save();
+
+    $this->actingAs($this->superAdmin);
+    $this->livewire(ListCandidatures::class)
+        ->assertTableActionVisible('regenerateRecipisse', $cand)
+        ->callTableAction('regenerateRecipisse', $cand);
+
+    $cand->refresh();
+
+    expect($cand->recipisse_pdf_path)->toBe("{$cand->uuid}/recipisse.pdf")
+        ->and($cand->submitted_at)->toBeNull();
+    Storage::disk('minio_candidatures')->assertExists($cand->recipisse_pdf_path);
+});
+
+it('includes retenus added from the admin in the bulk regeneration', function (): void {
+    Storage::fake('minio_candidatures');
+
+    $ajoute = Candidature::factory()->forCampagne($this->campagne)->create([
+        'user_id' => $this->candidat->id,
+        'statut' => Candidature::STATUT_ACCEPTE,
+        'submitted_at' => null,
+    ]);
+    $ajoute->forceFill(['ajoute_par' => $this->superAdmin->id])->save();
+
+    $brouillon = Candidature::factory()->forCampagne($this->campagne)->create([
+        'user_id' => User::factory()->candidat()->create()->id,
+        'statut' => Candidature::STATUT_POSTULANT,
+        'submitted_at' => null,
+    ]);
+
+    $this->actingAs($this->superAdmin);
+    $this->livewire(ListCandidatures::class)
+        ->callTableBulkAction('regenerateRecipisseBulk', [$ajoute, $brouillon]);
+
+    expect($ajoute->refresh()->recipisse_pdf_path)->not->toBeNull()
+        ->and($brouillon->refresh()->recipisse_pdf_path)->toBeNull();
+});
+
+it('dates the recipisse of an added retenu on its recording day', function (): void {
+    $cand = Candidature::factory()->forCampagne($this->campagne)->create([
+        'user_id' => $this->candidat->id,
+        'statut' => Candidature::STATUT_ACCEPTE,
+        'submitted_at' => null,
+    ]);
+    $cand->forceFill(['ajoute_par' => $this->superAdmin->id])->save();
+
+    $html = view('pdf.candidature-recipisse', [
+        'candidature' => $cand->load('campagne'),
+        'campagne' => $cand->campagne,
+        'qrSvg' => '', 'logoSrc' => '', 'enteteSrc' => '', 'photoSrc' => '',
+        'generatedAt' => now()->addDays(3),
+        'programName' => 'Master',
+        'contact' => ['adresse' => '', 'tel' => '', 'web' => '', 'email' => ''],
+        'hashPlaceholder' => '', 'vcodePlaceholder' => '',
+    ])->render();
+
+    expect($html)->toContain('Enregistré le')
+        ->and($html)->not->toContain('Soumis le');
+});
+
 it('hides the regeneration action from a receptionniste', function (): void {
     $cand = Candidature::factory()->forCampagne($this->campagne)->submitted()->create([
         'user_id' => $this->candidat->id,

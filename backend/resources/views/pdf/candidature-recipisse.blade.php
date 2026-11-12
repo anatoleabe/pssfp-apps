@@ -55,6 +55,7 @@
         'Employeur' => 'Employer',
         'Structure / employeur' => 'Organisation / employer',
         'Soumis le' => 'Submitted on',
+        'Enregistré le' => 'Recorded on',
         'Photo conforme' => 'Compliant photograph',
         'CNI ou passeport reçu' => 'National ID card or passport received',
         'Diplôme reçu' => 'Qualification received',
@@ -135,7 +136,12 @@
         default => $candidature->statut_actuel,
     };
     $degree = $candidature->diplome_obtenu ?: null;
-    $submission = $fmtDate($candidature->submitted_at ?? $generatedAt);
+    // Un retenu ajouté depuis l'admin n'est jamais soumis en ligne : son
+    // récépissé porte la date d'enregistrement du dossier.
+    $ajouteParAdmin = $candidature->submitted_at === null && $candidature->ajoute_par !== null;
+    $submissionLabel = $ajouteParAdmin ? 'Enregistré le' : 'Soumis le';
+    $submissionLabelEn = $ajouteParAdmin ? 'Recorded on' : 'Submitted on';
+    $submission = $fmtDate($candidature->submitted_at ?? ($ajouteParAdmin ? $candidature->created_at : null) ?? $generatedAt);
     $generation = $fmtDate($generatedAt);
     $promotion = optional($campagne)->promotion_numero;
     $academicYear = optional($campagne)->nom;
@@ -408,7 +414,7 @@
         <div class="dossier-lbl">{!! $label('Numéro de dossier') !!}</div>
         <div class="dossier-num">{{ $candidature->numero_dossier }}</div>
         @if($submission)
-          <div class="submitted"><strong>Soumis le</strong> <span class="meta-en">Submitted on</span> · {{ $submission }}</div>
+          <div class="submitted"><strong>{{ $submissionLabel }}</strong> <span class="meta-en">{{ $submissionLabelEn }}</span> · {{ $submission }}</div>
         @endif
       </td>
       <td style="text-align:right;">
@@ -610,7 +616,7 @@
           <tr>
             <td>{!! $field('Mode de formation', $studyMode) !!}</td>
             <td>{!! $field('Langue principale', $language) !!}</td>
-            <td>{!! $field('Soumis le', $submission) !!}</td>
+            <td>{!! $field($submissionLabel, $submission) !!}</td>
           </tr>
         </table>
       </td>

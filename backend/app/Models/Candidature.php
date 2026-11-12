@@ -213,6 +213,16 @@ class Candidature extends Model
         return $this->belongsTo(User::class, 'ajoute_par');
     }
 
+    /**
+     * Un récépissé se fabrique pour un dossier soumis en ligne, ou pour un
+     * retenu ajouté depuis l'admin : ce dernier garde `submitted_at` nul
+     * exprès (hors dépôts et hors PV) mais a droit à son récépissé.
+     */
+    public function peutAvoirRecepisse(): bool
+    {
+        return $this->submitted_at !== null || $this->ajoute_par !== null;
+    }
+
     /** Fiche d'auditeur, créée à l'attribution du matricule (ADR-0010). */
     public function auditeur(): HasOne
     {
