@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
+import { signalerErreur } from '@/lib/erreurs/signalement';
+
 /**
  * Écran de secours affiché quand le layout racine lui-même a échoué.
  *
@@ -9,7 +12,12 @@
  * français seul, pour rester lisible par un candidat anglophone au moment
  * précis où tout le reste est cassé.
  */
-export default function GlobalError({ reset }: { reset: () => void }): JSX.Element {
+export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }): JSX.Element {
+  useEffect(() => {
+    // Visible dans le back-office, page « Erreurs techniques ».
+    signalerErreur(error);
+  }, [error]);
+
   return (
     <html lang="fr">
       <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif', color: '#1A1A1A' }}>

@@ -7,10 +7,12 @@ use App\Http\Middleware\IdentifiantRequete;
 use App\Http\Middleware\IpVisiteurDuPortail;
 use App\Http\Middleware\SetLocaleFromRequest;
 use App\Http\Middleware\ThrottleCandidatLogin;
+use App\Services\Erreurs\JournalErreurs;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Laravel\Sanctum\Http\Middleware\CheckAbilities;
 use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
@@ -40,6 +42,11 @@ return Application::configure(basePath: dirname(__DIR__))
             SetLocaleFromRequest::class,
         ]);
 
+        // Laravel range la limite de débit (throttle:…) avant les middlewares
+        // sans priorité : sans cette ligne, elle comptait l'adresse du serveur du
+        // portail, commune à tous les visiteurs, et non celle posée par ip.portail.
+        $middleware->prependToPriorityList(before: ThrottleRequests::class, prepend: IpVisiteurDuPortail::class);
+
         $middleware->alias([
             'throttle.candidat.login' => ThrottleCandidatLogin::class,
             'ip.portail' => IpVisiteurDuPortail::class,
@@ -52,5 +59,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command(PurgeExpiredOtps::class)->daily()->at('03:30');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Chaque panne (500, tâche de fond) apparaît aussi dans l'administration,
+        // page « Erreurs techniques ». Le journal fichier reste alimenté.
+        $exceptions->report(function (Throwable $e): void {
+            app(JournalErreurs::class)->depuisException($e);
+        });
     })->create();

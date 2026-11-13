@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\DocumentDownload;
+use App\Models\ErreurTechnique;
 use App\Models\SearchLog;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -27,7 +28,8 @@ Schedule::command('library:check-index')
     ->withoutOverlapping();
 
 // RGPD (spec V1 §5.1) : recherches purgées à 90 jours, téléchargements à 180 jours.
-Schedule::command('model:prune', ['--model' => [SearchLog::class, DocumentDownload::class]])
+// Erreurs techniques (journal de l'administration) : purgées à 90 jours.
+Schedule::command('model:prune', ['--model' => [SearchLog::class, DocumentDownload::class, ErreurTechnique::class]])
     ->dailyAt('02:00')
     ->withoutOverlapping();
 
