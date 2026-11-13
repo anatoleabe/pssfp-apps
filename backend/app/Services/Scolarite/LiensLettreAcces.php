@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Scolarite;
 
+use App\Mail\NotificationCandidatMail;
 use App\Models\Candidature;
 use App\Models\LienLettreAcces;
 use App\Models\User;
@@ -12,6 +13,7 @@ use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use App\Services\Sms\SmsServiceInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Throwable;
@@ -93,24 +95,88 @@ final class LiensLettreAcces
         LienLettreAcces::query()->where('candidature_id', $candidatureId)->whereNull('revoque_le')->update(['revoque_le' => now()]);
     }
 
-    /** Nouveau lien envoyé par SMS depuis la fiche de l'auditeur. Ne lève pas. */
+    /** Sujet de l'e-mail des accès (lien vers la lettre, ou à défaut l'espace). */
+    public const SUJET_EMAIL = 'PSSFP — Vos accès à la plateforme de formation à distance';
+
+    public static function texteEmail(string $url): string
+    {
+        $espace = (string) config('pssfp.candidature_app_url');
+
+        return "Votre inscription au PSSFP est soldée : vos accès à la plateforme de formation à distance (eCampus) sont prêts.\n\n"
+            ."Téléchargez votre lettre d'accès (identifiant et mot de passe) à l'adresse suivante, en confirmant votre date de naissance :\n"
+            .$url."\n\n"
+            .'Ce lien personnel est valable '.LienLettreAcces::DUREE_JOURS.' jours. Passé ce délai, retrouvez votre lettre dans votre espace '
+            .$espace.' ou demandez un nouveau lien à la scolarité. Ne le transmettez à personne.';
+    }
+
+    /** Sans lien possible : l'espace, où l'auditeur retrouve ses accès. */
+    public static function texteEmailEspace(): string
+    {
+        return 'Vos accès à la plateforme de formation à distance (eCampus) sont disponibles dans votre espace : '
+            .config('pssfp.candidature_app_url')."\n\n"
+            .'Connectez-vous avec votre numéro de téléphone et votre code, ou avec votre matricule.';
+    }
+
+    /**
+     * Prévient l'auditeur par SMS ET par e-mail (13/11/2026 : un SMS refusé,
+     * vers un numéro étranger par exemple, ne doit pas le laisser sans
+     * nouvelles). Un seul lien, le même dans les deux messages ; à défaut de
+     * lien possible, l'adresse de l'espace. Jamais de mot de passe. Ne lève pas.
+     *
+     * @return array{sms: ?bool, email: ?bool} true envoyé, false échec, null pas de coordonnée
+     */
+    public function prevenir(Candidature $c, ?User $auteur): array
+    {
+        $lien = null;
+        if (self::possible($c)) {
+            try {
+                $lien = $this->creer($c, $auteur);
+            } catch (Throwable $e) {
+                Log::channel('single')->error('Lien de la lettre d\'accès non créé : message vers l\'espace.', ['dossier' => $c->numero_dossier, 'erreur' => $e::class]);
+            }
+        }
+
+        return [
+            'sms' => blank($c->phone_e164) ? null : $this->tenter($c, 'sms', fn () => $this->sms->send(
+                (string) $c->phone_e164,
+                $lien !== null ? self::texteSms($lien) : NotificationAcces::texte(),
+            )),
+            'email' => blank($c->email) ? null : $this->tenter($c, 'email', fn () => Mail::to((string) $c->email)->sendNow(
+                new NotificationCandidatMail($c, self::SUJET_EMAIL, $lien !== null ? self::texteEmail($lien) : self::texteEmailEspace()),
+            )),
+        ];
+    }
+
+    /** Nouveau lien envoyé par SMS et par e-mail depuis la fiche de l'auditeur. Ne lève pas. */
     public function envoyer(Candidature $c, User $auteur): bool
     {
-        try {
-            if (blank($c->phone_e164)) {
-                throw new InvalidArgumentException('Dossier sans téléphone.');
-            }
-            $this->sms->send((string) $c->phone_e164, self::texteSms($this->creer($c, $auteur)));
-        } catch (Throwable $e) {
-            Log::channel('single')->error('SMS du lien de la lettre d\'accès non envoyé.', ['dossier' => $c->numero_dossier, 'erreur' => $e::class]);
-
+        if (! self::possible($c)) {
+            return false;
+        }
+        $envoi = $this->prevenir($c, $auteur);
+        if ($envoi['sms'] !== true && $envoi['email'] !== true) {
             return false;
         }
         activity('scolarite')->causedBy($auteur)->performedOn($c)
             ->event('lettre_acces_lien_envoye')
-            ->log('Lien de la lettre d\'accès FOAD envoyé par SMS');
+            ->withProperties($envoi)
+            ->log('Lien de la lettre d\'accès FOAD envoyé (SMS et e-mail)');
 
         return true;
+    }
+
+    private function tenter(Candidature $c, string $canal, callable $envoi): bool
+    {
+        try {
+            $envoi();
+
+            return true;
+        } catch (Throwable $e) {
+            // Jamais le texte : il porte le lien.
+            Log::channel('single')->error('Message des accès FOAD non envoyé.', ['dossier' => $c->numero_dossier, 'canal' => $canal, 'erreur' => $e::class]);
+
+            return false;
+        }
     }
 
     /** Lien utilisable dont le dossier est encore remettable, ou null. */

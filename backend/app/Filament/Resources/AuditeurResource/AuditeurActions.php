@@ -122,7 +122,7 @@ final class AuditeurActions
     public static function renvoyerSms(): Action
     {
         return Action::make('renvoyerSms')
-            ->label('Renvoyer le SMS')
+            ->label('Renvoyer le SMS et l\'e-mail')
             ->icon('heroicon-o-chat-bubble-left-ellipsis')
             ->color('warning')
             ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR)
@@ -130,14 +130,14 @@ final class AuditeurActions
                 && AccesEcampus::etat($record->candidature) === AccesEcampus::DISPONIBLE
                 && $record->inscriptionCourante?->acces_notifie_at === null)
             ->requiresConfirmation()
-            ->modalDescription('Le SMS des accès n\'est pas parti. Il contient un lien vers la lettre d\'accès (date de naissance demandée), ou à défaut l\'adresse de l\'espace ; jamais de mot de passe.')
+            ->modalDescription('Ni le SMS ni l\'e-mail des accès ne sont partis. Ils contiennent un lien vers la lettre d\'accès (date de naissance demandée), ou à défaut l\'adresse de l\'espace ; jamais de mot de passe.')
             ->action(function (Auditeur $record): void {
                 abort_unless(auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR), 403);
                 $envoye = app(NotificationAcces::class)->siDisponible($record->candidature, auth()->user());
                 $record->refresh();
                 match ($envoye) {
-                    true => Notification::make()->success()->title('SMS envoyé')->send(),
-                    false => Notification::make()->danger()->title('SMS non envoyé')->body('La passerelle n\'a pas répondu. Réessayez plus tard ; si cela persiste, prévenez l\'USI.')->persistent()->send(),
+                    true => Notification::make()->success()->title('Accès envoyés (SMS et e-mail)')->send(),
+                    false => Notification::make()->danger()->title('Ni SMS ni e-mail envoyé')->body('La passerelle n\'a pas répondu. Réessayez plus tard ; si cela persiste, prévenez l\'USI.')->persistent()->send(),
                     null => Notification::make()->info()->title('Rien à envoyer')->body('L\'accès n\'est plus disponible, ou le SMS vient de partir.')->send(),
                 };
             });
@@ -158,14 +158,14 @@ final class AuditeurActions
                 && LiensLettreAcces::possible($record->candidature))
             ->requiresConfirmation()
             ->modalHeading('Envoyer un nouveau lien vers la lettre d\'accès')
-            ->modalDescription(fn (Auditeur $record): string => 'SMS au '.($record->candidature?->phone_e164 ?? '—').' : lien valable '
+            ->modalDescription(fn (Auditeur $record): string => 'SMS au '.($record->candidature?->phone_e164 ?? '—').' et e-mail à '.($record->candidature?->email ?: '—').' : lien valable '
                 .LienLettreAcces::DUREE_JOURS.' jours, date de naissance demandée avant le téléchargement. Le lien précédent cesse de fonctionner.')
             ->action(function (Auditeur $record): void {
                 abort_unless(auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR), 403);
                 $envoye = app(LiensLettreAcces::class)->envoyer($record->candidature, auth()->user());
                 $envoye
                     ? Notification::make()->success()->title('Lien envoyé')->send()
-                    : Notification::make()->danger()->title('SMS non envoyé')->body('La passerelle n\'a pas répondu ou le dossier n\'a pas de téléphone. Réessayez plus tard ; si cela persiste, prévenez l\'USI.')->persistent()->send();
+                    : Notification::make()->danger()->title('Ni SMS ni e-mail envoyé')->body('La passerelle SMS et le serveur d\'e-mails n\'ont pas répondu, ou le dossier n\'a ni téléphone ni e-mail. Réessayez plus tard ; si cela persiste, prévenez l\'USI.')->persistent()->send();
             });
     }
 
@@ -412,9 +412,9 @@ final class AuditeurActions
     private static function notifier(string $titre, ResultatOperation $resultat): void
     {
         match ($resultat->sms) {
-            true => Notification::make()->success()->title($titre)->body('Inscription soldée : l\'auditeur a été prévenu par SMS que ses accès sont dans son espace.')->send(),
+            true => Notification::make()->success()->title($titre)->body('Inscription soldée : l\'auditeur a été prévenu de ses accès par SMS et par e-mail (détail par canal dans le journal d\'activité).')->send(),
             false => Notification::make()->warning()->persistent()->title($titre)
-                ->body('Inscription soldée, mais le SMS « accès disponibles » n\'est pas parti. Utilisez « Renvoyer le SMS » sur la fiche.')->send(),
+                ->body('Inscription soldée, mais ni le SMS ni l\'e-mail des accès ne sont partis. Utilisez « Renvoyer le SMS et l\'e-mail » sur la fiche.')->send(),
             null => Notification::make()->success()->title($titre)->send(),
         };
     }
