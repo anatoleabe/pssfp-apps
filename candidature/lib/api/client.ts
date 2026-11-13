@@ -1,4 +1,5 @@
 import { getLocale } from 'next-intl/server';
+import { contenuEnveloppe } from './enveloppe';
 
 import type {
   ApiResult,
@@ -139,7 +140,7 @@ async function apiCall<T>(
       };
     }
 
-    return { ok: true, data: (payload as { data?: T })?.data ?? (payload as T) };
+    return { ok: true, data: contenuEnveloppe<T>(payload) };
   } catch (error) {
     return {
       ok: false,
@@ -593,7 +594,7 @@ export async function uploadPhoto(
         errors: errorPayload.errors,
       };
     }
-    const data = (payload as { data?: UploadPhotoResponse })?.data ?? (payload as UploadPhotoResponse);
+    const data = contenuEnveloppe<UploadPhotoResponse>(payload);
     return { ok: true, data };
   } catch (error) {
     return {
@@ -675,7 +676,7 @@ export async function uploadCandidatureDocument(
         errors: errorPayload.errors,
       };
     }
-    const data = (payload as { data?: CandidatureDocumentItem })?.data ?? (payload as CandidatureDocumentItem);
+    const data = contenuEnveloppe<CandidatureDocumentItem>(payload);
     return { ok: true, data };
   } catch (error) {
     return {
