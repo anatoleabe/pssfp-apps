@@ -1357,5 +1357,25 @@
     "titulaire": "Titulaire",
     "date": "Délivré le",
     "aide": "Comparez ces informations avec le document présenté. Un document révoqué n'a plus de valeur."
+  },
+  "lienLettre": {
+    "title": "Votre lettre d'accès FOAD",
+    "intro": "Pour télécharger votre lettre d'accès (matricule et mot de passe eCampus), confirmez votre date de naissance.",
+    "dateLabel": "Date de naissance",
+    "dateHelp": "Celle de votre dossier de candidature.",
+    "submit": "Télécharger ma lettre (PDF)",
+    "validite": "Ce lien personnel expire le {date}. Ne le transmettez à personne.",
+    "invalide": "Ce lien n'est plus valable : il a expiré, a déjà servi plusieurs fois ou a été remplacé par un nouveau lien.",
+    "invalideAide": "Connectez-vous à votre espace pour retrouver votre lettre, ou demandez un nouveau lien à la scolarité.",
+    "connexion": "Se connecter à mon espace",
+    "erreurs": {
+      "date": "Date de naissance incorrecte. Il vous reste {restantes, plural, one {# essai} other {# essais}}.",
+      "verrouille": "Trop d'essais : ce lien est désormais fermé. Connectez-vous à votre espace ou demandez un nouveau lien à la scolarité.",
+      "invalide": "Ce lien n'est plus valable. Connectez-vous à votre espace ou demandez un nouveau lien à la scolarité.",
+      "non_prete": "Votre lettre n'est pas encore prête. Réessayez plus tard ou rapprochez-vous de la scolarité.",
+      "limite": "Trop de tentatives depuis cet appareil. Réessayez dans quelques minutes.",
+      "indisponible": "Le service est momentanément indisponible. Réessayez dans quelques instants.",
+      "format": "Saisissez votre date de naissance."
+    }
   }
 }

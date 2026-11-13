@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\Scolarite\LiensLettreAcces;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -143,6 +144,17 @@ class Candidature extends Model
         // Hors $fillable : posé par ComptesEcampus uniquement.
         'ecampus_synchronise_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        // Lien de la lettre d'accès parti vers l'ancien numéro (erreur de saisie,
+        // numéro recyclé) : il ne doit pas rester ouvert après la correction.
+        static::updated(function (Candidature $c): void {
+            if ($c->wasChanged('phone_e164')) {
+                LiensLettreAcces::revoquer($c->id);
+            }
+        });
+    }
 
     /** Le `id` reste BIGSERIAL ; HasUuids génère uniquement le champ `uuid`. */
     public function uniqueIds(): array

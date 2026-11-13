@@ -8,6 +8,7 @@ use App\Models\ErreurTechnique;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -57,7 +58,7 @@ final class JournalErreurs
             'source' => ErreurTechnique::SOURCE_APPLY,
             'type' => 'Écran d\'erreur',
             'message' => Str::limit($signalement['message'], self::MESSAGE_MAX, ''),
-            'page' => Str::limit(Str::before($signalement['page'], '?'), 500, ''),
+            'page' => Str::limit(self::sansJeton(Str::before($signalement['page'], '?')), 500, ''),
             'digest' => $signalement['digest'] ?? null,
             'requete' => $this->identifiantRequete(),
             'navigateur' => $signalement['navigateur'] ?? null,
@@ -101,12 +102,26 @@ final class JournalErreurs
         return $requete->is('admin', 'admin/*', 'livewire/*') ? ErreurTechnique::SOURCE_ADMIN : ErreurTechnique::SOURCE_API;
     }
 
-    /** Chemin sans paramètres (un code d'accès peut y figurer) ; pour Livewire, la page d'origine. */
+    /**
+     * Modèle de la route (/v1/lettre-acces/{jeton}) plutôt que l'adresse : un
+     * jeton ou un code d'accès ne doit pas atterrir dans le journal. Pour
+     * Livewire, la page d'origine du back-office.
+     */
     private function page(Request $requete): string
     {
         $origine = $requete->is('livewire/*') ? parse_url((string) $requete->headers->get('referer', ''), PHP_URL_PATH) : null;
+        if (is_string($origine) && $origine !== '') {
+            return Str::limit($origine, 500, '');
+        }
+        $route = $requete->route();
 
-        return Str::limit(is_string($origine) && $origine !== '' ? $origine : '/'.ltrim($requete->path(), '/'), 500, '');
+        return Str::limit('/'.ltrim($route instanceof Route ? $route->uri() : $requete->path(), '/'), 500, '');
+    }
+
+    /** Jeton du lien de la lettre d'accès (/l/{jeton}) masqué dans une adresse du portail. */
+    private static function sansJeton(string $adresse): string
+    {
+        return (string) preg_replace('#/l/[^/?\#]+#', '/l/{jeton}', $adresse);
     }
 
     /** Message sans la requête SQL ni ses valeurs : une erreur de base peut contenir des données personnelles. */

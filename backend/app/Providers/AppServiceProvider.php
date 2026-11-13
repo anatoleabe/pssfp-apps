@@ -91,6 +91,17 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('consultation-espace', fn (Request $request): Limit => Limit::perMinute(30)->by('consultation-espace|'.$request->ip()));
         // Écrans d'erreur relayés par le portail : quelques-uns par minute suffisent, et un plafond
         // quotidien empêche un même visiteur de remplir le journal des erreurs.
+        // Lien de la lettre d'accès (SMS) : jeton aléatoire + date de naissance ; le débit par
+        // visiteur borne en plus tout essai systématique.
+        // Limites larges : derrière le CGNAT des opérateurs mobiles, des dizaines d'auditeurs
+        // partagent une adresse après un envoi groupé. Le jeton (~95 bits) et le verrou par
+        // lien (5 dates fausses) portent la vraie protection.
+        RateLimiter::for('lien-lettre-acces', fn (Request $request): array => [
+            Limit::perMinute(20)->by('lien-lettre-acces:minute|'.$request->ip()),
+            Limit::perHour(120)->by('lien-lettre-acces:heure|'.$request->ip()),
+        ]);
+        // Ouverture de la page (et aperçus des messageries) : rien n'y est consommé.
+        RateLimiter::for('lien-lettre-acces-lecture', fn (Request $request): Limit => Limit::perMinute(60)->by('lien-lettre-acces-lecture|'.$request->ip()));
         RateLimiter::for('signalement-erreurs', fn (Request $request): array => [
             Limit::perMinute(20)->by('signalement-erreurs:minute|'.$request->ip()),
             Limit::perDay(300)->by('signalement-erreurs:jour|'.$request->ip()),

@@ -17,9 +17,12 @@ export interface Signalement {
   digest?: string;
 }
 
-/** Adresse sans paramètres ni ancre (un code d'accès peut y figurer), message borné. */
+/**
+ * Adresse sans paramètres ni ancre (un code d'accès peut y figurer), jeton du
+ * lien de la lettre d'accès masqué (/l/{jeton}), message borné.
+ */
 export function construireSignalement(erreur: Error & { digest?: string }, adresse: string): Signalement {
-  const page = (adresse.split(/[?#]/)[0] ?? '').slice(0, PAGE_MAX);
+  const page = (adresse.split(/[?#]/)[0] ?? '').replace(/\/l\/[^/]+/, '/l/{jeton}').slice(0, PAGE_MAX);
   const message = (erreur.message || erreur.name || 'Erreur').slice(0, MESSAGE_MAX);
 
   return erreur.digest ? { page, message, digest: erreur.digest.slice(0, DIGEST_MAX) } : { page, message };

@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
  * hors du site. Une `Location` relative est résolue par le navigateur sur
  * l'adresse publique qu'il a demandée.
  */
-export function redirectTo(path: string): NextResponse {
-  return new NextResponse(null, { status: 307, headers: { Location: path } });
+export function redirectTo(path: string, status: 303 | 307 = 307): NextResponse {
+  // 303 après un formulaire POST : le navigateur revient en GET sur la page.
+  return new NextResponse(null, { status, headers: { Location: path } });
 }

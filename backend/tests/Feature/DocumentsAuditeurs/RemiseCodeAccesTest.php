@@ -29,6 +29,7 @@ beforeEach(function (): void {
     $this->admin = tap(User::factory()->create(['email' => 'admin-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole('admin'));
     $this->campagne = CampagneCandidature::factory()->create([
         'nom' => ['fr' => 'Année académique 2026-2027'], 'promotion_numero' => 14,
+        'parametres_lettres' => ['date_lettres' => '2026-11-04'],
     ]);
     $retenu = fn (string $nom): Candidature => Candidature::factory()->forCampagne($this->campagne)->submitted()->create([
         'nom' => $nom, 'prenom' => 'Essai', 'statut' => Candidature::STATUT_ACCEPTE,

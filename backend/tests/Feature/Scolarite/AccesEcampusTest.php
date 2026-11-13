@@ -147,7 +147,7 @@ describe('SMS « accès disponibles »', function (): void {
         expect($r->sms)->toBeTrue()
             ->and($this->sms)->toHaveCount(1)
             ->and($this->sms[0][0])->toBe('+237699000001')
-            ->and($this->sms[0][1])->toBe('PSSFP : vos acces FOAD sont disponibles dans votre espace apply.pssfp.org.')
+            ->and($this->sms[0][1])->toBe('PSSFP : vos acces FOAD sont disponibles dans votre espace apply.pssfp.org')
             ->and($this->sms[0][1])->not->toContain((string) $this->dossier->moodle_password)
             ->and(strlen($this->sms[0][1]))->toBeLessThanOrEqual(160);
 

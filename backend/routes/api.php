@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\Applications\CandidatureController;
 use App\Http\Controllers\Api\Applications\EmploiDuTempsController;
+use App\Http\Controllers\Api\Applications\LienLettreAccesController;
 use App\Http\Controllers\Api\Applications\MemoireController;
 use App\Http\Controllers\Api\Applications\ParcoursController;
 use App\Http\Controllers\Api\Applications\QrCandidatureController;
@@ -89,6 +90,16 @@ Route::prefix('auth/candidat')->name('auth.candidat.')->middleware('ip.portail')
 Route::post('/erreurs/portail', SignalementErreurPortailController::class)
     ->middleware(['ip.portail', 'throttle:signalement-erreurs'])
     ->name('erreurs.portail');
+
+/*
+ * Lien court de la lettre d'accès FOAD envoyé par SMS : public, sans compte,
+ * date de naissance exigée (LiensLettreAcces). Le GET ne consomme rien : les
+ * aperçus de liens des messageries peuvent l'appeler sans dommage.
+ */
+Route::prefix('lettre-acces')->name('lettre-acces.')->middleware('ip.portail')->group(function (): void {
+    Route::get('/{jeton}', [LienLettreAccesController::class, 'show'])->middleware('throttle:lien-lettre-acces-lecture')->name('lien');
+    Route::post('/{jeton}', [LienLettreAccesController::class, 'telecharger'])->middleware('throttle:lien-lettre-acces')->name('telecharger');
+});
 
 /*
  * Référentiels publics (cache 24h Redis).

@@ -16,6 +16,12 @@ test.describe('Signalement des erreurs au back-office', () => {
     expect(signalement.digest).toBe('268796391');
   });
 
+  test('ne transmet jamais le jeton d’un lien de lettre d’accès', () => {
+    const signalement = construireSignalement(new Error('Panne'), 'https://apply.pssfp.org/en/l/Xk7pQ2mZ9vRt4bNw?erreur=date');
+
+    expect(signalement.page).toBe('https://apply.pssfp.org/en/l/{jeton}');
+  });
+
   test('le relais accepte un signalement et refuse un envoi démesuré ou illisible', async ({ request }) => {
     const accepte = await request.post('/auth/signaler-erreur', {
       data: { page: 'https://apply.pssfp.org/login', message: 'Panne', digest: '1' },

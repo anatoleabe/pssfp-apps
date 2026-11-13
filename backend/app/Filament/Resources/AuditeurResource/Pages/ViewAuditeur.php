@@ -65,6 +65,7 @@ class ViewAuditeur extends ViewRecord
             AuditeurActions::enregistrerVersement(),
             AuditeurActions::accorderRemise(),
             AuditeurActions::renvoyerSms(),
+            AuditeurActions::envoyerLienLettre(),
             AuditeurActions::creerInscription(),
             ActionGroup::make([
                 ComptesEcampusActions::creer(Action::make('creerCompteEcampus')),
