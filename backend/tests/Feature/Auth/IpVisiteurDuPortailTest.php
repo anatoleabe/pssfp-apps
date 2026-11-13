@@ -72,3 +72,15 @@ it('ignore l\'en-tête tant qu\'aucun secret n\'est configuré', function (): vo
 
     expect(Activity::query()->where('event', 'login_failed')->sole()->properties['ip'])->toBe('127.0.0.1');
 });
+
+it('applique les limites de débit des routes au visiteur, pas au serveur du portail', function (): void {
+    // Laravel range la limite de débit avant les middlewares sans priorité :
+    // sans ip.portail déclaré prioritaire, les 20 inscriptions par minute (et
+    // les 30 connexions par matricule) valaient pour tous les visiteurs à la fois.
+    foreach (range(1, 20) as $_) {
+        $this->withHeaders(depuisLePortail('41.202.1.10'))->postJson('/v1/auth/candidat/register', [])->assertUnprocessable();
+    }
+    $this->withHeaders(depuisLePortail('41.202.1.10'))->postJson('/v1/auth/candidat/register', [])->assertStatus(429);
+
+    $this->withHeaders(depuisLePortail('102.244.5.7'))->postJson('/v1/auth/candidat/register', [])->assertUnprocessable();
+});

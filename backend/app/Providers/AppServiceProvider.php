@@ -89,6 +89,12 @@ class AppServiceProvider extends ServiceProvider
             ->by('lettre-acces|'.($request->user()?->id ?? $request->ip()).'|'.($request->user()?->currentAccessToken()?->name ?? '')));
 
         RateLimiter::for('consultation-espace', fn (Request $request): Limit => Limit::perMinute(30)->by('consultation-espace|'.$request->ip()));
+        // Écrans d'erreur relayés par le portail : quelques-uns par minute suffisent, et un plafond
+        // quotidien empêche un même visiteur de remplir le journal des erreurs.
+        RateLimiter::for('signalement-erreurs', fn (Request $request): array => [
+            Limit::perMinute(20)->by('signalement-erreurs:minute|'.$request->ip()),
+            Limit::perDay(300)->by('signalement-erreurs:jour|'.$request->ip()),
+        ]);
 
         $this->configureLibraryRateLimits();
 

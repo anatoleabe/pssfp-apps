@@ -27,14 +27,19 @@ final class IpVisiteurDuPortail
 
     public const ENTETE_SECRET = 'X-PSSFP-Portail';
 
+    /** Attribut posé sur une requête dont le secret du portail est valide. */
+    public const ATTRIBUT_PORTAIL = 'pssfp.depuis_portail';
+
     public function handle(Request $request, Closure $next): Response
     {
         $secret = (string) config('pssfp.portail_secret', '');
         $fourni = (string) $request->header(self::ENTETE_SECRET, '');
         $ip = (string) $request->header(self::ENTETE_IP, '');
 
-        if ($secret !== '' && $fourni !== '' && hash_equals($secret, $fourni)
-            && filter_var($ip, FILTER_VALIDATE_IP) !== false) {
+        $depuisPortail = $secret !== '' && $fourni !== '' && hash_equals($secret, $fourni);
+        $request->attributes->set(self::ATTRIBUT_PORTAIL, $depuisPortail);
+
+        if ($depuisPortail && filter_var($ip, FILTER_VALIDATE_IP) !== false) {
             $request->server->set('REMOTE_ADDR', $ip);
         }
 

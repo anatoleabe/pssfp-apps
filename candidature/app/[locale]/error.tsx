@@ -5,12 +5,15 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Link } from '@/navigation';
 import { useEffect } from 'react';
+import { signalerErreur } from '@/lib/erreurs/signalement';
 
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }): JSX.Element {
   const tep = useTranslations('errorPage');
   useEffect(() => {
     // Digest uniquement : aucune donnée candidat ni message d'exception.
     console.error('[candidature-ui-error]', { digest: error.digest ?? 'unknown' });
+    // Visible dans le back-office, page « Erreurs techniques ».
+    signalerErreur(error);
   }, [error]);
 
   return (

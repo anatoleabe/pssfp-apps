@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\Articles\ArticleController;
 use App\Http\Controllers\Api\Auth\AuthCandidatController;
 use App\Http\Controllers\Api\Auth\ConsultationEspaceController;
 use App\Http\Controllers\Api\Contact\ContactController;
+use App\Http\Controllers\Api\Erreurs\SignalementErreurPortailController;
 use App\Http\Controllers\Api\Library\CatalogueController;
 use App\Http\Controllers\Api\Library\DocumentController as LibraryDocumentController;
 use App\Http\Controllers\Api\Library\DownloadController;
@@ -79,6 +80,15 @@ Route::prefix('auth/candidat')->name('auth.candidat.')->middleware('ip.portail')
         ->middleware('throttle:consultation-espace')
         ->name('consultation');
 });
+
+/*
+ * Écrans d'erreur du portail apply, relayés par son serveur (secret partagé
+ * exigé par la FormRequest) : visibles dans l'administration, « Erreurs
+ * techniques ». ip.portail en tête : la limite vise le visiteur.
+ */
+Route::post('/erreurs/portail', SignalementErreurPortailController::class)
+    ->middleware(['ip.portail', 'throttle:signalement-erreurs'])
+    ->name('erreurs.portail');
 
 /*
  * Référentiels publics (cache 24h Redis).
