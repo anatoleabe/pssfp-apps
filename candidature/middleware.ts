@@ -145,5 +145,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|logos/).*)'],
+  // Icônes du site (app/icon.png, app/apple-icon.png) hors détection de langue :
+  // réécrites en /fr/icon.png ou redirigées vers /en/icon.png, elles tombaient en 404.
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|logos/|icon\\.png|apple-icon\\.png).*)'],
 };
