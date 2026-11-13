@@ -15,6 +15,7 @@ use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
 use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
 use App\Filament\Resources\CandidatureResource\LettresSigneesActions;
 use App\Models\Auditeur;
+use App\Services\DocumentsAuditeurs\DocumentsAuditeurs;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -54,8 +55,13 @@ class ViewAuditeur extends ViewRecord
             $dossier = $auditeur->candidature;
             // Gestes des admissions : ils exigent aussi l'accès à ce module et le droit de voir
             // ce dossier, comme depuis les candidatures. Sans dossier (supprimé), rien.
+            // Exception : la scolarité télécharge la lettre d'accès d'un auditeur soldé depuis
+            // sa fiche (13/11/2026) ; l'action garde ses propres contrôles (droits payés, un seul dossier).
+            $parLaScolarite = $action->getName() === 'lettreAccesFoad'
+                && (bool) auth()->user()?->can(DocumentsAuditeurs::PERMISSION_LETTRE_ACCES_DOSSIER);
             $action->record($dossier)
-                ->hidden(fn (): bool => $dossier === null || ! CandidatureResource::canAccess() || ! CandidatureResource::canView($dossier));
+                ->hidden(fn (): bool => $dossier === null
+                    || (! $parLaScolarite && (! CandidatureResource::canAccess() || ! CandidatureResource::canView($dossier))));
         }
     }
 

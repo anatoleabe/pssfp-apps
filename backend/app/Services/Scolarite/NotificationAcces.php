@@ -7,25 +7,21 @@ namespace App\Services\Scolarite;
 use App\Models\Candidature;
 use App\Models\InscriptionAnnuelle;
 use App\Models\User;
-use App\Services\Sms\SmsServiceInterface;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
  * Prévient l'auditeur, une seule fois par inscription, que ses accès sont
- * disponibles : par un lien vers sa lettre d'accès (date de naissance exigée)
- * quand c'est possible, sinon en le renvoyant vers son espace. Jamais de mot
- * de passe dans le SMS.
+ * disponibles, par SMS ET par e-mail : un lien vers sa lettre d'accès (date de
+ * naissance exigée) quand c'est possible, sinon l'adresse de son espace.
+ * Jamais de mot de passe. Prévenu si au moins un des deux messages est parti.
  *
  * Ne lève jamais : un incident de passerelle ne doit faire échouer ni le
  * versement ni la création du compte qui ont provoqué l'envoi.
  */
 final class NotificationAcces
 {
-    public function __construct(
-        private readonly SmsServiceInterface $sms,
-        private readonly LiensLettreAcces $liens,
-    ) {}
+    public function __construct(private readonly LiensLettreAcces $liens) {}
 
     /**
      * Sans lien possible (mot de passe inconnu du portail, lettre non paramétrée).
@@ -61,24 +57,20 @@ final class NotificationAcces
             return false;
         }
 
-        try {
-            if (blank($c->phone_e164)) {
-                throw new \RuntimeException('Dossier sans téléphone.');
-            }
-            $texte = LiensLettreAcces::possible($c) ? LiensLettreAcces::texteSms($this->liens->creer($c, $auteur)) : self::texte();
-            $this->sms->send((string) $c->phone_e164, $texte);
-        } catch (Throwable $e) {
-            Log::channel('single')->error('SMS « accès disponibles » non envoyé.', ['dossier' => $c->numero_dossier, 'erreur' => $e::class]);
-            $this->sansEchec(function () use ($inscription, $c, $auteur): void {
-                // La réservation saute : la fiche proposera « Renvoyer ».
+        $envoi = $this->liens->prevenir($c, $auteur);
+        if ($envoi['sms'] !== true && $envoi['email'] !== true) {
+            $this->sansEchec(function () use ($inscription, $c, $auteur, $envoi): void {
+                // Ni SMS ni e-mail : la réservation saute, la fiche proposera « Renvoyer ».
                 InscriptionAnnuelle::query()->whereKey($inscription->id)->update(['acces_notifie_at' => null]);
-                activity('scolarite')->causedBy($auteur)->performedOn($c)->event('acces_sms_echec')->log('SMS « accès disponibles » non envoyé');
+                activity('scolarite')->causedBy($auteur)->performedOn($c)->event('acces_sms_echec')
+                    ->withProperties($envoi)->log('Accès disponibles : ni SMS ni e-mail envoyé');
             });
 
             return false;
         }
 
-        $this->sansEchec(fn () => activity('scolarite')->causedBy($auteur)->performedOn($c)->event('acces_sms_envoye')->log('SMS « accès disponibles » envoyé'));
+        $this->sansEchec(fn () => activity('scolarite')->causedBy($auteur)->performedOn($c)->event('acces_sms_envoye')
+            ->withProperties($envoi)->log('Accès disponibles : auditeur prévenu par SMS et par e-mail'));
 
         return true;
     }
