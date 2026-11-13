@@ -51,7 +51,10 @@ export function LoginMatriculeForm(): JSX.Element {
           data-testid="login-matricule-input"
           type="text"
           autoComplete="username"
-          autoCapitalize="characters"
+          // Ni majuscule ni correction automatique : le matricule se saisit
+          // tel qu'écrit sur la lettre (l'API l'accepte dans les deux casses).
+          autoCapitalize="none"
+          autoCorrect="off"
           spellCheck={false}
           maxLength={20}
           value={identifiant}
@@ -77,6 +80,11 @@ export function LoginMatriculeForm(): JSX.Element {
             data-testid="login-matricule-password"
             type={visible ? 'text' : 'password'}
             autoComplete="current-password"
+            // Casse mixte : affiché en clair, le clavier du téléphone mettrait
+            // une majuscule en tête ou corrigerait le mot de passe.
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             maxLength={100}
             value={motDePasse}
             onChange={(e) => setMotDePasse(e.target.value)}

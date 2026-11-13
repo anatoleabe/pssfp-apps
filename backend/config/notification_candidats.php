@@ -18,7 +18,9 @@ declare(strict_types=1);
  *   l'opérateur facture deux messages ;
  * - alphabet GSM-7 : les accents é è à ù ç passent, l'apostrophe
  *   typographique ' et les guillemets « » font basculer en UCS-2, qui
- *   plafonne à 70 caractères. Utiliser l'apostrophe droite.
+ *   plafonne à 70 caractères. Utiliser l'apostrophe droite ;
+ * - jamais de ponctuation collée à {url} : certaines applications SMS gardent
+ *   le point dans le lien (« apply.pssfp.org. »), et la connexion échoue.
  */
 return [
     'url' => env('RELANCE_SMS_URL', 'apply.pssfp.org'),
@@ -34,13 +36,13 @@ return [
             'libelle' => 'Rappel de la date de cloture',
             'sujet' => 'PSSFP — clôture des candidatures le {date_cloture}',
             'corps' => 'PSSFP : les candidatures ferment le {date_cloture}. '
-                .'Verifiez votre dossier {numero_dossier} sur {url}.',
+                .'Verifiez votre dossier {numero_dossier} sur {url} avant cette date.',
         ],
         'frais_non_payes' => [
             'libelle' => 'Frais de dossier non regles',
             'sujet' => 'PSSFP — frais de dossier en attente',
             'corps' => 'PSSFP : les frais de dossier de la candidature {numero_dossier} '
-                .'ne sont pas encore enregistres. Details sur {url}.',
+                .'ne sont pas encore enregistres. Consultez {url} pour les details.',
         ],
         'depot_papier_attendu' => [
             'libelle' => 'Dossier papier non depose au guichet',
@@ -52,7 +54,7 @@ return [
             'libelle' => 'Convocation / information generale',
             'sujet' => 'PSSFP — information importante',
             'corps' => 'PSSFP : information concernant votre candidature {numero_dossier}. '
-                .'Connectez-vous sur {url}.',
+                .'Connectez-vous sur {url} pour la consulter.',
         ],
     ],
 ];
