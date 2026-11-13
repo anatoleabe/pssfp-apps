@@ -174,6 +174,8 @@ describe('SMS « accès disponibles »', function (): void {
     it('ne fait pas échouer le versement si la passerelle tombe, et peut être renvoyé', function (): void {
         ($this->compteCree)();
         $this->smsEnPanne = true;
+        // Sans e-mail : aucun canal ne passe (l'e-mail de secours est couvert par LienLettreAccesTest).
+        $this->dossier->forceFill(['email' => null])->save();
 
         $r = ($this->verser)();
         expect($r->sms)->toBeFalse()

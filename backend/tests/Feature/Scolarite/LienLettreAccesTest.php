@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Filament\Resources\AuditeurResource\Pages\ViewAuditeur;
 use App\Http\Middleware\IpVisiteurDuPortail;
+use App\Mail\NotificationCandidatMail;
 use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
@@ -58,8 +59,12 @@ beforeEach(function (): void {
     Versement::factory()->create(['inscription_annuelle_id' => $this->awa->auditeur->inscriptionCourante->id, 'montant' => 185000, 'reference' => 'BOR-LIEN1']);
 
     $this->sms = [];
+    $this->smsEnPanne = false;
     $this->mock(SmsServiceInterface::class, function ($mock): void {
         $mock->shouldReceive('send')->andReturnUsing(function (string $tel, string $texte): void {
+            if ($this->smsEnPanne) {
+                throw new RuntimeException('passerelle');
+            }
             $this->sms[] = [$tel, $texte];
         });
     });
@@ -224,4 +229,42 @@ it('ne garde jamais deux liens ouverts pour un même dossier', function (): void
     ($this->lien)();
 
     expect(LienLettreAcces::query()->whereNull('revoque_le')->count())->toBe(1);
+});
+
+it('envoie le même lien par SMS et par e-mail au solde', function (): void {
+    expect(app(NotificationAcces::class)->siDisponible($this->awa))->toBeTrue();
+
+    $jeton = ($this->jetonDe)($this->sms[0][1]);
+    Mail::assertSent(NotificationCandidatMail::class, fn (NotificationCandidatMail $m): bool => $m->hasTo($this->awa->email)
+        && str_contains($m->corpsMessage, 'https://apply.pssfp.org/l/'.$jeton)
+        && str_contains($m->corpsMessage, 'date de naissance')
+        && ! str_contains($m->corpsMessage, (string) $this->awa->moodle_password));
+    expect(LienLettreAcces::query()->count())->toBe(1);
+});
+
+it('prévient par e-mail quand le SMS échoue, sans proposer de renvoi', function (): void {
+    $this->smsEnPanne = true;
+
+    expect(app(NotificationAcces::class)->siDisponible($this->awa))->toBeTrue();
+
+    Mail::assertSent(NotificationCandidatMail::class, 1);
+    expect($this->awa->auditeur->inscriptionCourante->fresh()->acces_notifie_at)->not->toBeNull()
+        ->and(Activity::query()->where('event', 'acces_sms_envoye')->sole()->properties->only(['sms', 'email'])->all())
+        ->toBe(['sms' => false, 'email' => true]);
+});
+
+it('laisse le renvoi ouvert quand ni le SMS ni l\'e-mail ne partent', function (): void {
+    $this->smsEnPanne = true;
+    $this->awa->forceFill(['email' => null])->save();
+
+    expect(app(NotificationAcces::class)->siDisponible($this->awa->fresh()))->toBeFalse()
+        ->and($this->awa->auditeur->inscriptionCourante->fresh()->acces_notifie_at)->toBeNull();
+    Mail::assertNothingSent();
+});
+
+it('envoie aussi le nouveau lien de la fiche par e-mail', function (): void {
+    $this->smsEnPanne = true;
+
+    expect(app(LiensLettreAcces::class)->envoyer($this->awa, $this->admin))->toBeTrue();
+    Mail::assertSent(NotificationCandidatMail::class, fn (NotificationCandidatMail $m): bool => str_contains($m->corpsMessage, '/l/'));
 });
