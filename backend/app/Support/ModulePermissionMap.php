@@ -130,6 +130,7 @@ final class ModulePermissionMap
                     'scolarite.promotion' => 'Modifier les réglages d\'une promotion (lettres, rentrée, consignes)',
                     'scolarite.statut' => 'Changer le statut d\'un auditeur (suspendu, abandon, exclu, diplômé)',
                     'scolarite.messages' => 'Envoyer un message aux auditeurs (relance des impayés)',
+                    'scolarite.lettre_acces' => 'Télécharger depuis sa fiche la lettre d\'accès FOAD (avec le mot de passe) d\'un auditeur dont l\'inscription est soldée',
                 ],
             ],
             'lmd' => [

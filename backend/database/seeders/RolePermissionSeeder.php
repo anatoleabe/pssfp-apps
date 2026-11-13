@@ -86,6 +86,7 @@ final class RolePermissionSeeder extends Seeder
                     'campagne.download_resultats',
                     'campagne.export_retenus',
                     'candidature.matricules_moodle',
+                    'scolarite.lettre_acces',
                     'candidature.ajouter_retenu',
                     'candidature.lettres_signees',
                     'candidature.espace_candidat',
@@ -168,19 +169,20 @@ final class RolePermissionSeeder extends Seeder
              * LibraryAdminRolesMigrationTest).
              */
             // Scolarité (spec module 4) : l'agent enregistre l'argent, le responsable
-            // corrige et accorde. Aucun des deux n'ouvre les dossiers ni ne voit
-            // les mots de passe FOAD.
+            // corrige et accorde. Aucun des deux n'ouvre les dossiers ; depuis le
+            // 13/11/2026, tous deux téléchargent la lettre d'accès FOAD d'un auditeur
+            // soldé, un dossier à la fois (scolarite.lettre_acces).
             'scolarite_agent' => [
                 'label' => 'Agent de scolarité',
-                'description' => 'Consultation des auditeurs, enregistrement des versements et export de la situation financière ; préparation des maquettes et inscriptions pédagogiques.',
+                'description' => 'Consultation des auditeurs, enregistrement des versements et export de la situation financière ; lettre d\'accès FOAD d\'un auditeur soldé ; préparation des maquettes et inscriptions pédagogiques.',
                 'modules' => ['scolarite' => $manage, 'lmd' => $manage],
-                'sensitive' => ['scolarite.export'],
+                'sensitive' => ['scolarite.export', 'scolarite.lettre_acces'],
             ],
             'scolarite_responsable' => [
                 'label' => 'Responsable de scolarité',
                 'description' => 'Droits de l\'agent, plus l\'annulation des versements, les remises, les barèmes, les réglages de promotion, le statut des auditeurs, les messages, la validation des maquettes, les règles d\'évaluation et les changements de parcours.',
                 'modules' => ['scolarite' => $manage, 'lmd' => $manage],
-                'sensitive' => ['scolarite.export', 'scolarite.versement_annuler', 'scolarite.remise', 'scolarite.bareme', 'supervision.consulter',
+                'sensitive' => ['scolarite.export', 'scolarite.lettre_acces', 'scolarite.versement_annuler', 'scolarite.remise', 'scolarite.bareme', 'supervision.consulter',
                     'scolarite.promotion', 'scolarite.statut', 'scolarite.messages',
                     'lmd.maquette_valider', 'lmd.regles', 'lmd.parcours_changer',
                     'lmd.notes_verrouiller', 'lmd.notes_rouvrir', 'lmd.derogation_rattrapage',

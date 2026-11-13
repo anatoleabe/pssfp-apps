@@ -66,14 +66,17 @@ final class DocumentsAuditeursActions
     public static function dossier(MountableAction $action, string $document): MountableAction
     {
         return $action
-            ->label($document === ParametresLettres::DOCUMENT_ACCES ? 'Lettre d\'accès FOAD (Word)' : 'Lettre d\'admission (Word)')
+            ->label($document === ParametresLettres::DOCUMENT_ACCES ? 'Lettre d\'accès FOAD (PDF)' : 'Lettre d\'admission (Word)')
             ->icon('heroicon-o-document-text')
             ->color('gray')
-            ->visible(fn (Candidature $record): bool => (bool) auth()->user()?->can(DocumentsAuditeurs::permission($document))
+            ->visible(fn (Candidature $record): bool => auth()->user() !== null
+                && DocumentsAuditeurs::autorise(auth()->user(), $document, [(int) $record->id])
                 && ($document === ParametresLettres::DOCUMENT_ACCES ? IdentifiantsMoodle::remettables($record)
                     : FraisInscription::concerne($record) && $record->matricule !== null))
-            ->action(fn (Candidature $record): ?StreamedResponse => $record->campagne === null ? null
-                : self::telecharger($record->campagne, $document, [$record->id]));
+            // Lettre d'accès : PDF seulement sur la fiche (pas de Word modifiable, 13/11/2026).
+            ->action(fn (Candidature $record): ?StreamedResponse => $document === ParametresLettres::DOCUMENT_ACCES
+                ? self::produire(fn (): array => app(DocumentsAuditeurs::class)->lettreAccesPdf($record, auth()->user()), $document)
+                : ($record->campagne === null ? null : self::telecharger($record->campagne, $document, [$record->id])));
     }
 
     /** Sélection de dossiers d'une même promotion. */
@@ -112,10 +115,19 @@ final class DocumentsAuditeursActions
     private static function telecharger(CampagneCandidature $campagne, string $document, ?array $seulement): ?StreamedResponse
     {
         $user = auth()->user();
-        abort_unless($user?->can(DocumentsAuditeurs::permission($document)) && $user->can('view', $campagne), 403);
+        // La scolarité ne consulte pas les promotions : pour la lettre d'accès d'un seul
+        // auditeur, la fiche (qu'elle peut ouvrir) suffit.
+        abort_unless($user !== null && DocumentsAuditeurs::autorise($user, $document, $seulement)
+            && ($user->can('view', $campagne) || DocumentsAuditeurs::parLaScolarite($user, $document, $seulement)), 403);
 
+        return self::produire(fn (): array => app(DocumentsAuditeurs::class)->generer($campagne, $document, $user, $seulement), $document);
+    }
+
+    /** @param  callable(): array{contenu: string, nom: string, mime: string}  $generer */
+    private static function produire(callable $generer, string $document): ?StreamedResponse
+    {
         try {
-            $fichier = app(DocumentsAuditeurs::class)->generer($campagne, $document, $user, $seulement);
+            $fichier = $generer();
         } catch (DocumentImpossible $e) {
             // Action sans fenêtre : notifier suffit (halt() la croirait ouverte).
             Notification::make()->danger()->title('Document impossible à générer')->body($e->getMessage())->persistent()->send();

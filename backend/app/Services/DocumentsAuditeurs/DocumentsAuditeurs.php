@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\DocumentsAuditeurs;
 
 use App\Models\CampagneCandidature;
+use App\Models\Candidature;
 use App\Models\User;
 use App\Services\ExportsRetenus\AttributionMatricules;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
@@ -25,12 +26,40 @@ final class DocumentsAuditeurs
 {
     public const PERMISSION_LETTRES = 'campagne.export_retenus';
 
+    /** Lettre d'accès d'un auditeur soldé, un dossier à la fois (scolarité). */
+    public const PERMISSION_LETTRE_ACCES_DOSSIER = 'scolarite.lettre_acces';
+
     public const DOSSIER_SIGNATURES = 'signatures';
 
     public function __construct(
         private readonly AccesFoadWord $acces,
         private readonly LettreAdmissionWord $admission,
+        private readonly LettreAccesFoadPdf $accesPdf,
     ) {}
+
+    /**
+     * Lettre d'accès FOAD d'un auditeur, en PDF, depuis sa fiche : la seule
+     * forme proposée sur la fiche (pas de Word modifiable, 13/11/2026), à
+     * l'administration comme à la scolarité. Tracée sur la fiche.
+     *
+     * @return array{contenu: string, nom: string, mime: string}
+     *
+     * @throws DocumentImpossible droits non payés, ou paramètres des lettres absents
+     */
+    public function lettreAccesPdf(Candidature $c, User $auteur): array
+    {
+        abort_unless(self::autorise($auteur, ParametresLettres::DOCUMENT_ACCES, [(int) $c->id]), 403);
+        if (! IdentifiantsMoodle::remettables($c)) {
+            throw new DocumentImpossible('Les lettres d\'accès exigent les droits d\'inscription pointés.');
+        }
+        $contenu = $this->accesPdf->generer($c);
+
+        activity('candidatures')->causedBy($auteur)->performedOn($c)
+            ->event('acces_foad_exporte')
+            ->log('Lettre d\'accès FOAD (PDF, avec mot de passe) téléchargée depuis la fiche');
+
+        return ['contenu' => $contenu, 'nom' => 'acces-foad-'.mb_strtolower((string) $c->matricule).'.pdf', 'mime' => 'application/pdf'];
+    }
 
     /**
      * @param  list<int>|null  $seulement  ids des dossiers choisis dans l'admin ; null = toute la promotion
@@ -38,7 +67,7 @@ final class DocumentsAuditeurs
      */
     public function generer(CampagneCandidature $campagne, string $document, User $auteur, ?array $seulement = null): array
     {
-        abort_unless($auteur->can(self::permission($document)), 403);
+        abort_unless(self::autorise($auteur, $document, $seulement), 403);
         $parametres = ParametresLettres::pour($campagne);
         if (($manquants = $parametres->manquants($document)) !== []) {
             throw new DocumentsIncomplets($manquants);
@@ -80,6 +109,26 @@ final class DocumentsAuditeurs
             'mime' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'pages' => $auditeurs->count(),
         ];
+    }
+
+    /**
+     * Peut-il éditer ce document pour ces dossiers ? L'administration : tout.
+     * La scolarité : la lettre d'accès d'un seul auditeur à la fois, depuis sa
+     * fiche (demande du 13/11/2026) ; jamais un lot ni toute une promotion.
+     *
+     * @param  list<int>|null  $seulement
+     */
+    public static function autorise(User $u, string $document, ?array $seulement): bool
+    {
+        return $u->can(self::permission($document)) || self::parLaScolarite($u, $document, $seulement);
+    }
+
+    /** @param  list<int>|null  $seulement */
+    public static function parLaScolarite(User $u, string $document, ?array $seulement): bool
+    {
+        return $document === ParametresLettres::DOCUMENT_ACCES
+            && $seulement !== null && count($seulement) === 1
+            && $u->can(self::PERMISSION_LETTRE_ACCES_DOSSIER);
     }
 
     public static function permission(string $document): string
