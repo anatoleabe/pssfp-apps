@@ -34,6 +34,15 @@ function gabaritsSms(): array
         );
     }
 
+    // Modèles proposés au bouton « Notifier les candidats sélectionnés ».
+    foreach ((array) config('notification_candidats.modeles') as $cle => $modele) {
+        $gabarits["notification {$cle}"] = strtr((string) $modele['corps'], [
+            '{numero_dossier}' => $numero,
+            '{url}' => $url,
+            '{date_cloture}' => '30/09/2026',
+        ]);
+    }
+
     return $gabarits;
 }
 
@@ -58,6 +67,20 @@ it('garde chaque gabarit SMS sous la limite d\'un segment', function (): void {
     }
 
     expect($trop_longs)->toBe([]);
+});
+
+it('ne colle aucune ponctuation à l\'adresse du portail', function (): void {
+    // « apply.pssfp.org. » en fin de phrase : des applications SMS gardent le
+    // point dans le lien, et le téléphone ouvre une origine que Next.js refuse
+    // pour la connexion (500 constatées en production le 13/11/2026).
+    $colles = [];
+    foreach (gabaritsSms() as $nom => $texte) {
+        if (preg_match('/apply\.pssfp\.org[.,;:!?)]/', $texte) === 1) {
+            $colles[] = $nom.' → '.$texte;
+        }
+    }
+
+    expect($colles)->toBe([]);
 });
 
 it('n\'affiche plus de numéro de téléphone dans les messages aux candidats', function (): void {

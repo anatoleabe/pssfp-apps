@@ -45,6 +45,19 @@ test.describe('Connexion par matricule', () => {
     await expect(motDePasse).toHaveAttribute('type', 'text');
   });
 
+  test('empêche le clavier du téléphone de modifier les identifiants', async ({ page }) => {
+    // Mot de passe à casse mixte : une majuscule ou une correction automatique
+    // le rend faux dès qu'il est affiché en clair.
+    await page.goto('/login?mode=matricule');
+    await page.getByRole('button', { name: 'Afficher le mot de passe' }).click();
+    for (const id of ['login-matricule-input', 'login-matricule-password']) {
+      const champ = page.getByTestId(id);
+      await expect(champ).toHaveAttribute('autocapitalize', 'none');
+      await expect(champ).toHaveAttribute('autocorrect', 'off');
+      await expect(champ).toHaveAttribute('spellcheck', 'false');
+    }
+  });
+
   test('signale une API injoignable sans erreur brute', async ({ page }) => {
     await page.goto('/login?mode=matricule');
     await page.getByTestId('login-matricule-input').fill('26efp001');
