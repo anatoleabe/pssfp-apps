@@ -209,3 +209,19 @@ it('envoie un nouveau lien depuis la fiche de l\'auditeur', function (): void {
         ->and($this->sms[0][1])->toMatch(MOTIF_LIEN)
         ->and(Activity::query()->where('event', 'lettre_acces_lien_envoye')->count())->toBe(1);
 });
+
+it('révoque les liens ouverts quand le numéro de téléphone change', function (): void {
+    $jeton = ($this->lien)();
+
+    $this->awa->fresh()->update(['phone_e164' => '+237699004099']);
+
+    ($this->ouvrir)($jeton)->assertStatus(410);
+});
+
+it('ne garde jamais deux liens ouverts pour un même dossier', function (): void {
+    ($this->lien)();
+    ($this->lien)();
+    ($this->lien)();
+
+    expect(LienLettreAcces::query()->whereNull('revoque_le')->count())->toBe(1);
+});

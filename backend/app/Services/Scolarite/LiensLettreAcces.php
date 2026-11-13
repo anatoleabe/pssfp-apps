@@ -72,7 +72,10 @@ final class LiensLettreAcces
         $jeton = Str::random(self::LONGUEUR_JETON);
 
         DB::transaction(function () use ($c, $auteur, $jeton): void {
-            LienLettreAcces::query()->where('candidature_id', $c->id)->whereNull('revoque_le')->update(['revoque_le' => now()]);
+            // Verrou sur le dossier : deux envois simultanés (double clic, solde et action
+            // manuelle) ne laissent jamais deux liens ouverts.
+            Candidature::query()->whereKey($c->id)->lockForUpdate()->first();
+            self::revoquer($c->id);
             LienLettreAcces::query()->create([
                 'candidature_id' => $c->id,
                 'empreinte' => hash('sha256', $jeton),
@@ -82,6 +85,12 @@ final class LiensLettreAcces
         });
 
         return rtrim((string) config('pssfp.candidature_app_url'), '/').'/l/'.$jeton;
+    }
+
+    /** Ferme les liens encore ouverts d'un dossier (nouveau lien, numéro de téléphone changé). */
+    public static function revoquer(int $candidatureId): void
+    {
+        LienLettreAcces::query()->where('candidature_id', $candidatureId)->whereNull('revoque_le')->update(['revoque_le' => now()]);
     }
 
     /** Nouveau lien envoyé par SMS depuis la fiche de l'auditeur. Ne lève pas. */

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { DEFAULT_LOCALE } from '@/i18n';
+import { DEFAULT_LOCALE, isSupportedLocale } from '@/i18n';
 import { visiteurHeaders } from '@/lib/api/visiteur';
 import { redirectTo } from '@/lib/http/redirect';
 import { JETON_LIEN_LETTRE, motifDepuisReponse, type MotifErreurLienLettre } from '@/lib/lien-lettre';
@@ -17,13 +17,15 @@ const DELAI_API_MS = 20_000;
  * du lien avec un motif (303 : le navigateur y retourne en GET).
  */
 export async function POST(request: Request, { params }: { params: { locale: string; jeton: string } }): Promise<NextResponse> {
-  const page = `${params.locale === DEFAULT_LOCALE ? '' : `/${params.locale}`}/l/${params.jeton}`;
+  // Redirection construite sur des valeurs validées seulement : locale connue, jeton au bon format.
+  const prefixe = isSupportedLocale(params.locale) && params.locale !== DEFAULT_LOCALE ? `/${params.locale}` : '';
+  if (!JETON_LIEN_LETTRE.test(params.jeton)) {
+    return redirectTo(`${prefixe}/login?mode=matricule`, 303);
+  }
+  const page = `${prefixe}/l/${params.jeton}`;
   const retour = (motif: MotifErreurLienLettre, restantes?: number): NextResponse =>
     redirectTo(`${page}?erreur=${motif}${restantes === undefined ? '' : `&restantes=${restantes}`}`, 303);
 
-  if (!JETON_LIEN_LETTRE.test(params.jeton)) {
-    return retour('invalide');
-  }
   let date = '';
   try {
     date = String((await request.formData()).get('date_naissance') ?? '');

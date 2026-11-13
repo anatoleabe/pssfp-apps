@@ -96,9 +96,9 @@ Route::post('/erreurs/portail', SignalementErreurPortailController::class)
  * date de naissance exigée (LiensLettreAcces). Le GET ne consomme rien : les
  * aperçus de liens des messageries peuvent l'appeler sans dommage.
  */
-Route::prefix('lettre-acces')->name('lettre-acces.')->middleware(['ip.portail', 'throttle:lien-lettre-acces'])->group(function (): void {
-    Route::get('/{jeton}', [LienLettreAccesController::class, 'show'])->name('lien');
-    Route::post('/{jeton}', [LienLettreAccesController::class, 'telecharger'])->name('telecharger');
+Route::prefix('lettre-acces')->name('lettre-acces.')->middleware('ip.portail')->group(function (): void {
+    Route::get('/{jeton}', [LienLettreAccesController::class, 'show'])->middleware('throttle:lien-lettre-acces-lecture')->name('lien');
+    Route::post('/{jeton}', [LienLettreAccesController::class, 'telecharger'])->middleware('throttle:lien-lettre-acces')->name('telecharger');
 });
 
 /*

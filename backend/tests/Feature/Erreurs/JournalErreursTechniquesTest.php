@@ -60,6 +60,22 @@ it('enregistre une panne de l\'API avec la requête, sans sa chaîne de paramèt
         ->and($erreur->toJson())->not->toContain('CODE-SECRET');
 });
 
+it('enregistre le modèle de la route, jamais un jeton ou un identifiant qu\'elle porte', function (): void {
+    Route::middleware('api')->post('v1/essai-jeton/{jeton}', fn () => throw new RuntimeException('Panne'));
+
+    $this->postJson('/v1/essai-jeton/Xk7pQ2mZ9vRt4bNw')->assertStatus(500);
+
+    expect(ErreurTechnique::query()->sole()->page)->toBe('/v1/essai-jeton/{jeton}');
+});
+
+it('masque le jeton d\'un lien de lettre d\'accès signalé par le portail', function (): void {
+    $this->withHeaders(entetesPortail())
+        ->postJson('/v1/erreurs/portail', signalementPortail(['page' => 'https://apply.pssfp.org/en/l/Xk7pQ2mZ9vRt4bNw']))
+        ->assertNoContent();
+
+    expect(ErreurTechnique::query()->sole()->page)->toBe('https://apply.pssfp.org/en/l/{jeton}');
+});
+
 it('n\'enregistre ni une page introuvable ni une saisie refusée', function (): void {
     $this->getJson('/v1/page-qui-n-existe-pas')->assertNotFound();
     $this->postJson('/v1/auth/candidat/login', [])->assertUnprocessable();
