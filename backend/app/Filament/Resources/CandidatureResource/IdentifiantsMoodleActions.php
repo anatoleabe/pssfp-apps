@@ -65,7 +65,7 @@ final class IdentifiantsMoodleActions
             ->icon('heroicon-o-paper-airplane')
             ->color('gray')
             ->modalHeading('Envoyer les identifiants Moodle au candidat')
-            ->modalDescription(fn (Candidature $record): string => 'Destinataire : '.trim(($record->phone_e164 ?? '').($record->email ? ' · '.$record->email : '')).'. Le SMS compte un seul segment.')
+            ->modalDescription(fn (Candidature $record): string => 'Destinataire : '.trim(($record->phone_e164 ?? '').($record->email ? ' · '.$record->email : '')).'. Le SMS contient un lien vers la lettre d\'accès (7 jours, date de naissance demandée), jamais le mot de passe ; l\'e-mail contient les identifiants.')
             ->form([self::canal()])
             ->modalSubmitActionLabel('Envoyer')
             ->action(function (Candidature $record, array $data): void {
@@ -83,7 +83,7 @@ final class IdentifiantsMoodleActions
             ->visible(fn (): bool => (bool) auth()->user()?->can(self::PERMISSION))
             ->requiresConfirmation()
             ->modalHeading('Envoyer leurs identifiants Moodle aux candidats sélectionnés')
-            ->modalDescription('Seuls les retenus dotés d\'un matricule et dont l\'inscription est soldée les reçoivent ; les autres dossiers sélectionnés sont ignorés. Un SMS par candidat. '
+            ->modalDescription('Seuls les retenus dotés d\'un matricule et dont l\'inscription est soldée les reçoivent ; les autres dossiers sélectionnés sont ignorés. Un SMS par candidat, avec un lien vers sa lettre d\'accès (jamais le mot de passe). '
                 .'Au plus '.IdentifiantsMoodle::ENVOI_GROUPE_MAX.' dossiers par envoi : procédez par lots.')
             ->form([self::canal()])
             ->deselectRecordsAfterCompletion()

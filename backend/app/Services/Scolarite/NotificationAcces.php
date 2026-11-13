@@ -12,22 +12,31 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Prévient l'auditeur, par un SMS sans mot de passe, que ses accès sont
- * disponibles dans son espace. Une seule fois par inscription.
+ * Prévient l'auditeur, une seule fois par inscription, que ses accès sont
+ * disponibles : par un lien vers sa lettre d'accès (date de naissance exigée)
+ * quand c'est possible, sinon en le renvoyant vers son espace. Jamais de mot
+ * de passe dans le SMS.
  *
  * Ne lève jamais : un incident de passerelle ne doit faire échouer ni le
  * versement ni la création du compte qui ont provoqué l'envoi.
  */
 final class NotificationAcces
 {
-    public function __construct(private readonly SmsServiceInterface $sms) {}
+    public function __construct(
+        private readonly SmsServiceInterface $sms,
+        private readonly LiensLettreAcces $liens,
+    ) {}
 
-    /** ASCII et moins de 160 caractères : un seul segment facturé. */
+    /**
+     * Sans lien possible (mot de passe inconnu du portail, lettre non paramétrée).
+     * ASCII, un seul segment, et pas de point collé à l'adresse : certaines
+     * applications SMS le gardaient dans le lien (apply.pssfp.org.).
+     */
     public static function texte(): string
     {
         $adresse = (string) preg_replace('#^https?://#', '', (string) config('pssfp.candidature_app_url'));
 
-        return "PSSFP : vos acces FOAD sont disponibles dans votre espace {$adresse}.";
+        return "PSSFP : vos acces FOAD sont disponibles dans votre espace {$adresse}";
     }
 
     /**
@@ -56,7 +65,8 @@ final class NotificationAcces
             if (blank($c->phone_e164)) {
                 throw new \RuntimeException('Dossier sans téléphone.');
             }
-            $this->sms->send((string) $c->phone_e164, self::texte());
+            $texte = LiensLettreAcces::possible($c) ? LiensLettreAcces::texteSms($this->liens->creer($c, $auteur)) : self::texte();
+            $this->sms->send((string) $c->phone_e164, $texte);
         } catch (Throwable $e) {
             Log::channel('single')->error('SMS « accès disponibles » non envoyé.', ['dossier' => $c->numero_dossier, 'erreur' => $e::class]);
             $this->sansEchec(function () use ($inscription, $c, $auteur): void {

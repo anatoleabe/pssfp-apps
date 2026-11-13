@@ -8,6 +8,7 @@ use App\Mail\NotificationCandidatMail;
 use App\Models\Candidature;
 use App\Models\User;
 use App\Services\DocumentsAuditeurs\FraisInscription;
+use App\Services\Scolarite\LiensLettreAcces;
 use App\Services\Sms\SmsServiceInterface;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -36,7 +37,10 @@ final class IdentifiantsMoodle
     /** Envoi groupé synchrone (le mot de passe ne passe pas par la file) : sélection plafonnée. */
     public const ENVOI_GROUPE_MAX = 50;
 
-    public function __construct(private readonly SmsServiceInterface $sms) {}
+    public function __construct(
+        private readonly SmsServiceInterface $sms,
+        private readonly LiensLettreAcces $liens,
+    ) {}
 
     /** Retenu, non retiré, matricule attribué : la même règle pour tous les chemins. */
     public static function disponibles(Candidature $c): bool
@@ -59,17 +63,6 @@ final class IdentifiantsMoodle
     public static function identifiant(Candidature $c): string
     {
         return mb_strtolower((string) $c->matricule);
-    }
-
-    /** SMS en ASCII et sous 160 caractères : un seul segment facturé. */
-    public static function texteSms(Candidature $c): string
-    {
-        return sprintf(
-            'PSSFP : vos acces FOAD %s - identifiant %s - mot de passe %s. Conservez-les.',
-            preg_replace('#^https?://#', '', (string) config('pssfp.foad_url')),
-            self::identifiant($c),
-            (string) $c->moodle_password,
-        );
     }
 
     public static function texteEmail(Candidature $c): string
@@ -102,7 +95,9 @@ final class IdentifiantsMoodle
         $resultat = ['sms' => null, 'email' => null];
 
         if ($canal !== self::CANAL_EMAIL && filled($c->phone_e164)) {
-            $resultat['sms'] = $this->tenter($c, 'sms', fn () => $this->sms->send((string) $c->phone_e164, self::texteSms($c)));
+            // Plus de codes en clair par SMS (13/11/2026) : un lien vers la lettre d'accès,
+            // date de naissance exigée. L'e-mail, lui, garde les identifiants.
+            $resultat['sms'] = $this->tenter($c, 'sms', fn () => $this->sms->send((string) $c->phone_e164, LiensLettreAcces::texteSms($this->liens->creer($c, $auteur))));
         }
         if ($canal !== self::CANAL_SMS && filled($c->email)) {
             $resultat['email'] = $this->tenter($c, 'email', fn () => Mail::to((string) $c->email)

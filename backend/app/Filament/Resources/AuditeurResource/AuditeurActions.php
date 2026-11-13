@@ -6,10 +6,12 @@ namespace App\Filament\Resources\AuditeurResource;
 
 use App\Models\Auditeur;
 use App\Models\InscriptionAnnuelle;
+use App\Models\LienLettreAcces;
 use App\Models\Versement;
 use App\Services\NotificationCandidatsService;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\LibelleSituation;
+use App\Services\Scolarite\LiensLettreAcces;
 use App\Services\Scolarite\MessagesAuditeurs;
 use App\Services\Scolarite\NotificationAcces;
 use App\Services\Scolarite\OuvertureAuditeur;
@@ -128,7 +130,7 @@ final class AuditeurActions
                 && AccesEcampus::etat($record->candidature) === AccesEcampus::DISPONIBLE
                 && $record->inscriptionCourante?->acces_notifie_at === null)
             ->requiresConfirmation()
-            ->modalDescription('Le SMS « vos accès sont disponibles dans votre espace » n\'est pas parti. Il ne contient pas de mot de passe.')
+            ->modalDescription('Le SMS des accès n\'est pas parti. Il contient un lien vers la lettre d\'accès (date de naissance demandée), ou à défaut l\'adresse de l\'espace ; jamais de mot de passe.')
             ->action(function (Auditeur $record): void {
                 abort_unless(auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR), 403);
                 $envoye = app(NotificationAcces::class)->siDisponible($record->candidature, auth()->user());
@@ -138,6 +140,32 @@ final class AuditeurActions
                     false => Notification::make()->danger()->title('SMS non envoyé')->body('La passerelle n\'a pas répondu. Réessayez plus tard ; si cela persiste, prévenez l\'USI.')->persistent()->send(),
                     null => Notification::make()->info()->title('Rien à envoyer')->body('L\'accès n\'est plus disponible, ou le SMS vient de partir.')->send(),
                 };
+            });
+    }
+
+    /**
+     * Nouveau lien vers la lettre d'accès (SMS) : l'ancien est révoqué. Pour un
+     * auditeur qui a laissé passer les 7 jours, ou dont le lien s'est verrouillé.
+     */
+    public static function envoyerLienLettre(): Action
+    {
+        return Action::make('envoyerLienLettre')
+            ->label('Envoyer un nouveau lien')
+            ->icon('heroicon-o-link')
+            ->color('gray')
+            ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR)
+                && $record->candidature !== null
+                && LiensLettreAcces::possible($record->candidature))
+            ->requiresConfirmation()
+            ->modalHeading('Envoyer un nouveau lien vers la lettre d\'accès')
+            ->modalDescription(fn (Auditeur $record): string => 'SMS au '.($record->candidature?->phone_e164 ?? '—').' : lien valable '
+                .LienLettreAcces::DUREE_JOURS.' jours, date de naissance demandée avant le téléchargement. Le lien précédent cesse de fonctionner.')
+            ->action(function (Auditeur $record): void {
+                abort_unless(auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR), 403);
+                $envoye = app(LiensLettreAcces::class)->envoyer($record->candidature, auth()->user());
+                $envoye
+                    ? Notification::make()->success()->title('Lien envoyé')->send()
+                    : Notification::make()->danger()->title('SMS non envoyé')->body('La passerelle n\'a pas répondu ou le dossier n\'a pas de téléphone. Réessayez plus tard ; si cela persiste, prévenez l\'USI.')->persistent()->send();
             });
     }
 

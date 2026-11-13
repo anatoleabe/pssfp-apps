@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Services\Scolarite\LiensLettreAcces;
+use App\Services\Scolarite\NotificationAcces;
+
 uses()->group('sms');
 
 /**
@@ -43,6 +46,10 @@ function gabaritsSms(): array
         ]);
     }
 
+    // Accès FOAD : lien vers la lettre d'accès, ou à défaut l'espace.
+    $gabarits['acces lien lettre'] = LiensLettreAcces::texteSms('https://'.$url.'/l/Ab3dE5fG7hJ9kLmN');
+    $gabarits['acces espace'] = NotificationAcces::texte();
+
     return $gabarits;
 }
 
@@ -75,7 +82,7 @@ it('ne colle aucune ponctuation à l\'adresse du portail', function (): void {
     // pour la connexion (500 constatées en production le 13/11/2026).
     $colles = [];
     foreach (gabaritsSms() as $nom => $texte) {
-        if (preg_match('/apply\.pssfp\.org[.,;:!?)]/', $texte) === 1) {
+        if (preg_match('/apply\.pssfp\.org(\/\S*)?[.,;:!?)](\s|$)/', $texte) === 1) {
             $colles[] = $nom.' → '.$texte;
         }
     }

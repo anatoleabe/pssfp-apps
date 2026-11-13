@@ -35,6 +35,8 @@ beforeEach(function (): void {
     $campagne = CampagneCandidature::factory()->create([
         'nom' => ['fr' => 'Année académique 2026-2027'],
         'promotion_numero' => 14,
+        // Lettre d'accès paramétrée : le SMS porte un lien vers elle.
+        'parametres_lettres' => ['date_lettres' => '2026-11-04'],
     ]);
     $this->auditeur = Candidature::factory()->forCampagne($campagne)->submitted()->create([
         'nom' => 'Mengue', 'prenom' => 'Alice', 'statut' => Candidature::STATUT_ACCEPTE,
@@ -97,7 +99,8 @@ it('envoie les identifiants par SMS et e-mail, sans les écrire dans les journau
 
     expect($this->sms)->toHaveCount(1)
         ->and($this->sms[0][0])->toBe('+237699000020')
-        ->and($this->sms[0][1])->toContain('26efp001')->toContain($this->motDePasse)
+        // Plus de codes en clair par SMS (13/11/2026) : un lien vers la lettre d'accès.
+        ->and($this->sms[0][1])->toMatch('#/l/[A-Za-z0-9]{16} #')->not->toContain($this->motDePasse)
         ->and(mb_strlen($this->sms[0][1]))->toBeLessThanOrEqual(160)
         ->and(preg_match('/[^\x20-\x7E]/', $this->sms[0][1]))->toBe(0);
     Mail::assertSent(NotificationCandidatMail::class, fn (NotificationCandidatMail $m): bool => $m->hasTo('alice@example.org')

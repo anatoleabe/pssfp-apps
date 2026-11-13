@@ -1357,5 +1357,25 @@
     "titulaire": "Holder",
     "date": "Issued on",
     "aide": "Compare these details with the document presented. A revoked document is no longer valid."
+  },
+  "lienLettre": {
+    "title": "Your FOAD access letter",
+    "intro": "To download your access letter (eCampus student ID and password), confirm your date of birth.",
+    "dateLabel": "Date of birth",
+    "dateHelp": "As stated in your application file.",
+    "submit": "Download my letter (PDF)",
+    "validite": "This personal link expires on {date}. Do not share it with anyone.",
+    "invalide": "This link is no longer valid: it has expired, has already been used several times or has been replaced by a new link.",
+    "invalideAide": "Sign in to your account to find your letter, or ask the Registrar's Office for a new link.",
+    "connexion": "Sign in to my account",
+    "erreurs": {
+      "date": "Incorrect date of birth. You have {restantes, plural, one {# attempt} other {# attempts}} left.",
+      "verrouille": "Too many attempts: this link is now closed. Sign in to your account or ask the Registrar's Office for a new link.",
+      "invalide": "This link is no longer valid. Sign in to your account or ask the Registrar's Office for a new link.",
+      "non_prete": "Your letter is not ready yet. Please try again later or contact the Registrar's Office.",
+      "limite": "Too many attempts from this device. Please try again in a few minutes.",
+      "indisponible": "The service is temporarily unavailable. Please try again in a moment.",
+      "format": "Enter your date of birth."
+    }
   }
 }

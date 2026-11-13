@@ -814,6 +814,14 @@ export interface CalendrierAuditeur {
   communiques: CommuniqueAuditeur[];
 }
 
+/**
+ * GET /lettre-acces/{jeton} — le lien de la lettre d'accès (SMS) est-il encore
+ * valable ? Ne consomme rien ; 410 pour un lien fermé.
+ */
+export function getLienLettreAcces(jeton: string, visiteur: Record<string, string> = {}): Promise<ApiResult<{ expire_le: string }>> {
+  return apiGet<{ expire_le: string }>(`/lettre-acces/${encodeURIComponent(jeton)}`, { headers: visiteur, noStore: true });
+}
+
 /** GET /applications/me/calendrier — `data` null tant qu'aucun calendrier n'est publié. */
 export function getMyCalendrier(token: string): Promise<ApiResult<CalendrierAuditeur | null>> {
   return apiGet<CalendrierAuditeur | null>('/applications/me/calendrier', { token, noStore: true });
