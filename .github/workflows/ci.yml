@@ -8,10 +8,67 @@ on:
 
 jobs:
   # ===========================================================================
+  # Parties modifiées : chaque job ne tourne que si son application change
+  # (le backend seul prenait 40 min et retenait les PR du portail).
+  # ===========================================================================
+  changes:
+    name: Parties modifiées
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filtre.outputs.backend }}
+      apps: ${{ steps.apps.outputs.liste }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Détecter les parties modifiées
+        id: filtre
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            commun: &commun
+              - '.github/workflows/ci.yml'
+            backend:
+              - *commun
+              - 'backend/**'
+            frontend:
+              - *commun
+              - 'frontend/**'
+              - 'packages/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+            library:
+              - *commun
+              - 'library/**'
+              - 'packages/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+            candidature:
+              - *commun
+              - 'candidature/**'
+              - 'packages/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+
+      - name: Applications Next.js à tester
+        id: apps
+        env:
+          CHANGEMENTS: ${{ steps.filtre.outputs.changes }}
+        run: echo "liste=$(jq -c '[.[] | select(. == "frontend" or . == "library" or . == "candidature")]' <<< "$CHANGEMENTS")" >> "$GITHUB_OUTPUT"
+
+  # ===========================================================================
   # Backend Laravel
   # ===========================================================================
   backend:
     name: Backend (Laravel + Pest)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-24.04
 
     services:
@@ -88,13 +145,21 @@ jobs:
           DB_PASSWORD: pssfp_test_password
         run: php artisan migrate --env=testing --force
 
-      - name: Run Pest tests
+      - name: Run Pest tests (4 processus, hors bibliothèque)
         working-directory: backend
-        # Tests bibliothèque contre le service Meilisearch ci-dessus (index préfixé test_).
+        # Une base PostgreSQL par processus (créée par Laravel) : 40 min en séquentiel.
         env:
           MEILISEARCH_HOST: http://127.0.0.1:7700
           MEILISEARCH_KEY: test_master_key
-        run: ./vendor/bin/pest
+        run: ./vendor/bin/pest --parallel --processes=4 --exclude-group=library
+
+      - name: Run Pest tests (bibliothèque, un seul processus)
+        working-directory: backend
+        # Index Meilisearch (préfixé test_) et fichiers d'import partagés : pas de parallélisme.
+        env:
+          MEILISEARCH_HOST: http://127.0.0.1:7700
+          MEILISEARCH_KEY: test_master_key
+        run: ./vendor/bin/pest --group=library
 
       - name: Lint with Pint
         working-directory: backend
@@ -105,11 +170,13 @@ jobs:
   # ===========================================================================
   frontends:
     name: ${{ matrix.app }} (Next.js + Playwright)
+    needs: changes
+    if: needs.changes.outputs.apps != '[]' && needs.changes.outputs.apps != ''
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        app: [frontend, library, candidature]
+        app: ${{ fromJSON(needs.changes.outputs.apps) }}
 
     steps:
       - name: Checkout
@@ -137,7 +204,10 @@ jobs:
 
       - name: Build
         working-directory: ${{ matrix.app }}
-        run: pnpm build
+        # next/font télécharge les polices Google au build : depuis les runners, le
+        # téléchargement échoue parfois (« Cannot read properties of null (reading '1') »).
+        # Une relance suffit ; un vrai défaut de compilation échoue deux fois.
+        run: pnpm build || { echo "::warning::Build relancé après un échec (polices Google ?)"; sleep 20; pnpm build; }
 
       - name: Install Playwright browsers
         working-directory: ${{ matrix.app }}
