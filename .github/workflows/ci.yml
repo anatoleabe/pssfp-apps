@@ -66,10 +66,25 @@ jobs:
   # Backend Laravel
   # ===========================================================================
   backend:
-    name: Backend (Laravel + Pest)
+    name: Backend (Laravel + Pest) — ${{ matrix.lot }}
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-24.04
+    # Runners à 2 processeurs : paralléliser sur une machine ne gagne rien (PHP et
+    # PostgreSQL les occupent déjà). La suite est répartie sur 4 machines.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - lot: filament
+            chemins: tests/Feature/Filament
+          - lot: candidatures-lmd
+            chemins: tests/Feature/Applications tests/Feature/Lmd
+          - lot: bibliotheque-unitaires
+            chemins: tests/Feature/Library tests/Unit
+          # Tout le reste, calculé : un nouveau dossier de tests n'est jamais oublié.
+          - lot: reste
+            chemins: ''
 
     services:
       postgres:
@@ -145,23 +160,23 @@ jobs:
           DB_PASSWORD: pssfp_test_password
         run: php artisan migrate --env=testing --force
 
-      - name: Run Pest tests (4 processus, hors bibliothèque)
+      - name: Run Pest tests (${{ matrix.lot }})
         working-directory: backend
-        # Une base PostgreSQL par processus (créée par Laravel) : 40 min en séquentiel.
+        # Tests bibliothèque contre le service Meilisearch ci-dessus (index préfixé test_),
+        # propre à chaque machine.
         env:
           MEILISEARCH_HOST: http://127.0.0.1:7700
           MEILISEARCH_KEY: test_master_key
-        run: ./vendor/bin/pest --parallel --processes=4 --exclude-group=library
-
-      - name: Run Pest tests (bibliothèque, un seul processus)
-        working-directory: backend
-        # Index Meilisearch (préfixé test_) et fichiers d'import partagés : pas de parallélisme.
-        env:
-          MEILISEARCH_HOST: http://127.0.0.1:7700
-          MEILISEARCH_KEY: test_master_key
-        run: ./vendor/bin/pest --group=library
+          CHEMINS: ${{ matrix.chemins }}
+        run: |
+          if [ -n "$CHEMINS" ]; then
+            ./vendor/bin/pest $CHEMINS
+          else
+            ./vendor/bin/pest $(find tests -name '*Test.php' | grep -vE '^tests/(Feature/(Filament|Applications|Lmd|Library)|Unit)/' | sort)
+          fi
 
       - name: Lint with Pint
+        if: matrix.lot == 'reste'
         working-directory: backend
         run: ./vendor/bin/pint --test
 
