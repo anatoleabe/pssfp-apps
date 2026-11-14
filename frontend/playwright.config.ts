@@ -23,7 +23,10 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_NO_SERVER
     ? undefined
     : {
-        command: 'pnpm dev --port 6001',
+        // En CI : le build de l'étape précédente (polices Google déjà téléchargées et servies
+        // localement). Le serveur de développement les retéléchargeait à chaque compilation,
+        // et un téléchargement refusé faisait échouer fonts.spec.ts.
+        command: process.env.CI ? 'pnpm start --port 6001' : 'pnpm dev --port 6001',
         url: BASE_URL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

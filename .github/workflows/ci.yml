@@ -8,11 +8,75 @@ on:
 
 jobs:
   # ===========================================================================
+  # Parties modifiées : chaque job ne tourne que si son application change
+  # (le backend seul prenait 40 min et retenait les PR du portail).
+  # ===========================================================================
+  changes:
+    name: Parties modifiées
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filtre.outputs.backend }}
+      apps: ${{ steps.apps.outputs.liste }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Détecter les parties modifiées
+        id: filtre
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            commun: &commun
+              - '.github/workflows/ci.yml'
+            backend:
+              - *commun
+              - 'backend/**'
+            frontend:
+              - *commun
+              - 'frontend/**'
+              - 'packages/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+            library:
+              - *commun
+              - 'library/**'
+              - 'packages/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+            candidature:
+              - *commun
+              - 'candidature/**'
+              - 'packages/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+
+      - name: Applications Next.js à tester
+        id: apps
+        env:
+          CHANGEMENTS: ${{ steps.filtre.outputs.changes }}
+        run: echo "liste=$(jq -c '[.[] | select(. == "frontend" or . == "library" or . == "candidature")]' <<< "$CHANGEMENTS")" >> "$GITHUB_OUTPUT"
+
+  # ===========================================================================
   # Backend Laravel
   # ===========================================================================
   backend:
-    name: Backend (Laravel + Pest)
+    name: Backend (Laravel + Pest) — ${{ matrix.lot }}
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-24.04
+    # Runners à 2 processeurs : paralléliser sur une machine ne gagne rien (PHP et
+    # PostgreSQL les occupent déjà). La suite est répartie sur 4 machines.
+    strategy:
+      fail-fast: false
+      matrix:
+        # Lots équilibrés d'après les durées mesurées le 14/11/2026 (Filament seul : 29 min).
+        lot: [filament-1, filament-2, applications, lmd-bibliotheque-unitaires, scolarite-documents, reste]
 
     services:
       postgres:
@@ -88,15 +152,30 @@ jobs:
           DB_PASSWORD: pssfp_test_password
         run: php artisan migrate --env=testing --force
 
-      - name: Run Pest tests
+      - name: Run Pest tests (${{ matrix.lot }})
         working-directory: backend
-        # Tests bibliothèque contre le service Meilisearch ci-dessus (index préfixé test_).
+        # Tests bibliothèque contre le service Meilisearch ci-dessus (index préfixé test_),
+        # propre à chaque machine.
         env:
           MEILISEARCH_HOST: http://127.0.0.1:7700
           MEILISEARCH_KEY: test_master_key
-        run: ./vendor/bin/pest
+          LOT: ${{ matrix.lot }}
+        run: |
+          filament() { find tests/Feature/Filament -name '*Test.php' | sort | awk "NR % 2 == $1"; }
+          case "$LOT" in
+            filament-1) FICHIERS=$(filament 1) ;;
+            filament-2) FICHIERS=$(filament 0) ;;
+            applications) FICHIERS="tests/Feature/Applications" ;;
+            lmd-bibliotheque-unitaires) FICHIERS="tests/Feature/Lmd tests/Feature/Library tests/Unit" ;;
+            scolarite-documents) FICHIERS="tests/Feature/Scolarite tests/Feature/DocumentsAuditeurs tests/Feature/Ecampus" ;;
+            # Tout le reste, calculé : un nouveau dossier de tests n'est jamais oublié.
+            reste) FICHIERS=$(find tests -name '*Test.php' | grep -vE '^tests/(Feature/(Filament|Applications|Lmd|Library|Scolarite|DocumentsAuditeurs|Ecampus)|Unit)/' | sort) ;;
+            *) echo "Lot inconnu : $LOT" >&2; exit 1 ;;
+          esac
+          ./vendor/bin/pest $FICHIERS
 
       - name: Lint with Pint
+        if: matrix.lot == 'reste'
         working-directory: backend
         run: ./vendor/bin/pint --test
 
@@ -105,11 +184,13 @@ jobs:
   # ===========================================================================
   frontends:
     name: ${{ matrix.app }} (Next.js + Playwright)
+    needs: changes
+    if: needs.changes.outputs.apps != '[]' && needs.changes.outputs.apps != ''
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        app: [frontend, library, candidature]
+        app: ${{ fromJSON(needs.changes.outputs.apps) }}
 
     steps:
       - name: Checkout
@@ -137,7 +218,10 @@ jobs:
 
       - name: Build
         working-directory: ${{ matrix.app }}
-        run: pnpm build
+        # next/font télécharge les polices Google au build : depuis les runners, le
+        # téléchargement échoue parfois (« Cannot read properties of null (reading '1') »).
+        # Une relance suffit ; un vrai défaut de compilation échoue deux fois.
+        run: pnpm build || { echo "::warning::Build relancé après un échec (polices Google ?)"; sleep 20; pnpm build; }
 
       - name: Install Playwright browsers
         working-directory: ${{ matrix.app }}
