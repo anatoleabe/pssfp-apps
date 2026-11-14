@@ -75,16 +75,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - lot: filament
-            chemins: tests/Feature/Filament
-          - lot: candidatures-lmd
-            chemins: tests/Feature/Applications tests/Feature/Lmd
-          - lot: bibliotheque-unitaires
-            chemins: tests/Feature/Library tests/Unit
-          # Tout le reste, calculé : un nouveau dossier de tests n'est jamais oublié.
-          - lot: reste
-            chemins: ''
+        # Lots équilibrés d'après les durées mesurées le 14/11/2026 (Filament seul : 29 min).
+        lot: [filament-1, filament-2, applications, lmd-bibliotheque-unitaires, scolarite-documents, reste]
 
     services:
       postgres:
@@ -167,13 +159,20 @@ jobs:
         env:
           MEILISEARCH_HOST: http://127.0.0.1:7700
           MEILISEARCH_KEY: test_master_key
-          CHEMINS: ${{ matrix.chemins }}
+          LOT: ${{ matrix.lot }}
         run: |
-          if [ -n "$CHEMINS" ]; then
-            ./vendor/bin/pest $CHEMINS
-          else
-            ./vendor/bin/pest $(find tests -name '*Test.php' | grep -vE '^tests/(Feature/(Filament|Applications|Lmd|Library)|Unit)/' | sort)
-          fi
+          filament() { find tests/Feature/Filament -name '*Test.php' | sort | awk "NR % 2 == $1"; }
+          case "$LOT" in
+            filament-1) FICHIERS=$(filament 1) ;;
+            filament-2) FICHIERS=$(filament 0) ;;
+            applications) FICHIERS="tests/Feature/Applications" ;;
+            lmd-bibliotheque-unitaires) FICHIERS="tests/Feature/Lmd tests/Feature/Library tests/Unit" ;;
+            scolarite-documents) FICHIERS="tests/Feature/Scolarite tests/Feature/DocumentsAuditeurs tests/Feature/Ecampus" ;;
+            # Tout le reste, calculé : un nouveau dossier de tests n'est jamais oublié.
+            reste) FICHIERS=$(find tests -name '*Test.php' | grep -vE '^tests/(Feature/(Filament|Applications|Lmd|Library|Scolarite|DocumentsAuditeurs|Ecampus)|Unit)/' | sort) ;;
+            *) echo "Lot inconnu : $LOT" >&2; exit 1 ;;
+          esac
+          ./vendor/bin/pest $FICHIERS
 
       - name: Lint with Pint
         if: matrix.lot == 'reste'
