@@ -19,6 +19,8 @@ import { test, expect } from '@playwright/test';
 
 test.describe('/actualites — photos des cards (S5.2 #46)', () => {
   test('la 1re card affiche une vraie image MinIO (pas placeholder)', async ({ page }) => {
+    // Exige l'API Laravel et MinIO avec des actualités illustrées : absents de la CI.
+    test.skip(!!process.env.CI, 'API et MinIO non démarrés en CI');
     await page.goto('/actualites');
     const firstCard = page.locator('[data-testid^="actualite-card-"]').first();
     await expect(firstCard).toBeVisible();
@@ -36,6 +38,8 @@ test.describe('/actualites — photos des cards (S5.2 #46)', () => {
   });
 
   test('toutes les cards visibles ont soit image soit fallback thématique', async ({ page }) => {
+    // Exige l'API Laravel (liste des actualités) : absente de la CI.
+    test.skip(!!process.env.CI, 'API non démarrée en CI');
     await page.goto('/actualites');
     const cards = page.locator('[data-testid^="actualite-card-"]');
     const count = await cards.count();
