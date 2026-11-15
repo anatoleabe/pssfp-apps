@@ -5,8 +5,16 @@ use App\Models\BaremeScolarite;
 use App\Models\Candidature;
 use App\Models\ImputationVersement;
 use App\Models\InscriptionAnnuelle;
+use App\Models\User;
 use App\Models\Versement;
+use App\Services\Scolarite\AccesEcampus;
+use App\Services\Scolarite\ConfirmationsVersements;
+use App\Services\Scolarite\MessagesAuditeurs;
+use App\Services\Scolarite\RegistreVersements;
+use App\Services\Scolarite\ResultatConfirmation;
+use App\Services\Scolarite\ResultatOperation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /*
@@ -117,4 +125,49 @@ function annulerVersement(Versement $versement, string $motif = 'Annulation de t
 function ficheDe(Candidature $dossier): Auditeur
 {
     return Auditeur::query()->firstOrCreate(['candidature_id' => $dossier->id]);
+}
+
+/**
+ * Confirmation d'un versement par un agent de scolarité (décision du 15/11/2026), sur un scan fictif : comme
+ * la scolarité au guichet, avec ses effets (régularisation de l'accès anticipé, SMS des accès).
+ */
+function confirmerVersement(Versement $versement): ResultatConfirmation
+{
+    $agent = tap(User::factory()->create(['email' => 'confirmation-'.Str::random(8).'@pssfp.local']), fn (User $u) => $u->assignRole('scolarite_agent'));
+
+    return app(ConfirmationsVersements::class)->confirmer($versement, Versement::DOSSIER_JUSTIFICATIFS.'/'.Str::ulid().'.pdf', true, $agent);
+}
+
+/**
+ * Versement enregistré puis confirmé par la scolarité : l'argent compte pour l'accès, comme une saisie avant le
+ * 15/11/2026. `sms` est celui des accès, parti à la confirmation.
+ *
+ * @param  array<string, mixed>  $saisie
+ */
+function verserConfirme(InscriptionAnnuelle $inscription, array $saisie, User $par): ResultatOperation
+{
+    $r = app(RegistreVersements::class)->enregistrer($inscription, $saisie, $par);
+    $c = confirmerVersement($r->versement);
+
+    return new ResultatOperation($r->versement, $c->sms ?? $r->sms);
+}
+
+/**
+ * État d'accès selon la règle d'avant la confirmation des versements (15/11/2026) : tout l'argent
+ * imputé compte. Oracle du test d'équivalence de la reprise ; reprend AccesEcampus::etat() en lisant
+ * les paliers du compte au lieu des paliers confirmés.
+ */
+function etatAvecToutLArgent(Candidature $dossier): string
+{
+    $c = Candidature::query()->with('auditeur.inscriptionCourante.bareme', 'auditeur.inscriptionCourante.deblocageEnCours')->findOrFail($dossier->id);
+    if ($c->statut !== Candidature::STATUT_ACCEPTE || $c->withdrawn_at !== null) {
+        return AccesEcampus::INDISPONIBLE;
+    }
+    $inscription = $c->auditeur?->inscriptionCourante;
+    $deblocage = $inscription?->deblocageEnCours !== null && ! in_array($c->auditeur?->statut, MessagesAuditeurs::STATUTS_EXCLUS, true);
+    if ($inscription === null || (! $deblocage && ! $inscription->situation()->paliers[0]->solde())) {
+        return AccesEcampus::BLOQUE;
+    }
+
+    return AccesEcampus::compteExiste($c) && filled($c->matricule) ? AccesEcampus::DISPONIBLE : AccesEcampus::EN_PREPARATION;
 }

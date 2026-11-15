@@ -17,7 +17,6 @@ use App\Services\ExportsRetenus\AttributionMatricules;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\DeblocagesAcces;
 use App\Services\Scolarite\EngagementsPriseEnCharge;
-use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\SuiviEngagement;
 use App\Services\Sms\SmsServiceInterface;
 use Database\Seeders\DepartementsCamerounSeeder;
@@ -89,7 +88,7 @@ beforeEach(function (): void {
     $this->rattacher = fn (EngagementPriseEnCharge $e, array $dossiers, ?User $par = null) => ($this->service)()
         ->rattacher($e, array_map(fn (Candidature $c): Auditeur => $c->fresh()->auditeur, $dossiers), $par ?? $this->agent);
     $this->etat = fn (Candidature $c): string => AccesEcampus::etat(Candidature::query()->findOrFail($c->id));
-    $this->verser = fn (Candidature $c, int $montant = 185000) => app(RegistreVersements::class)->enregistrer($c->fresh()->auditeur->inscriptionCourante, [
+    $this->verser = fn (Candidature $c, int $montant = 185000) => verserConfirme($c->fresh()->auditeur->inscriptionCourante, [
         'montant' => $montant, 'date_versement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'VIR-'.Str::random(8), 'payeur' => 'auditeur',
     ], $this->encaisseur);
 });

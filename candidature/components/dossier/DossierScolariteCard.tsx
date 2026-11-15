@@ -55,6 +55,8 @@ export function DossierScolariteCard({ scolarite }: DossierScolariteCardProps): 
   const t = useTranslations('dossier.scolarite');
   const locale = useLocale();
   const avance = scolarite.avance ?? scolarite.trop_percu;
+  // Versements à confirmer par la scolarité sur le reçu bancaire (15/11/2026) : ils ne comptent pas encore pour l'accès.
+  const aConfirmer = scolarite.a_confirmer ?? 0;
 
   return (
     <section
@@ -71,6 +73,11 @@ export function DossierScolariteCard({ scolarite }: DossierScolariteCardProps): 
         <div className="rounded-pssfp-card bg-[#FAF7F2] p-4">
           <dt className="font-ui text-xs uppercase tracking-[0.14em] text-[#5C5C5C]">{t('verse')}</dt>
           <dd className="mt-1 text-xl font-bold tabular-nums text-[#4A2E67]">{formatFcfa(scolarite.verse, locale)}</dd>
+          {aConfirmer > 0 && (
+            <dd data-testid="scolarite-a-confirmer" className="mt-1 text-xs font-semibold text-amber-800">
+              {t('aConfirmer', { montant: formatFcfa(aConfirmer, locale) })}
+            </dd>
+          )}
         </div>
         <div className="rounded-pssfp-card bg-[#FAF7F2] p-4">
           <dt className="font-ui text-xs uppercase tracking-[0.14em] text-[#5C5C5C]">{t('reste')}</dt>
@@ -99,6 +106,7 @@ export function DossierScolariteCard({ scolarite }: DossierScolariteCardProps): 
           {t('avance', { montant: formatFcfa(avance, locale) })}
         </p>
       )}
+      {aConfirmer > 0 && <p className="mt-2 text-sm text-[#3C3C3C]">{t('aConfirmerConsigne')}</p>}
 
       <details className="mt-6 rounded-pssfp-card border border-[#F4EFFA] px-4 py-1">
         <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-[#4A2E67] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2">
@@ -116,6 +124,7 @@ export function DossierScolariteCard({ scolarite }: DossierScolariteCardProps): 
                   <th scope="col" className="py-2 pr-4 text-right">{t('colMontant')}</th>
                   <th scope="col" className="py-2 pr-4">{t('colMode')}</th>
                   <th scope="col" className="py-2 pr-4">{t('colReference')}</th>
+                  <th scope="col" className="py-2 pr-4">{t('colConfirmation')}</th>
                   <th scope="col" className="py-2">{t('colRecu')}</th>
                 </tr>
               </thead>
@@ -126,6 +135,15 @@ export function DossierScolariteCard({ scolarite }: DossierScolariteCardProps): 
                     <td className="py-2 pr-4 text-right tabular-nums">{formatFcfa(v.montant, locale)}</td>
                     <td className="py-2 pr-4">{t.has(`modes.${v.mode}`) ? t(`modes.${v.mode}`) : t('modes.autre')}</td>
                     <td className="py-2 pr-4 font-mono">{v.reference}</td>
+                    <td className="py-2 pr-4">
+                      {v.confirme_le ? (
+                        t('confirmeLe', { date: formatDateLong(v.confirme_le, locale) })
+                      ) : v.confirme_le === null ? (
+                        <span className="font-semibold text-amber-800">{t('aPresenter')}</span>
+                      ) : (
+                        <span className="text-[#5C5C5C]">{t('recuEnAttente')}</span>
+                      )}
+                    </td>
                     <td className="py-2">
                       {v.recu ? (
                         <a

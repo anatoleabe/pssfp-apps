@@ -13,6 +13,7 @@ use App\Services\NotificationCandidatsService;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\AnnulationMultiAnnees;
 use App\Services\Scolarite\CompteAuditeur;
+use App\Services\Scolarite\ConfirmationsVersements;
 use App\Services\Scolarite\LibelleSituation;
 use App\Services\Scolarite\LiensLettreAcces;
 use App\Services\Scolarite\MessagesAuditeurs;
@@ -228,7 +229,7 @@ final class AuditeurActions
         return Action::make('creerInscription')
             ->label('Créer l\'inscription')
             ->icon('heroicon-o-plus-circle')
-            ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR)
+            ->visible(fn (Auditeur $record): bool => (auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR) || ConfirmationsVersements::peutConfirmer(auth()->user()))
                 && $record->inscriptionCourante === null && $record->candidature?->withdrawn_at === null)
             ->requiresConfirmation()
             ->modalDescription('Inscription en Master 1 pour l\'année de la promotion, au barème en vigueur.')
@@ -469,7 +470,7 @@ final class AuditeurActions
      *
      * @throws InvalidArgumentException
      */
-    private static function exigerScanDepose(?string $chemin): void
+    public static function exigerScanDepose(?string $chemin): void
     {
         if (filled($chemin) && ! self::depose($chemin)) {
             throw new InvalidArgumentException('Le scan du bordereau est invalide : déposez-le à nouveau.');

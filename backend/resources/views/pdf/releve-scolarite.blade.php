@@ -60,6 +60,9 @@
     </tbody>
     <tfoot><tr><td>Total</td><td class="n">{{ $fcfa($situation['du_total']) }}</td><td class="n">{{ $fcfa($situation['verse']) }}</td><td class="n">{{ $fcfa($situation['reste']) }}</td><td></td></tr></tfoot>
   </table>
+  @if (($situation['a_confirmer'] ?? 0) > 0)
+    <p>Dont {{ $fcfa($situation['a_confirmer']) }} à confirmer par la scolarité : présentez-lui le reçu bancaire original.</p>
+  @endif
   @if (($situation['remise'] ?? 0) > 0)
     <p>Remise accordée : {{ $fcfa($situation['remise']) }}</p>
   @endif
@@ -72,15 +75,15 @@
     <p>Aucun versement enregistré à ce jour.</p>
   @else
     <table>
-      <thead><tr><th>Date</th><th>Mode</th><th>Référence</th><th class="n">Montant</th></tr></thead>
+      <thead><tr><th>Date</th><th>Mode</th><th>Référence</th><th class="n">Montant</th><th>Vérifié par la scolarité</th></tr></thead>
       <tbody>
         @foreach ($situation['versements'] as $v)
-          <tr><td>{{ $date($v['date']) }}</td><td>{{ $modes[$v['mode']] ?? $v['mode'] }}</td><td>{{ $v['reference'] }}</td><td class="n">{{ $fcfa($v['montant']) }}</td></tr>
+          <tr><td>{{ $date($v['date']) }}</td><td>{{ $modes[$v['mode']] ?? $v['mode'] }}</td><td>{{ $v['reference'] }}</td><td class="n">{{ $fcfa($v['montant']) }}</td><td>{{ ($v['confirme_le'] ?? null) !== null ? 'le '.$date($v['confirme_le']) : 'À confirmer' }}</td></tr>
         @endforeach
       </tbody>
     </table>
   @endif
 
-  <p class="note">Ce relevé récapitule les versements enregistrés par la scolarité du PSSFP. Il ne remplace pas le bordereau de la banque, qui fait foi en cas de désaccord.</p>
+  <p class="note">Ce relevé récapitule les versements enregistrés par le PSSFP. Un versement compte pour l'accès aux cours une fois vérifié par la scolarité sur le reçu bancaire original. Il ne remplace pas le bordereau de la banque, qui fait foi en cas de désaccord.</p>
 </body>
 </html>

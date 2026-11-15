@@ -6,6 +6,7 @@ use App\Models\DeblocageAcces;
 use App\Services\Scolarite\AvisRecus;
 use App\Services\Scolarite\LiensLettreAcces;
 use App\Services\Scolarite\NotificationAcces;
+use App\Services\Scolarite\RelancesConfirmations;
 use App\Services\Scolarite\RelancesDeblocages;
 
 uses()->group('sms');
@@ -60,6 +61,9 @@ function gabaritsSms(): array
 
     // Avis d'émission d'un reçu de versement (spec lot 4 §5) : montant réaliste le plus long.
     $gabarits['avis recu'] = AvisRecus::texteSms('RCPT-2026-000012', 1500000);
+
+    // Relance d'un versement non confirmé par la scolarité (15/11/2026).
+    $gabarits['relance confirmation'] = RelancesConfirmations::TEXTE_SMS;
 
     return $gabarits;
 }

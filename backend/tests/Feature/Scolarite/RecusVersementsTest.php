@@ -147,7 +147,7 @@ it('découpe un versement antidaté dans l\'ordre où il a été imputé, sans c
     expect($r->objet)->toBe('Frais de scolarité 2026-2027 : avance sur la scolarité à venir (300 000 FCFA)')
         ->and($r->total_verse)->toBe(1185000)
         ->and($r->reste_a_payer)->toBe(0)
-        ->and($this->inscription->fresh()->situation()->solde())->toBeTrue();
+        ->and($this->inscription->fresh()->situation()->reste)->toBe(0);
 });
 
 it('ne touche jamais un reçu émis : une remise ou une annulation après coup laisse ses colonnes intactes', function (): void {

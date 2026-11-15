@@ -48,7 +48,7 @@ beforeEach(function (): void {
             $this->sms[] = [$tel, $texte];
         });
     });
-    $this->verser = fn (int $montant = 185000) => app(RegistreVersements::class)->enregistrer($this->inscription->fresh(), [
+    $this->verser = fn (int $montant = 185000) => verserConfirme($this->inscription->fresh(), [
         'montant' => $montant, 'date_versement' => '2026-11-02', 'mode' => 'virement', 'reference' => 'BOR-'.Str::random(8), 'payeur' => 'auditeur',
     ], $this->encaisseur);
     $this->etat = fn (): string => AccesEcampus::etat(Candidature::query()->findOrFail($this->dossier->id));

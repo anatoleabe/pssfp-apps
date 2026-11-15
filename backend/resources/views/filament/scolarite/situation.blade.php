@@ -64,6 +64,9 @@
             </tfoot>
         </table>
     </div>
+    @if ($situation->aConfirmer > 0)
+        <p style="margin-top:.75rem;font-size:.875rem;font-weight:600;color:rgb(var(--warning-600));">Dont {{ $fcfa($situation->aConfirmer) }} à confirmer par la scolarité sur le reçu bancaire original : cet argent ne compte pas encore pour l'accès à eCampus ni pour la situation « à jour ».</p>
+    @endif
     @if ($situation->remise > 0)
         <p style="margin-top:.75rem;font-size:.875rem;">Remise accordée : <strong>{{ $fcfa($situation->remise) }}</strong>@if ($inscription->remise_motif) — {{ $inscription->remise_motif }}@endif</p>
     @endif

@@ -133,6 +133,18 @@ Aucune table. Une migration de permissions, `revoke_scolarite_versement_saisir` 
    - La migration confirme tous les versements non annulés présents au déploiement (`reprise = true`) : `confirme_par = saisi_par`, `confirme_at = created_at`, scan = bordereau du versement.
    - Les versements annulés ne sont pas repris : ils ne comptent plus.
    - Le test d'équivalence compare l'état d'accès de chaque dossier avant la migration (ancienne règle, tout l'argent) et après.
+   - La migration vérifie aussi, dans sa transaction, que l'imputé confirmé de chaque inscription égale son imputé. Au moindre écart, elle s'annule en nommant les inscriptions, comme la reprise de D1.
+10. **Calendrier des 7 jours.** Le délai se compte en jours de Yaoundé : un versement enregistré le 10 est relancé le 17 à 08:00, puis le 24. Le contrôle interne et le filtre « Plus de 7 jours » de l'écran suivent la même borne.
+11. **Pointage repris (lot 1).** Quand un matricule est attribué, la case « droits payés » d'un dossier devient un versement. Ce versement est confirmé dès sa création (reprise) : la case cochée était déjà la vérification de la scolarité.
+12. **Vérification du compte (D1).** `scolarite:verifier-comptes` et la reprise de D1 comparent toujours les imputations aux versements sur tout l'argent. Les filtres SQL prennent pour cela l'option « tout l'argent ». Ainsi, un versement non confirmé n'est jamais signalé comme une incohérence du compte.
+13. **Retour de la confirmation.** Une confirmation qui solde les droits annonce à l'agent que l'auditeur a été prévenu de ses accès, ou que l'envoi a échoué, comme le faisait la saisie avant le 15/11/2026.
+14. **Affichage de « dont X à confirmer ».** La mention figure à six endroits :
+    - fiche (situation et onglet Versements) ;
+    - liste des auditeurs ;
+    - listes et états du lot C (lignes, sous-totaux, total) ;
+    - export Excel de la situation (colonne « Dont à confirmer ») ;
+    - relevé de scolarité (colonne « Vérifié par la scolarité ») ;
+    - espace de l'auditeur (montant, et pour chaque versement « Vérifié le » ou « Reçu bancaire à présenter à la scolarité »).
 
 ## 6. Permissions avant et après
 

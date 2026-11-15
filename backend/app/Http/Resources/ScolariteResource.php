@@ -45,6 +45,8 @@ final class ScolariteResource extends JsonResource
             'remise' => $s?->remise,
             // L'imputé de l'année courante, au plus son dû : l'excédent est l'avance du compte.
             'verse' => $s?->verse ?? 0,
+            // Dont à confirmer par la scolarité sur présentation du reçu bancaire (15/11/2026) : ne compte pas pour l'accès.
+            'a_confirmer' => $s?->aConfirmer ?? 0,
             'reste' => $s?->reste,
             'avance' => $avance,
             // Conservé jusqu'à D2, égal à `avance`, pour le portail déployé avant D1.
@@ -76,10 +78,10 @@ final class ScolariteResource extends JsonResource
         ];
     }
 
-    /** @return list<array{date: string, montant: int, mode: string, reference: string, recu: ?array{uuid: string, numero: string}}> */
+    /** @return list<array{date: string, montant: int, mode: string, reference: string, recu: ?array{uuid: string, numero: string}, confirme_le: ?string}> */
     private static function versements(InscriptionAnnuelle $inscription): array
     {
-        return $inscription->versementsValides()->with('recus.annulation')->orderByDesc('date_versement')->orderByDesc('id')->get()
+        return $inscription->versementsValides()->with(['recus.annulation', 'confirmation'])->orderByDesc('date_versement')->orderByDesc('id')->get()
             ->map(fn (Versement $v): array => [
                 'date' => $v->date_versement->toDateString(),
                 'montant' => $v->montant,
@@ -87,6 +89,8 @@ final class ScolariteResource extends JsonResource
                 'reference' => $v->reference,
                 // Reçu en vigueur (Scolarité lot 4) : uuid public, jamais l'id interne.
                 'recu' => ($r = $v->recuEnVigueur()) === null ? null : ['uuid' => $r->uuid, 'numero' => $r->numero],
+                // Vérifié par la scolarité (jour, heure de Yaoundé) ; null : à présenter à la scolarité. Jamais le nom de l'agent.
+                'confirme_le' => $v->confirmation?->confirme_at?->setTimezone(InscriptionAnnuelle::FUSEAU)->toDateString(),
             ])->all();
     }
 }

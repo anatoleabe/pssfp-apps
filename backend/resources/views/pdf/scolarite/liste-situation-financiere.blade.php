@@ -33,7 +33,7 @@
             <td>{{ $l['specialite'] ?? '—' }}</td>
             <td class="n">{{ $fcfa($l['du']) }}</td>
             <td class="n">{{ $fcfa($l['remise']) }}</td>
-            <td class="n">{{ $fcfa($l['verse']) }}</td>
+            <td class="n">{{ $fcfa($l['verse']) }}@if (($l['a_confirmer'] ?? 0) > 0)<br><span style="font-size:7pt;">dont {{ $fcfa($l['a_confirmer']) }} à confirmer</span>@endif</td>
             <td class="n">{{ $fcfa($l['reste']) }}</td>
             <td class="n">{{ $l['avance'] > 0 ? $fcfa($l['avance']) : '—' }}</td>
             <td class="sit">{{ $l['situation'] }}</td>
@@ -45,7 +45,7 @@
             <td class="n">{{ $effectif($groupe['totaux']['effectif']) }}</td>
             <td class="n">{{ $fcfa($groupe['totaux']['du']) }}</td>
             <td class="n">{{ $fcfa($groupe['totaux']['remise']) }}</td>
-            <td class="n">{{ $fcfa($groupe['totaux']['verse']) }}</td>
+            <td class="n">{{ $fcfa($groupe['totaux']['verse']) }}@if (($groupe['totaux']['a_confirmer'] ?? 0) > 0)<br><span style="font-size:7pt;">dont {{ $fcfa($groupe['totaux']['a_confirmer']) }} à confirmer</span>@endif</td>
             <td class="n">{{ $fcfa($groupe['totaux']['reste']) }}</td>
             <td class="n">{{ $fcfa($groupe['totaux']['avance']) }}</td>
             <td></td>
@@ -57,7 +57,7 @@
         <td class="n">{{ $effectif($tableau['totaux']['effectif']) }}</td>
         <td class="n">{{ $fcfa($tableau['totaux']['du']) }}</td>
         <td class="n">{{ $fcfa($tableau['totaux']['remise']) }}</td>
-        <td class="n">{{ $fcfa($tableau['totaux']['verse']) }}</td>
+        <td class="n">{{ $fcfa($tableau['totaux']['verse']) }}@if (($tableau['totaux']['a_confirmer'] ?? 0) > 0)<br><span style="font-size:7pt;">dont {{ $fcfa($tableau['totaux']['a_confirmer']) }} à confirmer</span>@endif</td>
         <td class="n">{{ $fcfa($tableau['totaux']['reste']) }}</td>
         <td class="n">{{ $fcfa($tableau['totaux']['avance']) }}</td>
         <td></td>

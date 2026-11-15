@@ -124,6 +124,7 @@ final class ModulePermissionMap
                 'sensitive' => [
                     'scolarite.export' => 'Exporter la situation financière des auditeurs',
                     'scolarite.versement_annuler' => 'Annuler un versement',
+                    'scolarite.versement_confirmer' => 'Confirmer un versement sur présentation du reçu bancaire original (scolarité) : scan du bordereau et attestation, jamais un versement que l\'on a saisi',
                     'scolarite.recu_emettre' => 'Émettre les reçus des versements et passer leurs écritures d\'annulation (service financier)',
                     'scolarite.remise' => 'Accorder une remise',
                     'scolarite.bareme' => 'Modifier les barèmes',

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Scolarite;
 
 use App\Models\AnnulationRecu;
+use App\Models\ConfirmationVersement;
 use App\Models\ImputationVersement;
 use App\Models\InscriptionAnnuelle;
 use App\Models\RecuVersement;
@@ -115,6 +116,8 @@ final class RecusVersements
             $annee = (int) now('Africa/Douala')->format('Y');
             $sequence = $this->prochainNumero($annee);
             $dossier = $v->auditeur?->candidature;
+            // Vérification par la scolarité, figée sur le reçu si elle précède l'émission (réémission après annulation).
+            $verification = ConfirmationVersement::query()->with('confirmePar:id,name')->where('versement_id', $v->id)->first();
             $recu = (new RecuVersement)->forceFill([
                 'numero' => sprintf('RCPT-%d-%06d', $annee, $sequence),
                 'annee_numero' => $annee,
@@ -136,6 +139,8 @@ final class RecusVersements
                 'emis_par' => $auteur->id,
                 'emetteur_nom' => $auteur->name,
                 'emis_at' => now(),
+                'verifie_par_nom' => $verification?->confirmePar?->name,
+                'verifie_le' => $verification?->confirme_at?->setTimezone(InscriptionAnnuelle::FUSEAU)->toDateString(),
             ]);
             $recu->save();
             activity('scolarite')->causedBy($auteur)->performedOn($v)->event('recu_emis')

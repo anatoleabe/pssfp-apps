@@ -352,6 +352,8 @@ export interface ScolariteVersement {
   reference: string;
   /** Reçu en vigueur émis par le service financier, ou null. */
   recu: { uuid: string; numero: string } | null;
+  /** Jour de la vérification par la scolarité (AAAA-MM-JJ) ; null : reçu bancaire à présenter. Absent d'une API antérieure. */
+  confirme_le?: string | null;
 }
 
 export type AccesEtat = 'bloque' | 'en_preparation' | 'disponible';
@@ -366,6 +368,8 @@ export interface MaScolarite {
   du_total: number | null;
   remise: number | null;
   verse: number;
+  /** Part du versé à confirmer par la scolarité : elle ne compte pas encore pour l'accès. Absente d'une API antérieure. */
+  a_confirmer?: number;
   reste: number | null;
   /** Avance du compte de l'auditeur (versé au-delà du dû, ADR-0013), affichée « Avance ». */
   avance: number;

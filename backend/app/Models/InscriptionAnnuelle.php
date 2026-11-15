@@ -104,6 +104,12 @@ class InscriptionAnnuelle extends Model
         return $this->hasMany(ImputationVersement::class)->whereNull('annule_at');
     }
 
+    /** Parts de versements confirmés par la scolarité (15/11/2026) : leur somme fait les états « à jour ». */
+    public function imputationsConfirmees(): HasMany
+    {
+        return $this->imputationsActives()->whereHas('versement', fn (Builder $v) => $v->whereHas('confirmation'));
+    }
+
     public function remiseAccordeePar(): BelongsTo
     {
         return $this->belongsTo(User::class, 'remise_par');
@@ -124,14 +130,20 @@ class InscriptionAnnuelle extends Model
     /**
      * Le cumul est l'imputé de l'inscription, au plus son dû : l'excédent d'un versement
      * est une avance du compte (CompteAuditeur), et `tropPercu` vaut donc toujours 0.
-     * Sur une liste, charger `withSum('imputationsActives', 'montant')` et le barème
-     * évite une requête par ligne.
+     * Les états ne lisent que l'imputé confirmé (15/11/2026) : la différence est `aConfirmer`.
+     * Sur une liste, charger `withSum('imputationsActives', 'montant')`,
+     * `withSum('imputationsConfirmees', 'montant')` et le barème évite des requêtes par ligne.
      */
     public function situation(): SituationFinanciere
     {
         $verse = array_key_exists('imputations_actives_sum_montant', $this->attributes)
             ? (int) $this->attributes['imputations_actives_sum_montant']
             : (int) $this->imputationsActives()->sum('montant');
+        $confirme = match (true) {
+            $verse === 0 => 0,
+            array_key_exists('imputations_confirmees_sum_montant', $this->attributes) => (int) $this->attributes['imputations_confirmees_sum_montant'],
+            default => (int) $this->imputationsConfirmees()->sum('montant'),
+        };
 
         return SituationFinanciere::calculer(
             montantInscription: $this->montant_inscription,
@@ -142,6 +154,7 @@ class InscriptionAnnuelle extends Model
             aujourdhui: self::aujourdhui(),
             echeanceTranche1: $this->bareme?->tranche1_echeance,
             echeanceTranche2: $this->bareme?->tranche2_echeance,
+            aConfirmer: $verse - $confirme,
         );
     }
 
@@ -150,8 +163,12 @@ class InscriptionAnnuelle extends Model
      * SQL brut autorisé par les ADR-0010 et 0013 : la situation n'étant pas stockée,
      * Eloquent ne l'exprime pas. Valeurs fixes ou liées, jamais de saisie.
      * Le cumul est l'imputé (ADR-0013) ; seul lui a changé avec le compte de l'auditeur.
+     * Les états ne lisent que l'imputé des versements confirmés par la scolarité (15/11/2026).
      */
-    private const VERSE = '(SELECT COALESCE(SUM(x.montant), 0) FROM imputations_versements x WHERE x.inscription_annuelle_id = inscriptions_annuelles.id AND x.annule_at IS NULL)';
+    public const VERSE_COMPTE = '(SELECT COALESCE(SUM(x.montant), 0) FROM imputations_versements x WHERE x.inscription_annuelle_id = inscriptions_annuelles.id AND x.annule_at IS NULL)';
+
+    public const VERSE_CONFIRME = '(SELECT COALESCE(SUM(x.montant), 0) FROM imputations_versements x WHERE x.inscription_annuelle_id = inscriptions_annuelles.id AND x.annule_at IS NULL'
+        .' AND EXISTS (SELECT 1 FROM confirmations_versements c WHERE c.versement_id = x.versement_id))';
 
     private const DU_TRANCHE2 = 'GREATEST(0, inscriptions_annuelles.montant_tranche2 - inscriptions_annuelles.remise_montant)';
 
@@ -159,40 +176,50 @@ class InscriptionAnnuelle extends Model
 
     private const DU_INSCRIPTION = 'GREATEST(0, inscriptions_annuelles.montant_inscription - GREATEST(0, inscriptions_annuelles.remise_montant - inscriptions_annuelles.montant_tranche1 - inscriptions_annuelles.montant_tranche2))';
 
-    public function scopeInscriptionSoldee(Builder $query): Builder
+    /**
+     * Cumul lu par les filtres : l'imputé confirmé (états « à jour », 15/11/2026), ou tout l'argent imputé
+     * pour la vérification du compte (D1), qui compare les imputations aux versements.
+     */
+    private static function verse(bool $toutLArgent): string
     {
-        return $query->whereRaw(self::VERSE.' >= '.self::DU_INSCRIPTION);
+        return $toutLArgent ? self::VERSE_COMPTE : self::VERSE_CONFIRME;
     }
 
-    public function scopeInscriptionNonSoldee(Builder $query): Builder
+    public function scopeInscriptionSoldee(Builder $query, bool $toutLArgent = false): Builder
     {
-        return $query->whereRaw(self::VERSE.' < '.self::DU_INSCRIPTION);
+        return $query->whereRaw(self::verse($toutLArgent).' >= '.self::DU_INSCRIPTION);
+    }
+
+    public function scopeInscriptionNonSoldee(Builder $query, bool $toutLArgent = false): Builder
+    {
+        return $query->whereRaw(self::verse($toutLArgent).' < '.self::DU_INSCRIPTION);
     }
 
     /**
      * Équivalent en base de AccesEcampus::accesOuvert() : droits soldés, ou déblocage
      * en cours d'un auditeur ni exclu ni en abandon.
      */
-    public function scopeAccesOuvert(Builder $query): Builder
+    public function scopeAccesOuvert(Builder $query, bool $toutLArgent = false): Builder
     {
-        return $query->where(fn (Builder $q) => $q->inscriptionSoldee()->orWhere(fn (Builder $d) => $d->whereHas('deblocageEnCours')
+        return $query->where(fn (Builder $q) => $q->inscriptionSoldee($toutLArgent)->orWhere(fn (Builder $d) => $d->whereHas('deblocageEnCours')
             ->whereHas('auditeur', fn (Builder $a) => $a->whereNotIn('statut', MessagesAuditeurs::STATUTS_EXCLUS))));
     }
 
-    public function scopeEntierementSoldee(Builder $query): Builder
+    public function scopeEntierementSoldee(Builder $query, bool $toutLArgent = false): Builder
     {
-        return $query->whereRaw(self::VERSE.' >= '.self::DU_INSCRIPTION.' + '.self::DU_TRANCHE1.' + '.self::DU_TRANCHE2);
+        return $query->whereRaw(self::verse($toutLArgent).' >= '.self::DU_INSCRIPTION.' + '.self::DU_TRANCHE1.' + '.self::DU_TRANCHE2);
     }
 
-    public function scopeEnRetard(Builder $query): Builder
+    public function scopeEnRetard(Builder $query, bool $toutLArgent = false): Builder
     {
+        $verse = self::verse($toutLArgent);
         $jusquTranche1 = self::DU_INSCRIPTION.' + '.self::DU_TRANCHE1;
         $jour = self::aujourdhui()->toDateString();
 
         return $query->whereRaw(
             'EXISTS (SELECT 1 FROM baremes_scolarite b WHERE b.id = inscriptions_annuelles.bareme_id AND ('
-            .'(b.tranche1_echeance < ? AND '.self::DU_TRANCHE1.' > 0 AND '.self::VERSE.' < '.$jusquTranche1.')'
-            .' OR (b.tranche2_echeance < ? AND '.self::DU_TRANCHE2.' > 0 AND '.self::VERSE.' < '.$jusquTranche1.' + '.self::DU_TRANCHE2.')'
+            .'(b.tranche1_echeance < ? AND '.self::DU_TRANCHE1.' > 0 AND '.$verse.' < '.$jusquTranche1.')'
+            .' OR (b.tranche2_echeance < ? AND '.self::DU_TRANCHE2.' > 0 AND '.$verse.' < '.$jusquTranche1.' + '.self::DU_TRANCHE2.')'
             .'))',
             [$jour, $jour],
         );

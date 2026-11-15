@@ -6,6 +6,7 @@ namespace App\Filament\Resources\AuditeurResource\RelationManagers;
 
 use App\Filament\Concerns\ChecksModuleAccess;
 use App\Filament\Resources\AuditeurResource\AuditeurActions;
+use App\Filament\Resources\AuditeurResource\ConfirmationActions;
 use App\Filament\Resources\AuditeurResource\RecuActions;
 use App\Models\Auditeur;
 use App\Models\Versement;
@@ -52,7 +53,7 @@ class VersementsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['saisiPar', 'annulePar', 'inscription', 'recus.annulation']))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['saisiPar', 'annulePar', 'inscription', 'recus.annulation', 'confirmation.confirmePar']))
             ->defaultSort('date_versement', 'desc')
             ->recordTitleAttribute('reference')
             ->columns([
@@ -69,6 +70,15 @@ class VersementsRelationManager extends RelationManager
                     ->getStateUsing(fn (Versement $record): string => $record->recuEnVigueur()?->numero ?? '—')
                     ->description(fn (Versement $record): ?string => ($a = $record->recus->sortByDesc('id')->first()?->annulation) !== null && $record->recuEnVigueur() === null
                         ? 'annulé ('.$a->numero.')' : null),
+                // Confirmation par la scolarité (15/11/2026) : seul l'argent confirmé compte pour l'accès.
+                Tables\Columns\TextColumn::make('confirmation')->label('Confirmation')->badge()
+                    ->getStateUsing(fn (Versement $record): string => ConfirmationActions::etat($record))
+                    ->color(fn (Versement $record): string => match (true) {
+                        $record->confirmation !== null => 'success',
+                        $record->estAnnule() => 'gray',
+                        default => 'warning',
+                    })
+                    ->description(fn (Versement $record): ?string => $record->confirmation?->confirmePar?->name),
                 Tables\Columns\TextColumn::make('etat')->label('État')->badge()
                     ->getStateUsing(fn (Versement $record): string => $record->estAnnule() ? 'Annulé' : 'Valide')
                     ->color(fn (Versement $record): string => $record->estAnnule() ? 'gray' : 'success')
@@ -79,6 +89,7 @@ class VersementsRelationManager extends RelationManager
             ->headerActions([])
             ->actions([
                 Tables\Actions\ActionGroup::make([
+                    ConfirmationActions::confirmer(),
                     AuditeurActions::voirJustificatif(),
                     AuditeurActions::ajouterJustificatif(),
                     AuditeurActions::annulerVersement(),

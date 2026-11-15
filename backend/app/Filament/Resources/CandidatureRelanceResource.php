@@ -358,6 +358,7 @@ class CandidatureRelanceResource extends Resource
             CandidatureRelance::CAUSE_MANUELLE => 'Notification manuelle',
             CandidatureRelance::CAUSE_DEBLOCAGE => 'Relance — accès anticipé échu',
             CandidatureRelance::CAUSE_RECU => 'Avis — reçu de versement émis',
+            CandidatureRelance::CAUSE_CONFIRMATION => 'Relance — versement à confirmer',
             'ready' => 'Relance — dossier complet non soumis',
             'photo_only' => 'Relance — photo manquante',
         ];
@@ -387,6 +388,7 @@ class CandidatureRelanceResource extends Resource
             CandidatureRelance::CAUSE_MANUELLE => 'Manuelle',
             CandidatureRelance::CAUSE_DEBLOCAGE => 'Accès anticipé échu',
             CandidatureRelance::CAUSE_RECU => 'Reçu émis',
+            CandidatureRelance::CAUSE_CONFIRMATION => 'Versement à confirmer',
             'ready' => 'Dossier complet',
             'photo_only' => 'Photo manquante',
             default => $cause,

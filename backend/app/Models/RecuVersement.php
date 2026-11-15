@@ -23,7 +23,7 @@ class RecuVersement extends Model
 
     protected $fillable = [];
 
-    protected $casts = ['date_versement' => 'immutable_date', 'emis_at' => 'datetime', 'montant' => 'integer', 'total_verse' => 'integer', 'reste_a_payer' => 'integer'];
+    protected $casts = ['date_versement' => 'immutable_date', 'emis_at' => 'datetime', 'montant' => 'integer', 'total_verse' => 'integer', 'reste_a_payer' => 'integer', 'verifie_le' => 'immutable_date'];
 
     protected static function booted(): void
     {

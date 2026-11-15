@@ -72,7 +72,7 @@ beforeEach(function (): void {
         });
     });
     $this->registre = fn (): RegistreVersements => app(RegistreVersements::class);
-    $this->verser = fn (int $montant, string $date = '2026-11-12', string $payeur = 'auditeur', ?InscriptionAnnuelle $sur = null): Versement => ($this->registre)()->enregistrer(
+    $this->verser = fn (int $montant, string $date = '2026-11-12', string $payeur = 'auditeur', ?InscriptionAnnuelle $sur = null): Versement => verserConfirme(
         $sur ?? $this->m1,
         ['montant' => $montant, 'date_versement' => $date, 'mode' => 'virement', 'reference' => 'BOR-'.Str::random(8), 'payeur' => $payeur],
         $this->agent,
