@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Models\Versement;
 use App\Services\Ecampus\ComptesEcampus;
 use App\Services\ExportsRetenus\AttributionMatricules;
+use App\Services\Scolarite\LibelleSituation;
 use App\Services\Scolarite\OuvertureAuditeur;
 use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\SituationFinanciereExcel;
@@ -113,14 +114,28 @@ it('laisse la fenêtre ouverte et explique un doublon de référence', function 
     expect(Versement::query()->count())->toBe(1);
 });
 
-it('exige la confirmation d\'un trop-perçu', function (): void {
+it('exige la confirmation d\'un versement au-delà du reste à payer, conservé comme avance', function (): void {
     $this->actingAs(($this->compte)('scolarite_agent'));
 
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
-        ->callAction('enregistrerVersement', data: ($this->saisie)(['montant' => 1500000]))
+        ->mountAction('enregistrerVersement')
+        ->setActionData(($this->saisie)(['montant' => 1500000]))
+        ->assertSee('Je confirme : ce montant dépasse le reste à payer ; l\'excédent sera conservé comme avance.')
+        ->assertDontSee('trop-perçu')
+        ->callMountedAction()
         ->assertHasActionErrors(['confirmer_trop_percu' => 'accepted']);
 
     expect(Versement::query()->count())->toBe(0);
+});
+
+it('présente l\'excédent des versements comme une avance sur la fiche', function (): void {
+    Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id, 'montant' => 1285000]);
+    $this->actingAs(($this->compte)('scolarite_agent'));
+
+    $this->get(AuditeurResource::getUrl('view', ['record' => $this->fiche]))
+        ->assertOk()
+        ->assertSee('Avance : '.LibelleSituation::fcfa(100000))
+        ->assertDontSee('Trop-perçu');
 });
 
 it('accepte la date du jour, y compris le soir à Yaoundé', function (string $heure): void {

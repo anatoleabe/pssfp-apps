@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Resources\ScolariteResource;
 use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
@@ -172,6 +173,24 @@ it('produit le relevé PDF de l\'auditeur, sans mot de passe', function (): void
         ->and($reponse->headers->get('Content-Disposition'))->toContain('releve-scolarite')
         ->and($reponse->headers->get('Cache-Control'))->toContain('no-store')
         ->and(substr((string) $reponse->getContent(), 0, 4))->toBe('%PDF');
+});
+
+it('présente l\'excédent comme une avance sur le relevé, sous la clé d\'API inchangée', function (): void {
+    // 300 000 + 985 000 versés pour 1 185 000 dus.
+    Versement::factory()->create(['inscription_annuelle_id' => $this->inscription->id, 'montant' => 985000, 'reference' => 'BOR-A3', 'date_versement' => '2026-11-03']);
+
+    $this->withToken(($this->jeton)($this->awa))->getJson('/v1/applications/me/scolarite')
+        ->assertOk()
+        ->assertJsonPath('data.reste', 0)
+        ->assertJsonPath('data.trop_percu', 100000);
+
+    $html = view('pdf.releve-scolarite', [
+        'dossier' => $this->awa->fresh(),
+        'situation' => (new ScolariteResource($this->awa->fresh()))->toArray(request()),
+        'edite_le' => now('Africa/Douala'),
+    ])->render();
+    expect($html)->toContain('Avance : 100 000 FCFA')
+        ->not->toContain('Trop-perçu');
 });
 
 it('garde la scolarité visible quand l\'auditeur ouvre un brouillon dans une campagne suivante', function (): void {

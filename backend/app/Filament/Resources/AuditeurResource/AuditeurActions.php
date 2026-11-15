@@ -80,7 +80,7 @@ final class AuditeurActions
                 Forms\Components\Select::make('payeur')->label('Payé par')->required()->options(Versement::PAYEURS)->default('auditeur')->native(false),
                 self::champJustificatif(),
                 Forms\Components\Checkbox::make('confirmer_trop_percu')
-                    ->label('Je confirme : ce montant dépasse le reste à payer.')
+                    ->label('Je confirme : ce montant dépasse le reste à payer ; l\'excédent sera conservé comme avance.')
                     ->visible(fn (Forms\Get $get): bool => (int) $get('montant') > $record->inscriptionCourante->situation()->reste)
                     ->accepted(),
             ]))

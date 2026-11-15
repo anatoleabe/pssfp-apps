@@ -14,7 +14,8 @@ use Carbon\CarbonImmutable;
  *   une bourse partielle ne solde pas l'inscription, seule une exonération
  *   totale débloque le code d'accès sans versement.
  * - Le cumul remplit l'inscription, puis la 1re tranche, puis la 2e.
- * - L'excédent reste affiché : il n'est reporté nulle part.
+ * - L'excédent (tropPercu) est affiché comme une avance : il n'est reporté sur
+ *   aucun palier.
  *
  * Les expressions SQL équivalentes (filtres de la liste) sont dans les scopes
  * d'InscriptionAnnuelle ; un test vérifie qu'elles donnent le même résultat.

@@ -367,6 +367,7 @@ export interface MaScolarite {
   remise: number | null;
   verse: number;
   reste: number | null;
+  /** Excédent des versements, affiché « Avance » ; nom de clé gardé pour compatibilité. */
   trop_percu: number;
   en_retard: boolean;
   paliers: ScolaritePalier[];

@@ -105,7 +105,7 @@ it('filtre en base comme le calcul en PHP', function (int $remise, int $verse, ?
     'tout soldé' => [0, 1185000, '2020-01-01', '2020-06-01'],
     'remise couvrant les tranches, échues' => [1000000, 185000, '2020-01-01', '2020-06-01'],
     'exonération totale' => [1185000, 0, '2020-01-01', '2020-06-01'],
-    'trop-perçu' => [0, 1300000, '2020-01-01', '2020-06-01'],
+    'excédent conservé comme avance' => [0, 1300000, '2020-01-01', '2020-06-01'],
 ]);
 
 it('range les références en majuscules, sans espaces autour', function (): void {

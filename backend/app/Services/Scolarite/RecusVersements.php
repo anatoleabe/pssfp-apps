@@ -209,7 +209,8 @@ final class RecusVersements
         }
         $exces = max(0, $fin - max($debut, $borne));
         if ($exces > 0) {
-            $parts[] = 'trop-perçu ('.self::fcfa($exces).')';
+            // Excédent conservé comme avance (décision du 15/11/2026) ; les reçus déjà émis gardent leur objet.
+            $parts[] = 'avance ('.self::fcfa($exces).')';
         }
         $objet = 'Frais de scolarité '.$inscription->annee_academique.' : '.implode(', ', $parts === [] ? ['versement'] : $parts);
 

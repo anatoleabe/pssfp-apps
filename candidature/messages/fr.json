@@ -759,7 +759,7 @@
       "enRetard": "En retard",
       "echeance": "Échéance : {date}",
       "remise": "Remise accordée : {montant}",
-      "tropPercu": "Trop-perçu : {montant}",
+      "avance": "Avance : {montant}",
       "versementsTitre": "Mes versements ({count})",
       "aucunVersement": "Aucun versement enregistré pour l'instant.",
       "colDate": "Date",
