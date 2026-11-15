@@ -49,6 +49,8 @@ class CampagneCandidature extends Model
         // Variables des documents remis aux auditeurs (cf. ParametresLettres).
         'parametres_lettres',
         'signature_lettres_path',
+        // Affichage des semestres de la promotion (App\Services\Lmd\NumerotationSemestres).
+        'numerotation_semestres',
     ];
 
     protected $casts = [

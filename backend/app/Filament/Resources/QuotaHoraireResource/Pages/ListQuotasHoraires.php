@@ -10,6 +10,7 @@ use App\Filament\Resources\QuotaHoraireResource\ChampsProgrammation;
 use App\Models\EvenementCalendrier;
 use App\Models\MaquetteEcue;
 use App\Models\Parcours;
+use App\Services\Lmd\NumerotationSemestres;
 use App\Services\Lmd\PermissionsLmd;
 use App\Services\Lmd\Programmations;
 use Filament\Actions\Action;
@@ -35,8 +36,10 @@ class ListQuotasHoraires extends ListRecords
                     Forms\Components\CheckboxList::make('parcours')->label('Parcours')->required()->columns(3)
                         ->options(fn (): array => Parcours::query()->where('actif', true)->orderBy('niveau')->orderBy('ordre')->get()
                             ->mapWithKeys(fn (Parcours $p): array => [$p->id => $p->code.' ('.$p->niveau.')'])->all()),
+                    // Semestres enregistrés dans les maquettes (7 à 10), libellés selon la promotion de chaque niveau.
                     Forms\Components\CheckboxList::make('semestres')->label('Semestres de la maquette')->required()->columns(4)
-                        ->options([7 => 'Semestre 7', 8 => 'Semestre 8', 9 => 'Semestre 9', 10 => 'Semestre 10']),
+                        ->options(fn (Forms\Get $get): array => NumerotationSemestres::options(
+                            EvenementCalendrier::query()->with('calendrier')->find($get('periode'))?->calendrier?->annee_academique, [7, 8, 9, 10])),
                 ]))
                 ->action(fn (array $data) => ChampsProgrammation::executer(function () use ($data): string {
                     $b = app(Programmations::class)->proposerQuotas(EvenementCalendrier::query()->findOrFail($data['periode']),

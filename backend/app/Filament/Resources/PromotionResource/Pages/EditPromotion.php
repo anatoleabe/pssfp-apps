@@ -7,7 +7,9 @@ namespace App\Filament\Resources\PromotionResource\Pages;
 use App\Filament\Resources\CampagneCandidatureResource\ExportsRetenusActions;
 use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
 use App\Filament\Resources\PromotionResource;
+use App\Models\CampagneCandidature;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
+use App\Services\Lmd\NumerotationSemestres;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
@@ -15,6 +17,9 @@ use Filament\Resources\Pages\EditRecord;
 class EditPromotion extends EditRecord
 {
     protected static string $resource = PromotionResource::class;
+
+    /** Numérotation des semestres avant l'enregistrement, pour tracer son changement. */
+    private ?string $numerotationAvant = null;
 
     public function getTitle(): string
     {
@@ -48,6 +53,26 @@ class EditPromotion extends EditRecord
         }
 
         return $data;
+    }
+
+    protected function beforeSave(): void
+    {
+        $this->numerotationAvant = NumerotationSemestres::mode($this->getRecord());
+    }
+
+    /** Le changement de numérotation est tracé avec ses valeurs (le journal général ne note que le champ). */
+    protected function afterSave(): void
+    {
+        /** @var CampagneCandidature $promotion */
+        $promotion = $this->getRecord();
+        $apres = NumerotationSemestres::mode($promotion);
+        if ($this->numerotationAvant === null || $apres === $this->numerotationAvant) {
+            return;
+        }
+        activity('scolarite')->causedBy(auth()->user())->performedOn($promotion)
+            ->event('numerotation_semestres_modifiee')
+            ->withProperties(['promotion' => $promotion->promotion_numero, 'avant' => $this->numerotationAvant, 'apres' => $apres])
+            ->log('Numérotation des semestres modifiée');
     }
 
     protected function getHeaderActions(): array

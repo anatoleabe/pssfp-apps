@@ -46,9 +46,10 @@ final class ResultatsAuditeur
     }
 
     /**
-     * UE du résultat : code, intitulé, semestre, crédits, partie, note, grade, mode d'acquisition.
+     * UE du résultat : code, intitulé, semestre (enregistré, et à afficher selon la promotion),
+     * crédits, partie, note, grade, mode d'acquisition.
      *
-     * @return list<array{code: string, intitule: string, semestre: int, credits: int, partie: string, note: ?float, grade: ?string, mode: string, annee_acquisition: ?string}>
+     * @return list<array{code: string, intitule: string, semestre: int, semestre_affiche: int, credits: int, partie: string, note: ?float, grade: ?string, mode: string, annee_acquisition: ?string}>
      */
     public function ues(ResultatAnnuel $resultat): array
     {
@@ -60,11 +61,12 @@ final class ResultatsAuditeur
         }
         $auditeurId = $resultat->inscriptionAnnuelle->auditeur_id;
         $acquis = AcquisUe::query()->where('auditeur_id', $auditeurId)->get()->keyBy('unite_enseignement_id');
+        $promotion = NumerotationSemestres::promotionDeAuditeur($resultat->inscriptionAnnuelle->auditeur);
 
         return ResultatScenarioUe::query()->where('scenario_id', $scenario->id)->where('inscription_annuelle_id', $resultat->inscription_annuelle_id)
             ->with('maquetteUe.ue')->get()
             ->sortBy(fn (ResultatScenarioUe $l): array => [$l->maquetteUe->semestre, $l->maquetteUe->ordre])
-            ->map(function (ResultatScenarioUe $l) use ($regle, $acquis): array {
+            ->map(function (ResultatScenarioUe $l) use ($regle, $acquis, $promotion): array {
                 $note = $l->note_jury === null ? null : (float) $l->note_jury;
                 $mode = match (true) {
                     $l->capitalisee => self::CAPITALISEE,
@@ -77,6 +79,7 @@ final class ResultatsAuditeur
                     'code' => (string) $l->maquetteUe->ue?->code,
                     'intitule' => (string) $l->maquetteUe->ue?->intitule,
                     'semestre' => $l->maquetteUe->semestre,
+                    'semestre_affiche' => NumerotationSemestres::numero($l->maquetteUe->semestre, $promotion),
                     'credits' => $l->credits,
                     'partie' => $l->partie,
                     'note' => $note,

@@ -229,8 +229,10 @@ final class DocumentsOfficiels
             default => 'pdf.lmd.certificat-scolarite',
         };
 
+        // Numérotation des semestres de la promotion au jour de la délivrance : le fichier scellé la garde.
         return Pdf::loadView($vue, [
             'numero' => $numero, 'code' => $code, 'url' => $url, 'qr' => $qr,
+            'promotion' => NumerotationSemestres::promotionDeAuditeur($auditeur),
             'dossier' => $auditeur->candidature, 'inscription' => $inscription->loadMissing('parcours'),
             'd' => $d, 'resultat' => $resultat, 'ues' => $resultat === null ? [] : $this->resultats->ues($resultat),
             'edite_le' => now('Africa/Douala'),
