@@ -6,6 +6,7 @@ namespace App\Filament\Resources\AuditeurResource\Pages;
 
 use App\Filament\Resources\AuditeurResource;
 use App\Filament\Resources\AuditeurResource\AuditeurActions;
+use App\Filament\Resources\AuditeurResource\EtiquettesActions;
 use App\Filament\Resources\AuditeurResource\ParcoursActions;
 use App\Filament\Resources\CandidatureResource;
 use App\Filament\Resources\CandidatureResource\AjoutRetenuActions;
@@ -73,6 +74,7 @@ class ViewAuditeur extends ViewRecord
             AuditeurActions::renvoyerSms(),
             AuditeurActions::envoyerLienLettre(),
             AuditeurActions::creerInscription(),
+            EtiquettesActions::gerer(),
             ActionGroup::make([
                 ComptesEcampusActions::creer(Action::make('creerCompteEcampus')),
                 IdentifiantsMoodleActions::consulter(Action::make('identifiantsMoodle')),
