@@ -41,9 +41,11 @@ it('seeds 58 real departements + AUTRES with valid region FK', function (): void
 });
 
 it('is idempotent — running seeders twice does not duplicate rows', function (): void {
-    $this->seed(PaysSeeder::class);
-    $countAfterFirst = Pays::count();
+    // Les données de base sont déjà chargées une fois par base de test (Tests\TestCase) :
+    // reensemencer() rejoue vraiment les seeders par-dessus.
+    $this->reensemencer([PaysSeeder::class, RegionsCamerounSeeder::class, DepartementsCamerounSeeder::class]);
+    $comptes = [Pays::count(), RegionCameroun::count(), DepartementCameroun::count()];
 
-    $this->seed(PaysSeeder::class);
-    expect(Pays::count())->toBe($countAfterFirst);
+    $this->reensemencer([PaysSeeder::class, RegionsCamerounSeeder::class, DepartementsCamerounSeeder::class]);
+    expect([Pays::count(), RegionCameroun::count(), DepartementCameroun::count()])->toBe($comptes);
 });
