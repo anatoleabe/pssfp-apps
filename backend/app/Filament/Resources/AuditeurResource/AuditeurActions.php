@@ -10,6 +10,8 @@ use App\Models\LienLettreAcces;
 use App\Models\Versement;
 use App\Services\NotificationCandidatsService;
 use App\Services\Scolarite\AccesEcampus;
+use App\Services\Scolarite\AnnulationMultiAnnees;
+use App\Services\Scolarite\CompteAuditeur;
 use App\Services\Scolarite\LibelleSituation;
 use App\Services\Scolarite\LiensLettreAcces;
 use App\Services\Scolarite\MessagesAuditeurs;
@@ -65,7 +67,8 @@ final class AuditeurActions
             ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR)
                 && $record->inscriptionCourante !== null && $record->candidature?->withdrawn_at === null)
             ->modalHeading('Enregistrer un versement')
-            ->modalDescription(fn (Auditeur $record): string => 'Reste à payer : '.LibelleSituation::fcfa($record->inscriptionCourante->situation()->reste)
+            // Reste sur le parcours (arriérés compris), égal en D1 au reste de l'année courante.
+            ->modalDescription(fn (Auditeur $record): string => 'Reste à payer : '.LibelleSituation::fcfa(CompteAuditeur::pour($record)->resteParcours())
                 .'. Le versement compte aussitôt ; seul le responsable de scolarité peut l\'annuler.')
             ->modalSubmitActionLabel('Enregistrer')
             ->form(fn (Auditeur $record): array => MessagesValidation::appliquer([
@@ -77,11 +80,11 @@ final class AuditeurActions
                     ->maxDate(InscriptionAnnuelle::aujourdhui()->endOfDay()->toDateTimeString()),
                 Forms\Components\Select::make('mode')->label('Mode de paiement')->required()->options(Versement::MODES)->default('cremincam_agence')->native(false),
                 Forms\Components\TextInput::make('reference')->label('Référence du bordereau')->required()->maxLength(100),
-                Forms\Components\Select::make('payeur')->label('Payé par')->required()->options(Versement::PAYEURS)->default('auditeur')->native(false),
+                Forms\Components\Select::make('payeur')->label('Payé par')->required()->options(Versement::PAYEURS)->default('auditeur')->native(false)->live(),
                 self::champJustificatif(),
-                Forms\Components\Checkbox::make('confirmer_trop_percu')
-                    ->label('Je confirme : ce montant dépasse le reste à payer ; l\'excédent sera conservé comme avance.')
-                    ->visible(fn (Forms\Get $get): bool => (int) $get('montant') > $record->inscriptionCourante->situation()->reste)
+                Forms\Components\Checkbox::make('confirmer_avance')
+                    ->label(fn (Forms\Get $get): string => self::libelleAvance($record, (int) $get('montant'), (string) $get('payeur')))
+                    ->visible(fn (Forms\Get $get): bool => self::avanceAnnoncee($record, (int) $get('montant'), (string) $get('payeur')) > 0)
                     ->accepted(),
             ]))
             ->action(function (Auditeur $record, array $data, Action $action): void {
@@ -98,6 +101,21 @@ final class AuditeurActions
                 $record->refresh();
                 self::notifier('Versement enregistré', $resultat);
             });
+    }
+
+    /** Part du montant qui dépasse ce que le versement règle et ira en avance (R2) : tout le parcours, ou l'année désignée pour un employeur. */
+    private static function avanceAnnoncee(Auditeur $record, int $montant, string $payeur): int
+    {
+        return max(0, $montant - CompteAuditeur::pour($record)->resteRegle($payeur, $record->inscriptionCourante));
+    }
+
+    private static function libelleAvance(Auditeur $record, int $montant, string $payeur): string
+    {
+        $avance = LibelleSituation::fcfa(self::avanceAnnoncee($record, $montant, $payeur));
+
+        return in_array($payeur, Versement::PAYEURS_RESERVES, true)
+            ? 'Je confirme : '.$avance.' dépassent le reste à payer et resteront en avance, en attente de la décision du responsable.'
+            : 'Je confirme : '.$avance.' dépassent le reste à payer et iront en avance sur la scolarité à venir.';
     }
 
     public static function accorderRemise(): Action
@@ -306,7 +324,9 @@ final class AuditeurActions
             ->modalHeading('Annuler ce versement')
             ->modalDescription(fn (Versement $record): string => 'Le versement de '.LibelleSituation::fcfa($record->montant).' reste visible, barré, avec votre motif. Sa référence pourra être ressaisie.'
                 .($record->recus()->whereDoesntHave('annulation')->exists() ? ' Son reçu reçoit une écriture d\'annulation.' : '')
-                .(RegistreVersements::annulationRebloque($record) ? ' Attention : l\'inscription ne serait plus soldée ; le code disparaîtrait de l\'espace de l\'auditeur, mais resterait valable sur eCampus.' : ''))
+                .(RegistreVersements::annulationRebloque($record) ? ' Attention : l\'inscription ne serait plus soldée ; le code disparaîtrait de l\'espace de l\'auditeur, mais resterait valable sur eCampus.' : '')
+                // Refus R4.1 de D1, annoncé avant la saisie du motif.
+                .(count($annees = RegistreVersements::anneesTouchees($record)) > 1 ? ' '.(new AnnulationMultiAnnees($annees))->getMessage() : ''))
             ->form(MessagesValidation::appliquer([
                 Forms\Components\Textarea::make('motif')->label('Motif de l\'annulation')->required()->maxLength(500)->rows(3),
             ]))

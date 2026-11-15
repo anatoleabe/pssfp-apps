@@ -115,8 +115,9 @@ final class ScolariteController extends Controller
     {
         $dossier = $this->dossier($request);
         $auditeurId = $dossier?->auditeur?->id;
+        // Appartenance par le compte du versement (ADR-0013), et non par l'inscription du reçu.
         $recu = $auditeurId === null ? null : RecuVersement::query()->where('uuid', $uuid)
-            ->whereHas('inscription', fn ($q) => $q->where('auditeur_id', $auditeurId))->first();
+            ->whereHas('versement', fn ($q) => $q->where('auditeur_id', $auditeurId))->first();
         if ($recu === null) {
             return response()->json(['message' => 'Reçu introuvable.', 'code' => 'recu_missing'], Response::HTTP_NOT_FOUND);
         }

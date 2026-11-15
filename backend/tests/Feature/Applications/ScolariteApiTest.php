@@ -175,22 +175,35 @@ it('produit le relevé PDF de l\'auditeur, sans mot de passe', function (): void
         ->and(substr((string) $reponse->getContent(), 0, 4))->toBe('%PDF');
 });
 
-it('présente l\'excédent comme une avance sur le relevé, sous la clé d\'API inchangée', function (): void {
+it('présente l\'excédent comme l\'avance du compte : « versé » ramené au dû, `trop_percu` égal à `avance` jusqu\'à D2', function (): void {
     // 300 000 + 985 000 versés pour 1 185 000 dus.
     Versement::factory()->create(['inscription_annuelle_id' => $this->inscription->id, 'montant' => 985000, 'reference' => 'BOR-A3', 'date_versement' => '2026-11-03']);
 
     $this->withToken(($this->jeton)($this->awa))->getJson('/v1/applications/me/scolarite')
         ->assertOk()
         ->assertJsonPath('data.reste', 0)
-        ->assertJsonPath('data.trop_percu', 100000);
+        ->assertJsonPath('data.verse', 1185000)
+        ->assertJsonPath('data.avance', 100000)
+        ->assertJsonPath('data.trop_percu', 100000)
+        ->assertJsonCount(2, 'data.versements');
 
     $html = view('pdf.releve-scolarite', [
         'dossier' => $this->awa->fresh(),
         'situation' => (new ScolariteResource($this->awa->fresh()))->toArray(request()),
         'edite_le' => now('Africa/Douala'),
     ])->render();
-    expect($html)->toContain('Avance : 100 000 FCFA')
+    expect($html)->toContain('Avance sur la scolarité à venir : 100 000 FCFA')
         ->not->toContain('Trop-perçu');
+});
+
+it('ne montre à l\'auditeur que l\'avance de son propre compte', function (): void {
+    Versement::factory()->create(['inscription_annuelle_id' => $this->inscription->id, 'montant' => 985000, 'reference' => 'BOR-A4', 'date_versement' => '2026-11-03']);
+
+    $this->withToken(($this->jeton)($this->bruno))->getJson('/v1/applications/me/scolarite')
+        ->assertOk()
+        ->assertJsonPath('data.avance', 0)
+        ->assertJsonPath('data.trop_percu', 0)
+        ->assertJsonPath('data.verse', 0);
 });
 
 it('garde la scolarité visible quand l\'auditeur ouvre un brouillon dans une campagne suivante', function (): void {

@@ -92,10 +92,16 @@ class InscriptionAnnuelle extends Model
         return $this->hasMany(InscriptionPedagogique::class);
     }
 
-    /** Versements qui comptent dans le cumul. */
+    /** Versements non annulés qui désignent cette inscription (ceux que l'espace affiche). */
     public function versementsValides(): HasMany
     {
         return $this->hasMany(Versement::class)->whereNull('annule_at');
+    }
+
+    /** Parts de versements qui règlent cette inscription : leur somme est le cumul (ADR-0013). */
+    public function imputationsActives(): HasMany
+    {
+        return $this->hasMany(ImputationVersement::class)->whereNull('annule_at');
     }
 
     public function remiseAccordeePar(): BelongsTo
@@ -116,14 +122,16 @@ class InscriptionAnnuelle extends Model
     }
 
     /**
-     * Sur une liste, charger `withSum('versementsValides', 'montant')` et le
-     * barème évite une requête par ligne.
+     * Le cumul est l'imputé de l'inscription, au plus son dû : l'excédent d'un versement
+     * est une avance du compte (CompteAuditeur), et `tropPercu` vaut donc toujours 0.
+     * Sur une liste, charger `withSum('imputationsActives', 'montant')` et le barème
+     * évite une requête par ligne.
      */
     public function situation(): SituationFinanciere
     {
-        $verse = array_key_exists('versements_valides_sum_montant', $this->attributes)
-            ? (int) $this->attributes['versements_valides_sum_montant']
-            : (int) $this->versementsValides()->sum('montant');
+        $verse = array_key_exists('imputations_actives_sum_montant', $this->attributes)
+            ? (int) $this->attributes['imputations_actives_sum_montant']
+            : (int) $this->imputationsActives()->sum('montant');
 
         return SituationFinanciere::calculer(
             montantInscription: $this->montant_inscription,
@@ -139,10 +147,11 @@ class InscriptionAnnuelle extends Model
 
     /*
      * Filtres de la situation, équivalents en base de SituationFinanciere.
-     * SQL brut autorisé par l'ADR-0010 : la situation n'étant pas stockée,
+     * SQL brut autorisé par les ADR-0010 et 0013 : la situation n'étant pas stockée,
      * Eloquent ne l'exprime pas. Valeurs fixes ou liées, jamais de saisie.
+     * Le cumul est l'imputé (ADR-0013) ; seul lui a changé avec le compte de l'auditeur.
      */
-    private const VERSE = '(SELECT COALESCE(SUM(v.montant), 0) FROM versements v WHERE v.inscription_annuelle_id = inscriptions_annuelles.id AND v.annule_at IS NULL)';
+    private const VERSE = '(SELECT COALESCE(SUM(x.montant), 0) FROM imputations_versements x WHERE x.inscription_annuelle_id = inscriptions_annuelles.id AND x.annule_at IS NULL)';
 
     private const DU_TRANCHE2 = 'GREATEST(0, inscriptions_annuelles.montant_tranche2 - inscriptions_annuelles.remise_montant)';
 

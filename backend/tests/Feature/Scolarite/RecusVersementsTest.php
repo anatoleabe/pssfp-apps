@@ -9,6 +9,7 @@ use App\Models\AnnulationRecu;
 use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
+use App\Models\InscriptionAnnuelle;
 use App\Models\RecuVersement;
 use App\Models\User;
 use App\Models\Versement;
@@ -80,10 +81,92 @@ it('numérote les reçus RCPT-AAAA-NNNNNN, fige leur contenu et impute le versem
         ->and($this->service->enLettres(185000))->toBe('cent quatre-vingt-cinq mille francs CFA')
         ->and(substr($this->service->pdf($r1), 0, 4))->toBe('%PDF');
 
-    // Un versement à cheval sur deux paliers, dont l'excédent est conservé comme avance (décision du 15/11/2026).
+    // Un versement à cheval sur deux paliers, dont l'excédent va en avance au compte (ADR-0013) : le total
+    // versé pour l'année ne le compte plus (décision du 15/11/2026, validée avec le service financier).
     $c = ($this->verser)(800000, '2026-11-06');
-    expect($this->service->emettre($c, $this->financier)->objet)
-        ->toBe('Frais de scolarité 2026-2027 : 1re tranche (200 000 FCFA), 2e tranche (500 000 FCFA), avance (100 000 FCFA)');
+    $r3 = $this->service->emettre($c, $this->financier);
+    expect($r3->objet)
+        ->toBe('Frais de scolarité 2026-2027 : 1re tranche (200 000 FCFA), 2e tranche (500 000 FCFA), avance sur la scolarité à venir (100 000 FCFA)')
+        ->and($r3->total_verse)->toBe(1185000)
+        ->and($r3->reste_a_payer)->toBe(0);
+});
+
+it('E1 au reçu : format d\'une seule année, avance libellée à part et hors du total versé pour l\'année', function (): void {
+    $r = $this->service->emettre(($this->verser)(2320000), $this->financier);
+
+    expect($r->objet)->toBe('Frais de scolarité 2026-2027 : droits d\'inscription (185 000 FCFA), 1re tranche (500 000 FCFA), 2e tranche (500 000 FCFA), avance sur la scolarité à venir (1 135 000 FCFA)')
+        ->and($r->montant)->toBe(2320000)
+        ->and($r->total_verse)->toBe(1185000)
+        ->and($r->reste_a_payer)->toBe(0);
+});
+
+it('détaille l\'objet par année quand le versement règle une autre année que la sienne', function (): void {
+    ($this->verser)(185000, '2026-11-02');
+    ($this->verser)(500000, '2026-11-03');
+    ($this->verser)(200000, '2026-11-04');
+    $m2 = InscriptionAnnuelle::factory()->create(['auditeur_id' => $this->awa->auditeur->id,
+        'bareme_id' => BaremeScolarite::factory()->m2()->create(['annee_academique' => '2027-2028'])->id]);
+
+    // Saisi sur l'inscription courante (2027-2028) : l'arriéré du M1 passe d'abord (R1).
+    $v = app(RegistreVersements::class)->enregistrer($m2, ['montant' => 1475000, 'date_versement' => '2026-11-08', 'mode' => 'virement',
+        'reference' => 'BOR-MULTI', 'payeur' => 'auditeur'], $this->agent)->versement;
+    $r = $this->service->emettre($v, $this->financier);
+
+    expect($r->objet)->toBe('Frais de scolarité 2026-2027 (M1) : 2e tranche (300 000 FCFA) ; 2027-2028 (M2) : droits d\'inscription (135 000 FCFA), '
+        .'1re tranche (500 000 FCFA), 2e tranche (500 000 FCFA) ; avance sur la scolarité à venir (40 000 FCFA)')
+        ->and($r->annee_academique)->toBe('2027-2028')
+        ->and($r->niveau)->toBe('M2')
+        ->and($r->total_verse)->toBe(1135000)
+        ->and($r->reste_a_payer)->toBe(0);
+});
+
+it('résume chaque année par son total quand le détail dépasse 500 caractères', function (): void {
+    $derniere = $this->inscription;
+    foreach (['2027-2028', '2028-2029', '2029-2030', '2030-2031', '2031-2032'] as $annee) {
+        $derniere = InscriptionAnnuelle::factory()->create(['auditeur_id' => $this->awa->auditeur->id,
+            'bareme_id' => BaremeScolarite::factory()->create(['annee_academique' => $annee])->id]);
+    }
+    $v = app(RegistreVersements::class)->enregistrer($derniere, ['montant' => 6 * 1185000 + 1000, 'date_versement' => '2026-11-08',
+        'mode' => 'virement', 'reference' => 'BOR-LONG', 'payeur' => 'auditeur'], $this->agent)->versement;
+
+    $r = $this->service->emettre($v, $this->financier);
+
+    expect($r->objet)->toBe('Frais de scolarité 2026-2027 (M1) : 1 185 000 FCFA ; 2027-2028 (M1) : 1 185 000 FCFA ; 2028-2029 (M1) : 1 185 000 FCFA ; '
+        .'2029-2030 (M1) : 1 185 000 FCFA ; 2030-2031 (M1) : 1 185 000 FCFA ; 2031-2032 (M1) : 1 185 000 FCFA ; avance sur la scolarité à venir (1 000 FCFA)')
+        ->and(mb_strlen($r->objet))->toBeLessThanOrEqual(500)
+        ->and($r->total_verse)->toBe(1185000);
+});
+
+it('ne touche jamais un reçu émis : une remise ou une annulation après coup laisse ses colonnes intactes', function (): void {
+    $v = ($this->verser)(1185000);
+    $r = $this->service->emettre($v, $this->financier);
+    $avant = (array) DB::table('recus_versements')->where('id', $r->id)->first();
+
+    app(RegistreVersements::class)->accorderRemise($this->inscription->fresh(), 300000, 'Bourse partielle', $this->responsable);
+    app(RegistreVersements::class)->annuler($v->refresh(), 'Virement rejeté par la banque', $this->responsable);
+
+    expect((array) DB::table('recus_versements')->where('id', $r->id)->first())->toBe($avant)
+        ->and($r->fresh()->estAnnule())->toBeTrue();
+});
+
+it('régénère avec le même texte un reçu émis avant le compte de l\'auditeur', function (): void {
+    $v = ($this->verser)(1285000);
+    DB::table('recus_versements')->insert([
+        'uuid' => (string) Str::uuid(), 'numero' => 'RCPT-2026-000099', 'annee_numero' => 2026, 'sequence' => 99,
+        'versement_id' => $v->id, 'inscription_annuelle_id' => $this->inscription->id, 'montant' => 1285000,
+        'objet' => 'Frais de scolarité 2026-2027 : droits d\'inscription (185 000 FCFA), 1re tranche (500 000 FCFA), 2e tranche (500 000 FCFA), trop-perçu (100 000 FCFA)',
+        'auditeur_nom' => 'ABENA Essai', 'matricule' => $this->awa->matricule, 'annee_academique' => '2026-2027', 'niveau' => 'M1',
+        'mode' => 'virement', 'reference' => $v->reference, 'date_versement' => '2026-11-02', 'payeur' => 'auditeur',
+        'total_verse' => 1285000, 'reste_a_payer' => 0, 'emis_par' => $this->financier->id, 'emetteur_nom' => 'Agent service_financier',
+        'emis_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+    ]);
+    $ancien = RecuVersement::query()->where('numero', 'RCPT-2026-000099')->sole();
+
+    $html = view('pdf.recu-versement', ['recu' => $ancien->loadMissing('annulation'), 'lettres' => $this->service->enLettres($ancien->montant)])->render();
+
+    expect($html)->toContain('trop-perçu (100 000 FCFA)')
+        ->and($html)->toContain('1 285 000')
+        ->and(substr($this->service->pdf($ancien), 0, 4))->toBe('%PDF');
 });
 
 it('refuse le reçu d\'un versement annulé, déjà couvert ou antérieur à la mise en service, et sans la permission', function (): void {

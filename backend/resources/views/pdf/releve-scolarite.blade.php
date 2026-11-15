@@ -63,8 +63,8 @@
   @if (($situation['remise'] ?? 0) > 0)
     <p>Remise accordée : {{ $fcfa($situation['remise']) }}</p>
   @endif
-  @if ($situation['trop_percu'] > 0)
-    <p>Avance : {{ $fcfa($situation['trop_percu']) }}</p>
+  @if (($situation['avance'] ?? 0) > 0)
+    <p>Avance sur la scolarité à venir : {{ $fcfa($situation['avance']) }}</p>
   @endif
 
   <h2>Versements enregistrés</h2>

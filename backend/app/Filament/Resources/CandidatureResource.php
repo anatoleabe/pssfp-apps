@@ -277,7 +277,7 @@ class CandidatureResource extends Resource
             ->defaultSort('submitted_at', 'desc')
             ->modifyQueryUsing(fn (Builder $query): Builder => $query
                 // user.roles : visibilité des boutons « Voir son espace » et « Nouveau code ».
-                ->with(['campagne', 'user.roles', 'auditeur.inscriptionCourante' => fn ($q) => $q->with('bareme')->withSum('versementsValides', 'montant')])
+                ->with(['campagne', 'user.roles', 'auditeur.inscriptionCourante' => fn ($q) => $q->with('bareme')->withSum('imputationsActives', 'montant')])
                 ->withCount('documents'))
             ->columns([
                 Tables\Columns\TextColumn::make('submitted_at')

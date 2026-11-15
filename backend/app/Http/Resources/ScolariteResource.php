@@ -10,6 +10,7 @@ use App\Models\Versement;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use App\Services\Scolarite\AccesEcampus;
+use App\Services\Scolarite\CompteAuditeur;
 use App\Services\Scolarite\Palier;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -28,6 +29,8 @@ final class ScolariteResource extends JsonResource
         $c = $this->resource;
         $inscription = AccesEcampus::inscriptionCourante($c);
         $s = $inscription?->situation();
+        // Avance du compte de l'auditeur connecté (libre et réservée), jamais celle d'un autre (ADR-0013).
+        $avance = $c->auditeur === null ? 0 : CompteAuditeur::pour($c->auditeur)->avance();
         $etat = AccesEcampus::etat($c);
         $motDePasseConnu = $etat === AccesEcampus::DISPONIBLE ? AccesEcampus::motDePasseConnu($c) : null;
 
@@ -40,9 +43,12 @@ final class ScolariteResource extends JsonResource
             'statut' => $c->auditeur?->statut,
             'du_total' => $s?->duTotal,
             'remise' => $s?->remise,
+            // L'imputé de l'année courante, au plus son dû : l'excédent est l'avance du compte.
             'verse' => $s?->verse ?? 0,
             'reste' => $s?->reste,
-            'trop_percu' => $s?->tropPercu ?? 0,
+            'avance' => $avance,
+            // Conservé jusqu'à D2, égal à `avance`, pour le portail déployé avant D1.
+            'trop_percu' => $avance,
             'en_retard' => $s?->enRetard() ?? false,
             'paliers' => $s === null ? [] : array_map(fn (Palier $p): array => [
                 'cle' => $p->cle,

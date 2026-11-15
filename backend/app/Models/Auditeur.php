@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Collection;
 use Spatie\Activitylog\Models\Activity;
@@ -73,7 +73,7 @@ class Auditeur extends Model
     public function historique(int $limite = 100, bool $avecDossier = true): Collection
     {
         $inscriptions = $this->inscriptions()->pluck('id');
-        $versements = Versement::query()->whereIn('inscription_annuelle_id', $inscriptions)->pluck('id');
+        $versements = Versement::query()->where('auditeur_id', $this->getKey())->pluck('id');
         $deblocages = DeblocageAcces::query()->whereIn('inscription_annuelle_id', $inscriptions)->pluck('id');
 
         return Activity::query()
@@ -105,11 +105,28 @@ class Auditeur extends Model
         return $this->hasMany(InscriptionAnnuelle::class);
     }
 
-    /** Tous les versements, toutes années, annulés compris (historique de la fiche). */
-    public function versements(): HasManyThrough
+    /** Tous les versements du compte, toutes années, annulés compris (historique de la fiche). */
+    public function versements(): HasMany
     {
-        return $this->hasManyThrough(Versement::class, InscriptionAnnuelle::class);
+        return $this->hasMany(Versement::class);
     }
+
+    /**
+     * Ajoute la colonne calculée `avance` : versements valides moins imputations actives
+     * (spec D1, §7.3). Exacte grâce au déclencheur de cohérence : un versement annulé n'a
+     * aucune imputation active. SQL brut autorisé par l'ADR-0013 ; aucune valeur saisie.
+     */
+    public function scopeAvecAvance(Builder $query): Builder
+    {
+        if ($query->getQuery()->columns === null) {
+            $query->select($this->getTable().'.*');
+        }
+
+        return $query->selectRaw(self::AVANCE.' AS avance');
+    }
+
+    private const AVANCE = '((SELECT COALESCE(SUM(v.montant), 0) FROM versements v WHERE v.auditeur_id = auditeurs.id AND v.annule_at IS NULL)'
+        .' - (SELECT COALESCE(SUM(x.montant), 0) FROM imputations_versements x WHERE x.auditeur_id = auditeurs.id AND x.annule_at IS NULL))';
 
     /** Inscription de l'année académique la plus récente : celle qui commande l'accès. */
     public function inscriptionCourante(): HasOne

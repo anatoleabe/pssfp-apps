@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Scolarite;
 
 use App\Models\AnnulationRecu;
+use App\Models\ImputationVersement;
 use App\Models\InscriptionAnnuelle;
 use App\Models\RecuVersement;
 use App\Models\User;
@@ -20,6 +21,8 @@ use NumberFormatter;
 /**
  * Reçus des versements de scolarité (spec Scolarité lot 4 ; D7) : émission par le service financier,
  * numéro RCPT-AAAA-NNNNNN continu sur l'année civile, contenu figé, annulation par une écriture distincte.
+ * Depuis le compte de l'auditeur (ADR-0013), l'objet se lit dans les imputations du versement et
+ * l'excédent y est libellé « avance sur la scolarité à venir ».
  */
 final class RecusVersements
 {
@@ -29,6 +32,13 @@ final class RecusVersements
     public const CLE_DEPUIS = 'scolarite.recus_depuis';
 
     private const LIBELLES_PALIERS = [Palier::INSCRIPTION => 'droits d\'inscription', Palier::TRANCHE1 => '1re tranche', Palier::TRANCHE2 => '2e tranche'];
+
+    public const LIBELLE_AVANCE = 'avance sur la scolarité à venir';
+
+    /** Longueur de la colonne `recus_versements.objet` (spec D1, §5.5). */
+    public const OBJET_MAX = 500;
+
+    public function __construct(private readonly ImputationsCompte $imputations) {}
 
     /** Le versement peut-il recevoir un reçu (hors permission) ? null si oui, sinon la raison. */
     public function raisonRefus(Versement $v, ?User $auteur = null): ?string
@@ -46,7 +56,7 @@ final class RecusVersements
         if ($v->created_at === null || $v->created_at->lt($depuis)) {
             return 'Ce versement a été enregistré avant la mise en service des reçus : il n\'en reçoit pas.';
         }
-        if ($v->inscription?->auditeur?->candidature?->withdrawn_at !== null) {
+        if ($v->auditeur?->candidature?->withdrawn_at !== null) {
             return 'Le dossier de cet auditeur est retiré : il ne reçoit plus de reçu.';
         }
         if ($v->recus()->whereDoesntHave('annulation')->exists()) {
@@ -73,26 +83,27 @@ final class RecusVersements
             ->whereNull('annule_at')
             ->where(fn (Builder $q) => $q->whereNull('saisi_par')->orWhere('saisi_par', '<>', $agent->id))
             ->whereDoesntHave('recus', fn (Builder $q) => $q->whereDoesntHave('annulation'))
-            ->whereDoesntHave('inscription.auditeur.candidature', fn (Builder $q) => $q->whereNotNull('withdrawn_at'));
+            ->whereDoesntHave('auditeur.candidature', fn (Builder $q) => $q->whereNotNull('withdrawn_at'));
     }
 
     public function emettre(Versement $versement, User $auteur): RecuVersement
     {
         abort_unless($auteur->can(self::PERMISSION_EMETTRE), 403);
 
-        return DB::transaction(function () use ($versement, $auteur): RecuVersement {
-            // Verrou de l'inscription : il garantit l'invariant « un seul reçu en vigueur par versement », que la base
-            // ne peut pas exprimer (l'annulation vit dans une autre table). Toute création de reçu passe par ici.
-            $inscription = InscriptionAnnuelle::query()->with(['auditeur.candidature', 'bareme'])->whereKey($versement->inscription_annuelle_id)->lockForUpdate()->firstOrFail();
-            $v = Versement::query()->whereKey($versement->id)->firstOrFail();
+        // Verrou de l'auditeur (ADR-0013, R8) : il garantit l'invariant « un seul reçu en vigueur par versement », que la
+        // base ne peut pas exprimer (l'annulation vit dans une autre table), et fige les imputations lues. Toute création
+        // de reçu passe par ici.
+        return $this->imputations->sousVerrou((int) $versement->auditeur_id, function () use ($versement, $auteur): RecuVersement {
+            $v = Versement::query()->with('auditeur.candidature')->whereKey($versement->id)->firstOrFail();
             $raison = $this->raisonRefus($v, $auteur);
             if ($raison !== null) {
                 throw new InvalidArgumentException($raison);
             }
+            $inscription = InscriptionAnnuelle::query()->with('bareme')->whereKey($v->inscription_annuelle_id)->firstOrFail();
             $calcul = $this->imputation($inscription, $v);
             $annee = (int) now('Africa/Douala')->format('Y');
             $sequence = $this->prochainNumero($annee);
-            $dossier = $inscription->auditeur?->candidature;
+            $dossier = $v->auditeur?->candidature;
             $recu = (new RecuVersement)->forceFill([
                 'numero' => sprintf('RCPT-%d-%06d', $annee, $sequence),
                 'annee_numero' => $annee,
@@ -183,21 +194,74 @@ final class RecusVersements
     }
 
     /**
-     * Imputation du versement sur les paliers de l'année (de l'inscription vers la dernière tranche), après les versements
-     * valides qui le précèdent (date, puis ordre d'enregistrement).
+     * Objet, total versé pour l'année et reste du reçu, lus dans les imputations actives du versement
+     * (spec D1, §9.2). Pour chaque inscription touchée, la part du versement se découpe sur les paliers
+     * (de l'inscription vers la dernière tranche) à partir de l'imputé des versements qui le précèdent
+     * (date, puis ordre d'enregistrement). Ce qui n'est imputé nulle part est l'avance. « Total versé
+     * pour l'année » porte sur l'inscription désignée, avance exclue.
      *
      * @return array{objet: string, total_verse: int, reste: int}
      */
-    public function imputation(InscriptionAnnuelle $inscription, Versement $v): array
+    public function imputation(InscriptionAnnuelle $designee, Versement $v): array
     {
-        $precedents = (int) $inscription->versementsValides()
-            ->where(fn ($q) => $q->where('date_versement', '<', $v->date_versement->toDateString())
-                ->orWhere(fn ($x) => $x->where('date_versement', $v->date_versement->toDateString())->where('id', '<', $v->id)))
-            ->sum('montant');
+        $parts = ImputationVersement::query()->where('versement_id', $v->id)->whereNull('annule_at')
+            ->groupBy('inscription_annuelle_id')->selectRaw('inscription_annuelle_id, SUM(montant) AS part')
+            ->pluck('part', 'inscription_annuelle_id')->map(fn ($m): int => (int) $m);
+        $touchees = InscriptionAnnuelle::query()->whereKey($parts->keys()->all())->orderBy('annee_academique')->get();
+        $avance = $v->montant - (int) $parts->sum();
+        $libelleAvance = $avance > 0 ? self::LIBELLE_AVANCE.' ('.self::fcfa($avance).')' : null;
+
+        $detail = [];
+        $resume = [];
+        foreach ($touchees as $i) {
+            $avant = $this->imputeAvant($i, $v);
+            $paliers = $this->parts($i, $avant, $avant + $parts[$i->id]);
+            $detail[] = $i->annee_academique.' ('.$i->niveau.') : '.implode(', ', $paliers);
+            $resume[] = $i->annee_academique.' ('.$i->niveau.') : '.self::fcfa($parts[$i->id]);
+        }
+
+        if ($touchees->every(fn (InscriptionAnnuelle $i): bool => $i->id === $designee->id)) {
+            // Format du lot 4, conservé pour une seule année.
+            $avant = $this->imputeAvant($designee, $v);
+            $morceaux = [...$this->parts($designee, $avant, $avant + $parts->get($designee->id, 0)), ...array_filter([$libelleAvance])];
+            $objet = 'Frais de scolarité '.$designee->annee_academique.' : '.implode(', ', $morceaux === [] ? ['versement'] : $morceaux);
+        } else {
+            $objet = 'Frais de scolarité '.implode(' ; ', [...$detail, ...array_filter([$libelleAvance])]);
+            if (mb_strlen($objet) > self::OBJET_MAX) {
+                $objet = 'Frais de scolarité '.implode(' ; ', [...$resume, ...array_filter([$libelleAvance])]);
+            }
+        }
+
+        $total = $this->imputeAvant($designee, $v) + $parts->get($designee->id, 0);
+        $du = SituationFinanciere::calculer($designee->montant_inscription, $designee->montant_tranche1, $designee->montant_tranche2,
+            (int) $designee->remise_montant, 0, InscriptionAnnuelle::aujourdhui())->duTotal;
+
+        return ['objet' => mb_substr($objet, 0, self::OBJET_MAX), 'total_verse' => $total, 'reste' => max(0, $du - $total)];
+    }
+
+    /** Imputé actif sur l'inscription par les versements qui précèdent `$v` (date, puis ordre d'enregistrement). */
+    private function imputeAvant(InscriptionAnnuelle $inscription, Versement $v): int
+    {
+        $date = $v->date_versement->toDateString();
+
+        return (int) ImputationVersement::query()
+            ->join('versements', 'versements.id', '=', 'imputations_versements.versement_id')
+            ->where('imputations_versements.inscription_annuelle_id', $inscription->id)
+            ->whereNull('imputations_versements.annule_at')
+            ->where(fn ($q) => $q->where('versements.date_versement', '<', $date)
+                ->orWhere(fn ($x) => $x->where('versements.date_versement', $date)->where('versements.id', '<', $v->id)))
+            ->sum('imputations_versements.montant');
+    }
+
+    /**
+     * Libellés des paliers couverts entre `$debut` et `$fin` du cumul de l'inscription.
+     *
+     * @return list<string>
+     */
+    private function parts(InscriptionAnnuelle $inscription, int $debut, int $fin): array
+    {
         $s = SituationFinanciere::calculer($inscription->montant_inscription, $inscription->montant_tranche1, $inscription->montant_tranche2,
             (int) $inscription->remise_montant, 0, InscriptionAnnuelle::aujourdhui());
-        $debut = $precedents;
-        $fin = $precedents + $v->montant;
         $parts = [];
         $borne = 0;
         foreach ($s->paliers as $p) {
@@ -207,14 +271,8 @@ final class RecusVersements
             }
             $borne += $p->du;
         }
-        $exces = max(0, $fin - max($debut, $borne));
-        if ($exces > 0) {
-            // Excédent conservé comme avance (décision du 15/11/2026) ; les reçus déjà émis gardent leur objet.
-            $parts[] = 'avance ('.self::fcfa($exces).')';
-        }
-        $objet = 'Frais de scolarité '.$inscription->annee_academique.' : '.implode(', ', $parts === [] ? ['versement'] : $parts);
 
-        return ['objet' => mb_substr($objet, 0, 255), 'total_verse' => $fin, 'reste' => max(0, $s->duTotal - $fin)];
+        return $parts;
     }
 
     public static function fcfa(int $montant): string

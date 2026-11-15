@@ -19,9 +19,15 @@ use InvalidArgumentException;
  *
  * Un barème absent ne bloque jamais l'attribution : l'auditeur est créé sans
  * inscription, signalé dans la liste, et la fiche propose de la créer.
+ *
+ * L'inscription se crée sous le verrou de l'auditeur (ADR-0013, R8) : la reprise du
+ * pointage y passe par R2, puis l'avance du compte s'impute sur l'inscription (R3).
+ * Aucun envoi : l'ouverture ne prévient pas l'auditeur (la reprise du lot 1 en dépend).
  */
 final class OuvertureAuditeur
 {
+    public function __construct(private readonly ImputationsCompte $imputations) {}
+
     public function ouvrir(Candidature $dossier): Auditeur
     {
         $auditeur = Auditeur::query()->firstOrCreate(['candidature_id' => $dossier->id]);
@@ -49,36 +55,46 @@ final class OuvertureAuditeur
         }
         $annee = $dossier->campagne->anneeAcademique();
 
-        $existante = InscriptionAnnuelle::query()->where('auditeur_id', $auditeur->id)->where('annee_academique', $annee)->first();
-        if ($existante !== null) {
-            return $existante;
-        }
-
-        // Une arrivée directe en M2 passera par l'import dédié : ici, toujours M1.
-        $bareme = BaremeScolarite::query()->where('annee_academique', $annee)->where('niveau', BaremeScolarite::NIVEAU_M1)->first();
-        if ($bareme === null) {
-            return null;
-        }
-
         try {
-            $inscription = InscriptionAnnuelle::query()->create([
-                'auditeur_id' => $auditeur->id,
-                'bareme_id' => $bareme->id,
-                'annee_academique' => $annee,
-                'niveau' => $bareme->niveau,
-                'montant_inscription' => $bareme->montant_inscription,
-                'montant_tranche1' => $bareme->montant_tranche1,
-                'montant_tranche2' => $bareme->montant_tranche2,
-            ]);
+            // Sous le verrou : un double clic attend, puis retrouve l'inscription créée.
+            [$inscription, $creee] = $this->imputations->sousVerrou((int) $auditeur->id, function (ImputationsCompte $compte) use ($auditeur, $auteur, $dossier, $annee): array {
+                $existante = InscriptionAnnuelle::query()->where('auditeur_id', $auditeur->id)->where('annee_academique', $annee)->first();
+                if ($existante !== null) {
+                    return [$existante, false];
+                }
+
+                // Une arrivée directe en M2 passera par l'import dédié : ici, toujours M1.
+                $bareme = BaremeScolarite::query()->where('annee_academique', $annee)->where('niveau', BaremeScolarite::NIVEAU_M1)->first();
+                if ($bareme === null) {
+                    return [null, false];
+                }
+
+                $inscription = InscriptionAnnuelle::query()->create([
+                    'auditeur_id' => $auditeur->id,
+                    'bareme_id' => $bareme->id,
+                    'annee_academique' => $annee,
+                    'niveau' => $bareme->niveau,
+                    'montant_inscription' => $bareme->montant_inscription,
+                    'montant_tranche1' => $bareme->montant_tranche1,
+                    'montant_tranche2' => $bareme->montant_tranche2,
+                ]);
+                activity('scolarite')->causedBy($auteur)->performedOn($inscription)
+                    ->event('inscription_creee')
+                    ->withProperties(['annee' => $annee, 'niveau' => $bareme->niveau, 'dossier' => $dossier->numero_dossier])
+                    ->log('Inscription annuelle créée');
+                $this->reprendrePointage($inscription, $dossier);
+                // R3 : l'avance du compte s'impute sur la nouvelle inscription, sans SMS (D3 l'ajoutera).
+                $compte->imputerAvance((int) $auditeur->id, 'ouverture', $auteur);
+
+                return [$inscription, true];
+            });
         } catch (UniqueConstraintViolationException) {
-            // Double clic : l'autre requête a créé l'inscription.
+            // Création concurrente hors du verrou (import) : l'autre requête a créé l'inscription.
             return InscriptionAnnuelle::query()->where('auditeur_id', $auditeur->id)->where('annee_academique', $annee)->first();
         }
-        activity('scolarite')->causedBy($auteur)->performedOn($inscription)
-            ->event('inscription_creee')
-            ->withProperties(['annee' => $annee, 'niveau' => $bareme->niveau, 'dossier' => $dossier->numero_dossier])
-            ->log('Inscription annuelle créée');
-        $this->reprendrePointage($inscription, $dossier);
+        if (! $creee) {
+            return $inscription;
+        }
         // Lot 4 : inscription pédagogique dès que la maquette du parcours est validée (sans effet sinon).
         app(InscriptionsPedagogiques::class)->inscrire($inscription);
         $auditeur->unsetRelation('inscriptionCourante');
@@ -89,6 +105,7 @@ final class OuvertureAuditeur
     /**
      * Une case déjà cochée devient un versement du montant de l'inscription, à
      * compléter par la Scolarité : cocher voulait dire « au moins ce montant ».
+     * Imputé comme tout versement (R2), sous le verrou de l'auditeur.
      */
     public function reprendrePointage(InscriptionAnnuelle $inscription, Candidature $dossier): void
     {
@@ -96,25 +113,30 @@ final class OuvertureAuditeur
             return;
         }
 
-        $reference = 'REPRISE-'.$dossier->matricule;
-        if (Versement::query()->where('mode', Versement::MODE_REPRISE)->where('reference', $reference)->exists()) {
-            return;
-        }
+        $this->imputations->sousVerrou((int) $inscription->auditeur_id, function (ImputationsCompte $compte) use ($inscription, $dossier): void {
+            $reference = 'REPRISE-'.$dossier->matricule;
+            if (Versement::query()->where('mode', Versement::MODE_REPRISE)->where('reference', $reference)->exists()) {
+                return;
+            }
 
-        $versement = new Versement;
-        $versement->forceFill([
-            'inscription_annuelle_id' => $inscription->id,
-            'montant' => $inscription->montant_inscription,
-            'date_versement' => $dossier->frais_inscription_payes_at->copy()->timezone(InscriptionAnnuelle::FUSEAU)->toDateString(),
-            'mode' => Versement::MODE_REPRISE,
-            'reference' => $reference,
-            'payeur' => 'auditeur',
-            'saisi_par' => $dossier->frais_inscription_payes_by,
-        ])->save();
+            $versement = new Versement;
+            $versement->forceFill([
+                'auditeur_id' => $inscription->auditeur_id,
+                'inscription_annuelle_id' => $inscription->id,
+                'montant' => $inscription->montant_inscription,
+                'date_versement' => $dossier->frais_inscription_payes_at->copy()->timezone(InscriptionAnnuelle::FUSEAU)->toDateString(),
+                'mode' => Versement::MODE_REPRISE,
+                'reference' => $reference,
+                'payeur' => 'auditeur',
+                'saisi_par' => $dossier->frais_inscription_payes_by,
+            ])->save();
+            $plan = $compte->apresVersement($versement);
 
-        activity('scolarite')->performedOn($versement)
-            ->event('versement_repris')
-            ->withProperties(['montant' => $versement->montant, 'reference' => $reference])
-            ->log('Case « droits payés » reprise en versement');
+            activity('scolarite')->performedOn($versement)
+                ->event('versement_repris')
+                ->withProperties(['montant' => $versement->montant, 'reference' => $reference,
+                    'imputations' => $compte->decrire($plan), 'avance' => $versement->montant - $plan->montantImpute()])
+                ->log('Case « droits payés » reprise en versement');
+        });
     }
 }
