@@ -369,7 +369,8 @@ final class ModulePermissionMap
 
         foreach (self::modules() as $key => $module) {
             $hasRead = self::containsAll($permissions, $module['read']);
-            $hasManage = $hasRead && self::containsAll($permissions, $module['manage']);
+            // Un module sans permission de gestion (archives ACMA, en lecture seule) ne s'affiche jamais « Gestion ».
+            $hasManage = $hasRead && $module['manage'] !== [] && self::containsAll($permissions, $module['manage']);
 
             // Toute permission de lecture ou de gestion ouvre le module
             // (ModuleAccess) : l'écran ne doit jamais l'afficher « Aucun

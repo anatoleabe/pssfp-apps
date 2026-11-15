@@ -158,6 +158,7 @@ it('round-trips levels through permissions without drift', function (): void {
         'lmd' => ModulePermissionMap::LEVEL_NONE,
         'bibliotheque' => ModulePermissionMap::LEVEL_NONE,
         'administration' => ModulePermissionMap::LEVEL_NONE,
+        'archives' => ModulePermissionMap::LEVEL_NONE,
     ];
 
     $permissions = ModulePermissionMap::toPermissions($levels, ['candidature.accept']);
@@ -304,6 +305,7 @@ it('fait l\'aller-retour des actions autonomes sans dérive', function (): void 
         'lmd' => ModulePermissionMap::LEVEL_NONE,
         'bibliotheque' => ModulePermissionMap::LEVEL_NONE,
         'administration' => ModulePermissionMap::LEVEL_NONE,
+        'archives' => ModulePermissionMap::LEVEL_NONE,
     ];
     $permissions = ModulePermissionMap::toPermissions($levels, ['document.contribute']);
 

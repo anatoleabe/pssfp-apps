@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Services\Acma\ArchivesAcma;
 use App\Services\Acma\Reprise\RepriseAcma;
 use App\Support\Journaux;
+use App\Support\ModulePermissionMap;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
@@ -207,9 +208,13 @@ it('remet les classeurs de la reprise aux titulaires des permissions, et journal
     $this->actingAs($this->agent);
     $this->livewire(ListArchivesAcma::class)->assertActionHidden('classeurRapprochement')->assertActionHidden('classeurEcarts');
 
+    // Le classeur écrit par la reprise du beforeEach (son nom porte la date de la reprise).
+    $classeur = basename((string) collect(Storage::disk('local')->files('acma'))->first(fn (string $f): bool => str_starts_with(basename($f), 'rapprochement-')));
+    expect($classeur)->toStartWith('rapprochement-');
+
     $this->actingAs($this->responsable);
     $this->livewire(ListArchivesAcma::class)->assertActionVisible('classeurRapprochement')->assertActionHidden('classeurEcarts')
-        ->callAction('classeurRapprochement')->assertFileDownloaded('rapprochement-'.now()->format('Ymd').'.xlsx');
+        ->callAction('classeurRapprochement')->assertFileDownloaded($classeur);
     expect(DB::table('activity_log')->where('log_name', Journaux::ARCHIVES)->where('event', 'classeur_telecharge')->count())->toBe(1);
 });
 
@@ -235,4 +240,12 @@ it('accorde les droits par migration additive, et se défait', function (): void
 
     $migration->down();
     expect(Permission::query()->where('name', 'like', 'archives.%')->exists())->toBeFalse();
+});
+
+it('présente le module en lecture seule à l\'écran des rôles, sans dérive', function (): void {
+    $permissions = ModulePermissionMap::toPermissions(['archives' => ModulePermissionMap::LEVEL_READ], ['archives.completer']);
+
+    expect($permissions)->toContain('archives.consulter')->toContain('archives.completer')
+        ->and(ModulePermissionMap::toLevels($permissions)['archives'])->toBe(ModulePermissionMap::LEVEL_READ)
+        ->and(ModulePermissionMap::toLevels(['archives.completer'])['archives'])->toBe(ModulePermissionMap::LEVEL_NONE);
 });
