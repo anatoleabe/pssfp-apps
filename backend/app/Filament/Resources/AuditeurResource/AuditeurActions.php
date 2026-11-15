@@ -42,6 +42,20 @@ final class AuditeurActions
 {
     public const DOSSIER_JUSTIFICATIFS = 'scolarite/justificatifs';
 
+    /**
+     * Chemins écrits par le champ de pièce pendant cette requête. L'état d'un champ de
+     * fichier se modifie depuis le navigateur : seuls ces chemins se suppriment sur un
+     * refus, ou se rattachent à un accès anticipé.
+     *
+     * @var list<string>
+     */
+    private static array $deposes = [];
+
+    public static function depose(?string $chemin): bool
+    {
+        return $chemin !== null && in_array($chemin, self::$deposes, true);
+    }
+
     public static function enregistrerVersement(): Action
     {
         return Action::make('enregistrerVersement')
@@ -361,45 +375,53 @@ final class AuditeurActions
     /**
      * Scan facultatif, stockage privé. Une panne de stockage n'empêche pas
      * d'enregistrer le versement : l'agent est averti et joindra le scan ensuite.
+     * Repris pour la pièce d'un accès anticipé (même dossier, 10 Mo).
      */
-    private static function champJustificatif(): Forms\Components\FileUpload
-    {
+    public static function champJustificatif(
+        string $libelle = 'Scan du bordereau (facultatif)',
+        int $maxMo = 5,
+        string $siPanne = 'Le stockage n\'a pas répondu : le scan n\'est pas enregistré. Vous pourrez le joindre ensuite depuis la liste des versements.',
+    ): Forms\Components\FileUpload {
         return Forms\Components\FileUpload::make('justificatif_path')
-            ->label('Scan du bordereau (facultatif)')
+            ->label($libelle)
             ->disk(CandidatureObjectStorage::DISK)
             ->directory(self::DOSSIER_JUSTIFICATIFS)
             ->visibility('private')
             ->fetchFileInformation(false)
             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-            ->maxSize(5120)
-            ->helperText('PDF, JPG ou PNG, 5 Mo maximum.')
+            ->maxSize($maxMo * 1024)
+            ->helperText('PDF, JPG ou PNG, '.$maxMo.' Mo maximum.')
             // L'état d'un champ de fichier se modifie depuis le navigateur : on ne signe
             // jamais un chemin qui n'est pas un bordereau (même bucket que les pièces).
             ->getUploadedFileUsing(fn (string $file): ?array => Versement::cheminJustificatifValide($file) ? [
                 'name' => basename($file), 'size' => 0, 'type' => null,
                 'url' => Storage::disk(CandidatureObjectStorage::DISK)->temporaryUrl($file, now()->addMinutes(5)),
             ] : null)
-            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file): ?string {
+            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file) use ($siPanne): ?string {
                 $extension = $file->guessExtension();
                 $nom = Str::ulid().'.'.(in_array($extension, ['pdf', 'jpg', 'jpeg', 'png'], true) ? $extension : 'pdf');
                 try {
                     $chemin = $file->storeAs(self::DOSSIER_JUSTIFICATIFS, $nom, ['disk' => CandidatureObjectStorage::DISK]);
+                    if ($chemin === false) {
+                        throw new \RuntimeException('Écriture refusée.');
+                    }
+                    self::$deposes[] = $chemin;
 
-                    return $chemin === false ? throw new \RuntimeException('Écriture refusée.') : $chemin;
+                    return $chemin;
                 } catch (Throwable $e) {
                     Log::channel('single')->error('Bordereau non enregistré.', ['erreur' => $e::class]);
-                    Notification::make()->warning()->persistent()->title('Bordereau non enregistré')
-                        ->body('Le stockage n\'a pas répondu : le scan n\'est pas enregistré. Vous pourrez le joindre ensuite depuis la liste des versements.')->send();
+                    Notification::make()->warning()->persistent()->title('Pièce non enregistrée')->body($siPanne)->send();
 
                     return null;
                 }
             });
     }
 
-    /** Un scan déposé pour un versement refusé ne doit pas rester dans le bucket. */
-    private static function supprimerScanOrphelin(?string $chemin): void
+    /** Un scan déposé pour un versement (ou un déblocage) refusé ne doit pas rester dans le bucket. */
+    public static function supprimerScanOrphelin(?string $chemin): void
     {
-        if (! Versement::cheminJustificatifValide($chemin)) {
+        // Jamais un chemin recopié dans l'état du formulaire : ce peut être la preuve d'un autre dossier.
+        if (! Versement::cheminJustificatifValide($chemin) || ! self::depose($chemin)) {
             return;
         }
         try {

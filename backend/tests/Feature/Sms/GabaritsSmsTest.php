@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Models\DeblocageAcces;
 use App\Services\Scolarite\LiensLettreAcces;
 use App\Services\Scolarite\NotificationAcces;
+use App\Services\Scolarite\RelancesDeblocages;
 
 uses()->group('sms');
 
@@ -50,6 +52,11 @@ function gabaritsSms(): array
     $gabarits['acces lien lettre'] = LiensLettreAcces::texteSms('https://'.$url.'/l/Ab3dE5fG7hJ9kLmN');
     $gabarits['acces espace'] = NotificationAcces::texte();
 
+    // Relances des accès anticipés échus (Scolarité, lot A1), une par cas.
+    foreach (DeblocageAcces::TYPES as $type => $libelle) {
+        $gabarits["relance acces anticipe {$type}"] = RelancesDeblocages::texteSms($type);
+    }
+
     return $gabarits;
 }
 
@@ -74,6 +81,13 @@ it('garde chaque gabarit SMS sous la limite d\'un segment', function (): void {
     }
 
     expect($trop_longs)->toBe([]);
+});
+
+it('reprend mot pour mot les relances des accès anticipés de la spec, une par cas', function (): void {
+    expect(RelancesDeblocages::texteSms(DeblocageAcces::VIREMENT_ANNONCE))->toBe('PSSFP : votre virement des droits d\'inscription n\'est pas encore arrive. Merci de regulariser ou de contacter la scolarite.')
+        ->and(RelancesDeblocages::texteSms(DeblocageAcces::MORATOIRE))->toBe('PSSFP : le delai accorde pour vos droits d\'inscription est depasse. Merci de regulariser aupres de la scolarite.')
+        ->and(RelancesDeblocages::texteSms(DeblocageAcces::PRISE_EN_CHARGE))->toBe('PSSFP : le reglement de vos droits par votre employeur n\'est pas encore arrive. Merci de le relancer ou de contacter la scolarite.')
+        ->and(array_keys(RelancesDeblocages::TEXTES_SMS))->toEqualCanonicalizing(array_keys(DeblocageAcces::TYPES));
 });
 
 it('ne colle aucune ponctuation à l\'adresse du portail', function (): void {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\AuditeurResource\Pages;
 
 use App\Filament\Resources\AuditeurResource;
+use App\Filament\Resources\AuditeurResource\AccesAnticipe;
 use App\Filament\Resources\AuditeurResource\AuditeurActions;
 use App\Filament\Resources\AuditeurResource\ParcoursActions;
 use App\Filament\Resources\CandidatureResource;
@@ -74,6 +75,10 @@ class ViewAuditeur extends ViewRecord
             AuditeurActions::envoyerLienLettre(),
             AuditeurActions::creerInscription(),
             ActionGroup::make([
+                AccesAnticipe::debloquer(),
+                AccesAnticipe::prolonger(),
+                AccesAnticipe::revoquer(),
+                AccesAnticipe::voirPiece(),
                 ComptesEcampusActions::creer(Action::make('creerCompteEcampus')),
                 IdentifiantsMoodleActions::consulter(Action::make('identifiantsMoodle')),
                 IdentifiantsMoodleActions::envoyer(Action::make('envoyerIdentifiantsMoodle')),

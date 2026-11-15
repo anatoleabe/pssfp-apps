@@ -131,6 +131,8 @@ final class ModulePermissionMap
                     'scolarite.statut' => 'Changer le statut d\'un auditeur (suspendu, abandon, exclu, diplômé)',
                     'scolarite.messages' => 'Envoyer un message aux auditeurs (relance des impayés)',
                     'scolarite.lettre_acces' => 'Télécharger depuis sa fiche la lettre d\'accès FOAD (avec le mot de passe) d\'un auditeur dont l\'inscription est soldée',
+                    'scolarite.deblocage' => 'Débloquer l\'accès à eCampus avant paiement sur un virement annoncé, et le prolonger une fois de 30 jours au plus',
+                    'scolarite.deblocage_exceptionnel' => 'Accorder un moratoire ou une dérogation (accès avant paiement), prolonger et révoquer tout déblocage',
                 ],
             ],
             'lmd' => [

@@ -6,6 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Navigation\GroupeNavigation;
+use App\Filament\Resources\AuditeurResource\AccesAnticipe;
 use App\Filament\Resources\AuditeurResource\Pages;
 use App\Filament\Resources\AuditeurResource\ParcoursActions;
 use App\Filament\Resources\AuditeurResource\RelationManagers\VersementsRelationManager;
@@ -58,7 +59,7 @@ class AuditeurResource extends Resource
     {
         return parent::getEloquentQuery()->with([
             'candidature.campagne',
-            'inscriptionCourante' => fn ($q) => $q->with('bareme')->withSum('versementsValides', 'montant'),
+            'inscriptionCourante' => fn ($q) => $q->with(['bareme', 'deblocageEnCours.accordePar'])->withSum('versementsValides', 'montant'),
         ]);
     }
 
@@ -87,6 +88,7 @@ class AuditeurResource extends Resource
                     ->formatStateUsing(fn (string $state): string => Auditeur::STATUTS[$state] ?? $state)
                     ->color(fn (string $state): string => self::couleurStatut($state))
                     ->toggleable(),
+                AccesAnticipe::colonne(),
                 Tables\Columns\TextColumn::make('retrait')->label('')
                     ->getStateUsing(fn (Auditeur $record): ?string => $record->candidature?->withdrawn_at === null ? null : 'Retiré')
                     ->badge()->color('gray'),
@@ -120,6 +122,7 @@ class AuditeurResource extends Resource
                         LibelleSituation::SANS_INSCRIPTION => $query->doesntHave('inscriptions'),
                         default => $query,
                     }),
+                AccesAnticipe::filtre(),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Fiche'),
@@ -216,6 +219,7 @@ class AuditeurResource extends Resource
                 Infolists\Components\TextEntry::make('inscriptionCourante.acces_notifie_at')->label('SMS « accès disponibles »')
                     ->getStateUsing(fn (Auditeur $record): string => $record->inscriptionCourante?->acces_notifie_at === null ? 'Pas encore envoyé'
                         : 'Envoyé le '.$record->inscriptionCourante->acces_notifie_at->timezone('Africa/Douala')->format('d/m/Y à H:i')),
+                AccesAnticipe::encadre(),
             ]),
         ]);
     }
@@ -246,9 +250,11 @@ class AuditeurResource extends Resource
 
     public static function libelleAcces(Auditeur $record): string
     {
+        $anticipe = $record->candidature !== null && AccesEcampus::accesAnticipe($record->candidature) !== null;
+
         return match ($record->candidature === null ? null : AccesEcampus::etat($record->candidature)) {
-            AccesEcampus::DISPONIBLE => 'Disponible dans l\'espace de l\'auditeur',
-            AccesEcampus::EN_PREPARATION => 'Inscription soldée, compte eCampus à créer : prévenez l\'USI',
+            AccesEcampus::DISPONIBLE => 'Disponible dans l\'espace de l\'auditeur'.($anticipe ? ' — accès accordé avant paiement' : ''),
+            AccesEcampus::EN_PREPARATION => ($anticipe ? 'Accès accordé avant paiement' : 'Inscription soldée').', compte eCampus à créer : prévenez l\'USI',
             AccesEcampus::BLOQUE => 'Bloqué : inscription non soldée',
             default => 'Dossier retiré',
         };

@@ -10,7 +10,9 @@ use App\Models\Versement;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use Throwable;
 
 /**
  * Seul point d'écriture de l'argent : versements, annulations, remises.
@@ -38,6 +40,7 @@ final class RegistreVersements
         private readonly ConnectionInterface $db,
         private readonly NotificationAcces $notification,
         private readonly RecusVersements $recus,
+        private readonly DeblocagesAcces $deblocages,
     ) {}
 
     /**
@@ -236,9 +239,24 @@ final class RegistreVersements
 
     private function notifier(InscriptionAnnuelle $inscription): ?bool
     {
+        $this->regulariser($inscription);
         $dossier = $inscription->auditeur()->with('candidature')->first()?->candidature;
 
         return $dossier === null ? null : $this->notification->siDisponible($dossier, $this->auteurCourant);
+    }
+
+    /**
+     * Accès anticipé régularisé dès le solde des droits d'inscription. Après la
+     * transaction et sans jamais faire échouer l'écriture de l'argent : la tâche
+     * quotidienne rattrape un échec.
+     */
+    private function regulariser(InscriptionAnnuelle $inscription): void
+    {
+        try {
+            $this->deblocages->regulariser($inscription, $this->auteurCourant);
+        } catch (Throwable $e) {
+            Log::channel('single')->error('Régularisation de l\'accès anticipé impossible : la tâche quotidienne la rattrapera.', ['inscription' => $inscription->uuid, 'erreur' => $e::class]);
+        }
     }
 
     private function refuserDossierRetire(InscriptionAnnuelle $inscription): void

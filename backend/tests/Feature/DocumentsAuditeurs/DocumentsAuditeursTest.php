@@ -6,6 +6,7 @@ use App\Filament\Resources\CandidatureResource\Pages\ListCandidatures;
 use App\Filament\Resources\PromotionResource\Pages\EditPromotion;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
+use App\Models\DeblocageAcces;
 use App\Models\User;
 use App\Services\DocumentsAuditeurs\DocumentsAuditeurs;
 use App\Services\DocumentsAuditeurs\DocumentsIncomplets;
@@ -105,6 +106,19 @@ it('réunit les accès FOAD de toute la promotion, une page par retenu, dans l\'
         ->toContain('VOTRE ESPACE AUDITEUR')->toContain('apply.pssfp.org')->toContain('Matricule')->not->toContain('FMI')
         ->not->toContain('ZANG')
         ->and(strpos($word['texte'], 'ATEBA'))->toBeLessThan(strpos($word['texte'], 'MENGUE'));
+});
+
+it('inclut dans l\'export groupé des accès FOAD un auditeur débloqué avant paiement, plus après révocation', function (): void {
+    annulerVersements($this->bruno);
+    $generer = fn (): array => app(DocumentsAuditeurs::class)->generer($this->campagne, ParametresLettres::DOCUMENT_ACCES, ($this->agent)('admin'));
+    expect($generer()['pages'])->toBe(1);
+
+    $deblocage = DeblocageAcces::factory()->create(['inscription_annuelle_id' => $this->bruno->fresh()->auditeur->inscriptionCourante->id]);
+    expect($generer()['pages'])->toBe(2)
+        ->and(lireWord($generer()['contenu'])['texte'])->toContain('ATEBA');
+
+    $deblocage->forceFill(['statut' => DeblocageAcces::REVOQUE])->save();
+    expect($generer()['pages'])->toBe(1);
 });
 
 it('accorde la lettre d\'admission au genre et reprend rentrée, frais et total', function (): void {

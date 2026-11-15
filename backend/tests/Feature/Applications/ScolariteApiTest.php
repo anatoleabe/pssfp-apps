@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
+use App\Models\DeblocageAcces;
 use App\Models\User;
 use App\Models\Versement;
 use App\Services\Ecampus\ComptesEcampus;
@@ -79,6 +80,26 @@ it('ne montre pas l\'identifiant tant que l\'accès est bloqué', function (): v
         ->assertJsonPath('data.acces.etat', 'bloque')
         ->assertJsonPath('data.acces.reste_inscription', 185000)
         ->assertJsonPath('data.verse', 0);
+});
+
+it('ouvre l\'accès d\'un auditeur débloqué avant paiement, avec la date à laquelle régulariser', function (): void {
+    DeblocageAcces::factory()->create([
+        'inscription_annuelle_id' => $this->bruno->auditeur->inscriptionCourante->id, 'echeance' => '2026-12-01',
+    ]);
+
+    $this->withToken(($this->jeton)($this->bruno))->getJson('/v1/applications/me/scolarite')
+        ->assertOk()
+        ->assertJsonPath('data.acces.etat', 'disponible')
+        ->assertJsonPath('data.acces.regulariser_avant', '2026-12-01')
+        ->assertJsonMissingPath('data.acces.reste_inscription')
+        // La situation ne change pas : rien n'est tenu pour payé.
+        ->assertJsonPath('data.verse', 0)
+        ->assertJsonPath('data.paliers.0.solde', false);
+
+    // Le garde Sanctum garde l'auditeur de la requête précédente : on l'oublie.
+    app('auth')->forgetGuards();
+    $this->withToken(($this->jeton)($this->awa))->getJson('/v1/applications/me/scolarite')
+        ->assertOk()->assertJsonMissingPath('data.acces.regulariser_avant');
 });
 
 it('répond 404 sans fiche auditeur, ou pour un dossier retiré', function (): void {

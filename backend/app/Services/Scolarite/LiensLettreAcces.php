@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use App\Services\Sms\SmsServiceInterface;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -98,11 +99,16 @@ final class LiensLettreAcces
     /** Sujet de l'e-mail des accès (lien vers la lettre, ou à défaut l'espace). */
     public const SUJET_EMAIL = 'PSSFP — Vos accès à la plateforme de formation à distance';
 
-    public static function texteEmail(string $url): string
+    /** @param  CarbonInterface|null  $aRegulariserAvant  accès accordé avant paiement : échéance du déblocage */
+    public static function texteEmail(string $url, ?CarbonInterface $aRegulariserAvant = null): string
     {
         $espace = (string) config('pssfp.candidature_app_url');
+        $entree = $aRegulariserAvant === null
+            ? "Votre inscription au PSSFP est soldée : vos accès à la plateforme de formation à distance (eCampus) sont prêts.\n\n"
+            : "Vos accès à la plateforme de formation à distance (eCampus) vous sont accordés avant le paiement de vos droits d'inscription, "
+                .'à régulariser avant le '.$aRegulariserAvant->format('d/m/Y')." auprès de la scolarité.\n\n";
 
-        return "Votre inscription au PSSFP est soldée : vos accès à la plateforme de formation à distance (eCampus) sont prêts.\n\n"
+        return $entree
             ."Téléchargez votre lettre d'accès (identifiant et mot de passe) à l'adresse suivante, en confirmant votre date de naissance :\n"
             .$url."\n\n"
             .'Ce lien personnel est valable '.LienLettreAcces::DUREE_JOURS.' jours. Passé ce délai, retrouvez votre lettre dans votre espace '
@@ -142,7 +148,7 @@ final class LiensLettreAcces
                 $lien !== null ? self::texteSms($lien) : NotificationAcces::texte(),
             )),
             'email' => blank($c->email) ? null : $this->tenter($c, 'email', fn () => Mail::to((string) $c->email)->sendNow(
-                new NotificationCandidatMail($c, self::SUJET_EMAIL, $lien !== null ? self::texteEmail($lien) : self::texteEmailEspace()),
+                new NotificationCandidatMail($c, self::SUJET_EMAIL, $lien !== null ? self::texteEmail($lien, AccesEcampus::accesAnticipe($c)?->echeance) : self::texteEmailEspace()),
             )),
         ];
     }

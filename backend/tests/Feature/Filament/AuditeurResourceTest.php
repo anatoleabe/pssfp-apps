@@ -255,6 +255,7 @@ it('refuse un chemin de bordereau qui ne vient pas du formulaire', function (str
     'remontée' => ['scolarite/justificatifs/../signatures/signature.png'],
     'signature' => ['signatures/signature-01JABCDEFGHJKMNPQRSTVWXYZ0.png'],
     'extension' => ['scolarite/justificatifs/01JABCDEFGHJKMNPQRSTVWXYZ0.php'],
+    'saut de ligne final' => ["scolarite/justificatifs/01JABCDEFGHJKMNPQRSTVWXYZ0.pdf\n"],
 ]);
 
 it('joint un bordereau valide une seule fois, et le journalise', function (): void {
