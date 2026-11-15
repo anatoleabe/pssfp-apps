@@ -48,7 +48,7 @@ Règles communes :
   - pour un dossier retiré ;
   - pour un auditeur au statut « exclu » ou « abandon » ;
   - pour une inscription dont les droits sont déjà soldés.
-- Tant que A2 n'est pas livré, une prise en charge s'enregistre comme un **moratoire** accordé par le responsable, avec la lettre de l'employeur en pièce.
+- Depuis A2 (§9), une prise en charge passe toujours par un **engagement** : le rattachement de l'auditeur crée le déblocage. Avant A2, elle s'enregistrait comme un moratoire, avec la lettre de l'employeur en pièce.
 
 ## 3. Règle d'accès
 
@@ -107,7 +107,7 @@ La situation financière (`SituationFinanciere`, badges, scopes, export) **ne ch
 | `prolongations` | smallint, défaut 0 | Ajoutée en A1 : l'agent ne prolonge qu'une fois un virement annoncé |
 | `relances` | smallint, défaut 0 | |
 | `derniere_relance_le` | timestamptz, nullable | |
-| `engagement_id` | nullable | Ajouté par A2 |
+| `engagement_id` | FK `engagements_prise_en_charge`, nullable | Ajouté par A2 (§9.2) : renseigné pour une prise en charge, et pour elle seule (`CHECK`) |
 | `created_at`, `updated_at` | timestamptz | |
 
 - **Index unique partiel** : un seul déblocage `en_cours` par inscription (`WHERE statut = 'en_cours'`).
@@ -136,32 +136,255 @@ Ajout par **migration additive** : on ne relance jamais `RolePermissionSeeder` e
 
 ## 9. A2 — Engagements de prise en charge
 
-### `engagements_prise_en_charge`
+**Statut** : réalisé (branche `feat/scolarite-prises-en-charge-a2`), sur le socle du compte de l'auditeur (sous-lot D1, [ADR-0013](../adr/0013-compte-de-l-auditeur.md)).
 
-- Organisme ; référence et date de la lettre ; lettre scannée (obligatoire).
-- Contact pour le règlement : nom, e-mail, téléphone.
-- Portée : `droits_inscription` ou `scolarite_annee`.
-- Année académique ; échéance ; notes ; auteur ; dates.
+### 9.1 Principe
 
-Les auditeurs sont rattachés par des déblocages de type `prise_en_charge` (`deblocages_acces.engagement_id`). L'engagement couvre, pour chacun, soit les droits d'inscription, soit le total de l'année.
+- Un **engagement** est la promesse écrite d'un organisme (lettre de prise en charge). Il ouvre l'accès des auditeurs qu'on y rattache, par un déblocage `prise_en_charge`. Il ne compte jamais un franc comme payé.
+- Un **règlement** est l'argent reçu de l'organisme. Il se répartit en **un versement par auditeur** (payeur `employeur`), que le compte de l'auditeur impute comme tout versement (D1, R2) : d'office sur l'année couverte par l'engagement, l'excédent restant en avance réservée (décisions 2 et 7, libellé « avance sur la scolarité à venir » inchangé).
+- La relance de l'organisme n'est **jamais automatique** : un e-mail au contact, sur clic de l'agent.
 
-### `reglements_organismes`
+### 9.2 Données
 
-- Engagement ; montant ; date ; mode ; référence (unique par mode parmi les règlements non annulés) ; pièce ; auteur.
-- Annulation : par qui, quand, pourquoi.
+#### `engagements_prise_en_charge` (nouvelle)
 
-**Règlement réparti.** La plateforme propose, pour chaque auditeur rattaché, le reste dû dans la portée de l'engagement. Le formulaire est modifiable, et la somme des parts doit égaler le montant. La plateforme crée ensuite un **versement par auditeur** :
+| Colonne | Type | Règle |
+|---|---|---|
+| `id` | bigint | Interne |
+| `uuid` | uuid, unique | Seul identifiant routé (règle 10 du projet) |
+| `organisme` | varchar(200) | Obligatoire, espaces de bord retirés |
+| `lettre_reference` | varchar(100) | Obligatoire, normalisée comme une référence de bordereau (majuscules) |
+| `lettre_date` | date | Obligatoire, pas dans le futur |
+| `lettre_path` | varchar(255), **unique** | Lettre scannée, **obligatoire** : dossier des justificatifs (`scolarite/justificatifs/<ulid>`, PDF, JPG ou PNG, 10 Mo), une pièce ne sert qu'une fois |
+| `contact_nom`, `contact_email`, `contact_telephone` | varchar(150), varchar(255), varchar(30), nullable | Contact pour le règlement. L'e-mail, s'il est donné, est une adresse valide |
+| `portee` | varchar(20) | `CHECK` : `droits_inscription` ou `scolarite_annee` |
+| `annee_academique` | varchar(9) | `CHECK` : `AAAA-AAAA` ; une année d'un barème existant (service) |
+| `echeance` | date | Postérieure à aujourd'hui, au plus 180 jours (comme un moratoire) |
+| `notes` | text, nullable | 2 000 caractères au plus |
+| `cree_par` | FK `users`, nullable, `ON DELETE SET NULL` | Comme `deblocages_acces.accorde_par` : le journal garde l'auteur |
+| `prolongations`, `relances` | smallint, défaut 0 | |
+| `derniere_relance_le` | timestamptz, nullable | |
+| `created_at`, `updated_at` | timestamptz | |
 
-- `payeur = employeur` ;
-- `reglement_organisme_id` renseigné ;
-- référence `<référence>-<MATRICULE>` (respecte l'unicité par mode).
+- Index unique `engagements_prise_en_charge_lettre_unique` sur `(lower(organisme), lettre_reference, annee_academique)` : une même lettre n'est pas saisie deux fois (double clic, deux agents).
+- Index sur `annee_academique`, `echeance` et `cree_par`.
+- Aucune suppression : un engagement saisi par erreur reste, sans auditeur (état « Sans auditeur »).
 
-Reçus, situation et régularisation fonctionnent comme pour tout versement. Annuler le règlement annule ses versements (responsable).
+#### `reglements_organismes` (nouvelle)
 
-### Écran « Prises en charge » (Vie académique)
+| Colonne | Type | Règle |
+|---|---|---|
+| `id`, `uuid` | bigint, uuid unique | |
+| `engagement_id` | FK `engagements_prise_en_charge`, RESTRICT, indexée | |
+| `montant` | integer | `CHECK (montant > 0)` ; au plus 1 000 000 000 FCFA (service) |
+| `date_reglement` | date | Pas dans le futur |
+| `mode` | varchar(30) | Un mode de `Versement::MODES` |
+| `reference` | varchar(60) | Normalisée (majuscules). **Index unique partiel** `(mode, reference) WHERE annule_at IS NULL` |
+| `piece_path` | varchar(255), nullable | Avis de virement ou bordereau, facultatif comme le scan d'un versement. Index unique partiel : une pièce ne sert qu'une fois |
+| `saisi_par` | FK `users`, nullable, `ON DELETE SET NULL` | |
+| `annule_at`, `annule_par` (FK `users`, `SET NULL`), `annule_motif` (varchar(500)) | nullable | `CHECK` : les trois absents, ou `annule_at` et un motif présents |
+| `created_at`, `updated_at` | timestamptz | |
 
-- Une ligne par engagement : organisme, lettre, nombre d'auditeurs, couvert, réglé, reste, échéance, état.
-- Fiche de l'engagement : auditeurs couverts avec leur situation ; actions « Rattacher des auditeurs », « Enregistrer un règlement », « Relancer l'organisme » (e-mail au contact, sur clic seulement), « Lettre ».
+Le modèle `ReglementOrganisme` refuse la suppression et toute modification autre que l'annulation, une fois (garde-fous Eloquent, comme `RecuVersement`). L'argent lui-même est porté par les versements, déjà immuables en base (D1).
+
+#### `versements.reglement_organisme_id` (nouvelle colonne)
+
+- FK `reglements_organismes`, RESTRICT, nullable, indexée.
+- `CHECK (reglement_organisme_id IS NULL OR payeur = 'employeur')`.
+- Figée après l'insertion par le déclencheur `versements_immuables` de D1, qui compare la ligne entière : une colonne ajoutée est figée par défaut.
+
+#### `deblocages_acces.engagement_id` (nouvelle colonne)
+
+- FK `engagements_prise_en_charge`, RESTRICT, nullable, indexée.
+- `CHECK ((type = 'prise_en_charge') = (engagement_id IS NOT NULL))` : une prise en charge passe toujours par un engagement, et seul ce cas en porte un. La migration vérifie d'abord qu'aucune prise en charge n'existe sans engagement (A1 les refusait) ; sinon elle s'arrête avec un message clair.
+- La pièce d'un déblocage rattaché reste vide : la lettre est portée par l'engagement.
+
+#### Migration
+
+`2026_12_03_100000_create_engagements_prise_en_charge_tables.php` : les deux tables, les deux colonnes, les `CHECK` et les index (SQL brut limité aux `CHECK` et aux index partiels ou fonctionnels, précédents A1 et D1). Son `down()` refuse dès qu'un engagement existe (« Des engagements de prise en charge sont enregistrés : revenez au code précédent sans annuler la migration. ») ; sinon il retire colonnes, contraintes et tables.
+
+**Aucune nouvelle permission**, donc aucune migration de droits (§9.3).
+
+### 9.3 Droits
+
+| Geste | Permission | Rôles (état actuel) |
+|---|---|---|
+| Voir l'écran « Prises en charge » et la fiche d'un engagement | `view_any_auditeur`, `view_auditeur` (module Scolarité) | Agent et responsable de scolarité, service financier, admin, super_admin |
+| Créer un engagement, modifier son contact et ses notes, rattacher des auditeurs, relancer l'organisme | `scolarite.deblocage` (ou `scolarite.deblocage_exceptionnel`) | Agent et responsable, admin, super_admin |
+| Prolonger un engagement | `scolarite.deblocage_exceptionnel` | Responsable, admin, super_admin |
+| Enregistrer un règlement | `scolarite.versement_saisir` (le droit qui enregistre déjà les versements) | Agent et responsable, service financier, admin, super_admin |
+| Annuler un règlement | `scolarite.versement_annuler` | Responsable, admin, super_admin |
+| Ouvrir la lettre ou la pièce d'un règlement | `view_auditeur` ; consultation journalisée | |
+
+Chaque service revérifie la permission du geste, même si l'écran l'a déjà fait. La description de `scolarite.deblocage` dans `ModulePermissionMap` mentionne désormais les engagements.
+
+### 9.4 Créer, modifier, prolonger un engagement
+
+- **Créer** : organisme, référence et date de la lettre, lettre scannée, contact, portée, année académique (par défaut la plus récente des barèmes), échéance, notes. Journal `engagement_cree`.
+- **Modifier** : contact et notes seulement (`engagement_modifie`, avec l'avant et l'après). Organisme, lettre, portée et année ne changent pas : une erreur se corrige par un nouvel engagement.
+- **Prolonger** (responsable) : nouvelle échéance après l'actuelle et après aujourd'hui, au plus 180 jours, et motif d'au moins 10 caractères. Elle s'applique à l'engagement et à tous ses déblocages en cours (`prolongations + 1` chacun). Journal `engagement_prolonge`, et `deblocage_prolonge` pour chaque déblocage.
+- Sur la fiche de l'auditeur, « Prolonger l'accès anticipé » n'est plus proposé pour un déblocage rattaché à un engagement, et le service le refuse : « Cet accès dépend d'un engagement de prise en charge : prolongez l'engagement (écran Prises en charge). » L'échéance d'un auditeur couvert est toujours celle de son engagement.
+
+### 9.5 Rattacher des auditeurs
+
+- L'agent choisit, par matricule ou nom, des auditeurs dont l'**inscription courante est de l'année de l'engagement**.
+- Chaque auditeur est traité **séparément** : les uns sont rattachés, les autres refusés, avec le motif par matricule. Le résultat s'affiche en fin de geste.
+- Pour chaque auditeur accepté, `DeblocagesAcces::rattacher` crée un déblocage `prise_en_charge` :
+  - lié à l'engagement (`engagement_id`) ;
+  - échéance de l'engagement ;
+  - motif posé par la plateforme : « Prise en charge : <organisme>, lettre <référence> du JJ/MM/AAAA » ;
+  - sans pièce : la lettre est celle de l'engagement.
+- **Refus** :
+  - ceux de A1 : dossier retiré ; auditeur exclu ou en abandon ; droits d'inscription déjà soldés (quelle que soit la portée : l'accès est déjà ouvert, et le règlement de l'organisme s'enregistre alors sur la fiche, payeur « employeur ») ; déblocage déjà en cours ; après une révocation sur l'inscription, le responsable seul ;
+  - en plus : inscription courante d'une autre année que celle de l'engagement ; inscription déjà couverte par **un autre** engagement (lien non révoqué) ; échéance de l'engagement dépassée (à faire prolonger d'abord).
+- **Ordre des verrous** : l'engagement (`FOR SHARE`), puis l'auditeur (R8). L'enregistrement d'un règlement prend l'engagement en `FOR UPDATE` avant les auditeurs : le même ordre partout, donc pas d'interblocage.
+- **Notification** : comme en A1 (`NotificationAcces::siDisponible`), SMS et e-mail du lien vers la lettre d'accès.
+- Journal : `deblocage_accorde` sur chaque déblocage, avec l'`uuid` de l'engagement.
+- Un auditeur **couvert** est un auditeur dont l'inscription a un déblocage lié à l'engagement et non révoqué (en cours ou régularisé). La révocation (responsable, depuis la fiche de l'auditeur, A1) le sort de l'engagement. Après une annulation de règlement, un auditeur dont les droits ne sont plus soldés se rattache de nouveau au même engagement : un nouveau déblocage en cours s'ajoute au lien régularisé.
+- La **régularisation** est celle de A1 : le déblocage passe à `regularise` dès que les droits d'inscription sont soldés (après un versement, une remise ou un règlement, et chaque jour en rattrapage). L'auditeur reste couvert.
+
+### 9.6 Couvert, réglé, reste, état
+
+Pour chaque inscription couverte, selon la portée de l'engagement :
+
+| | `droits_inscription` | `scolarite_annee` |
+|---|---|---|
+| **Couvert** | Dû du palier « inscription » (après remise) | Dû total de l'année (après remise) |
+| **Reste** | Reste du palier « inscription » | Reste de l'année |
+
+- **Couvert** et **reste** de l'engagement sont les sommes sur ses inscriptions couvertes. Le reste se lit dans la situation de l'inscription (l'imputé de D1), **quel que soit le payeur** : c'est ce que le règlement réparti propose.
+- **Réglé** : la somme des règlements non annulés de l'engagement, c'est-à-dire l'argent reçu de l'organisme. Par auditeur, la somme de ses versements valides issus de ces règlements.
+- **État**, calculé, jamais stocké :
+  - « Sans auditeur » : aucune inscription couverte ;
+  - « Soldé » : reste nul ;
+  - « Échu » : reste positif et échéance dépassée ;
+  - « En cours » : sinon.
+
+### 9.7 Règlement réparti
+
+**Formulaire** (« Enregistrer un règlement », fiche de l'engagement) :
+
+- montant, date, mode, référence (60 caractères au plus), pièce facultative ;
+- une part par auditeur couvert dont le dossier n'est pas retiré, proposée au **reste dû dans la portée** ; chaque part est modifiable (0 : aucun versement pour cet auditeur) ;
+- case « Je confirme : … » (`confirmer_depassement`), affichée et obligatoire dès qu'une part dépasse le reste dans la portée, comme `confirmer_avance`. Son libellé dit, par auditeur, ce qui ira sur le reste de l'année puis ce qui restera en avance réservée, en attente de la décision du responsable.
+
+**Règles** (`ReglementsOrganismes::enregistrer`, permission `scolarite.versement_saisir`) :
+
+1. Montant entier de 1 à 1 000 000 000 FCFA ; date non future ; mode de la liste ; référence non vide.
+2. Les parts sont des entiers positifs ou nuls ; au moins une est positive ; **leur somme égale le montant** (sinon : « La somme des parts (X FCFA) doit égaler le montant du règlement (Y FCFA). »).
+3. Chaque part porte sur une inscription couverte par l'engagement, d'un dossier non retiré.
+4. **Doublons**, refusés avant toute écriture :
+   - un règlement non annulé de même mode et même référence (l'index unique partiel tranche aussi deux saisies simultanées) ;
+   - un versement valide de même mode portant exactement la référence du règlement : l'argent aurait déjà été saisi sur une fiche ;
+   - un versement valide de même mode portant la référence `<référence>-<MATRICULE>` d'une part.
+   
+   Réciproquement, un versement saisi sur une fiche avec la référence d'un règlement non annulé du même mode est refusé.
+5. **Une seule transaction** :
+   1. verrou de l'engagement (`FOR UPDATE`) ;
+   2. verrou de chaque auditeur concerné, **par `id` croissant** (R8 de D1), avant toute écriture ;
+   3. sous ces verrous, relecture des restes : une part supérieure au reste dans la portée exige la confirmation, sinon refus ;
+   4. création du règlement ;
+   5. un versement par part positive, par `id` d'auditeur croissant, par `RegistreVersements` (seul écrivain des versements) :
+      - `payeur = employeur` et `reglement_organisme_id` renseigné ;
+      - inscription désignée : celle du déblocage qui couvre l'auditeur, donc l'année de l'engagement ;
+      - date et mode du règlement, sans pièce (elle est sur le règlement) ;
+      - référence `<référence>-<MATRICULE>` (100 caractères au plus, unique par mode) ;
+      - imputation par `ImputationsCompte::apresVersement` (R2 : l'inscription désignée seulement ; l'excédent reste en avance réservée).
+   
+   Un refus sur une part annule tout : rien n'est écrit.
+6. **Après la validation** de la transaction, pour chaque auditeur : régularisation du déblocage et notification des accès, comme après un versement (`RegistreVersements`). Un échec d'envoi ne défait jamais le règlement.
+7. Reçus (service financier), situation, régularisation, listes et exports traitent ces versements comme tous les autres.
+
+**Annulation d'un règlement** (`ReglementsOrganismes::annuler`, permission `scolarite.versement_annuler`, motif obligatoire) :
+
+1. Une seule transaction : verrou du règlement, puis des auditeurs par `id` croissant.
+2. Si l'un des versements est imputé sur plusieurs années (refus R4.1 de D1), **tout est refusé**, avec un message qui nomme le matricule et les années : « Le règlement ne peut pas être annulé : le versement de <MATRICULE> est imputé sur plusieurs années (…) ; son annulation passera par une demande d'autorisation (sous-lot D4). Rien n'a été annulé. Prévenez l'USI. »
+3. Sinon, chaque versement valide est annulé par `RegistreVersements` (R4 de D1 : imputations annulées, avance réimputée, écriture d'annulation du reçu), motif « Règlement <référence> annulé : <motif> », puis le règlement lui-même.
+4. Un déblocage régularisé par le règlement reste clos : si les droits ne sont plus soldés, l'accès redevient « bloqué » et l'auditeur se rattache de nouveau (§9.5). Un montant n'est jamais tenu pour payé tant qu'il n'est pas reçu.
+5. Un versement issu d'un règlement ne s'annule **pas seul** depuis la fiche de l'auditeur : « Ce versement fait partie du règlement <référence> de <organisme> : annulez le règlement entier depuis l'écran « Prises en charge ». » L'action « Annuler » n'y est pas proposée.
+
+### 9.8 Relance de l'organisme
+
+- Action « Relancer l'organisme » (`scolarite.deblocage`), proposée si le contact a une adresse e-mail et si le reste est positif. Une fenêtre de confirmation rappelle la dernière relance.
+- Un e-mail part au contact, par la file bridée des envois (`SendThrottledMail`) :
+  - lettre (référence et date), portée, année et échéance ;
+  - auditeurs couverts qui ont un reste, avec matricule, nom et reste ;
+  - reste total.
+- Compteur `relances` et `derniere_relance_le` de l'engagement, journal `engagement_relance` (adresse, reste, nombre d'auditeurs).
+- **Rien d'automatique** : ni la tâche quotidienne `scolarite:relancer-deblocages` (qui relance les auditeurs, A1 §5), ni aucune autre tâche planifiée n'écrit à un organisme.
+
+### 9.9 Fiche de l'auditeur
+
+- « Débloquer l'accès » propose le cas « Prise en charge » à qui a `scolarite.deblocage`. Choisi, il demande seulement l'engagement (ceux de l'année de l'inscription courante, échéance non dépassée) et passe par `DeblocagesAcces::rattacher` (mêmes refus qu'au §9.5). Il n'y a ni échéance, ni motif, ni pièce à saisir. `DeblocagesAcces::accorder` refuse une prise en charge hors engagement.
+- L'encadré « Accès anticipé » nomme l'engagement (organisme, lettre) ; la pièce est la lettre de l'engagement, ouverte par « Voir la pièce de l'accès anticipé ».
+- Onglet « Versements » : pas d'action « Annuler » sur un versement issu d'un règlement (§9.7).
+
+### 9.10 Écran « Prises en charge » (Vie académique)
+
+- Menu Scolarité, après « Auditeurs ». **Liste** : organisme, lettre (référence et date), année, portée, nombre d'auditeurs couverts, couvert, réglé, reste, échéance (en rouge si dépassée), état. Filtres : année, échéance dépassée. Action « Nouvel engagement » (`scolarite.deblocage`).
+- **Fiche de l'engagement** :
+  - lettre, portée, année, échéance, état, contact, notes, auteur, relances ;
+  - totaux couvert, réglé, reste ;
+  - onglet « Auditeurs couverts » : matricule, nom, couvert, réglé par l'organisme, reste, état du déblocage, lien vers la fiche de l'auditeur ;
+  - onglet « Règlements » : date, montant, mode, référence, nombre de versements, saisi par, état ; actions « Voir la pièce » et « Annuler le règlement » ;
+  - actions : « Rattacher des auditeurs », « Enregistrer un règlement », « Relancer l'organisme », « Lettre », « Prolonger », « Modifier le contact ».
+- Chargement groupé (inscriptions couvertes, imputé, règlements) : pas de requête par ligne.
+
+### 9.11 Journal
+
+Journal `scolarite`, scellé (lot 14d-1). Montants et `uuid` seulement, sauf l'adresse du contact relancé.
+
+| Événement | Sujet | Quand |
+|---|---|---|
+| `engagement_cree`, `engagement_modifie`, `engagement_prolonge`, `engagement_relance`, `engagement_lettre_consultee` | Engagement | §9.4, §9.8, §9.10 |
+| `deblocage_accorde` (existant, avec `engagement`) | Déblocage | Rattachement |
+| `deblocage_prolonge` (existant) | Déblocage | Prolongation de l'engagement |
+| `reglement_enregistre` (montant, mode, référence, parts `{inscription, montant}`) | Règlement | §9.7 |
+| `versement_enregistre`, `versement_annule` (existants, avec `reglement`) | Versement | §9.7 |
+| `reglement_annule` (motif, nombre de versements) | Règlement | §9.7 |
+| `reglement_piece_consultee` | Règlement | §9.10 |
+
+### 9.12 Contrôle interne et vérification
+
+- `CPT_COHERENCE` (D1, §13) gagne un cas `reglement:<uuid>` : la somme des versements valides d'un règlement non annulé diffère de son montant, ou un règlement annulé garde un versement valide (un versement annulé seul, hors application). Résumé : référence et montants, sans nom.
+- `scolarite:verifier-comptes` signale le même écart. Les deux restent à 0 après un règlement réparti ou son annulation.
+
+### 9.13 Tests (Pest)
+
+- **Engagement** : création avec lettre obligatoire ; échéance bornée ; doublon de lettre ; modification du contact ; prolongation par le responsable seul, appliquée aux déblocages en cours ; prolongation individuelle refusée.
+- **Rattachement** : déblocage lié, échéance de l'engagement, accès ouvert, notification ; refus A1 (retiré, exclu, abandon, soldé, déjà en cours, après révocation) et refus propres (autre année, autre engagement, échéance dépassée) ; traitement séparé de chaque auditeur.
+- **Règlement réparti** : parts proposées par portée ; somme différente du montant refusée ; référence par matricule ; doublons ; payeur employeur ; imputations sur l'année couverte ; excédent en avance réservée avec confirmation ; régularisation et notification ; verrous par `id` croissant avant toute écriture (`DB::listen`) ; tout ou rien.
+- **Annulation** : réservée au responsable ; cascade sur les versements, imputations et reçus ; refus R4.1 sans rien annuler ; versement d'un règlement non annulable seul.
+- **Relance** : e-mail au contact sur clic seulement ; rien par la tâche quotidienne.
+- **Filament** : écran visible selon le rôle ; colonnes couvert, réglé, reste ; actions de la fiche selon les droits ; cas « Prise en charge » de « Débloquer l'accès ».
+- **Comptes** : `scolarite:verifier-comptes` sans écart et `CPT_COHERENCE` à 0 après un règlement réparti ; écart `reglement:` détecté sur une incohérence injectée.
+- **Migration** : `down()` testé (base vide, puis refus avec un engagement).
+
+### 9.14 Déploiement
+
+1. Pousser le code ; `php artisan config:clear` ; `php artisan migrate --force` (une migration, aucune donnée existante touchée) ; `php artisan optimize` ; redémarrer la file (les relances partent par la file).
+2. Pas de `permission:cache-reset` nécessaire (aucune permission nouvelle) ; ne pas relancer `RolePermissionSeeder`.
+3. Aucune reconstruction du portail apply : l'espace de l'auditeur affiche déjà la mention « accès accordé avant paiement » (A1) et l'avance (D1).
+4. Le lendemain : `php artisan scolarite:verifier-comptes`, puis revue du contrôle interne.
+
+### 9.15 Points tranchés en réalisation
+
+1. **Aucune nouvelle permission** : création, rattachement, contact et relance sur `scolarite.deblocage` ; prolongation sur `scolarite.deblocage_exceptionnel` ; règlement sur `scolarite.versement_saisir` ; annulation sur `scolarite.versement_annuler` ; consultation sur `view_any_auditeur` / `view_auditeur`.
+2. **« Déjà soldé »** : le refus de A1 porte sur les droits d'inscription, pour les deux portées. Un auditeur déjà en règle de ses droits mais couvert pour l'année par son employeur n'est pas rattaché ; le règlement de l'organisme pour lui s'enregistre sur sa fiche (payeur « employeur »).
+3. **Rattachement séparé par auditeur** (et non tout ou rien) : les refus sont listés par matricule.
+4. **Une inscription, un engagement** : refus de rattacher une inscription déjà couverte par un autre engagement (contrôle du service ; l'index unique partiel de A1 garantit toujours un seul déblocage en cours).
+5. **Échéance** : au plus 180 jours, comme un moratoire. La prolongation de l'engagement revient au responsable et s'applique à tous ses déblocages en cours ; la prolongation individuelle d'un déblocage rattaché est refusée.
+6. **Reste** : il se lit dans la situation (quel que soit le payeur) ; le réglé est l'argent reçu de l'organisme. Couvert − réglé ≠ reste quand l'auditeur a payé une part lui-même.
+7. **État** calculé : « Sans auditeur », « Soldé », « Échu », « En cours ».
+8. **Parts proposées** : l'auditeur dont le dossier est retiré n'en a pas (lot 1 : aucune écriture sur un dossier retiré).
+9. **Dépassement** : une part au-delà du reste dans la portée va d'abord sur le reste de l'année désignée (décision 2), puis en avance réservée (décision 7) ; une seule case de confirmation pour tout le règlement.
+10. **Pièce** : la lettre et la pièce du règlement sont rangées avec les justificatifs, et une pièce ne sert qu'une fois (versement, déblocage, engagement ou règlement). Les versements d'un règlement n'ont pas de scan : la pièce est sur le règlement.
+11. **Doublons croisés** : un versement et un règlement ne partagent pas la même référence dans le même mode.
+12. **Annulation d'un règlement** : pas de réouverture automatique de l'accès ; le rattachement se refait à la main si l'engagement tient toujours.
+13. **Verrous** : engagement puis auditeurs par `id` croissant (règlement) ; engagement en partage puis auditeur (rattachement) ; règlement puis auditeurs par `id` croissant (annulation).
+14. **Contrôle `CPT_COHERENCE`** : nouveau cas `reglement:<uuid>` (même criticité, même responsable).
+15. **Relance de l'organisme** : par la file bridée des e-mails, avec la liste des auditeurs couverts qui ont un reste (matricule, nom, reste) : l'organisme les a lui-même nommés dans sa lettre.
+16. **Pas de suppression d'engagement** : un engagement sans auditeur reste, à l'état « Sans auditeur ».
 
 ## 10. A3 — Demande de moratoire
 
