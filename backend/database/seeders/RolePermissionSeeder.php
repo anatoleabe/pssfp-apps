@@ -69,13 +69,13 @@ final class RolePermissionSeeder extends Seeder
             'super_admin' => [
                 'label' => 'Super administrateur',
                 'description' => 'Accès total, y compris réglages, rôles et suppressions définitives.',
-                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage, 'scolarite' => $manage, 'lmd' => $manage],
+                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage, 'scolarite' => $manage, 'lmd' => $manage, 'archives' => $read],
                 'sensitive' => array_keys(ModulePermissionMap::sensitiveActions()),
             ],
             'admin' => [
                 'label' => 'Administrateur',
                 'description' => 'Comptes, rôles, campagnes, réglages et exports.',
-                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage, 'scolarite' => $manage, 'lmd' => $manage],
+                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage, 'scolarite' => $manage, 'lmd' => $manage, 'archives' => $read],
                 'sensitive' => [
                     'candidature.export_csv',
                     'candidature.mark_depot_physique',
@@ -129,6 +129,8 @@ final class RolePermissionSeeder extends Seeder
                     'library.redirects',
                     'library.stats_export',
                     'document.contribute',
+                    'archives.completer',
+                    'archives.rapprocher',
                 ],
             ],
             'editor' => [
@@ -179,20 +181,21 @@ final class RolePermissionSeeder extends Seeder
             'scolarite_agent' => [
                 'label' => 'Agent de scolarité',
                 'description' => 'Consultation des auditeurs, enregistrement des versements et export de la situation financière ; lettre d\'accès FOAD d\'un auditeur soldé ; préparation des maquettes et inscriptions pédagogiques.',
-                'modules' => ['scolarite' => $manage, 'lmd' => $manage],
+                'modules' => ['scolarite' => $manage, 'lmd' => $manage, 'archives' => $read],
                 'sensitive' => ['scolarite.export', 'scolarite.lettre_acces', 'scolarite.etiquettes', 'scolarite.deblocage'],
             ],
             'scolarite_responsable' => [
                 'label' => 'Responsable de scolarité',
                 'description' => 'Droits de l\'agent, plus l\'annulation des versements, les remises, les barèmes, les réglages de promotion, le statut des auditeurs, les messages, la validation des maquettes, les règles d\'évaluation et les changements de parcours.',
-                'modules' => ['scolarite' => $manage, 'lmd' => $manage],
+                'modules' => ['scolarite' => $manage, 'lmd' => $manage, 'archives' => $read],
                 'sensitive' => ['scolarite.export', 'scolarite.lettre_acces', 'scolarite.etiquettes', 'scolarite.versement_annuler', 'scolarite.remise', 'scolarite.bareme', 'supervision.consulter',
                     'scolarite.promotion', 'scolarite.statut', 'scolarite.messages', 'scolarite.deblocage', 'scolarite.deblocage_exceptionnel',
                     'lmd.maquette_valider', 'lmd.regles', 'lmd.parcours_changer',
                     'lmd.notes_verrouiller', 'lmd.notes_rouvrir', 'lmd.derogation_rattrapage',
                     'lmd.deliberation_arreter', 'lmd.deliberation_publier', 'lmd.jury_signer',
                     'lmd.documents_revoquer', 'lmd.documents_lever', 'lmd.requetes_coter', 'lmd.requetes_jury',
-                    'lmd.memoires_attester', 'lmd.calendrier_reajuster', 'lmd.actes_signer', 'lmd.programmation_valider', 'lmd.paie_verifier'],
+                    'lmd.memoires_attester', 'lmd.calendrier_reajuster', 'lmd.actes_signer', 'lmd.programmation_valider', 'lmd.paie_verifier',
+                    'archives.completer', 'archives.rapprocher'],
             ],
             'enseignant' => [
                 'label' => 'Enseignant',
