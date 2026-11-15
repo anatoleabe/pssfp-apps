@@ -763,6 +763,6 @@ Limites connues, sans correctif en D1 :
 - Le verrou pris par le déclencheur de cohérence ne protège un écrivain extérieur qu'en `READ COMMITTED` (niveau de Laravel et de `psql` par défaut) : en `REPEATABLE READ`, la somme se lit dans l'instantané du début de transaction.
 - Une annulation de versement sans motif reste acceptée par la base (lot 1) ; l'application exige toujours le motif.
 
-Questions ouvertes pour D4 (choix de spec, non des défauts) :
-- Le reçu et l'espace libellent « avance sur la scolarité à venir » aussi l'excédent d'un employeur, qui n'est pourtant pas imputé d'office sur l'année suivante (décision 7).
-- R5 désimpute « le plus récent d'abord » : sur E5, une hausse de remise libère d'abord l'argent de l'employeur (avance réservée) plutôt que celui de l'auditeur, alors que R3 fait régler en priorité l'année couverte par l'employeur.
+Questions posées pour D4, tranchées par le chef de projet le 15/11/2026 :
+- **Libellé de l'excédent d'un employeur** : il reste « avance sur la scolarité à venir » sur le reçu et dans l'espace, comme pour tout payeur, bien qu'il ne soit pas imputé d'office sur l'année suivante (décision 7). Aucun changement.
+- **R5, hausse de remise** : l'argent de l'**auditeur** est libéré en premier, puis celui de l'employeur. Sur E5, une remise de 100 000 rend 100 000 à l'avance libre de l'auditeur, qui s'imputera d'elle-même sur son année suivante ; l'employeur reste imputé sur l'année qu'il couvre, comme le veut R3. D4 remplace donc « le plus récent d'abord » par : versements libres d'abord (du plus récent au plus ancien), puis versements réservés (du plus récent au plus ancien). Une exception passe par la réimputation manuelle (R6).
