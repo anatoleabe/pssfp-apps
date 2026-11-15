@@ -163,3 +163,39 @@ it('limite les téléchargements à 10 par heure', function (): void {
 
     $this->withToken($jeton)->get($this->url)->assertStatus(429);
 });
+
+it('garde l\'en-tête officiel de la lettre à l\'identique depuis qu\'il est partagé avec les listes', function (): void {
+    $html = app(LettreAccesFoadPdf::class)->html($this->awa);
+    $logo = 'data:image/png;base64,'.base64_encode((string) file_get_contents(resource_path('images/pdf/logo.png')));
+
+    // Balisage d'origine de la lettre, avant son extraction dans pdf._entete-pssfp(-styles).
+    expect($html)->toContain(<<<'HTML'
+          table.entete { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 3mm; }
+          table.entete td { vertical-align: top; text-align: center; font-family: 'Source Sans 3', DejaVu Sans, sans-serif; font-size: 7.2pt; line-height: 1.08; color: #000; }
+          table.entete td.logo { width: 26%; vertical-align: middle; }
+          table.entete td.logo img { height: 17mm; }
+          .devise { font-size: 6pt; font-weight: 700; }
+          .sep { letter-spacing: 0.4mm; }
+
+          table.ref {
+        HTML)
+        ->toContain(<<<HTML
+        <table class="entete">
+          <tr>
+            <td>
+              REPUBLIQUE DU CAMEROUN<br><span class="devise">Paix- Travail- Patrie</span><br><span class="sep">--------------</span><br>
+              MINISTERE DES FINANCES<br><span class="sep">--------------</span><br>SECRETARIAT GENERAL<br><span class="sep">--------------</span><br>
+              PROGRAMME SUPERIEUR DE SPECIALISATION EN FINANCES PUBLIQUES
+            </td>
+            <td class="logo"><img src="{$logo}" alt="PSSFP"></td>
+            <td>
+              REPUBLIC OF CAMEROON<br><span class="devise">Peace- Work- Fatherland</span><br><span class="sep">--------------</span><br>
+              MINISTRY OF FINANCE<br><span class="sep">--------------</span><br>GENERAL SECRETARIAT<br><span class="sep">--------------</span><br>
+              ADVANCED PROGRAM OF SPECIALISATION IN PUBLIC FINANCE
+            </td>
+          </tr>
+        </table>
+
+        <table class="ref">
+        HTML);
+});

@@ -13,12 +13,7 @@
   footer { position: fixed; bottom: -8mm; left: 0; right: 0; border-top: 0.5pt solid #B8913F; padding-top: 1.5mm;
     text-align: center; font-size: 7pt; color: #5F5F5F; }
 
-  table.entete { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 3mm; }
-  table.entete td { vertical-align: top; text-align: center; font-family: 'Source Sans 3', DejaVu Sans, sans-serif; font-size: 7.2pt; line-height: 1.08; color: #000; }
-  table.entete td.logo { width: 26%; vertical-align: middle; }
-  table.entete td.logo img { height: 17mm; }
-  .devise { font-size: 6pt; font-weight: 700; }
-  .sep { letter-spacing: 0.4mm; }
+  @include('pdf._entete-pssfp-styles')
 
   table.ref { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
   table.ref td { padding: 0; vertical-align: bottom; }
@@ -58,21 +53,7 @@
 <body>
 <footer>{{ $pied_de_page }}</footer>
 
-<table class="entete">
-  <tr>
-    <td>
-      REPUBLIQUE DU CAMEROUN<br><span class="devise">Paix- Travail- Patrie</span><br><span class="sep">--------------</span><br>
-      MINISTERE DES FINANCES<br><span class="sep">--------------</span><br>SECRETARIAT GENERAL<br><span class="sep">--------------</span><br>
-      PROGRAMME SUPERIEUR DE SPECIALISATION EN FINANCES PUBLIQUES
-    </td>
-    <td class="logo">@if ($logo)<img src="{{ $logo }}" alt="PSSFP">@endif</td>
-    <td>
-      REPUBLIC OF CAMEROON<br><span class="devise">Peace- Work- Fatherland</span><br><span class="sep">--------------</span><br>
-      MINISTRY OF FINANCE<br><span class="sep">--------------</span><br>GENERAL SECRETARIAT<br><span class="sep">--------------</span><br>
-      ADVANCED PROGRAM OF SPECIALISATION IN PUBLIC FINANCE
-    </td>
-  </tr>
-</table>
+@include('pdf._entete-pssfp')
 
 <table class="ref">
   <tr>
