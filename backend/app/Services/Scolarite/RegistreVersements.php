@@ -8,7 +8,7 @@ use App\Models\InscriptionAnnuelle;
 use App\Models\User;
 use App\Models\Versement;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\ConnectionInterface;
+use Closure;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
@@ -17,10 +17,12 @@ use Throwable;
 /**
  * Seul point d'écriture de l'argent : versements, annulations, remises.
  *
- * Chaque écriture se fait sous verrou de l'inscription, passe par la permission
- * du geste (même si un écran l'a déjà vérifiée) et finit au journal. Le SMS part
- * après la validation de la transaction. Les exceptions InvalidArgumentException
- * portent un message destiné à l'agent.
+ * Chaque écriture se fait sous le verrou de l'auditeur (ADR-0013, R8), passe par la
+ * permission du geste (même si un écran l'a déjà vérifiée) et finit au journal. Les
+ * imputations du compte sont posées par ImputationsCompte, avant et après les écritures
+ * d'ici, dans l'ordre qu'exige le déclencheur de cohérence. Le SMS part après la
+ * validation de la transaction. Les exceptions InvalidArgumentException portent un
+ * message destiné à l'agent.
  */
 final class RegistreVersements
 {
@@ -34,10 +36,16 @@ final class RegistreVersements
 
     public const PERMISSION_BAREME = 'scolarite.bareme';
 
+    /** Refus de la base (déclencheur de cohérence, CHECK) : un défaut du code, jamais montré tel quel. */
+    public const COMPTE_INCOHERENT = ImputationsCompte::COMPTE_INCOHERENT;
+
+    /** Plafond d'un versement, le même que celui du formulaire. */
+    public const MONTANT_MAX = 100_000_000;
+
     private ?User $auteurCourant = null;
 
     public function __construct(
-        private readonly ConnectionInterface $db,
+        private readonly ImputationsCompte $imputations,
         private readonly NotificationAcces $notification,
         private readonly RecusVersements $recus,
         private readonly DeblocagesAcces $deblocages,
@@ -55,6 +63,9 @@ final class RegistreVersements
         $montant = filter_var($saisie['montant'] ?? null, FILTER_VALIDATE_INT);
         if ($montant === false || $montant <= 0) {
             throw new InvalidArgumentException('Le montant doit être un nombre entier de FCFA, supérieur à zéro.');
+        }
+        if ($montant > self::MONTANT_MAX) {
+            throw new InvalidArgumentException('Le montant ne peut pas dépasser '.number_format(self::MONTANT_MAX, 0, ',', ' ').' FCFA : vérifiez la saisie.');
         }
         if (blank($saisie['date_versement'] ?? null)) {
             throw new InvalidArgumentException('Indiquez la date du versement.');
@@ -82,15 +93,14 @@ final class RegistreVersements
         $this->refuserDossierRetire($inscription);
 
         try {
-            $versement = $this->db->transaction(function () use ($inscription, $montant, $date, $mode, $reference, $payeur, $justificatif, $auteur): Versement {
-                InscriptionAnnuelle::query()->whereKey($inscription->id)->lockForUpdate()->firstOrFail();
-
+            $versement = $this->ecrire((int) $inscription->auditeur_id, function (ImputationsCompte $compte) use ($inscription, $montant, $date, $mode, $reference, $payeur, $justificatif, $auteur): Versement {
                 if (Versement::query()->where('mode', $mode)->where('reference', $reference)->whereNull('annule_at')->exists()) {
                     throw new InvalidArgumentException(self::messageDoublon($reference));
                 }
 
                 $versement = new Versement;
                 $versement->forceFill([
+                    'auditeur_id' => $inscription->auditeur_id,
                     'inscription_annuelle_id' => $inscription->id,
                     'montant' => $montant,
                     'date_versement' => $date->toDateString(),
@@ -100,10 +110,12 @@ final class RegistreVersements
                     'justificatif_path' => $justificatif,
                     'saisi_par' => $auteur->id,
                 ])->save();
+                $plan = $compte->apresVersement($versement);
 
                 activity('scolarite')->causedBy($auteur)->performedOn($versement)
                     ->event('versement_enregistre')
-                    ->withProperties(['montant' => $montant, 'mode' => $mode, 'reference' => $reference, 'inscription' => $inscription->uuid])
+                    ->withProperties(['montant' => $montant, 'mode' => $mode, 'reference' => $reference, 'inscription' => $inscription->uuid,
+                        'imputations' => $compte->decrire($plan), 'avance' => $montant - $plan->montantImpute()])
                     ->log('Versement enregistré');
 
                 return $versement;
@@ -128,8 +140,13 @@ final class RegistreVersements
             throw new InvalidArgumentException('Indiquez le motif de l\'annulation.');
         }
 
-        $this->db->transaction(function () use ($versement, $motif, $auteur): void {
-            InscriptionAnnuelle::query()->whereKey($versement->inscription_annuelle_id)->lockForUpdate()->firstOrFail();
+        $this->ecrire((int) $versement->auditeur_id, function (ImputationsCompte $compte) use ($versement, $motif, $auteur): void {
+            $courant = Versement::query()->whereKey($versement->id)->firstOrFail();
+            if ($courant->estAnnule()) {
+                throw new InvalidArgumentException('Ce versement est déjà annulé.');
+            }
+            // R4 : refus d'un versement imputé sur plusieurs années (D4), puis ses imputations d'abord.
+            $plan = $compte->avantAnnulation($courant, $motif, $auteur);
 
             $modifies = Versement::query()->whereKey($versement->id)->whereNull('annule_at')->update([
                 'annule_at' => now(),
@@ -139,13 +156,16 @@ final class RegistreVersements
             if ($modifies === 0) {
                 throw new InvalidArgumentException('Ce versement est déjà annulé.');
             }
+            // L'avance des autres versements comble les restes rouverts.
+            $compte->imputerAvance((int) $versement->auditeur_id, 'annulation', $auteur);
 
             // Le reçu en vigueur reçoit une écriture d'annulation (Scolarité lot 4) ; il n'est pas modifié.
             $this->recus->annulerPourVersement($versement, $motif, $auteur);
 
             activity('scolarite')->causedBy($auteur)->performedOn($versement)
                 ->event('versement_annule')
-                ->withProperties(['montant' => $versement->montant, 'reference' => $versement->reference, 'motif' => $motif])
+                ->withProperties(['montant' => $versement->montant, 'reference' => $versement->reference, 'motif' => $motif,
+                    'imputations_annulees' => self::decrireAnnulees($plan)])
                 ->log('Versement annulé');
         });
 
@@ -172,20 +192,25 @@ final class RegistreVersements
         }
         $this->refuserDossierRetire($inscription);
 
-        $this->db->transaction(function () use ($inscription, $montant, $motif, $auteur): void {
-            $verrouillee = InscriptionAnnuelle::query()->whereKey($inscription->id)->lockForUpdate()->firstOrFail();
-            $ancienne = (int) $verrouillee->remise_montant;
+        $this->ecrire((int) $inscription->auditeur_id, function (ImputationsCompte $compte) use ($inscription, $montant, $motif, $auteur): void {
+            // Sous le verrou de l'auditeur ; la ligne de l'inscription se verrouille à son UPDATE (ordre R8).
+            $courante = InscriptionAnnuelle::query()->whereKey($inscription->id)->firstOrFail();
+            $ancienne = (int) $courante->remise_montant;
+            // R5 : désimputer ce qui dépasserait le nouveau dû, avant d'écrire la remise.
+            $plan = $compte->avantRemise($courante, $montant, $motif, $auteur);
 
-            $verrouillee->forceFill([
+            $courante->forceFill([
                 'remise_montant' => $montant,
                 'remise_motif' => mb_substr($motif, 0, 500),
                 'remise_par' => $auteur->id,
                 'remise_at' => now(),
             ])->save();
+            $compte->imputerAvance((int) $inscription->auditeur_id, 'remise', $auteur);
 
-            activity('scolarite')->causedBy($auteur)->performedOn($verrouillee)
+            activity('scolarite')->causedBy($auteur)->performedOn($courante)
                 ->event('remise_accordee')
-                ->withProperties(['ancienne' => $ancienne, 'nouvelle' => $montant, 'motif' => $motif])
+                ->withProperties(['ancienne' => $ancienne, 'nouvelle' => $montant, 'motif' => $motif,
+                    'desimpute' => $plan->montantDesimpute() - $plan->montantImpute()])
                 ->log('Remise modifiée');
         });
 
@@ -213,26 +238,78 @@ final class RegistreVersements
             ->event('justificatif_joint')->log('Bordereau joint au versement');
     }
 
-    /** L'annulation ferait-elle repasser l'inscription sous le seuil ? Pour avertir l'agent. */
+    /**
+     * L'annulation ferait-elle repasser l'inscription courante sous le seuil des droits ? Pour
+     * avertir l'agent. Prévu par le planificateur (R4 puis R3), sans rien écrire. Faux pour un
+     * versement que D1 refuse d'annuler (plusieurs années) : le refus est annoncé à part.
+     */
     public static function annulationRebloque(Versement $versement): bool
     {
-        $inscription = $versement->inscription()->with('bareme')->firstOrFail();
-        $avant = $inscription->situation();
-
-        return $avant->inscriptionSoldee() && $avant->verse - $versement->montant < $avant->paliers[0]->du;
-    }
-
-    /** La nouvelle remise ferait-elle repasser l'inscription sous le seuil ? */
-    public static function remiseRebloque(InscriptionAnnuelle $inscription, int $nouvelleRemise): bool
-    {
-        if (! $inscription->situation()->inscriptionSoldee()) {
+        $planificateur = new PlanificateurImputations;
+        $etat = ImputationsCompte::etat((int) $versement->auditeur_id);
+        if (! isset($etat->versements[$versement->id])) {
+            return false;
+        }
+        try {
+            $plan = $planificateur->annulation($etat, (int) $versement->id, 'prévision');
+        } catch (AnnulationMultiAnnees) {
             return false;
         }
 
-        $projection = (clone $inscription);
-        $projection->remise_montant = $nouvelleRemise;
+        return self::rebloque($etat, $planificateur->avance($plan->etat)->etat);
+    }
 
-        return ! $projection->situation()->inscriptionSoldee();
+    /** La nouvelle remise ferait-elle repasser l'inscription courante sous le seuil ? Prévu par R5 puis R3. */
+    public static function remiseRebloque(InscriptionAnnuelle $inscription, int $nouvelleRemise): bool
+    {
+        $planificateur = new PlanificateurImputations;
+        $etat = ImputationsCompte::etat((int) $inscription->auditeur_id);
+        $plan = $planificateur->remise($etat, (int) $inscription->id, $nouvelleRemise, 'prévision');
+
+        return self::rebloque($etat, $planificateur->avance($plan->etat)->etat);
+    }
+
+    /** @return list<string> années sur lesquelles le versement est imputé, croissantes */
+    public static function anneesTouchees(Versement $versement): array
+    {
+        $etat = ImputationsCompte::etat((int) $versement->auditeur_id);
+
+        return array_map(fn (int $id): string => $etat->inscription($id)->annee, $etat->inscriptionsTouchees((int) $versement->id));
+    }
+
+    private static function rebloque(EtatCompte $avant, EtatCompte $apres): bool
+    {
+        $courante = $avant->courante();
+
+        return $courante !== null && $avant->droitsSoldes($courante->id) && ! $apres->droitsSoldes($courante->id);
+    }
+
+    /**
+     * Écriture d'argent sous le verrou de l'auditeur. Un refus de la base y devient le message
+     * COMPTE_INCOHERENT (ImputationsCompte::sousVerrou).
+     *
+     * @template T
+     *
+     * @param  Closure(ImputationsCompte): T  $geste
+     * @return T
+     */
+    private function ecrire(int $auditeurId, Closure $geste): mixed
+    {
+        return $this->imputations->sousVerrou($auditeurId, $geste);
+    }
+
+    /** @return list<array{inscription: string, annee: string, montant: int}> */
+    private static function decrireAnnulees(PlanImputations $plan): array
+    {
+        return array_map(function (Desimputation $d) use ($plan): array {
+            $i = $plan->initial->inscription($plan->initial->imputations[$d->id]->inscription);
+
+            return [
+                'inscription' => (string) InscriptionAnnuelle::query()->whereKey($i->id)->value('uuid'),
+                'annee' => $i->annee,
+                'montant' => $d->montant,
+            ];
+        }, $plan->desimputations);
     }
 
     private function notifier(InscriptionAnnuelle $inscription): ?bool

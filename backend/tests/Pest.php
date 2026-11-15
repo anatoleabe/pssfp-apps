@@ -3,6 +3,7 @@
 use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
 use App\Models\Candidature;
+use App\Models\ImputationVersement;
 use App\Models\InscriptionAnnuelle;
 use App\Models\Versement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -90,13 +91,26 @@ function solderInscription(Candidature $dossier): InscriptionAnnuelle
     return $inscription;
 }
 
-/** Annule tous les versements du dossier : l'inscription n'est plus soldée. */
+/**
+ * Annule tous les versements du dossier : l'inscription n'est plus soldée. Leurs
+ * imputations d'abord, dans l'ordre qu'exige le déclencheur de cohérence (ADR-0013).
+ */
 function annulerVersements(Candidature $dossier): void
 {
-    Versement::query()
-        ->whereHas('inscription.auditeur', fn ($q) => $q->where('candidature_id', $dossier->id))
-        ->update(['annule_at' => now()]);
+    $ids = Versement::query()->whereHas('auditeur', fn ($q) => $q->where('candidature_id', $dossier->id))
+        ->whereNull('annule_at')->pluck('id');
+    ImputationVersement::query()->whereIn('versement_id', $ids)->whereNull('annule_at')
+        ->update(['annule_at' => now(), 'annule_motif' => 'Annulation de test']);
+    Versement::query()->whereKey($ids)->update(['annule_at' => now()]);
     $dossier->unsetRelation('auditeur');
+}
+
+/** Annule un versement à la main (test d'un modèle) : ses imputations d'abord, comme R4. */
+function annulerVersement(Versement $versement, string $motif = 'Annulation de test'): void
+{
+    ImputationVersement::query()->where('versement_id', $versement->id)->whereNull('annule_at')
+        ->update(['annule_at' => now(), 'annule_motif' => $motif]);
+    $versement->forceFill(['annule_at' => now(), 'annule_motif' => $motif])->save();
 }
 
 /** Fiche auditeur d'un dossier (créée si le test a posé le matricule à la main). */

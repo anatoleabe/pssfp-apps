@@ -367,7 +367,9 @@ export interface MaScolarite {
   remise: number | null;
   verse: number;
   reste: number | null;
-  /** Excédent des versements, affiché « Avance » ; nom de clé gardé pour compatibilité. */
+  /** Avance du compte de l'auditeur (versé au-delà du dû, ADR-0013), affichée « Avance ». */
+  avance: number;
+  /** Alias de `avance`, conservé jusqu'au sous-lot D2 pour une API pas encore à jour. */
   trop_percu: number;
   en_retard: boolean;
   paliers: ScolaritePalier[];

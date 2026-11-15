@@ -68,7 +68,7 @@ final class MessagesAuditeurs
     {
         return \Illuminate\Database\Eloquent\Collection::make($auditeurs->all())->load([
             'candidature.campagne',
-            'inscriptionCourante' => fn ($q) => $q->with('bareme')->withSum('versementsValides', 'montant'),
+            'inscriptionCourante' => fn ($q) => $q->with('bareme')->withSum('imputationsActives', 'montant'),
         ]);
     }
 

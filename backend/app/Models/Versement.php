@@ -11,8 +11,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Versement d'un auditeur. Jamais supprimé : une annulation renseigne les champs
- * `annule_*`, et seul RegistreVersements écrit ici.
+ * Versement d'un auditeur, rattaché à son compte (`auditeur_id`, ADR-0013). Jamais
+ * supprimé : une annulation renseigne les champs `annule_*`, et seul RegistreVersements
+ * écrit ici. `inscription_annuelle_id` est l'inscription désignée à la saisie : elle sert
+ * de référence au reçu et, pour un versement d'employeur, borne son imputation (§4 de la spec D1).
  */
 class Versement extends Model
 {
@@ -38,7 +40,16 @@ class Versement extends Model
         'autre' => 'Autre',
     ];
 
+    public const PAYEUR_EMPLOYEUR = 'employeur';
+
+    /**
+     * Payeurs dont l'excédent reste réservé à l'inscription désignée (décisions 2 et 7) ;
+     * « autre » se traite comme l'auditeur (décision du 15/11/2026).
+     */
+    public const PAYEURS_RESERVES = [self::PAYEUR_EMPLOYEUR];
+
     protected $fillable = [
+        'auditeur_id',
         'inscription_annuelle_id',
         'montant',
         'date_versement',
@@ -49,6 +60,7 @@ class Versement extends Model
     ];
 
     protected $casts = [
+        'auditeur_id' => 'integer',
         'montant' => 'integer',
         'date_versement' => 'immutable_date',
         'saisi_par' => 'integer',
@@ -103,9 +115,32 @@ class Versement extends Model
         return $mode === self::MODE_REPRISE ? 'Reprise du pointage' : (self::MODES[$mode] ?? (string) $mode);
     }
 
+    /** Inscription désignée à la saisie. */
     public function inscription(): BelongsTo
     {
         return $this->belongsTo(InscriptionAnnuelle::class, 'inscription_annuelle_id');
+    }
+
+    public function auditeur(): BelongsTo
+    {
+        return $this->belongsTo(Auditeur::class);
+    }
+
+    /** Parts du versement qui règlent des inscriptions, annulées comprises. */
+    public function imputations(): HasMany
+    {
+        return $this->hasMany(ImputationVersement::class);
+    }
+
+    public function imputationsActives(): HasMany
+    {
+        return $this->hasMany(ImputationVersement::class)->whereNull('annule_at');
+    }
+
+    /** L'excédent d'un versement réservé n'est jamais imputé d'office sur une autre année. */
+    public function estReserve(): bool
+    {
+        return in_array($this->payeur, self::PAYEURS_RESERVES, true);
     }
 
     public function saisiPar(): BelongsTo

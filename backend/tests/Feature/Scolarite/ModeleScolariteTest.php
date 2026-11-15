@@ -42,7 +42,7 @@ it('refuse une référence déjà prise pour le même mode, même sur un autre a
 it('accepte la même référence sur un autre mode, ou après annulation', function (): void {
     $v = Versement::factory()->create(['mode' => 'virement', 'reference' => 'BOR-2']);
     Versement::factory()->create(['mode' => 'especes', 'reference' => 'BOR-2']);
-    $v->forceFill(['annule_at' => now(), 'annule_motif' => 'Erreur'])->save();
+    annulerVersement($v, 'Erreur');
 
     expect(Versement::factory()->create(['mode' => 'virement', 'reference' => 'BOR-2'])->exists)->toBeTrue();
 });

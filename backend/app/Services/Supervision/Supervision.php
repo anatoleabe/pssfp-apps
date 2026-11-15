@@ -6,6 +6,7 @@ namespace App\Services\Supervision;
 
 use App\Models\AnomalieSysteme;
 use App\Models\User;
+use App\Services\Supervision\Controles\CptCoherence;
 use App\Services\Supervision\Controles\DebEchus;
 use App\Services\Supervision\Controles\DemAttente;
 use App\Services\Supervision\Controles\PaieEtatsBloques;
@@ -42,7 +43,7 @@ final class Supervision
     /** Catalogue, dans l'ordre d'exécution ; SYS_CONTROLES en dernier (il lit les erreurs des autres). */
     public const CATALOGUE = [
         PaiRapprochement::class, PaieEtatsBloques::class, ReqRetard::class, ReqNonCotees::class, DemAttente::class, DebEchus::class,
-        SecSeparation::class, SecComptes::class, SecConnexions::class, SecJournal::class, SysDestinataires::class, SysControles::class,
+        CptCoherence::class, SecSeparation::class, SecComptes::class, SecConnexions::class, SecJournal::class, SysDestinataires::class, SysControles::class,
     ];
 
     public static function peutConsulter(?User $user): bool

@@ -24,6 +24,8 @@ use InvalidArgumentException;
  * Chaque geste revérifie sa permission (même si un écran l'a déjà fait), se fait
  * sous verrou et finit au journal `scolarite`. Les InvalidArgumentException
  * portent un message destiné à l'agent. Un montant n'est jamais tenu pour payé.
+ * L'octroi et la régularisation lisent la situation de l'argent : ils prennent
+ * d'abord le verrou de l'auditeur, comme toute écriture d'argent (ADR-0013, R8).
  */
 final class DeblocagesAcces
 {
@@ -55,6 +57,7 @@ final class DeblocagesAcces
     public function __construct(
         private readonly ConnectionInterface $db,
         private readonly NotificationAcces $notification,
+        private readonly ImputationsCompte $imputations,
     ) {}
 
     /**
@@ -141,7 +144,8 @@ final class DeblocagesAcces
         $dossier = self::dossierOuvert($inscription);
 
         try {
-            $deblocage = $this->db->transaction(function () use ($inscription, $type, $motif, $echeance, $piece, $auteur): DeblocageAcces {
+            // Verrou de l'auditeur, puis de l'inscription (ordre R8) : la situation lue ne bouge plus.
+            $deblocage = $this->imputations->sousVerrou((int) $inscription->auditeur_id, function () use ($inscription, $type, $motif, $echeance, $piece, $auteur): DeblocageAcces {
                 $verrouillee = InscriptionAnnuelle::query()->with('bareme')->whereKey($inscription->id)->lockForUpdate()->firstOrFail();
                 if ($verrouillee->situation()->inscriptionSoldee()) {
                     throw new InvalidArgumentException('Les droits d\'inscription sont déjà soldés : l\'accès est ouvert sans déblocage.');
@@ -255,25 +259,28 @@ final class DeblocagesAcces
      */
     public function regulariser(InscriptionAnnuelle $inscription, ?User $auteur = null): bool
     {
-        $d = DeblocageAcces::query()->enCours()->where('inscription_annuelle_id', $inscription->id)->first();
-        $courante = InscriptionAnnuelle::query()->with('bareme')->find($inscription->id);
-        if ($d === null || $courante === null || ! $courante->situation()->inscriptionSoldee()) {
-            return false;
-        }
-        // Mise à jour conditionnelle : deux saisies simultanées ne journalisent qu'une régularisation.
-        $modifies = DeblocageAcces::query()->whereKey($d->id)->enCours()->update([
-            'statut' => DeblocageAcces::REGULARISE, 'clos_le' => now(), 'clos_par' => $auteur?->id,
-            'motif_cloture' => self::MOTIF_REGULARISATION, 'updated_at' => now(),
-        ]);
-        if ($modifies === 0) {
-            return false;
-        }
-        activity('scolarite')->causedBy($auteur)->performedOn($d)
-            ->event('deblocage_regularise')
-            ->withProperties(['type' => $d->type, 'echeance' => $d->echeance->toDateString()])
-            ->log('Accès anticipé régularisé : droits d\'inscription soldés');
+        // Sous le verrou de l'auditeur : une annulation simultanée ne peut pas défaire le solde lu.
+        return $this->imputations->sousVerrou((int) $inscription->auditeur_id, function () use ($inscription, $auteur): bool {
+            $d = DeblocageAcces::query()->enCours()->where('inscription_annuelle_id', $inscription->id)->first();
+            $courante = InscriptionAnnuelle::query()->with('bareme')->find($inscription->id);
+            if ($d === null || $courante === null || ! $courante->situation()->inscriptionSoldee()) {
+                return false;
+            }
+            // Mise à jour conditionnelle : deux saisies simultanées ne journalisent qu'une régularisation.
+            $modifies = DeblocageAcces::query()->whereKey($d->id)->enCours()->update([
+                'statut' => DeblocageAcces::REGULARISE, 'clos_le' => now(), 'clos_par' => $auteur?->id,
+                'motif_cloture' => self::MOTIF_REGULARISATION, 'updated_at' => now(),
+            ]);
+            if ($modifies === 0) {
+                return false;
+            }
+            activity('scolarite')->causedBy($auteur)->performedOn($d)
+                ->event('deblocage_regularise')
+                ->withProperties(['type' => $d->type, 'echeance' => $d->echeance->toDateString()])
+                ->log('Accès anticipé régularisé : droits d\'inscription soldés');
 
-        return true;
+            return true;
+        });
     }
 
     private static function motif(mixed $motif): string

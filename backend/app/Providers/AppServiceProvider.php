@@ -14,6 +14,7 @@ use App\Services\Library\Search\FallbackDocumentSearch;
 use App\Services\Library\Search\MeilisearchDocumentSearch;
 use App\Services\Scanner\NoopPhotoScanner;
 use App\Services\Scanner\PhotoScannerInterface;
+use App\Services\Scolarite\ImputationsCompte;
 use App\Services\Sms\AfricasTalkingProvider;
 use App\Services\Sms\EchoSmsProvider;
 use App\Services\Sms\FakeSmsProvider;
@@ -50,6 +51,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(PhotoScannerInterface::class, NoopPhotoScanner::class);
 
         $this->app->bind(CoverRenderer::class, PdftoppmCoverRenderer::class);
+
+        // Compte de l'auditeur (ADR-0013) : une seule instance par requête, pour que tous les écrivains
+        // d'argent partagent la mémoire du verrou tenu (refus d'un second auditeur dans la même écriture).
+        $this->app->scoped(ImputationsCompte::class);
 
         $this->app->bind(DocumentSearch::class, function (): DocumentSearch {
             $database = new DatabaseDocumentSearch;

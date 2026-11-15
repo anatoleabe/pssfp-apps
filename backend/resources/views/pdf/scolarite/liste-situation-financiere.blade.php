@@ -18,12 +18,12 @@
   <table class="liste">
     <thead><tr>
       <th>Matricule</th><th>Nom et prénom</th><th>Niveau</th><th>Spécialité</th>
-      <th class="n">Dû</th><th class="n">Remise</th><th class="n">Versé</th><th class="n">Reste</th><th>Situation</th>
+      <th class="n">Dû</th><th class="n">Remise</th><th class="n">Versé</th><th class="n">Reste</th><th class="n">Avance</th><th>Situation</th>
     </tr></thead>
     <tbody>
       @foreach ($tableau['groupes'] as $groupe)
         @if ($groupe['titre'] !== null)
-          <tr class="groupe"><td colspan="9">{{ $groupe['titre'] }} — {{ $effectif($groupe['totaux']['effectif']) }}</td></tr>
+          <tr class="groupe"><td colspan="10">{{ $groupe['titre'] }} — {{ $effectif($groupe['totaux']['effectif']) }}</td></tr>
         @endif
         @foreach ($groupe['lignes'] as $l)
           <tr>
@@ -35,6 +35,7 @@
             <td class="n">{{ $fcfa($l['remise']) }}</td>
             <td class="n">{{ $fcfa($l['verse']) }}</td>
             <td class="n">{{ $fcfa($l['reste']) }}</td>
+            <td class="n">{{ $l['avance'] > 0 ? $fcfa($l['avance']) : '—' }}</td>
             <td class="sit">{{ $l['situation'] }}</td>
           </tr>
         @endforeach
@@ -46,6 +47,7 @@
             <td class="n">{{ $fcfa($groupe['totaux']['remise']) }}</td>
             <td class="n">{{ $fcfa($groupe['totaux']['verse']) }}</td>
             <td class="n">{{ $fcfa($groupe['totaux']['reste']) }}</td>
+            <td class="n">{{ $fcfa($groupe['totaux']['avance']) }}</td>
             <td></td>
           </tr>
         @endif
@@ -57,11 +59,13 @@
         <td class="n">{{ $fcfa($tableau['totaux']['remise']) }}</td>
         <td class="n">{{ $fcfa($tableau['totaux']['verse']) }}</td>
         <td class="n">{{ $fcfa($tableau['totaux']['reste']) }}</td>
+        <td class="n">{{ $fcfa($tableau['totaux']['avance']) }}</td>
         <td></td>
       </tr>
     </tbody>
   </table>
-  <p class="note">Dû : montant de l'année après remise. Versé : versements enregistrés, hors versements annulés. Reste : ce qu'il reste à payer sur l'année.
+  <p class="note">Dû : montant de l'année après remise. Versé : part des versements enregistrés (hors versements annulés) imputée sur l'année, au plus le dû.
+    Reste : ce qu'il reste à payer sur l'année. Avance : versé au-delà de ce qui est dû, gardé au compte de l'auditeur pour la scolarité à venir.
     Un auditeur « Barème manquant » n'a pas d'inscription pour l'année : il compte dans l'effectif, pas dans les montants.</p>
 @endif
 </body>

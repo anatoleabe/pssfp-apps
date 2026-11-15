@@ -13,10 +13,12 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 /**
  * Situation financière des auditeurs, une ligne par auditeur, sans téléphone.
  * Les textes sont écrits comme du texte, jamais interprétés comme une formule.
+ * « Versé » est l'imputé de l'année ; l'avance du compte a sa colonne L (ADR-0013,
+ * décision du 15/11/2026) : les colonnes A à K ne bougent pas.
  */
 final class SituationFinanciereExcel
 {
-    public const ENTETES = ['Matricule', 'Nom', 'Prénom', 'Promotion', 'Niveau', 'Année', 'Dû', 'Remise', 'Versé', 'Reste', 'Situation'];
+    public const ENTETES = ['Matricule', 'Nom', 'Prénom', 'Promotion', 'Niveau', 'Année', 'Dû', 'Remise', 'Versé', 'Reste', 'Situation', 'Avance'];
 
     /** @param  Collection<int, Auditeur>  $auditeurs */
     public function generer(Collection $auditeurs): string
@@ -25,7 +27,9 @@ final class SituationFinanciereExcel
         $feuille = $classeur->getActiveSheet();
         $feuille->setTitle('Situation');
         $feuille->fromArray(self::ENTETES, null, 'A1');
-        $feuille->getStyle('A1:K1')->getFont()->setBold(true);
+        $feuille->getStyle('A1:L1')->getFont()->setBold(true);
+        // Une seule requête pour toutes les avances, quel que soit le chargement reçu.
+        $avances = Auditeur::query()->whereKey($auditeurs->map(fn (Auditeur $a) => $a->getKey())->all())->avecAvance()->pluck('avance', 'id');
 
         $ligne = 2;
         foreach ($auditeurs as $auditeur) {
@@ -43,12 +47,14 @@ final class SituationFinanciereExcel
                 $feuille->setCellValue('I'.$ligne, $s->verse);
                 $feuille->setCellValue('J'.$ligne, $s->reste);
             }
+            $feuille->setCellValue('L'.$ligne, (int) ($avances[$auditeur->getKey()] ?? 0));
             $ligne++;
         }
-        foreach (range('A', 'K') as $colonne) {
+        foreach (range('A', 'L') as $colonne) {
             $feuille->getColumnDimension($colonne)->setAutoSize(true);
         }
         $feuille->getStyle('G2:J'.max(2, $ligne - 1))->getNumberFormat()->setFormatCode('#,##0');
+        $feuille->getStyle('L2:L'.max(2, $ligne - 1))->getNumberFormat()->setFormatCode('#,##0');
 
         ob_start();
         (new Xlsx($classeur))->save('php://output');

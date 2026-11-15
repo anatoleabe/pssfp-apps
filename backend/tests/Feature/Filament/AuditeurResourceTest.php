@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Models\Versement;
 use App\Services\Ecampus\ComptesEcampus;
 use App\Services\ExportsRetenus\AttributionMatricules;
+use App\Services\Scolarite\ImputationsCompte;
 use App\Services\Scolarite\LibelleSituation;
 use App\Services\Scolarite\OuvertureAuditeur;
 use App\Services\Scolarite\RegistreVersements;
@@ -114,27 +115,61 @@ it('laisse la fenêtre ouverte et explique un doublon de référence', function 
     expect(Versement::query()->count())->toBe(1);
 });
 
-it('exige la confirmation d\'un versement au-delà du reste à payer, conservé comme avance', function (): void {
+it('exige la confirmation d\'un versement au-delà du reste à payer, en annonçant l\'avance', function (): void {
     $this->actingAs(($this->compte)('scolarite_agent'));
 
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
         ->mountAction('enregistrerVersement')
+        ->assertSee('Reste à payer : '.LibelleSituation::fcfa(1185000))
         ->setActionData(($this->saisie)(['montant' => 1500000]))
-        ->assertSee('Je confirme : ce montant dépasse le reste à payer ; l\'excédent sera conservé comme avance.')
+        ->assertSee('Je confirme : '.LibelleSituation::fcfa(315000).' dépassent le reste à payer et iront en avance sur la scolarité à venir.')
         ->assertDontSee('trop-perçu')
         ->callMountedAction()
-        ->assertHasActionErrors(['confirmer_trop_percu' => 'accepted']);
+        ->assertHasActionErrors(['confirmer_avance' => 'accepted']);
 
     expect(Versement::query()->count())->toBe(0);
 });
 
-it('présente l\'excédent des versements comme une avance sur la fiche', function (): void {
+it('annonce que l\'excédent d\'un employeur attend la décision du responsable', function (): void {
+    $this->actingAs(($this->compte)('scolarite_agent'));
+
+    $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
+        ->mountAction('enregistrerVersement')
+        ->setActionData(($this->saisie)(['montant' => 1285000, 'payeur' => 'employeur']))
+        ->assertSee('Je confirme : '.LibelleSituation::fcfa(100000).' dépassent le reste à payer et resteront en avance, en attente de la décision du responsable.')
+        ->setActionData(['confirmer_avance' => true])
+        ->callMountedAction()
+        ->assertHasNoActionErrors();
+
+    expect(Versement::query()->sole()->payeur)->toBe('employeur');
+});
+
+it('annonce dans la fenêtre d\'annulation qu\'un versement imputé sur deux années ne s\'annule pas en D1', function (): void {
+    $v = Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id, 'montant' => 1385000]);
+    InscriptionAnnuelle::factory()->create(['auditeur_id' => $this->fiche->id,
+        'bareme_id' => BaremeScolarite::factory()->m2()->create(['annee_academique' => '2027-2028'])->id]);
+    app(ImputationsCompte::class)->sousVerrou($this->fiche->id, fn (ImputationsCompte $c) => $c->imputerAvance($this->fiche->id, 'ouverture', null));
+    $this->actingAs(($this->compte)('scolarite_responsable'));
+
+    $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
+        ->mountTableAction('annuler', $v)
+        ->assertSee('Ce versement est imputé sur plusieurs années (2026-2027, 2027-2028)', false)
+        ->setTableActionData(['motif' => 'Virement rejeté par la banque'])
+        ->callMountedTableAction()
+        ->assertNotified('Annulation impossible');
+
+    expect($v->fresh()->estAnnule())->toBeFalse();
+});
+
+it('présente l\'avance du compte sur la fiche, avec la part réservée de l\'employeur', function (): void {
     Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id, 'montant' => 1285000]);
+    Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id, 'montant' => 50000, 'payeur' => 'employeur']);
     $this->actingAs(($this->compte)('scolarite_agent'));
 
     $this->get(AuditeurResource::getUrl('view', ['record' => $this->fiche]))
         ->assertOk()
-        ->assertSee('Avance : '.LibelleSituation::fcfa(100000))
+        ->assertSee('Avance au compte : '.LibelleSituation::fcfa(150000))
+        ->assertSee('dont '.LibelleSituation::fcfa(50000).' versés par l\'employeur, non imputés d\'office sur une autre année (décision du responsable)', false)
         ->assertDontSee('Trop-perçu');
 });
 
@@ -212,6 +247,22 @@ it('exporte la situation sans téléphone, en texte non interprété', function 
     expect($lignes[0])->toBe(SituationFinanciereExcel::ENTETES)
         ->and(collect($lignes)->flatten()->filter()->contains($this->awa->phone_e164))->toBeFalse()
         ->and($feuille->getCell('B'.(collect($lignes)->search(fn ($l) => $l[0] === $this->awa->matricule) + 1))->getDataType())->toBe('s');
+});
+
+it('exporte « Versé » imputé à l\'année et l\'avance dans une colonne L, sans bouger les colonnes A à K', function (): void {
+    Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id, 'montant' => 1285000]);
+    $contenu = app(SituationFinanciereExcel::class)->generer(Auditeur::query()->with(['candidature.campagne', 'inscriptionCourante.bareme'])->get());
+    $fichier = tempnam(sys_get_temp_dir(), 'sit').'.xlsx';
+    file_put_contents($fichier, $contenu);
+    $feuille = IOFactory::load($fichier)->getActiveSheet();
+    unlink($fichier);
+    $ligne = fn (Candidature $c): int => collect($feuille->toArray())->search(fn ($l) => $l[0] === $c->matricule) + 1;
+
+    expect(array_slice(SituationFinanciereExcel::ENTETES, 0, 11))->toBe(['Matricule', 'Nom', 'Prénom', 'Promotion', 'Niveau', 'Année', 'Dû', 'Remise', 'Versé', 'Reste', 'Situation'])
+        ->and(SituationFinanciereExcel::ENTETES[11])->toBe('Avance')
+        ->and($feuille->getCell('I'.$ligne($this->awa))->getValue())->toBe(1185000)
+        ->and($feuille->getCell('L'.$ligne($this->awa))->getValue())->toBe(100000)
+        ->and($feuille->getCell('L'.$ligne($this->bruno))->getValue())->toBe(0);
 });
 
 it('cache l\'export à qui n\'a pas le droit', function (): void {

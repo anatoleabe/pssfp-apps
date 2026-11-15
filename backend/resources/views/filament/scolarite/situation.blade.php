@@ -6,6 +6,8 @@
      */
     $inscription = $getRecord()->inscriptionCourante;
     $situation = $inscription?->situation();
+    // Avance du compte (ADR-0013) : versements valides non imputés, toutes années.
+    $compte = \App\Services\Scolarite\CompteAuditeur::pour($getRecord());
     $fcfa = fn (int $m): string => \App\Services\Scolarite\LibelleSituation::fcfa($m);
     $cellule = 'padding:0.55rem 1rem 0.55rem 0;border-bottom:1px solid rgb(var(--gray-200));';
     $nombre = $cellule.'text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;';
@@ -65,7 +67,10 @@
     @if ($situation->remise > 0)
         <p style="margin-top:.75rem;font-size:.875rem;">Remise accordée : <strong>{{ $fcfa($situation->remise) }}</strong>@if ($inscription->remise_motif) — {{ $inscription->remise_motif }}@endif</p>
     @endif
-    @if ($situation->tropPercu > 0)
-        <p style="margin-top:.5rem;font-size:.875rem;font-weight:600;color:rgb(var(--warning-600));">Avance : {{ $fcfa($situation->tropPercu) }}</p>
+    @if ($compte->avance() > 0)
+        <p style="margin-top:.5rem;font-size:.875rem;font-weight:600;color:rgb(var(--warning-600));">Avance au compte : {{ $fcfa($compte->avance()) }}</p>
+        @if ($compte->avanceReservee() > 0)
+            <p style="margin-top:.25rem;font-size:.8125rem;">dont {{ $fcfa($compte->avanceReservee()) }} versés par l'employeur, non imputés d'office sur une autre année (décision du responsable)</p>
+        @endif
     @endif
 @endif
