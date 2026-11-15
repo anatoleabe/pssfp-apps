@@ -59,7 +59,7 @@ class AuditeurResource extends Resource
     {
         return parent::getEloquentQuery()->with([
             'candidature.campagne',
-            'inscriptionCourante' => fn ($q) => $q->with(['bareme', 'deblocageEnCours.accordePar'])->withSum('imputationsActives', 'montant'),
+            'inscriptionCourante' => fn ($q) => $q->with(['bareme', 'deblocageEnCours.accordePar', 'deblocageEnCours.engagement'])->withSum('imputationsActives', 'montant'),
         ]);
     }
 
