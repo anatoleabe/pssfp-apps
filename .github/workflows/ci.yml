@@ -76,7 +76,7 @@ jobs:
       fail-fast: false
       matrix:
         # Lots équilibrés d'après les durées mesurées le 14/11/2026 (Filament seul : 29 min).
-        lot: [filament-1, filament-2, applications, lmd-bibliotheque-unitaires, scolarite-documents, reste]
+        lot: [filament-1, filament-2, filament-3, applications, lmd-bibliotheque-unitaires, scolarite-documents, reste]
 
     services:
       postgres:
@@ -161,10 +161,12 @@ jobs:
           MEILISEARCH_KEY: test_master_key
           LOT: ${{ matrix.lot }}
         run: |
-          filament() { find tests/Feature/Filament -name '*Test.php' | sort | awk "NR % 2 == $1"; }
+          # Filament en trois tiers (un fichier sur trois) : à deux, un lot prenait 13,5 min.
+          filament() { find tests/Feature/Filament -name '*Test.php' | sort | awk "NR % 3 == $1"; }
           case "$LOT" in
             filament-1) FICHIERS=$(filament 1) ;;
-            filament-2) FICHIERS=$(filament 0) ;;
+            filament-2) FICHIERS=$(filament 2) ;;
+            filament-3) FICHIERS=$(filament 0) ;;
             applications) FICHIERS="tests/Feature/Applications" ;;
             lmd-bibliotheque-unitaires) FICHIERS="tests/Feature/Lmd tests/Feature/Library tests/Unit" ;;
             scolarite-documents) FICHIERS="tests/Feature/Scolarite tests/Feature/DocumentsAuditeurs tests/Feature/Ecampus" ;;
