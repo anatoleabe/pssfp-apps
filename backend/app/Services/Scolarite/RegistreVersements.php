@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Scolarite;
 
 use App\Models\InscriptionAnnuelle;
+use App\Models\ReglementOrganisme;
 use App\Models\User;
 use App\Models\Versement;
 use Carbon\CarbonImmutable;
@@ -12,6 +13,7 @@ use Closure;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use LogicException;
 use Throwable;
 
 /**
@@ -92,10 +94,60 @@ final class RegistreVersements
         }
         $this->refuserDossierRetire($inscription);
 
+        $versement = $this->ecrireVersement($inscription, $montant, $date, $mode, $reference, $payeur, $justificatif, $auteur, null);
+        $this->auteurCourant = $auteur;
+
+        return new ResultatOperation($versement, $this->notifier($inscription));
+    }
+
+    /**
+     * Part d'un règlement d'organisme (lot A2, §9.7) : un versement de l'employeur, à la date et dans
+     * le mode du règlement, sans scan (la pièce est sur le règlement), imputé par R2 sur l'inscription
+     * désignée. Appelé par ReglementsOrganismes seulement, dans sa transaction et sous ses verrous ;
+     * rien n'est envoyé ici : l'appelant prévient après la validation (`apresReglement`).
+     *
+     * @throws InvalidArgumentException
+     */
+    public function enregistrerPartReglement(ReglementOrganisme $reglement, InscriptionAnnuelle $inscription, int $montant, string $reference, User $auteur): Versement
+    {
+        abort_unless($auteur->can(self::PERMISSION_SAISIR), 403);
+        if ($montant <= 0 || $montant > self::MONTANT_MAX) {
+            throw new InvalidArgumentException('Une part doit être comprise entre 1 et '.number_format(self::MONTANT_MAX, 0, ',', ' ').' FCFA.');
+        }
+        $reference = Versement::normaliserReference($reference);
+        if ($reference === '' || mb_strlen($reference) > 100) {
+            throw new InvalidArgumentException('La référence '.$reference.' dépasse 100 caractères : raccourcissez la référence du règlement.');
+        }
+        $this->refuserDossierRetire($inscription);
+
+        return $this->ecrireVersement($inscription, $montant, CarbonImmutable::parse($reglement->date_reglement->toDateString(), InscriptionAnnuelle::FUSEAU),
+            (string) $reglement->mode, $reference, Versement::PAYEUR_EMPLOYEUR, null, $auteur, $reglement);
+    }
+
+    /** Après la validation d'un règlement : régularisation de l'accès anticipé et notification, comme après un versement. */
+    public function apresReglement(InscriptionAnnuelle $inscription, User $auteur): ?bool
+    {
+        $this->auteurCourant = $auteur;
+
+        return $this->notifier($inscription);
+    }
+
+    /**
+     * Écrit un versement sous le verrou de son auditeur, l'impute (R2) et le journalise.
+     *
+     * @throws InvalidArgumentException
+     */
+    private function ecrireVersement(InscriptionAnnuelle $inscription, int $montant, CarbonImmutable $date, string $mode, string $reference,
+        string $payeur, ?string $justificatif, User $auteur, ?ReglementOrganisme $reglement): Versement
+    {
         try {
-            $versement = $this->ecrire((int) $inscription->auditeur_id, function (ImputationsCompte $compte) use ($inscription, $montant, $date, $mode, $reference, $payeur, $justificatif, $auteur): Versement {
+            return $this->ecrire((int) $inscription->auditeur_id, function (ImputationsCompte $compte) use ($inscription, $montant, $date, $mode, $reference, $payeur, $justificatif, $auteur, $reglement): Versement {
                 if (Versement::query()->where('mode', $mode)->where('reference', $reference)->whereNull('annule_at')->exists()) {
                     throw new InvalidArgumentException(self::messageDoublon($reference));
+                }
+                // L'argent d'un organisme saisi en règlement ne se ressaisit pas en versement (lot A2).
+                if ($reglement === null && ReglementOrganisme::query()->where('mode', $mode)->where('reference', $reference)->whereNull('annule_at')->exists()) {
+                    throw new InvalidArgumentException("La référence {$reference} a déjà été saisie comme règlement d'un organisme pour ce mode de paiement (écran « Prises en charge ») : vérifiez le bordereau.");
                 }
 
                 $versement = new Versement;
@@ -109,14 +161,16 @@ final class RegistreVersements
                     'payeur' => $payeur,
                     'justificatif_path' => $justificatif,
                     'saisi_par' => $auteur->id,
+                    'reglement_organisme_id' => $reglement?->id,
                 ])->save();
                 $plan = $compte->apresVersement($versement);
 
                 activity('scolarite')->causedBy($auteur)->performedOn($versement)
                     ->event('versement_enregistre')
                     ->withProperties(['montant' => $montant, 'mode' => $mode, 'reference' => $reference, 'inscription' => $inscription->uuid,
-                        'imputations' => $compte->decrire($plan), 'avance' => $montant - $plan->montantImpute()])
-                    ->log('Versement enregistré');
+                        'imputations' => $compte->decrire($plan), 'avance' => $montant - $plan->montantImpute()]
+                        + ($reglement === null ? [] : ['reglement' => $reglement->uuid]))
+                    ->log($reglement === null ? 'Versement enregistré' : 'Versement enregistré (règlement d\'un organisme)');
 
                 return $versement;
             });
@@ -124,17 +178,40 @@ final class RegistreVersements
             // Deux agents sur le même bordereau, au même moment : l'index tranche.
             throw new InvalidArgumentException(self::messageDoublon($reference));
         }
-
-        $this->auteurCourant = $auteur;
-
-        return new ResultatOperation($versement, $this->notifier($inscription));
     }
 
     /** @throws InvalidArgumentException */
     public function annuler(Versement $versement, string $motif, User $auteur): ResultatOperation
     {
         abort_unless($auteur->can(self::PERMISSION_ANNULER), 403);
+        if ($versement->reglement_organisme_id !== null) {
+            $r = ReglementOrganisme::query()->with('engagement:id,organisme')->find($versement->reglement_organisme_id);
 
+            throw new InvalidArgumentException('Ce versement fait partie du règlement '.$r?->reference.' de '.$r?->engagement?->organisme
+                .' : annulez le règlement entier depuis l\'écran « Prises en charge ».');
+        }
+
+        return $this->annulerVersement($versement, $motif, $auteur);
+    }
+
+    /**
+     * Annulation d'une part de règlement (lot A2, §9.7) : par ReglementsOrganismes seulement, dans sa
+     * transaction et sous ses verrous. Mêmes règles que tout versement (R4 de D1, reçu annulé).
+     *
+     * @throws InvalidArgumentException
+     */
+    public function annulerPartReglement(Versement $versement, string $motif, User $auteur): void
+    {
+        abort_unless($auteur->can(self::PERMISSION_ANNULER), 403);
+        if ($versement->reglement_organisme_id === null) {
+            throw new LogicException('Ce versement n\'est pas la part d\'un règlement.');
+        }
+        $this->annulerVersement($versement, $motif, $auteur);
+    }
+
+    /** @throws InvalidArgumentException */
+    private function annulerVersement(Versement $versement, string $motif, User $auteur): ResultatOperation
+    {
         $motif = trim($motif);
         if ($motif === '') {
             throw new InvalidArgumentException('Indiquez le motif de l\'annulation.');
