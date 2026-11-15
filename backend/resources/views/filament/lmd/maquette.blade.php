@@ -1,17 +1,22 @@
 @php
     /** @var \App\Models\Maquette $maquette */
-    $maquette = $getRecord()->loadMissing(['ues.ue', 'ues.ecues']);
+    $maquette = $getRecord()->loadMissing(['parcours', 'ues.ue', 'ues.ecues']);
+    $promotion = \App\Services\Lmd\NumerotationSemestres::promotionDeMaquette($maquette);
+    $libelleSemestre = fn ($semestre): string => \App\Services\Lmd\NumerotationSemestres::libelle((int) $semestre, $promotion);
     $cellule = 'padding:.4rem .75rem .4rem 0;border-bottom:1px solid rgb(var(--gray-200));vertical-align:top;';
     $num = 'text-align:right;white-space:nowrap;';
 @endphp
 @if ($maquette->ues->isEmpty())
     <p style="font-size:.875rem;">Aucune UE pour l'instant.</p>
 @else
+    <p style="font-size:.8rem;color:rgb(var(--gray-500));">
+        Numérotation des semestres : {{ \App\Services\Lmd\NumerotationSemestres::MODES[\App\Services\Lmd\NumerotationSemestres::mode($promotion)] }}{{ $promotion ? ', réglée sur la '.$promotion->promotion_numero.'e promotion' : '' }}.
+    </p>
     @foreach ($maquette->ues->groupBy('semestre') as $semestre => $lignes)
-        <h3 style="font-size:.95rem;font-weight:600;margin:1rem 0 .4rem;">Semestre {{ $semestre }} · {{ $lignes->sum('credits') }} crédits</h3>
+        <h3 style="font-size:.95rem;font-weight:600;margin:1rem 0 .4rem;">{{ $libelleSemestre($semestre) }} · {{ $lignes->sum('credits') }} crédits</h3>
         <div style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
-                <caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Semestre {{ $semestre }}</caption>
+                <caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">{{ $libelleSemestre($semestre) }}</caption>
                 <thead>
                     <tr style="text-align:left;font-size:.72rem;text-transform:uppercase;color:rgb(var(--gray-500));">
                         <th scope="col" style="padding:.35rem .75rem .35rem 0;">Code</th>

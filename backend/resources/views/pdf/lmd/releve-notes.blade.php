@@ -26,7 +26,7 @@
     <tbody>
       @foreach ($ues as $ue)
         <tr>
-          <td>S{{ $ue['semestre'] }}</td>
+          <td>{{ \App\Services\Lmd\NumerotationSemestres::libelleCourt((int) $ue['semestre'], $promotion ?? null) }}</td>
           <td>{{ $ue['code'] }}</td>
           <td>{{ $ue['intitule'] }}</td>
           <td class="n">{{ $ue['credits'] }}</td>

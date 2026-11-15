@@ -9,11 +9,13 @@ use App\Filament\Resources\PromotionResource\Pages\ListPromotions;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\User;
+use App\Services\Lmd\NumerotationSemestres;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Activity;
 
 uses()->group('filament', 'scolarite');
 
@@ -87,6 +89,44 @@ it('garde les paramètres absents du formulaire, et refuse une signature hors de
     expect($c->parametres_lettres['frais_inscription_montant'])->toBe(185000)
         ->and($c->parametres_lettres['rentree_lieu'])->toBe('Auditorium')
         ->and($c->signature_lettres_path)->toBeNull();
+});
+
+it('règle la numérotation des semestres de la promotion, master par défaut, et trace le changement', function (): void {
+    $this->actingAs($responsable = ($this->compte)('scolarite_responsable'));
+    $autre = CampagneCandidature::factory()->closed()->create(['nom' => ['fr' => 'Année académique 2025-2026'], 'promotion_numero' => 13]);
+
+    $this->livewire(EditPromotion::class, ['record' => $this->p14->getRouteKey()])
+        ->assertFormFieldExists('numerotation_semestres')
+        ->assertFormSet(['numerotation_semestres' => NumerotationSemestres::MASTER])
+        ->fillForm(['numerotation_semestres' => NumerotationSemestres::LMD])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($this->p14->fresh()->numerotation_semestres)->toBe(NumerotationSemestres::LMD)
+        ->and($autre->fresh()->numerotation_semestres)->toBe(NumerotationSemestres::MASTER);
+    $trace = Activity::query()->where('event', 'numerotation_semestres_modifiee')->sole();
+    expect($trace->causer_id)->toBe($responsable->id)
+        ->and($trace->subject_id)->toBe($this->p14->id)
+        ->and($trace->properties['avant'])->toBe(NumerotationSemestres::MASTER)
+        ->and($trace->properties['apres'])->toBe(NumerotationSemestres::LMD);
+
+    // Enregistrer sans changer la numérotation n'ajoute pas de trace.
+    $this->livewire(EditPromotion::class, ['record' => $this->p14->getRouteKey()])
+        ->fillForm(['consignes_retenus' => 'Présentez-vous à 8 h.'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+    expect(Activity::query()->where('event', 'numerotation_semestres_modifiee')->count())->toBe(1);
+});
+
+it('refuse une numérotation des semestres inconnue', function (): void {
+    $this->actingAs(($this->compte)('scolarite_responsable'));
+
+    $this->livewire(EditPromotion::class, ['record' => $this->p14->getRouteKey()])
+        ->fillForm(['numerotation_semestres' => 'licence'])
+        ->call('save')
+        ->assertHasFormErrors(['numerotation_semestres']);
+
+    expect($this->p14->fresh()->numerotation_semestres)->toBe(NumerotationSemestres::MASTER);
 });
 
 it('affiche les erreurs du formulaire en français', function (): void {

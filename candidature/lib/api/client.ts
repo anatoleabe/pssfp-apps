@@ -425,7 +425,11 @@ export interface MonParcours {
   maquette_validee: boolean;
   inscrit: boolean;
   credits_total: number;
-  semestres: { numero: number; credits: number; ues: ParcoursUe[] }[];
+  /**
+   * `numero` : semestre enregistré dans la maquette (clé stable) ; `numero_affiche` :
+   * numéro à montrer, selon le réglage de la promotion (S1-S4 ou S7-S10).
+   */
+  semestres: { numero: number; numero_affiche: number; credits: number; ues: ParcoursUe[] }[];
 }
 
 /** Parcours et maquette de l'inscription en cours ; 404 `auditeur_missing` sans inscription. */
@@ -437,6 +441,8 @@ export interface ResultatUe {
   code: string;
   intitule: string;
   semestre: number;
+  /** Numéro à montrer, selon le réglage de la promotion (S1-S4 ou S7-S10). */
+  semestre_affiche: number;
   credits: number;
   partie: 'ecrite' | 'soutenance';
   note: number | null;

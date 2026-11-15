@@ -7,8 +7,11 @@ use App\Filament\Resources\IndisponibiliteEnseignantResource;
 use App\Filament\Resources\ProgrammationEnseignantResource;
 use App\Filament\Resources\ProgrammationEnseignantResource\Pages\ListProgrammationsEnseignant;
 use App\Filament\Resources\QuotaHoraireResource;
+use App\Filament\Resources\QuotaHoraireResource\Pages\ListQuotasHoraires;
 use App\Jobs\SendThrottledMail;
 use App\Models\Acte;
+use App\Models\CampagneCandidature;
+use App\Models\Candidature;
 use App\Models\Maquette;
 use App\Models\MaquetteEcue;
 use App\Models\ModeleActe;
@@ -25,6 +28,7 @@ use App\Services\Lmd\ControlesCalendrier;
 use App\Services\Lmd\ControlesProgrammation;
 use App\Services\Lmd\EmploisDuTemps;
 use App\Services\Lmd\ImportMaquettes;
+use App\Services\Lmd\NumerotationSemestres;
 use App\Services\Lmd\Programmations;
 use App\Support\CandidatureObjectStorage;
 use Database\Seeders\DepartementsCamerounSeeder;
@@ -205,6 +209,24 @@ it('propose les quotas d\'une période : maquette moins les autres périodes', f
     expect($b['creees'])->toBe($semestre7)
         ->and([$q->heures_cm, $q->heures_td, $q->heures_tp])->toBe([10.0, 0.0, 0.0])
         ->and($this->service->proposerQuotas($this->periode2, [$this->tc->id], [7], $this->agent)['creees'])->toBe(0);
+});
+
+it('propose les quotas depuis l\'écran, semestres libellés selon la promotion de chaque niveau', function (): void {
+    // La 14e promotion (M1 en 2026-2027) est réglée en LMD ; aucune promotion connue pour le M2 : défaut.
+    $p14 = CampagneCandidature::factory()->closed()->create(['nom' => ['fr' => 'Année académique 2026-2027'], 'promotion_numero' => 14,
+        'numerotation_semestres' => NumerotationSemestres::LMD]);
+    Candidature::factory()->forCampagne($p14)->submitted()->create(['statut' => Candidature::STATUT_ACCEPTE]);
+    $this->actingAs($this->agent);
+
+    Livewire::test(ListQuotasHoraires::class)
+        ->mountAction('proposer')
+        ->setActionData(['periode' => $this->periode2->id])
+        ->assertSee('Semestre 7')->assertSee('Semestre 8')->assertSee('Semestre 3')->assertSee('Semestre 4')->assertDontSee('Semestre 1')
+        ->setActionData(['periode' => $this->periode2->id, 'parcours' => [$this->tc->id], 'semestres' => [7]])
+        ->callMountedAction()
+        ->assertHasNoActionErrors();
+
+    expect(QuotaHoraire::query()->where('periode_id', $this->periode2->id)->count())->toBeGreaterThan(0);
 });
 
 it('reprend les programmations dans la note de programmation de la période', function (): void {

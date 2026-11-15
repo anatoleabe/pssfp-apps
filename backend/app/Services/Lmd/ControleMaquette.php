@@ -50,10 +50,14 @@ final class ControleMaquette
             }
         }
 
+        // Promotion cherchée seulement si un semestre est en écart : la liste des maquettes contrôle chaque ligne.
+        $promotion = null;
         foreach ($maquette->ues->groupBy('semestre') as $semestre => $lignes) {
             $credits = (int) $lignes->sum('credits');
             if ($credits !== self::CREDITS_SEMESTRE) {
-                $anomalies[] = new Anomalie(Anomalie::AVERTISSEMENT, 'credits_semestre', "Le semestre {$semestre} compte {$credits} crédits.");
+                $promotion ??= NumerotationSemestres::promotionDeMaquette($maquette);
+                $libelle = mb_strtolower(NumerotationSemestres::libelle((int) $semestre, $promotion));
+                $anomalies[] = new Anomalie(Anomalie::AVERTISSEMENT, 'credits_semestre', "Le {$libelle} compte {$credits} crédits.");
             }
         }
 

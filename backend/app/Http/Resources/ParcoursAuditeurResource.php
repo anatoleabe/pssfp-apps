@@ -8,6 +8,7 @@ use App\Models\InscriptionAnnuelle;
 use App\Models\Maquette;
 use App\Models\MaquetteEcue;
 use App\Models\MaquetteUe;
+use App\Services\Lmd\NumerotationSemestres;
 use App\Services\Lmd\ParcoursAuditeur;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -28,6 +29,7 @@ final class ParcoursAuditeurResource extends JsonResource
         $parcours = app(ParcoursAuditeur::class)->pour($inscription);
         $maquette = $parcours === null ? null : Maquette::reference($inscription->annee_academique, $parcours->id);
         $maquette?->load(['ues.ue', 'ues.ecues']);
+        $promotion = $maquette === null ? null : NumerotationSemestres::promotionDeAuditeur($inscription->auditeur);
 
         return [
             'annee_academique' => $inscription->annee_academique,
@@ -37,7 +39,9 @@ final class ParcoursAuditeurResource extends JsonResource
             'inscrit' => $inscription->inscriptionsPedagogiques()->exists(),
             'credits_total' => $maquette?->totalCredits() ?? 0,
             'semestres' => $maquette === null ? [] : $maquette->ues->groupBy('semestre')->map(fn ($lignes, $numero): array => [
+                // Numéro enregistré dans la maquette ; le portail affiche `numero_affiche` (réglage de la promotion).
                 'numero' => (int) $numero,
+                'numero_affiche' => NumerotationSemestres::numero((int) $numero, $promotion),
                 'credits' => (int) $lignes->sum('credits'),
                 'ues' => $lignes->map(fn (MaquetteUe $l): array => [
                     'code' => (string) $l->ue?->code,
