@@ -73,10 +73,16 @@ La situation financière (`SituationFinanciere`, badges, scopes, export) **ne ch
 
 - **Prolonger** : nouvelle échéance et motif. L'agent prolonge un virement annoncé, une seule fois et d'au plus 30 jours. Le responsable prolonge tout.
 - Un déblocage clos ne se rouvre pas : on en crée un nouveau.
+- Après une **révocation**, seul le responsable accorde un nouveau déblocage sur la même inscription : c'est son garde-fou, puisque les codes remis ne se reprennent pas.
+- Une pièce ne sert qu'une fois : ni le bordereau d'un versement, ni la pièce d'un autre déblocage.
+- Un auditeur passé au statut « exclu » ou « abandon » après son déblocage n'en profite plus : son accès redevient « bloqué » tant qu'il n'a pas payé.
 
 ## 5. Relances et alertes
 
 - **Tâche quotidienne** `scolarite:relancer-deblocages`, à 08:00 heure de Yaoundé. Pour chaque déblocage `en_cours` dont l'échéance est passée et qui n'a pas été relancé depuis 7 jours, elle envoie un SMS et un e-mail à l'auditeur. Les relances suivent le circuit des messages aux auditeurs : trace dans l'espace, journal.
+  - Le jour de l'échéance compte encore dans le délai : la première relance part le lendemain.
+  - Même texte sur les deux canaux (l'espace n'affiche alors qu'un message), tracé avec la cause `deblocage`.
+  - Un auditeur soldé entre-temps est régularisé au lieu d'être relancé ; un dossier retiré ou un auditeur exclu ou en abandon n'est pas relancé.
 - Messages : ASCII, un seul segment, sans numéro de téléphone, sans ponctuation collée à une adresse.
   - Virement annoncé : « PSSFP : votre virement des droits d'inscription n'est pas encore arrive. Merci de regulariser ou de contacter la scolarite. »
   - Moratoire : « PSSFP : le delai accorde pour vos droits d'inscription est depasse. Merci de regulariser aupres de la scolarite. »
@@ -96,8 +102,9 @@ La situation financière (`SituationFinanciere`, badges, scopes, export) **ne ch
 | `justificatif_path` | varchar, nullable | Obligatoire pour `virement_annonce` (CHECK) |
 | `echeance` | date | |
 | `statut` | varchar(12) | CHECK : `en_cours`, `regularise`, `revoque` ; défaut `en_cours` |
-| `accorde_par` | FK `users` | |
+| `accorde_par` | FK `users`, nullable | `ON DELETE SET NULL`, comme `versements.saisi_par` : le journal garde l'auteur |
 | `clos_le`, `clos_par`, `motif_cloture` | nullable | Posés à la régularisation ou à la révocation |
+| `prolongations` | smallint, défaut 0 | Ajoutée en A1 : l'agent ne prolonge qu'une fois un virement annoncé |
 | `relances` | smallint, défaut 0 | |
 | `derniere_relance_le` | timestamptz, nullable | |
 | `engagement_id` | nullable | Ajouté par A2 |
