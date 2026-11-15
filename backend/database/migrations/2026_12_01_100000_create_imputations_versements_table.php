@@ -16,7 +16,12 @@ use Illuminate\Support\Facades\Schema;
  * - Des clés composites gardent versement, inscription et imputation chez le même auditeur.
  * - Un déclencheur de contrainte vérifie, à la fin de chaque instruction, qu'aucun versement
  *   n'est imputé au-delà de son montant (ni après son annulation) et qu'aucune inscription
- *   ne l'est au-delà de son dû. SQL brut autorisé par l'ADR-0013, point 7.
+ *   ne l'est au-delà de son dû. Il prend d'abord le verrou de l'auditeur : un écrivain qui
+ *   passerait à côté de l'application est sérialisé comme elle (au pire, un interblocage
+ *   détecté par PostgreSQL, jamais une somme fausse).
+ * - Les versements deviennent immuables en base : seuls l'annulation et le bordereau, une fois
+ *   chacun ; ni suppression ni troncature (l'avance du compte en dépend entièrement).
+ * SQL brut autorisé par l'ADR-0013, point 7.
  *
  * Exécutée dans une transaction (PostgreSQL) : tout ou rien. La reprise des versements
  * existants est la migration suivante.
@@ -109,6 +114,9 @@ return new class extends Migration
             CREATE OR REPLACE FUNCTION compte_auditeur_coherent() RETURNS trigger LANGUAGE plpgsql AS $$
             DECLARE v_id bigint; i_id bigint;
             BEGIN
+              -- Verrou de l'auditeur (R8) : déjà tenu par l'application, il sérialise tout autre écrivain ;
+              -- la somme qui suit, lue après lui, voit les écritures validées entre-temps.
+              PERFORM 1 FROM auditeurs a WHERE a.id = NEW.auditeur_id FOR UPDATE;
               IF TG_TABLE_NAME = 'imputations_versements' THEN
                 v_id := NEW.versement_id; i_id := NEW.inscription_annuelle_id;
               ELSIF TG_TABLE_NAME = 'versements' THEN
@@ -144,6 +152,41 @@ return new class extends Migration
               DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION compte_auditeur_coherent();
             SQL);
 
+        // Versements immuables : l'avance (versements valides − imputations actives) en dépend. Seuls permis :
+        // l'annulation, une fois, depuis un versement valide ; le bordereau, joint une fois ; la mise à nul
+        // d'un auteur par la suppression de son compte (clés SET NULL du lot 1).
+        DB::unprepared(<<<'SQL'
+            CREATE OR REPLACE FUNCTION versements_immuables() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              IF TG_OP = 'DELETE' THEN
+                RAISE EXCEPTION 'Versement immuable : annulez-le, ne le supprimez pas' USING ERRCODE = 'check_violation';
+              END IF;
+              IF ROW(NEW.id, NEW.uuid, NEW.auditeur_id, NEW.inscription_annuelle_id, NEW.montant, NEW.date_versement, NEW.mode,
+                     NEW.reference, NEW.payeur, NEW.created_at)
+                   IS DISTINCT FROM ROW(OLD.id, OLD.uuid, OLD.auditeur_id, OLD.inscription_annuelle_id, OLD.montant, OLD.date_versement, OLD.mode,
+                     OLD.reference, OLD.payeur, OLD.created_at)
+                 OR (NEW.saisi_par IS DISTINCT FROM OLD.saisi_par AND NEW.saisi_par IS NOT NULL)
+                 OR (NEW.justificatif_path IS DISTINCT FROM OLD.justificatif_path AND OLD.justificatif_path IS NOT NULL)
+                 OR (OLD.annule_at IS NOT NULL AND (NEW.annule_at IS DISTINCT FROM OLD.annule_at OR NEW.annule_motif IS DISTINCT FROM OLD.annule_motif
+                     OR (NEW.annule_par IS DISTINCT FROM OLD.annule_par AND NEW.annule_par IS NOT NULL)))
+                 OR (OLD.annule_at IS NULL AND NEW.annule_at IS NULL
+                     AND ROW(NEW.annule_par, NEW.annule_motif) IS DISTINCT FROM ROW(OLD.annule_par, OLD.annule_motif)) THEN
+                RAISE EXCEPTION 'Versement immuable : seuls son annulation et son bordereau, une fois chacun, sont permis' USING ERRCODE = 'check_violation';
+              END IF;
+              RETURN NEW;
+            END $$;
+            CREATE TRIGGER versements_immuables BEFORE UPDATE OR DELETE ON versements
+              FOR EACH ROW EXECUTE FUNCTION versements_immuables();
+            CREATE OR REPLACE FUNCTION compte_sans_troncature() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              RAISE EXCEPTION 'Table d''argent (%) : aucune troncature', TG_TABLE_NAME USING ERRCODE = 'check_violation';
+            END $$;
+            CREATE TRIGGER versements_sans_troncature BEFORE TRUNCATE ON versements
+              FOR EACH STATEMENT EXECUTE FUNCTION compte_sans_troncature();
+            CREATE TRIGGER imputations_versements_sans_troncature BEFORE TRUNCATE ON imputations_versements
+              FOR EACH STATEMENT EXECUTE FUNCTION compte_sans_troncature();
+            SQL);
+
         // 6 : l'objet d'un reçu détaille plusieurs années. Élargir un varchar ne réécrit aucune
         // ligne et ne déclenche pas l'immuabilité des reçus : les reçus émis ne changent pas.
         DB::statement('ALTER TABLE recus_versements ALTER COLUMN objet TYPE varchar(500)');
@@ -151,8 +194,10 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Retour arrière par le code, une fois le compte en service (précédent des tables du lot 1).
-        if (Schema::hasTable('imputations_versements') && DB::table('imputations_versements')->where('origine', '<>', 'reprise')->exists()) {
+        // Retour arrière par le code, une fois le compte en service (précédent des tables du lot 1) : une imputation
+        // d'une autre origine que la reprise, ou une imputation de reprise annulée ou remplacée, est de l'histoire du compte.
+        if (Schema::hasTable('imputations_versements') && DB::table('imputations_versements')
+            ->where(fn ($q) => $q->where('origine', '<>', 'reprise')->orWhereNotNull('annule_at')->orWhereNotNull('remplace_id'))->exists()) {
             throw new RuntimeException('Le compte a servi : revenez au code précédent sans annuler la migration.');
         }
         if (DB::table('recus_versements')->whereRaw('length(objet) > 255')->exists()) {
@@ -162,11 +207,15 @@ return new class extends Migration
         DB::unprepared(<<<'SQL'
             DROP TRIGGER IF EXISTS inscriptions_compte_coherent ON inscriptions_annuelles;
             DROP TRIGGER IF EXISTS versements_compte_coherent ON versements;
+            DROP TRIGGER IF EXISTS versements_immuables ON versements;
+            DROP TRIGGER IF EXISTS versements_sans_troncature ON versements;
             SQL);
         Schema::dropIfExists('imputations_versements');
         DB::unprepared(<<<'SQL'
             DROP FUNCTION IF EXISTS compte_auditeur_coherent();
             DROP FUNCTION IF EXISTS imputations_immuables();
+            DROP FUNCTION IF EXISTS versements_immuables();
+            DROP FUNCTION IF EXISTS compte_sans_troncature();
             SQL);
 
         Schema::table('versements', function (Blueprint $table): void {

@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Scolarite;
 
-use App\Models\Auditeur;
 use App\Models\InscriptionAnnuelle;
 use App\Models\User;
 use App\Models\Versement;
 use Carbon\CarbonImmutable;
 use Closure;
-use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
@@ -39,7 +37,10 @@ final class RegistreVersements
     public const PERMISSION_BAREME = 'scolarite.bareme';
 
     /** Refus de la base (déclencheur de cohérence, CHECK) : un défaut du code, jamais montré tel quel. */
-    public const COMPTE_INCOHERENT = 'Le compte de l\'auditeur n\'a pas pu être mis à jour : rien n\'a été enregistré. Prévenez l\'USI.';
+    public const COMPTE_INCOHERENT = ImputationsCompte::COMPTE_INCOHERENT;
+
+    /** Plafond d'un versement, le même que celui du formulaire. */
+    public const MONTANT_MAX = 100_000_000;
 
     private ?User $auteurCourant = null;
 
@@ -62,6 +63,9 @@ final class RegistreVersements
         $montant = filter_var($saisie['montant'] ?? null, FILTER_VALIDATE_INT);
         if ($montant === false || $montant <= 0) {
             throw new InvalidArgumentException('Le montant doit être un nombre entier de FCFA, supérieur à zéro.');
+        }
+        if ($montant > self::MONTANT_MAX) {
+            throw new InvalidArgumentException('Le montant ne peut pas dépasser '.number_format(self::MONTANT_MAX, 0, ',', ' ').' FCFA : vérifiez la saisie.');
         }
         if (blank($saisie['date_versement'] ?? null)) {
             throw new InvalidArgumentException('Indiquez la date du versement.');
@@ -281,8 +285,8 @@ final class RegistreVersements
     }
 
     /**
-     * Écriture d'argent sous le verrou de l'auditeur. Un refus de la base (déclencheur de
-     * cohérence, CHECK) trahit un défaut du code : journalisé, il devient un message à l'agent.
+     * Écriture d'argent sous le verrou de l'auditeur. Un refus de la base y devient le message
+     * COMPTE_INCOHERENT (ImputationsCompte::sousVerrou).
      *
      * @template T
      *
@@ -291,19 +295,7 @@ final class RegistreVersements
      */
     private function ecrire(int $auditeurId, Closure $geste): mixed
     {
-        try {
-            return $this->imputations->sousVerrou($auditeurId, $geste);
-        } catch (QueryException $e) {
-            if (($e->errorInfo[0] ?? $e->getCode()) !== '23514') {
-                throw $e;
-            }
-            Log::channel('single')->error('Compte de l\'auditeur : écriture refusée par la base, rien n\'a été enregistré.', [
-                'auditeur' => Auditeur::query()->whereKey($auditeurId)->value('uuid'),
-                'erreur' => mb_substr($e->getPrevious()?->getMessage() ?? $e->getMessage(), 0, 500),
-            ]);
-
-            throw new InvalidArgumentException(self::COMPTE_INCOHERENT);
-        }
+        return $this->imputations->sousVerrou($auditeurId, $geste);
     }
 
     /** @return list<array{inscription: string, annee: string, montant: int}> */

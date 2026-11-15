@@ -137,6 +137,19 @@ it('résume chaque année par son total quand le détail dépasse 500 caractère
         ->and($r->total_verse)->toBe(1185000);
 });
 
+it('découpe un versement antidaté dans l\'ordre où il a été imputé, sans contredire la situation', function (): void {
+    // Le versement du 09/11 est saisi d'abord et solde l'année ; celui du 05/11, saisi ensuite, va en avance.
+    ($this->verser)(1185000, '2026-11-09');
+    $antidate = ($this->verser)(300000, '2026-11-05');
+
+    $r = $this->service->emettre($antidate, $this->financier);
+
+    expect($r->objet)->toBe('Frais de scolarité 2026-2027 : avance sur la scolarité à venir (300 000 FCFA)')
+        ->and($r->total_verse)->toBe(1185000)
+        ->and($r->reste_a_payer)->toBe(0)
+        ->and($this->inscription->fresh()->situation()->solde())->toBeTrue();
+});
+
 it('ne touche jamais un reçu émis : une remise ou une annulation après coup laisse ses colonnes intactes', function (): void {
     $v = ($this->verser)(1185000);
     $r = $this->service->emettre($v, $this->financier);
@@ -186,8 +199,10 @@ it('refuse le reçu d\'un versement annulé, déjà couvert ou antérieur à la 
     expect(fn () => $this->service->emettre($propre, $this->financier))->toThrow(InvalidArgumentException::class, 'Vous avez enregistré ce versement');
     $this->service->emettre($propre, ($this->compte)('service_financier'));
 
-    $ancien = ($this->verser)(10000);
-    DB::table('versements')->where('id', $ancien->id)->update(['created_at' => now()->subMonth()]);
+    // Enregistré avant la mise en service : la base refuse de réécrire un versement, on remonte donc le temps.
+    $this->travelTo(now()->subMonth());
+    $ancien = ($this->verser)(10000, '2026-10-01');
+    $this->travelTo(now('Africa/Douala')->setDate(2026, 11, 10)->setTime(9, 0));
     expect(fn () => $this->service->emettre($ancien->refresh(), $this->financier))->toThrow(InvalidArgumentException::class, 'avant la mise en service');
 });
 

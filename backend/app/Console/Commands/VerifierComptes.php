@@ -62,8 +62,9 @@ final class VerifierComptes extends Command
     }
 
     /**
-     * Dans une transaction ouverte en READ ONLY ; si une transaction est déjà ouverte (tests),
-     * on n'y émet que des SELECT.
+     * Dans une transaction ouverte en REPEATABLE READ et READ ONLY : toutes les requêtes lisent le
+     * même instantané, même pendant des saisies. Si une transaction est déjà ouverte (tests), on
+     * n'y émet que des SELECT.
      *
      * @param  Closure(): int  $verifier
      */
@@ -74,7 +75,7 @@ final class VerifierComptes extends Command
         }
         DB::beginTransaction();
         try {
-            DB::statement('SET TRANSACTION READ ONLY');
+            DB::statement('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
 
             return $verifier();
         } finally {

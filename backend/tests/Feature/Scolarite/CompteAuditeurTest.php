@@ -340,18 +340,46 @@ it('verrouille l\'auditeur en premier dans chaque écriture d\'argent, et plus j
     }
 });
 
-it('n\'enregistre rien et prévient l\'USI quand la base refuse le compte', function (): void {
-    // Un défaut du code simulé : la base refuse toute imputation.
+it('n\'enregistre rien et prévient l\'USI quand la base refuse le compte, sans journaliser le détail de la ligne', function (): void {
+    // Un défaut du code simulé : la base refuse toute imputation, avec un détail qui pourrait contenir un nom.
+    DB::unprepared(<<<'SQL'
+        CREATE FUNCTION refus_de_test() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN RAISE EXCEPTION 'Compte incohérent (test)' USING ERRCODE = 'check_violation', DETAIL = 'Failing row contains (ESSAI Nomfictif)'; END $$;
+        CREATE TRIGGER refus_de_test BEFORE INSERT ON imputations_versements FOR EACH ROW EXECUTE FUNCTION refus_de_test();
+        SQL);
+    Log::shouldReceive('channel')->with('single')->andReturnSelf();
+    Log::shouldReceive('error')->once()->withArgs(fn (string $message, array $contexte): bool => str_contains($message, 'Compte de l\'auditeur')
+        && $contexte['auditeur'] === $this->auditeur->uuid && $contexte['sqlstate'] === '23514'
+        && str_contains($contexte['erreur'], 'Compte incohérent (test)') && ! str_contains($contexte['erreur'], 'Nomfictif'));
+
+    expect(fn () => ($this->verser)(185000))
+        ->toThrow(InvalidArgumentException::class, 'Le compte de l\'auditeur n\'a pas pu être mis à jour : rien n\'a été enregistré. Prévenez l\'USI.')
+        ->and(Versement::query()->count())->toBe(0);
+});
+
+it('traduit le refus de la base pour toute écriture sous le verrou, la création d\'inscription comprise', function (): void {
     DB::unprepared(<<<'SQL'
         CREATE FUNCTION refus_de_test() RETURNS trigger LANGUAGE plpgsql AS $$
         BEGIN RAISE EXCEPTION 'Compte incohérent (test)' USING ERRCODE = 'check_violation'; END $$;
         CREATE TRIGGER refus_de_test BEFORE INSERT ON imputations_versements FOR EACH ROW EXECUTE FUNCTION refus_de_test();
         SQL);
     Log::shouldReceive('channel')->with('single')->andReturnSelf();
-    Log::shouldReceive('error')->once()->withArgs(fn (string $message, array $contexte): bool => str_contains($message, 'Compte de l\'auditeur') && $contexte['auditeur'] === $this->auditeur->uuid);
+    Log::shouldReceive('error')->once();
+    $p20 = CampagneCandidature::factory()->create(['nom' => ['fr' => 'Année académique 2033-2034'], 'promotion_numero' => 21]);
+    $c = Candidature::factory()->forCampagne($p20)->submitted()->create([
+        'statut' => Candidature::STATUT_ACCEPTE, 'phone_e164' => '+237699004009', 'email' => 'essai-refus@example.org',
+    ]);
+    $c->forceFill(['matricule' => '33TST0001', 'frais_inscription_payes_at' => now(), 'frais_inscription_payes_by' => $this->agent->id])->save();
+    $auditeur = Auditeur::query()->create(['candidature_id' => $c->id]);
+    BaremeScolarite::factory()->create(['annee_academique' => '2033-2034', 'niveau' => 'M1']);
 
-    expect(fn () => ($this->verser)(185000))
-        ->toThrow(InvalidArgumentException::class, 'Le compte de l\'auditeur n\'a pas pu être mis à jour : rien n\'a été enregistré. Prévenez l\'USI.')
+    expect(fn () => app(OuvertureAuditeur::class)->creerInscription($auditeur, $this->agent))
+        ->toThrow(InvalidArgumentException::class, 'Le compte de l\'auditeur n\'a pas pu être mis à jour')
+        ->and(InscriptionAnnuelle::query()->where('auditeur_id', $auditeur->id)->count())->toBe(0);
+});
+
+it('refuse un montant au-delà de 100 000 000 FCFA, comme le formulaire', function (): void {
+    expect(fn () => ($this->verser)(100000001))->toThrow(InvalidArgumentException::class, '100 000 000')
         ->and(Versement::query()->count())->toBe(0);
 });
 

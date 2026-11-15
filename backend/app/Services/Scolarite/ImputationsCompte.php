@@ -11,6 +11,9 @@ use App\Models\User;
 use App\Models\Versement;
 use Closure;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use LogicException;
 use Spatie\Activitylog\Models\Activity;
 
@@ -25,10 +28,16 @@ use Spatie\Activitylog\Models\Activity;
  *
  * RegistreVersements reste le seul à écrire versements et remises : il appelle ce
  * service avant et après ses propres écritures.
+ *
+ * Un refus de la base (déclencheur de cohérence, CHECK : SQLSTATE 23514) trahit un défaut
+ * du code : rien n'est écrit, l'erreur est journalisée (uuid de l'auditeur et première ligne
+ * du message, sans le détail de la ligne refusée) et devient un message pour l'agent.
  */
 final class ImputationsCompte
 {
     public const DECLENCHEURS = ['ouverture', 'remise', 'annulation'];
+
+    public const COMPTE_INCOHERENT = 'Le compte de l\'auditeur n\'a pas pu être mis à jour : rien n\'a été enregistré. Prévenez l\'USI.';
 
     private ?int $auditeurVerrouille = null;
 
@@ -56,15 +65,37 @@ final class ImputationsCompte
             return $geste($this);
         }
 
-        return $this->db->transaction(function () use ($auditeurId, $geste): mixed {
-            Auditeur::query()->whereKey($auditeurId)->lockForUpdate()->firstOrFail();
-            $this->auditeurVerrouille = $auditeurId;
-            try {
-                return $geste($this);
-            } finally {
-                $this->auditeurVerrouille = null;
+        try {
+            return $this->db->transaction(function () use ($auditeurId, $geste): mixed {
+                Auditeur::query()->whereKey($auditeurId)->lockForUpdate()->firstOrFail();
+                $this->auditeurVerrouille = $auditeurId;
+                try {
+                    return $geste($this);
+                } finally {
+                    $this->auditeurVerrouille = null;
+                }
+            });
+        } catch (QueryException $e) {
+            if (($e->errorInfo[0] ?? (string) $e->getCode()) !== '23514') {
+                throw $e;
             }
-        });
+            Log::channel('single')->error('Compte de l\'auditeur : écriture refusée par la base, rien n\'a été enregistré.', [
+                'auditeur' => Auditeur::query()->whereKey($auditeurId)->value('uuid'),
+                'sqlstate' => '23514',
+                'erreur' => self::premiereLigne($e),
+            ]);
+
+            throw new InvalidArgumentException(self::COMPTE_INCOHERENT);
+        }
+    }
+
+    /** Message de la base sans DETAIL ni CONTEXT : la ligne refusée peut contenir un motif saisi à la main. */
+    private static function premiereLigne(QueryException $e): string
+    {
+        $message = (string) ($e->errorInfo[2] ?? $e->getPrevious()?->getMessage() ?? '');
+        $premiere = trim((string) strtok($message, "\n"));
+
+        return mb_substr(trim((string) preg_replace('/^.*?ERROR:\s*/', '', $premiere)), 0, 300);
     }
 
     /** R2 : imputations d'un versement qui vient d'être créé, dans la même transaction. */

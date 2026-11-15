@@ -196,9 +196,10 @@ final class RecusVersements
     /**
      * Objet, total versé pour l'année et reste du reçu, lus dans les imputations actives du versement
      * (spec D1, §9.2). Pour chaque inscription touchée, la part du versement se découpe sur les paliers
-     * (de l'inscription vers la dernière tranche) à partir de l'imputé des versements qui le précèdent
-     * (date, puis ordre d'enregistrement). Ce qui n'est imputé nulle part est l'avance. « Total versé
-     * pour l'année » porte sur l'inscription désignée, avance exclue.
+     * (de l'inscription vers la dernière tranche) à partir de l'imputé des versements enregistrés avant
+     * lui : c'est l'ordre dans lequel R2 les a imputés, si bien qu'un versement antidaté ne contredit pas
+     * la situation. Ce qui n'est imputé nulle part est l'avance. « Total versé pour l'année » porte sur
+     * l'inscription désignée, avance exclue.
      *
      * @return array{objet: string, total_verse: int, reste: int}
      */
@@ -239,18 +240,14 @@ final class RecusVersements
         return ['objet' => mb_substr($objet, 0, self::OBJET_MAX), 'total_verse' => $total, 'reste' => max(0, $du - $total)];
     }
 
-    /** Imputé actif sur l'inscription par les versements qui précèdent `$v` (date, puis ordre d'enregistrement). */
+    /** Imputé actif sur l'inscription par les versements enregistrés avant `$v` (ordre d'imputation de R2). */
     private function imputeAvant(InscriptionAnnuelle $inscription, Versement $v): int
     {
-        $date = $v->date_versement->toDateString();
-
         return (int) ImputationVersement::query()
-            ->join('versements', 'versements.id', '=', 'imputations_versements.versement_id')
-            ->where('imputations_versements.inscription_annuelle_id', $inscription->id)
-            ->whereNull('imputations_versements.annule_at')
-            ->where(fn ($q) => $q->where('versements.date_versement', '<', $date)
-                ->orWhere(fn ($x) => $x->where('versements.date_versement', $date)->where('versements.id', '<', $v->id)))
-            ->sum('imputations_versements.montant');
+            ->where('inscription_annuelle_id', $inscription->id)
+            ->whereNull('annule_at')
+            ->where('versement_id', '<', $v->id)
+            ->sum('montant');
     }
 
     /**

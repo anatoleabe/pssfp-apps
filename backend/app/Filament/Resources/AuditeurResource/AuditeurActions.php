@@ -72,7 +72,7 @@ final class AuditeurActions
                 .'. Le versement compte aussitôt ; seul le responsable de scolarité peut l\'annuler.')
             ->modalSubmitActionLabel('Enregistrer')
             ->form(fn (Auditeur $record): array => MessagesValidation::appliquer([
-                Forms\Components\TextInput::make('montant')->label('Montant (FCFA)')->required()->integer()->minValue(1)->maxValue(100000000)->live(onBlur: true),
+                Forms\Components\TextInput::make('montant')->label('Montant (FCFA)')->required()->integer()->minValue(1)->maxValue(RegistreVersements::MONTANT_MAX)->live(onBlur: true),
                 Forms\Components\DatePicker::make('date_versement')->label('Date du versement')->required()->native(false)
                     ->displayFormat('d/m/Y')->default(InscriptionAnnuelle::aujourdhui()->toDateString())
                     // Fin de journée : le sélecteur du navigateur renvoie une heure, et une
