@@ -37,7 +37,7 @@ final class EtapePaiements implements Etape
         $aujourdhui = $contexte->maintenant->format('Y-m-d');
         $ignorees = ['annee_invalide' => 0, 'annee_non_reprise' => 0, 'dossier_exclu' => 0];
         $lignes = $doublons = [];
-        foreach (LectureTransit::lignes('du', ['IddroitU', 'matricule', 'Niveau', 'anneacademic', 'Montant', 'inscriptions', 'bibliotheque', 'fraisperiscol', 'tenuesport', 'dateRecu', 'NumeroRecu', 'NomBanque', 'codephase', 'username']) as $d) {
+        foreach (LectureTransit::lignes('du', ['IddroitU', 'matricule', 'Niveau', 'anneacademic', 'Montant', 'inscriptions', 'bibliotheque', 'fraisperiscol', 'tenuesport', 'dateRecu', 'NumeroRecu', 'NomBanque', 'codephase']) as $d) {
             $annee = NormalisationAcma::annee($d->anneacademic);
             if ($annee === null) {
                 $ignorees['annee_invalide']++;
@@ -76,7 +76,6 @@ final class EtapePaiements implements Etape
                 'date_recu_source' => NormalisationAcma::texte($d->dateRecu),
                 'numero_recu' => NormalisationAcma::texte($d->NumeroRecu),
                 'banque' => NormalisationAcma::texte($d->NomBanque),
-                'saisi_par_acma' => NormalisationAcma::texte($d->username),
                 'negatif' => min($montants) < 0,
                 'contrepartie_id_acma' => null,
                 'total_nul' => $total === 0,

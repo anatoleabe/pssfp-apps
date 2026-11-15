@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Services\Acma\ErreurAcma;
 use App\Services\Acma\InventaireAcma;
 use Illuminate\Console\Command;
-use RuntimeException;
+use Throwable;
 
 /** Lot 15a (spec du lot 15, §3) : comptes de l'export chargé dans le transit, sans aucune donnée nominative. */
 final class AcmaInventaire extends Command
@@ -19,8 +20,9 @@ final class AcmaInventaire extends Command
     {
         try {
             $sections = $inventaire->calculer();
-        } catch (RuntimeException $e) {
-            $this->error($e->getMessage());
+        } catch (Throwable $e) {
+            // Aucune donnée à la console : message de la reprise, ou SQLSTATE, table et contrainte seulement.
+            $this->error(ErreurAcma::sansDonnees($e, 'de l\'inventaire')->getMessage());
 
             return self::FAILURE;
         }

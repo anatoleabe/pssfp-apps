@@ -19,9 +19,8 @@ final class TransitAcma
         $tables = JeuAcmaFictif::tables($lignes);
         $definitions = [];
         foreach (ExtractionAcma::TABLES as $table) {
-            $exclues = ExtractionAcma::COLONNES_EXCLUES[$table] ?? [];
-            $colonnes = array_values(array_filter(array_column($tables[$table]['colonnes'], 'nom'), fn (string $c): bool => ! in_array($c, $exclues, true)));
-            $definitions[$table] = ['fichier' => $table.'.csv', 'colonnes' => $colonnes, 'lignes' => count($tables[$table]['lignes']), 'sha256' => str_repeat('0', 64)];
+            // Comme l'extraction : la liste blanche des colonnes, rien de plus.
+            $definitions[$table] = ['fichier' => $table.'.csv', 'colonnes' => ExtractionAcma::COLONNES[$table], 'lignes' => count($tables[$table]['lignes']), 'sha256' => str_repeat('0', 64)];
         }
         $source = new SourceAcmaFactice($tables);
         // Comme l'extraction : les colonnes binaires passent en hexadécimal.

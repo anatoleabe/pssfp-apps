@@ -203,16 +203,17 @@ class AuditeurResource extends Resource
             Infolists\Components\Section::make('Historique ACMA')->collapsible()
                 ->description('Années reprises de l\'ancien logiciel ACMA, en lecture seule. Les décisions sont celles d\'ACMA ou transcrites d\'un PV signé.')
                 ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(ArchivesAcma::CONSULTER)
-                    && AcmaDossier::query()->where('auditeur_id', $record->id)->exists())
+                    && AcmaDossier::query()->where('auditeur_id', $record->id)->whereNull('retire_de_la_source_at')->exists())
                 ->schema([
                     Infolists\Components\RepeatableEntry::make('dossiers_acma')->hiddenLabel()->columns(4)
-                        ->getStateUsing(fn (Auditeur $record) => AcmaDossier::query()->where('auditeur_id', $record->id)->with('inscriptions')->get())
+                        ->getStateUsing(fn (Auditeur $record) => AcmaDossier::query()->where('auditeur_id', $record->id)->whereNull('retire_de_la_source_at')
+                            ->with(['inscriptions' => fn ($q) => $q->whereNull('retire_de_la_source_at'), 'complements.auteur:id,name'])->get())
                         ->schema([
                             Infolists\Components\TextEntry::make('matricule')->label('Dossier d\'archive')->fontFamily('mono')
                                 ->url(fn (AcmaDossier $record): ?string => ArchiveAcmaResource::canAccess() ? ArchiveAcmaResource::getUrl('view', ['record' => $record]) : null),
                             Infolists\Components\TextEntry::make('annees_acma')->label('Années')->columnSpan(3)->listWithLineBreaks()
                                 ->getStateUsing(fn (AcmaDossier $record): array => $record->inscriptions->sortBy(['annee', 'niveau_acma'])
-                                    ->map(fn (AcmaInscription $i): string => $i->annee.' · '.$i->niveau.' ('.$i->niveau_acma.') : '.ArchivesAcma::decision($i)['libelle']
+                                    ->map(fn (AcmaInscription $i): string => $i->annee.' · '.$i->niveau.' ('.$i->niveau_acma.') : '.ArchivesAcma::decision($i, $record->complements)['libelle']
                                         .($i->credits_acquis === null ? '' : ', crédits '.$i->credits_acquis.' / '.($i->credits_programme ?? '?')))
                                     ->values()->all()),
                         ]),

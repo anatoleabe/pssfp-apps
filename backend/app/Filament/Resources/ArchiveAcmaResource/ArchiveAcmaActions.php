@@ -10,12 +10,15 @@ use App\Models\AcmaInscription;
 use App\Models\AcmaRapprochement;
 use App\Models\Auditeur;
 use App\Services\Acma\ArchivesAcma;
+use App\Services\Acma\ErreurAcma;
 use App\Services\Acma\Reprise\RapportsReprise;
 use App\Support\Journaux;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Notifications\Notification;
+use Filament\Tables\Actions\Action as TableAction;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -59,8 +62,10 @@ final class ArchiveAcmaActions
                 Forms\Components\Select::make('auditeur')->label('Auditeur de la plateforme (matricule)')
                     ->searchable()->native(false)
                     ->required(fn (Forms\Get $get): bool => $get('decision') === 'lie')
-                    ->visible(fn (Forms\Get $get): bool => $get('decision') === 'lie')
-                    ->getSearchResultsUsing(fn (string $search): array => self::auditeurs($search))
+                    // Chercher un auditeur, c'est lire le module Scolarité : il faut y avoir accès.
+                    ->visible(fn (Forms\Get $get): bool => $get('decision') === 'lie' && AuditeurResource::canAccess())
+                    ->helperText(fn (): ?string => AuditeurResource::canAccess() ? null : 'Lier exige l\'accès aux auditeurs (module Scolarité).')
+                    ->getSearchResultsUsing(fn (string $search): array => AuditeurResource::canAccess() ? self::auditeurs($search) : [])
                     ->getOptionLabelUsing(fn (?string $value): ?string => self::libelleAuditeur(Auditeur::query()->where('uuid', $value)->first())),
                 Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(ArchivesAcma::MOTIF_MINIMUM)->maxLength(500)->rows(3),
             ])
@@ -77,16 +82,18 @@ final class ArchiveAcmaActions
             ->label('Transcrire une décision d\'un PV signé')
             ->icon('heroicon-o-document-check')
             ->visible(fn (AcmaDossier $record): bool => (bool) auth()->user()?->can(ArchivesAcma::COMPLETER)
-                && $record->inscriptions()->where('decision', 'non_enregistree')->exists())
+                && $record->inscriptions()->whereNull('retire_de_la_source_at')->where('decision', 'non_enregistree')->exists())
             ->modalHeading('Transcrire la décision d\'un PV signé')
-            ->modalDescription('Pour une année sans décision enregistrée dans ACMA. On recopie un acte qui existe : ce n\'est pas une délibération.')
+            ->modalDescription('Pour une année sans décision enregistrée dans ACMA. On recopie un acte qui existe : ce n\'est pas une délibération. La moyenne du PV (ou son absence) s\'écrit toujours avec la décision.')
             ->modalSubmitActionLabel('Transcrire')
             ->form(fn (AcmaDossier $record): array => [
                 Forms\Components\Select::make('inscription')->label('Année et niveau')->required()->native(false)
-                    ->options($record->inscriptions()->where('decision', 'non_enregistree')->orderBy('annee')->get()
+                    ->options($record->inscriptions()->whereNull('retire_de_la_source_at')->where('decision', 'non_enregistree')->orderBy('annee')->get()
                         ->mapWithKeys(fn (AcmaInscription $i): array => [$i->uuid => $i->annee.' · '.$i->niveau.' ('.$i->niveau_acma.')'])->all()),
                 Forms\Components\Radio::make('decision')->label('Décision du PV')->required()->options(['admis' => 'Admis', 'non_admis' => 'Non admis']),
-                Forms\Components\TextInput::make('moyenne')->label('Moyenne portée au PV (facultatif)')->numeric()->minValue(0)->maxValue(20),
+                Forms\Components\Checkbox::make('sans_moyenne')->label('Le PV ne porte pas de moyenne')->live(),
+                Forms\Components\TextInput::make('moyenne')->label('Moyenne portée au PV')->numeric()->minValue(0)->maxValue(20)
+                    ->required(fn (Forms\Get $get): bool => ! $get('sans_moyenne'))->hidden(fn (Forms\Get $get): bool => (bool) $get('sans_moyenne')),
                 Forms\Components\TextInput::make('reference')->label('Référence du PV signé')->required()->maxLength(100)->placeholder('PV n° …'),
                 Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(ArchivesAcma::MOTIF_MINIMUM)->maxLength(500)->rows(2),
             ])
@@ -96,8 +103,9 @@ final class ArchiveAcmaActions
                     if ($inscription === null) {
                         throw new InvalidArgumentException('Choisissez l\'année à compléter.');
                     }
-                    app(ArchivesAcma::class)->transcrireDecision($inscription, (string) $data['decision'], isset($data['moyenne']) ? (string) $data['moyenne'] : null,
-                        (string) $data['reference'], (string) $data['motif'], auth()->user());
+                    $sans = (bool) ($data['sans_moyenne'] ?? false);
+                    app(ArchivesAcma::class)->transcrireDecision($inscription, (string) $data['decision'], $sans ? null : (isset($data['moyenne']) ? (string) $data['moyenne'] : null),
+                        $sans, (string) $data['reference'], (string) $data['motif'], auth()->user());
                 }, 'Décision transcrite.');
             });
     }
@@ -158,12 +166,17 @@ final class ArchiveAcmaActions
         return $a === null ? null : trim($a->candidature?->matricule.' — '.mb_strtoupper((string) $a->candidature?->nom).' '.$a->candidature?->prenom);
     }
 
-    private static function executer(Action $action, callable $geste, string $succes): void
+    /** Exécute un geste ; un refus (règle, droit, base) s'affiche clairement, sans donnée ni erreur 500. */
+    public static function executer(Action|TableAction $action, callable $geste, string $succes): void
     {
         try {
             $geste();
         } catch (InvalidArgumentException|AuthorizationException $e) {
             Notification::make()->danger()->title($e->getMessage())->send();
+            $action->halt();
+        } catch (QueryException $e) {
+            Notification::make()->danger()->title('La base a refusé l\'enregistrement')
+                ->body('Rien n\'a été écrit. '.ucfirst(ErreurAcma::resume($e)).'. Rechargez la fiche et réessayez.')->send();
             $action->halt();
         }
         Notification::make()->success()->title($succes)->send();

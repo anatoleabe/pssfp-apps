@@ -6,8 +6,9 @@ namespace App\Console\Commands;
 
 use App\Console\Commands\Concerns\CommandeAcma;
 use App\Services\Acma\ChargementTransit;
+use App\Services\Acma\ErreurAcma;
 use Illuminate\Console\Command;
-use RuntimeException;
+use Throwable;
 
 /**
  * Lot 15a (spec du lot 15, §10.1, étape 4) : l'archive chiffrée remplace le schéma `acma_transit`, après vérification
@@ -35,8 +36,9 @@ final class AcmaCharger extends Command
         }
         try {
             $resume = $chargement->charger((string) $this->argument('archive'), $phrase, $auteur);
-        } catch (RuntimeException $e) {
-            $this->error($e->getMessage());
+        } catch (Throwable $e) {
+            // Aucune donnée à la console : message de la reprise, ou SQLSTATE, table et contrainte seulement.
+            $this->error(ErreurAcma::sansDonnees($e, 'du chargement')->getMessage());
 
             return self::FAILURE;
         }

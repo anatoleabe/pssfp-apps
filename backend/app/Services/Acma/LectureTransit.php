@@ -7,7 +7,6 @@ namespace App\Services\Acma;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\LazyCollection;
-use RuntimeException;
 
 /** Lecture du schéma `acma_transit` (tout en texte), par lots sur le rang `_ligne`. */
 final class LectureTransit
@@ -30,7 +29,7 @@ final class LectureTransit
     public static function chargement(): array
     {
         if (! ChargementTransit::charge()) {
-            throw new RuntimeException('Transit ACMA absent : lancer d\'abord acma:charger.');
+            throw new ErreurAcma('Transit ACMA absent : lancer d\'abord acma:charger.');
         }
         $c = self::table('_chargement')->orderByDesc('charge_le')->first();
 

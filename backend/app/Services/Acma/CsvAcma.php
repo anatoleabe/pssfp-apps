@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Acma;
 
 use Generator;
-use RuntimeException;
 
 /**
  * CSV du transit ACMA (spec du lot 15, §10.1) : UTF-8, RFC 4180, fin de ligne CRLF. Toute valeur est entre guillemets ;
@@ -33,7 +32,7 @@ final class CsvAcma
     {
         $flux = fopen($fichier, 'rb');
         if ($flux === false) {
-            throw new RuntimeException('CSV illisible : '.basename($fichier));
+            throw new ErreurAcma('CSV illisible : '.basename($fichier));
         }
         try {
             $tampon = '';
@@ -46,7 +45,7 @@ final class CsvAcma
                 $tampon = '';
             }
             if ($tampon !== '') {
-                throw new RuntimeException('CSV tronqué : '.basename($fichier));
+                throw new ErreurAcma('CSV tronqué : '.basename($fichier));
             }
         } finally {
             fclose($flux);
@@ -57,7 +56,7 @@ final class CsvAcma
     public static function analyser(string $enregistrement): array
     {
         if (preg_match_all('/(?:^|,)(?:"((?:[^"]++|"")*+)"|([^,"]*+))/', $enregistrement, $m, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL) === false) {
-            throw new RuntimeException('Enregistrement CSV illisible.');
+            throw new ErreurAcma('Enregistrement CSV illisible.');
         }
         $valeurs = [];
         $longueur = 0;
@@ -71,7 +70,7 @@ final class CsvAcma
             }
         }
         if ($longueur !== strlen($enregistrement)) {
-            throw new RuntimeException('Enregistrement CSV mal formé.');
+            throw new ErreurAcma('Enregistrement CSV mal formé.');
         }
 
         return $valeurs;

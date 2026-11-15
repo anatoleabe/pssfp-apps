@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Acma\Reprise;
 
+use App\Services\Acma\ErreurAcma;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -30,11 +31,16 @@ final class EcritureArchive
     /** @var array{lues: int, inserees: int, modifiees: int, inchangees: int, retirees: int} */
     private array $comptes = ['lues' => 0, 'inserees' => 0, 'modifiees' => 0, 'inchangees' => 0, 'retirees' => 0];
 
+    /**
+     * @param  bool  $ignorerDoublons  une clé en double dans la source garde sa première ligne et se compte (`doublons`)
+     *                                 au lieu d'arrêter la reprise ; sinon, une clé en double est une erreur.
+     */
     public function __construct(
         private readonly string $table,
         private readonly string $cle,
         private readonly CarbonInterface $maintenant,
         private readonly bool $avecUuid = false,
+        private readonly bool $ignorerDoublons = false,
     ) {}
 
     /** @param  array<string, mixed>  $ligne  colonnes de la source (clé comprise), sans horodatage */
@@ -76,12 +82,19 @@ final class EcritureArchive
         }
 
         $aEcrire = [];
+        $dejaDansLeLot = [];
         foreach ($this->tampon as $ligne) {
             $k = 'k'.$ligne[$this->cle];
             $this->comptes['lues']++;
-            if (isset($this->vues[$k])) {
-                throw new \LogicException("Clé {$this->cle} en double dans la source de {$this->table}.");
+            if (isset($this->vues[$k]) || isset($dejaDansLeLot[$k])) {
+                if ($this->ignorerDoublons) {
+                    $this->comptes['doublons'] = ($this->comptes['doublons'] ?? 0) + 1;
+
+                    continue;
+                }
+                throw new ErreurAcma("Clé {$this->cle} en double dans la source de {$this->table}.");
             }
+            $dejaDansLeLot[$k] = true;
             $this->vues[$k] = true;
             $empreinte = self::empreinte($ligne);
             $existant = $existants[$k] ?? null;

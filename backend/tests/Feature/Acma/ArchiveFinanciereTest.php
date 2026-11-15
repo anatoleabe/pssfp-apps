@@ -219,3 +219,17 @@ it('cite seulement des comptes dans le rapport des contrôles', function (): voi
         expect(mb_strtoupper($rapport))->not->toContain(mb_strtoupper($valeur));
     }
 });
+
+it('ne garde que le dernier classeur nominatif de chaque type', function (): void {
+    TransitAcma::construire();
+    $this->travelTo(now()->setDate(2026, 11, 20));
+    reprise15c($this->usi, false);
+    $this->artisan('acma:ecarts-2026', ['--auteur' => $this->usi->email])->assertSuccessful();
+    $this->travelTo(now()->setDate(2026, 11, 21));
+    reprise15c($this->usi, false);
+    $this->artisan('acma:ecarts-2026', ['--auteur' => $this->usi->email])->assertSuccessful();
+
+    $classeurs = collect(Storage::disk('local')->files('acma'))->filter(fn (string $f): bool => str_ends_with($f, '.xlsx'))
+        ->map(fn (string $f): string => basename($f))->sort()->values()->all();
+    expect($classeurs)->toBe(['ecarts-2026-2027-20261121.xlsx', 'rapprochement-20261121.xlsx']);
+});

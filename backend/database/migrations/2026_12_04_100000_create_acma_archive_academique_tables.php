@@ -21,6 +21,8 @@ return new class extends Migration
 
     public function up(): void
     {
+        // Ne jamais attendre indéfiniment un verrou en production.
+        DB::statement("SET LOCAL lock_timeout = '5s'");
         Schema::create('acma_reprises', function (Blueprint $table): void {
             $table->id();
             $table->uuid('uuid')->unique();
@@ -220,7 +222,6 @@ return new class extends Migration
             $table->double('rattrapage')->nullable();
             $table->integer('ok_acma')->nullable();
             $table->integer('validation_acma')->nullable();
-            $table->bigInteger('auteur_acma')->nullable();
             $table->string('empreinte_source', 64);
             $table->timestampTz('retire_de_la_source_at')->nullable();
             $table->timestampsTz();
@@ -254,8 +255,12 @@ return new class extends Migration
 
     public function down(): void
     {
+        DB::statement("SET LOCAL lock_timeout = '5s'");
         if (Schema::hasTable('acma_reprises') && DB::table('acma_reprises')->where('statut', 'gelee')->exists()) {
             throw new RuntimeException('Archive ACMA gelée : défaire ce lot demande une migration motivée (spec du lot 15, §7.3).');
+        }
+        if (Schema::hasTable('acma_rapprochements') && DB::table('acma_rapprochements')->whereNotNull('decide_par')->exists()) {
+            throw new RuntimeException('Arbitrages ACMA enregistrés : défaire ce lot les perdrait ; il demande une migration motivée.');
         }
         foreach (array_merge(self::TABLES_LECTURE_SEULE, ['acma_dossiers']) as $table) {
             DB::statement("DROP TRIGGER IF EXISTS {$table}_lecture_seule ON {$table}");
@@ -356,8 +361,11 @@ return new class extends Migration
               RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
             END $$;
 
-            -- Le lien d'un dossier vers un auditeur échappe au gel : seul l'arbitrage le change, après avoir écrit sa décision.
+            -- Le lien d'un dossier vers un auditeur échappe au gel : seul l'arbitrage le change, et la base exige que la
+            -- dernière décision signée du dossier (acma_rapprochements, ajout seul) corresponde exactement au nouveau lien.
             CREATE OR REPLACE FUNCTION acma_dossiers_lecture_seule() RETURNS trigger LANGUAGE plpgsql AS $$
+            DECLARE
+              d record;
             BEGIN
               IF acma_mode_reprise() AND NOT acma_archive_gelee() THEN
                 RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
@@ -365,7 +373,15 @@ return new class extends Migration
               IF TG_OP = 'UPDATE'
                  AND (to_jsonb(NEW) - ARRAY['auditeur_id', 'statut_rapprochement', 'updated_at'])
                    = (to_jsonb(OLD) - ARRAY['auditeur_id', 'statut_rapprochement', 'updated_at']) THEN
-                RETURN NEW;
+                SELECT r.decision, r.auditeur_id INTO d FROM acma_rapprochements r
+                  WHERE r.dossier_id = NEW.id AND r.decide_par IS NOT NULL ORDER BY r.id DESC LIMIT 1;
+                IF FOUND AND (
+                     (d.decision = 'lie' AND NEW.statut_rapprochement = 'lie_arbitre' AND NEW.auditeur_id IS NOT DISTINCT FROM d.auditeur_id)
+                  OR (d.decision = 'non_lie' AND NEW.statut_rapprochement = 'sans_auditeur' AND NEW.auditeur_id IS NULL)
+                  OR (d.decision = 'ecarte' AND NEW.statut_rapprochement = 'ecarte' AND NEW.auditeur_id IS NULL)) THEN
+                  RETURN NEW;
+                END IF;
+                RAISE EXCEPTION 'Lien d''un dossier ACMA : arbitrage enregistré exigé' USING ERRCODE = 'check_violation';
               END IF;
               IF acma_archive_gelee() THEN
                 RAISE EXCEPTION 'Archive ACMA gelée : aucune écriture' USING ERRCODE = 'check_violation';
@@ -387,7 +403,9 @@ return new class extends Migration
               IF NOT acma_mode_reprise() THEN
                 RAISE EXCEPTION 'Reprises ACMA : écriture réservée aux commandes de reprise' USING ERRCODE = 'check_violation';
               END IF;
-              IF TG_OP = 'UPDATE' AND OLD.statut = 'gelee' THEN
+              -- Archive déjà gelée : plus aucune modification d'aucune reprise. La transition de gel elle-même passe,
+              -- puisqu'aucune reprise n'est encore gelée à l'instant où elle s'écrit.
+              IF TG_OP = 'UPDATE' AND (OLD.statut = 'gelee' OR acma_archive_gelee()) THEN
                 RAISE EXCEPTION 'Archive ACMA gelée : aucune écriture' USING ERRCODE = 'check_violation';
               END IF;
               IF TG_OP = 'INSERT' AND acma_archive_gelee() THEN

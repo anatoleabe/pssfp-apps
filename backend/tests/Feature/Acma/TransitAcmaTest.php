@@ -12,6 +12,7 @@ use App\Support\Journaux;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Tests\Support\Acma\JeuAcmaFictif;
@@ -70,22 +71,25 @@ it('n\'extrait aucune table ni colonne exclue, chiffre l\'archive et supprime le
     sort($attendus);
     expect($fichiers)->toBe($attendus);
 
-    $tout = implode("\n", array_map('file_get_contents', glob($this->dossier.'/ouvert/*')));
-    foreach (['MOTDEPASSE-FTP-FICTIF', 'MOTDEPASSE-CLAIR-FICTIF', 'CLE-PLATEFORME-FICTIVE', 'IDENTIFIANT-FTP-FICTIF', 'ftp.invalid', '600000000', 'ADRESSE FICTIVE'] as $secret) {
+    $tout = implode("\n", array_map('file_get_contents', glob($this->dossier.'/ouvert/*.csv')));
+    foreach (['MOTDEPASSE-FTP-FICTIF', 'MOTDEPASSE-CLAIR-FICTIF', 'CLE-PLATEFORME-FICTIVE', 'IDENTIFIANT-FTP-FICTIF', 'ftp.invalid', '600000000', 'ADRESSE FICTIVE', 'NOM COPIE', 'agent', '258000000000'] as $secret) {
         expect($tout)->not->toContain($secret);
     }
+    // Liste blanche : chaque CSV porte exactement ses colonnes, rien de plus (ni identifiants du personnel d'ACMA).
     $manifeste = json_decode(file_get_contents($this->dossier.'/ouvert/manifeste.json'), true);
-    expect(array_column($manifeste['tables']['etablissement']['colonnes'], 'nom'))->not->toContain('paswdftp')->not->toContain('userftp')->toContain('Lengende 1')
-        ->and(array_column($manifeste['tables']['etudiant']['colonnes'], 'nom'))->not->toContain('telephone')->not->toContain('adresse')
-        ->and($manifeste['exclusions']['tables'])->toContain('utilisateur')->toContain('tachesutili')
+    foreach (ExtractionAcma::TABLES as $table) {
+        expect(array_column($manifeste['tables'][$table]['colonnes'], 'nom'))->toBe(ExtractionAcma::COLONNES[$table]);
+    }
+    expect($manifeste['tables']['du']['non_extraites'])->toContain('username')->toContain('stan')->toContain('nometudiant')->toContain('Versement')
+        ->and($manifeste['tables']['notes_hist']['non_extraites'])->toContain('usercon')->toContain('IDutilisateur')
+        ->and($manifeste['tables']['etudiant']['non_extraites'])->toContain('telephone')->toContain('adresse')
+        ->and($manifeste['non_extraites']['tables'])->toContain('utilisateur')->toContain('tachesutili')->toContain('etablissement')->toContain('categorie')
         ->and($manifeste['tables']['du']['lignes'])->toBe(18)
         ->and($manifeste['tables']['notes_hist']['lignes'])->toBe(9)
         ->and($manifeste['source'])->toMatchArray(['fichier' => 'acma-fictif.sql', 'date_export' => '2026-11-15', 'version_serveur' => '11.8.9-MariaDB-factice'])
         ->and($manifeste['tables']['du']['sha256'])->toBe(hash_file('sha256', $this->dossier.'/ouvert/du.csv'));
 
-    // Binaire en hexadécimal ; NULL distinct du texte ; valeurs telles que MySQL les rend.
-    $phases = iterator_to_array(CsvAcma::lire($this->dossier.'/ouvert/phasepayement.csv'), false);
-    expect($phases[1][1])->toBe(bin2hex("Avance\x00\xff"));
+    // NULL distinct du texte ; valeurs telles que MySQL les rend.
     $etudiants = iterator_to_array(CsvAcma::lire($this->dossier.'/ouvert/etudiant.csv'), false);
     expect($etudiants[2][array_search('datenaissance', $etudiants[0], true)])->toBe('0000-00-00');
 });
@@ -105,7 +109,7 @@ it('extrait par la commande, puis charge le transit tout en texte', function ():
     $archive = glob($this->dossier.'/*.chiffre')[0];
 
     $this->artisan('acma:charger', ['archive' => $archive, '--auteur' => $this->usi->email])
-        ->expectsOutputToContain('Transit chargé : 21 tables')->assertSuccessful();
+        ->expectsOutputToContain('Transit chargé : 16 tables')->assertSuccessful();
 
     expect(transitCompte('etudiant'))->toBe(20)->and(transitCompte('du'))->toBe(18)->and(transitCompte('notes'))->toBe(16);
     $types = DB::table('information_schema.columns')->where('table_schema', ChargementTransit::SCHEMA)->where('column_name', '<>', '_ligne')
@@ -114,8 +118,9 @@ it('extrait par la commande, puis charge le transit tout en texte', function ():
     expect(DB::table('acma_transit.etudiant')->where('matricule', '90EFP007')->value('datenaissance'))->toBe('2021-06-00')
         ->and(DB::table('acma_transit.etudiant')->where('matricule', '90efp002 ')->value('datenaissance'))->toBe('0000-00-00')
         ->and(DB::table('acma_transit.notes')->where('idnote', '1014')->value('exam'))->toBe('12.333333333')
-        ->and(DB::table('acma_transit.etablissement')->value('Lengende 1'))->toBe("Légende \"fictive\"\nsur deux lignes")
-        ->and(DB::table('acma_transit.du')->where('IddroitU', '2')->value('Montant'))->toBe('-100000');
+        ->and(DB::table('acma_transit.du')->where('IddroitU', '2')->value('Montant'))->toBe('-100000')
+        ->and(Schema::hasTable('acma_transit.etablissement'))->toBeFalse()
+        ->and(Schema::hasColumn('acma_transit.du', 'username'))->toBeFalse();
     $chargement = DB::table('acma_transit._chargement')->first();
     expect($chargement->charge_par)->toBe($this->usi->id)
         ->and(json_decode($chargement->manifeste, true)['source']['date_export'])->toBe('2026-11-15');
@@ -130,7 +135,7 @@ it('refuse une archive dont un CSV ou le nombre de lignes diffère du manifeste,
 
     // CSV altéré : l'empreinte ne correspond plus.
     ouvrirArchive($archive, $this->dossier.'/altere');
-    file_put_contents($this->dossier.'/altere/du.csv', CsvAcma::ligne(array_fill(0, 25, '1')), FILE_APPEND);
+    file_put_contents($this->dossier.'/altere/du.csv', CsvAcma::ligne(array_fill(0, count(ExtractionAcma::COLONNES['du']), '1')), FILE_APPEND);
     unlink($archive);
     app(ArchiveChiffree::class)->chiffrer($this->dossier.'/altere', $this->dossier.'/altere.chiffre', ACMA_PHRASE_ESSAI);
     $this->artisan('acma:charger', ['archive' => $this->dossier.'/altere.chiffre', '--auteur' => $this->usi->email])
@@ -162,10 +167,45 @@ it('refuse une phrase de passe erronée, une archive altérée ou tronquée, et 
     file_put_contents($this->dossier.'/tronque.chiffre', substr($octets, 0, (int) (strlen($octets) / 2)));
     expect(fn () => ouvrirArchive($this->dossier.'/tronque.chiffre', $this->dossier.'/y'))->toThrow(RuntimeException::class);
 
-    $manifeste = ['format' => ExtractionAcma::FORMAT, 'tables' => ['etablissement' => ['fichier' => 'etablissement.csv', 'lignes' => 1, 'sha256' => 'x', 'colonnes' => [['nom' => 'paswdftp', 'type' => 'varchar(200)']]]]];
-    expect(fn () => ChargementTransit::verifierManifeste($manifeste))->toThrow(RuntimeException::class, 'Colonnes refusées');
-    expect(fn () => ChargementTransit::identifiant('a"; DROP TABLE users; --'))->toThrow(RuntimeException::class);
+    // Liste blanche revérifiée au chargement : table hors liste, colonne en trop ou en moins, tout est refusé.
+    $colonnes = fn (string $t): array => array_map(fn (string $c): array => ['nom' => $c, 'type' => 'text'], ExtractionAcma::COLONNES[$t]);
+    $manifeste = ['format' => ExtractionAcma::FORMAT, 'tables' => []];
+    foreach (ExtractionAcma::TABLES as $t) {
+        $manifeste['tables'][$t] = ['fichier' => $t.'.csv', 'lignes' => 1, 'sha256' => 'x', 'colonnes' => $colonnes($t)];
+    }
+    expect(ChargementTransit::verifierManifeste($manifeste))->toHaveCount(16);
+    $enTrop = $manifeste;
+    $enTrop['tables']['du']['colonnes'][] = ['nom' => 'username', 'type' => 'varchar(40)'];
+    expect(fn () => ChargementTransit::verifierManifeste($enTrop))->toThrow(RuntimeException::class, 'hors de la liste blanche');
+    $enMoins = $manifeste;
+    array_pop($enMoins['tables']['notes_hist']['colonnes']);
+    expect(fn () => ChargementTransit::verifierManifeste($enMoins))->toThrow(RuntimeException::class, 'hors de la liste blanche');
+    $tableEnTrop = $manifeste;
+    $tableEnTrop['tables']['utilisateur'] = ['fichier' => 'utilisateur.csv', 'lignes' => 1, 'sha256' => 'x', 'colonnes' => [['nom' => 'Motdepasse', 'type' => 'varchar(32)']]];
+    expect(fn () => ChargementTransit::verifierManifeste($tableEnTrop))->toThrow(RuntimeException::class, 'hors de la liste des tables utiles');
+    expect(fn () => ChargementTransit::identifiant('a"; DROP TABLE users; --'))->toThrow(RuntimeException::class)
+        ->and(fn () => ChargementTransit::identifiant("matricule\n"))->toThrow(RuntimeException::class);
+
+    // En-tête forgé : nombre d'itérations démesuré refusé avant toute dérivation.
+    $forge = substr_replace($octets, pack('N', ArchiveChiffree::ITERATIONS_MAXIMUM + 1), strlen("PSSFP-ACMA-1\n") + 16, 4);
+    file_put_contents($this->dossier.'/forge.chiffre', $forge);
+    expect(fn () => ouvrirArchive($this->dossier.'/forge.chiffre', $this->dossier.'/z'))->toThrow(RuntimeException::class, 'itérations hors limites');
     expect(glob(storage_path('app/private/acma/tmp/*')))->toBe([]);
+});
+
+it('crée les fichiers chiffrés et déchiffrés pour le seul propriétaire, et purge les restes en clair au chargement', function (): void {
+    $archive = extraireJeu($this->dossier);
+    expect(fileperms($archive) & 0777)->toBe(0600);
+    ouvrirArchive($archive, $this->dossier.'/ouvert');
+    expect(fileperms($this->dossier.'/ouvert') & 0777)->toBe(0700)
+        ->and(fileperms($this->dossier.'/ouvert/du.csv') & 0777)->toBe(0600);
+
+    // Restes d'un chargement interrompu : supprimés avant le suivant.
+    $reste = storage_path('app/private/acma/tmp/interrompu');
+    @mkdir($reste, 0700, true);
+    file_put_contents($reste.'/du.csv', 'reste en clair');
+    $this->artisan('acma:charger', ['archive' => $archive, '--auteur' => $this->usi->email])->assertSuccessful();
+    expect(is_dir($reste))->toBeFalse();
 });
 
 it('remplace le transit au second chargement', function (): void {

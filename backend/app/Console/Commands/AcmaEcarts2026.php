@@ -6,8 +6,9 @@ namespace App\Console\Commands;
 
 use App\Console\Commands\Concerns\CommandeAcma;
 use App\Services\Acma\EcartsAcma2026;
+use App\Services\Acma\ErreurAcma;
 use Illuminate\Console\Command;
-use RuntimeException;
+use Throwable;
 
 /**
  * Lot 15c (spec du lot 15, §9) : rapport des écarts 2026-2027 entre ACMA et la plateforme, en lecture seule. Le classeur
@@ -31,8 +32,9 @@ final class AcmaEcarts2026 extends Command
         }
         try {
             $r = $ecarts->produire($auteur, $this->option('sortie') ?: null);
-        } catch (RuntimeException $e) {
-            $this->error($e->getMessage());
+        } catch (Throwable $e) {
+            // Aucune donnée à la console : message de la reprise, ou SQLSTATE, table et contrainte seulement.
+            $this->error(ErreurAcma::sansDonnees($e, 'du rapport des écarts')->getMessage());
 
             return self::FAILURE;
         }

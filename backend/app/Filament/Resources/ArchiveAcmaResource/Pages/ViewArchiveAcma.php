@@ -7,6 +7,7 @@ namespace App\Filament\Resources\ArchiveAcmaResource\Pages;
 use App\Filament\Resources\ArchiveAcmaResource;
 use App\Filament\Resources\ArchiveAcmaResource\ArchiveAcmaActions;
 use App\Models\AcmaDossier;
+use App\Support\Journaux;
 use Filament\Actions\ActionGroup;
 use Filament\Resources\Pages\ViewRecord;
 
@@ -14,6 +15,17 @@ use Filament\Resources\Pages\ViewRecord;
 class ViewArchiveAcma extends ViewRecord
 {
     protected static string $resource = ArchiveAcmaResource::class;
+
+    /** Chaque ouverture d'une fiche d'archive est journalisée (une entrée par fiche ouverte, uuid seul). */
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        /** @var AcmaDossier $dossier */
+        $dossier = $this->getRecord();
+        activity(Journaux::ARCHIVES)->causedBy(auth()->user())->event('fiche_consultee')
+            ->withProperties(['dossier' => $dossier->uuid])->log('Fiche d\'archive ACMA consultée');
+    }
 
     public function getTitle(): string
     {

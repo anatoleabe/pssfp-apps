@@ -8,9 +8,12 @@ use App\Filament\Resources\ArchiveAcmaResource\Pages\ViewArchiveAcma;
 use App\Filament\Resources\ArchiveAcmaResource\RelationManagers\PaiementsRelationManager;
 use App\Filament\Resources\ArchiveAcmaResource\RelationManagers\ResultatsRelationManager;
 use App\Filament\Resources\AuditeurResource\Pages\ViewAuditeur;
+use App\Filament\Resources\UserResource;
+use App\Filament\Resources\UserResource\Pages\EditUser;
 use App\Models\AcmaComplement;
 use App\Models\AcmaDossier;
 use App\Models\AcmaInscription;
+use App\Models\AcmaPaiement;
 use App\Models\AcmaResultatUe;
 use App\Models\Auditeur;
 use App\Models\Role;
@@ -151,23 +154,100 @@ it('transcrit la décision d\'un PV signé pour une année sans décision enregi
         ->and($inscription->fresh()->decision)->toBe('non_enregistree');
     ($this->fiche)('90EFP008')->assertSee('décision transcrite du PV n° 7/2023');
 
+    // Une nouvelle transcription sans moyenne efface la moyenne précédente : jamais une moyenne périmée.
+    $this->travel(1)->minutes();
+    ($this->fiche)('90EFP008')->callAction('transcrireDecision', data: [
+        'inscription' => $inscription->uuid, 'decision' => 'non_admis', 'sans_moyenne' => true, 'reference' => 'PV n° 7/2023 rectifié', 'motif' => 'PV rectificatif signé, sans moyenne',
+    ])->assertHasNoActionErrors();
+    expect(ArchivesAcma::decision($inscription->fresh())['code'])->toBe('non_admis')
+        ->and(ArchivesAcma::moyenne($inscription->fresh()))->toStartWith('Non portée au PV — transcrite du PV n° 7/2023 rectifié');
+    // Ni moyenne ni « sans moyenne » : refusé.
+    expect(fn () => app(ArchivesAcma::class)->transcrireDecision($inscription, 'admis', null, false, 'PV n° 8', 'Transcription sans moyenne indiquée', $this->responsable))
+        ->toThrow(InvalidArgumentException::class, 'Indiquez la moyenne');
+
     $decidee = AcmaInscription::query()->where('cle_source', '90EFP001|2024-2025|FPTC4')->firstOrFail();
-    expect(fn () => app(ArchivesAcma::class)->transcrireDecision($decidee, 'non_admis', null, 'PV n° 1', 'Essai sur une décision enregistrée', $this->responsable))
+    expect(fn () => app(ArchivesAcma::class)->transcrireDecision($decidee, 'non_admis', '10', false, 'PV n° 1', 'Essai sur une décision enregistrée', $this->responsable))
         ->toThrow(InvalidArgumentException::class, 'enregistrée dans ACMA');
 });
 
-it('retient une note en conflit, une fois, par complément', function (): void {
+it('retient une seule note par conflit, par complément', function (): void {
     $this->actingAs($this->responsable);
     $conflit = AcmaResultatUe::query()->where('cle_source', 'n:1007')->firstOrFail();
+    $autre = AcmaResultatUe::query()->where('cle_source', 'n:1006')->firstOrFail();
 
     $this->livewire(ResultatsRelationManager::class, ['ownerRecord' => ($this->dossier)('90EFP003'), 'pageClass' => ViewArchiveAcma::class])
         ->callTableAction('retenir', $conflit, data: ['reference' => 'Relevé papier 2026', 'motif' => 'Note du relevé signé par le directeur'])
         ->assertHasNoTableActionErrors()
         ->assertTableActionHidden('retenir', $conflit)
-        ->assertSee('Retenue');
-    expect(ArchivesAcma::retenue($conflit))->toBeTrue()
+        ->assertTableActionHidden('retenir', $autre)
+        ->assertSee('Retenue')->assertSee('Écartée');
+    expect(AcmaComplement::query()->where('champ', 'note_retenue')->pluck('resultat_id')->all())->toBe([$conflit->id])
+        ->and(fn () => app(ArchivesAcma::class)->retenirNote($autre, 'Relevé papier', 'Seconde note du même conflit', $this->responsable))
+        ->toThrow(InvalidArgumentException::class, 'déjà retenue')
         ->and(fn () => app(ArchivesAcma::class)->retenirNote(AcmaResultatUe::query()->where('cle_source', 'n:1001')->firstOrFail(), 'Réf', 'Note sans conflit', $this->responsable))
         ->toThrow(InvalidArgumentException::class, 'pas en conflit');
+});
+
+it('ne montre plus une ligne disparue d\'un export plus récent, ni dans l\'écran ni dans les totaux', function (): void {
+    $this->actingAs($this->agent);
+    $avant = collect(ArchivesAcma::paiementsParAnnee(($this->dossier)('90EFP001')))->firstWhere('annee', '2024-2025');
+    expect($avant['lignes'])->toBe(3)->and($avant['verse'])->toBe(735000);
+
+    // Rejeu sur un export amputé d'un paiement, d'une note et d'une inscription.
+    TransitAcma::construireAvec(function (array &$l): void {
+        $l['du'] = array_values(array_filter($l['du'], fn (array $d): bool => $d['IddroitU'] !== '1'));
+        $l['notes'] = array_values(array_filter($l['notes'], fn (array $n): bool => $n['idnote'] !== '1002'));
+        $l['inscription_academic'] = array_values(array_filter($l['inscription_academic'], fn (array $i): bool => $i['id_inscription'] !== '12'));
+    });
+    app(RepriseAcma::class)->executer(($this->compte)('admin'), null, true);
+
+    $apres = collect(ArchivesAcma::paiementsParAnnee(($this->dossier)('90EFP001')->fresh()))->firstWhere('annee', '2024-2025');
+    expect($apres['lignes'])->toBe(2)->and($apres['verse'])->toBe(0)
+        ->and(DB::table('acma_paiements')->where('id_acma', 1)->whereNotNull('retire_de_la_source_at')->exists())->toBeTrue();
+    $this->livewire(PaiementsRelationManager::class, ['ownerRecord' => ($this->dossier)('90EFP001'), 'pageClass' => ViewArchiveAcma::class])
+        ->assertCanNotSeeTableRecords(AcmaPaiement::query()->where('id_acma', 1)->get())->assertCanSeeTableRecords(AcmaPaiement::query()->where('id_acma', 2)->get());
+    $this->livewire(ResultatsRelationManager::class, ['ownerRecord' => ($this->dossier)('90EFP001'), 'pageClass' => ViewArchiveAcma::class])
+        ->assertCanNotSeeTableRecords(AcmaResultatUe::query()->where('cle_source', 'n:1002')->get());
+    // Le dossier dont la seule inscription a disparu est lui-même retiré : absent de la liste par défaut.
+    expect(($this->dossier)('99XX012')->retire_de_la_source_at)->not->toBeNull();
+    $this->livewire(ListArchivesAcma::class)->assertCanNotSeeTableRecords([($this->dossier)('99XX012')])
+        ->filterTable('retire', true)->assertCanSeeTableRecords([($this->dossier)('99XX012')]);
+});
+
+it('refuse les notes et les paiements à un rôle sans accès aux archives', function (): void {
+    $this->actingAs(($this->compte)('service_financier'));
+
+    $this->livewire(ResultatsRelationManager::class, ['ownerRecord' => ($this->dossier)('90EFP001'), 'pageClass' => ViewArchiveAcma::class])->assertForbidden();
+    $this->livewire(PaiementsRelationManager::class, ['ownerRecord' => ($this->dossier)('90EFP001'), 'pageClass' => ViewArchiveAcma::class])->assertForbidden();
+});
+
+it('journalise chaque fiche d\'archive ouverte', function (): void {
+    $this->actingAs($this->agent);
+    ($this->fiche)('90EFP001');
+    ($this->fiche)('90EFP008');
+
+    expect(DB::table('activity_log')->where('log_name', Journaux::ARCHIVES)->where('event', 'fiche_consultee')->count())->toBe(2)
+        ->and(DB::table('activity_log')->where('event', 'fiche_consultee')->pluck('properties')->implode(' '))->not->toContain('90EFP');
+});
+
+it('refuse proprement de supprimer un compte qui a laissé des traces dans l\'archive', function (): void {
+    $lanceur = User::query()->whereKey(DB::table('acma_reprises')->value('lance_par'))->firstOrFail();
+
+    expect(UserResource::supprimer($lanceur))->toBeFalse()
+        ->and(User::query()->whereKey($lanceur->id)->exists())->toBeTrue()
+        ->and(UserResource::supprimer(($this->compte)('editor')))->toBeTrue();
+    $this->actingAs(($this->compte)('super_admin'));
+    $this->livewire(EditUser::class, ['record' => $lanceur->getRouteKey()])
+        ->callAction('delete')->assertNotified(UserResource::SUPPRESSION_REFUSEE);
+    expect(User::query()->whereKey($lanceur->id)->exists())->toBeTrue();
+});
+
+it('refuse un lien posé sans arbitrage, même par une requête directe', function (): void {
+    $dossier = ($this->dossier)('90EFP011');
+
+    expect(fn () => DB::transaction(fn () => DB::table('acma_dossiers')->where('id', $dossier->id)
+        ->update(['auditeur_id' => $this->autre->id, 'statut_rapprochement' => 'lie_arbitre'])))
+        ->toThrow(QueryException::class, 'arbitrage enregistré exigé');
 });
 
 it('arbitre le rapprochement : lier, ne pas lier, écarter, avec motif, et journalise', function (): void {
@@ -216,6 +296,16 @@ it('remet les classeurs de la reprise aux titulaires des permissions, et journal
     $this->livewire(ListArchivesAcma::class)->assertActionVisible('classeurRapprochement')->assertActionHidden('classeurEcarts')
         ->callAction('classeurRapprochement')->assertFileDownloaded($classeur);
     expect(DB::table('activity_log')->where('log_name', Journaux::ARCHIVES)->where('event', 'classeur_telecharge')->count())->toBe(1);
+
+    // Écarts 2026-2027 : avec `scolarite.export` (agent, responsable), jamais sans.
+    $this->artisan('acma:ecarts-2026', ['--auteur' => User::query()->whereKey(DB::table('acma_reprises')->value('lance_par'))->value('email')])->assertSuccessful();
+    $ecarts = basename((string) collect(Storage::disk('local')->files('acma'))->first(fn (string $f): bool => str_starts_with(basename($f), 'ecarts-')));
+    $this->actingAs($this->agent);
+    $this->livewire(ListArchivesAcma::class)->assertActionVisible('classeurEcarts')->callAction('classeurEcarts')->assertFileDownloaded($ecarts);
+    $sansExport = User::factory()->create();
+    $sansExport->assignRole(Role::findOrCreate('archives-lecture-'.Str::random(4), 'web')->givePermissionTo(ArchivesAcma::CONSULTER));
+    $this->actingAs($sansExport);
+    $this->livewire(ListArchivesAcma::class)->assertActionHidden('classeurEcarts')->assertActionHidden('classeurRapprochement');
 });
 
 it('accorde les droits par migration additive, et se défait', function (): void {

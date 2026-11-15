@@ -113,6 +113,8 @@ return [
             'database' => env('ACMA_DB_DATABASE', 'gestionacademic'),
             'username' => env('ACMA_DB_USERNAME', 'root'),
             'password' => env('ACMA_DB_PASSWORD', ''),
+            // Conteneur sans réseau (`docker run --network none`) : on le joint par sa socket, partagée dans un volume.
+            'unix_socket' => env('ACMA_DB_SOCKET', ''),
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',

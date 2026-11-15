@@ -19,6 +19,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -245,9 +247,27 @@ class UserResource extends Resource
                         app(VerrouillageComptes::class)->deverrouiller($record, $auteur, (string) $data['motif']);
                         Notification::make()->title('Compte déverrouillé')->success()->send();
                     }),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->using(fn (User $record): bool => self::supprimer($record))
+                    ->failureNotificationTitle(self::SUPPRESSION_REFUSEE),
             ])
             ->bulkActions([]);
+    }
+
+    /** Compte référencé (reprise d'ACMA, arbitrage, complément…) : la base garde ces traces (RESTRICT). */
+    public const SUPPRESSION_REFUSEE = 'Ce compte a laissé des traces (reprise d\'ACMA, arbitrage, complément…) : il ne peut pas être supprimé. Retirez-lui plutôt ses rôles.';
+
+    /** Supprime un compte, ou rend false si la base le refuse parce qu'il est référencé : jamais d'erreur 500. */
+    public static function supprimer(User $user): bool
+    {
+        try {
+            return (bool) DB::transaction(fn () => $user->delete());
+        } catch (QueryException $e) {
+            if (($e->errorInfo[0] ?? null) === '23503') {
+                return false;
+            }
+            throw $e;
+        }
     }
 
     public static function getPages(): array

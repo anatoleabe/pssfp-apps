@@ -19,6 +19,8 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Ne jamais attendre indéfiniment un verrou en production (archive consultée pendant la migration).
+        DB::statement("SET LOCAL lock_timeout = '5s'");
         Schema::create('acma_complements', function (Blueprint $table): void {
             $table->id();
             $table->uuid('uuid')->unique();
@@ -44,7 +46,8 @@ return new class extends Migration
             'motif' => 'char_length(trim(motif)) >= 10 AND char_length(trim(piece_reference)) >= 1',
             'cible' => "(champ = 'date_naissance' AND inscription_id IS NULL AND resultat_id IS NULL AND valeur ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')"
                 ." OR (champ = 'decision' AND inscription_id IS NOT NULL AND resultat_id IS NULL AND valeur IN ('admis', 'non_admis'))"
-                ." OR (champ = 'moyenne' AND inscription_id IS NOT NULL AND resultat_id IS NULL AND valeur ~ '^[0-9]{1,2}(\\.[0-9]{1,2})?$' AND valeur::numeric BETWEEN 0 AND 20)"
+                // CASE : la conversion en nombre n'est tentée que sur une valeur qui en a la forme.
+                ." OR (champ = 'moyenne' AND inscription_id IS NOT NULL AND resultat_id IS NULL AND CASE WHEN valeur ~ '^[0-9]{1,2}(\\.[0-9]{1,2})?$' THEN valeur::numeric BETWEEN 0 AND 20 ELSE valeur = 'sans_moyenne' END)"
                 ." OR (champ = 'note_retenue' AND inscription_id IS NOT NULL AND resultat_id IS NOT NULL AND valeur = 'retenue')",
         ];
         foreach ($checks as $nom => $expression) {
@@ -64,6 +67,7 @@ return new class extends Migration
 
     public function down(): void
     {
+        DB::statement("SET LOCAL lock_timeout = '5s'");
         if (DB::table('acma_complements')->exists() || DB::table('acma_rapprochements')->whereNull('cas')->exists()) {
             throw new RuntimeException('Compléments ou arbitrages ACMA enregistrés : défaire ce lot demande une migration motivée.');
         }

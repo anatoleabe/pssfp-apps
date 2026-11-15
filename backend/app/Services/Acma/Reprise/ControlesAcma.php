@@ -32,7 +32,7 @@ final class ControlesAcma
         $this->retenus = null;
         $resultats = [
             $this->c01(), $this->c02(), $this->c03(), ...$this->c04(), $this->c05(), $this->c06(), $this->c07(), $this->c08($contexte),
-            $this->c09($contexte), $this->c10($contexte), $this->c11(), $this->c12(),
+            $this->c09($contexte), $this->c10($contexte), $this->c11(), $this->c12($contexte),
         ];
         usort($resultats, fn (ResultatControle $a, ResultatControle $b): int => strcmp($a->code, $b->code));
 
@@ -89,7 +89,7 @@ final class ControlesAcma
     }
 
     /** C12 : anomalies par catégorie (informatif). */
-    private function c12(): ResultatControle
+    private function c12(?ContexteReprise $contexte): ResultatControle
     {
         $p = DB::table('acma_paiements')->whereNull('retire_de_la_source_at')->selectRaw(
             'count(*) FILTER (WHERE negatif) AS negatifs, count(*) FILTER (WHERE negatif AND contrepartie_id_acma IS NOT NULL) AS apparies, '
@@ -108,6 +108,9 @@ final class ControlesAcma
             'Résultats en conflit : '.DB::table('acma_resultats_ue')->whereNull('retire_de_la_source_at')->where('en_conflit', true)->count()
                 .' ; notes hors de 0 à 20 : '.DB::table('acma_resultats_ue')->whereNull('retire_de_la_source_at')->where('hors_bornes', true)->count(),
         ];
+        if (isset($contexte?->infos['doublons_versions'])) {
+            $details[] = 'Versions de notes en double dans l\'export (première gardée) : '.$contexte->infos['doublons_versions'];
+        }
 
         return new ResultatControle('C12', 'Anomalies par catégorie', false, null, 'comptes du §3', count($details).' catégories', $details);
     }
@@ -115,12 +118,13 @@ final class ControlesAcma
     /** @return array<string, int> */
     public static function compterVivant(): array
     {
-        $comptes = [];
-        foreach (array_merge(self::TABLES_VIVANTES, self::TABLES_ENVOIS) as $table) {
-            $comptes[$table] = Schema::hasTable($table) ? DB::table($table)->count() : 0;
-        }
+        // Lignes écrites par la transaction courante seulement (pg_stat_xact_user_tables) : une saisie concurrente
+        // dans la plateforme pendant la reprise ne fausse pas le contrôle ; l'écart avant/après est exact.
+        $tables = array_merge(self::TABLES_VIVANTES, self::TABLES_ENVOIS);
+        $ecrites = DB::table('pg_stat_xact_user_tables')->where('schemaname', 'public')->whereIn('relname', $tables)
+            ->selectRaw('relname, n_tup_ins + n_tup_upd + n_tup_del AS n')->pluck('n', 'relname');
 
-        return $comptes;
+        return array_combine($tables, array_map(fn (string $t): int => (int) ($ecrites[$t] ?? 0), $tables));
     }
 
     /** Matricules normalisés des dossiers en place : les exclusions journalisées sont celles qui n'y sont pas. @return array<string, true> */
@@ -325,7 +329,7 @@ final class ControlesAcma
         $ecarts = [];
         foreach ($tables as $table) {
             if (($contexte->vivantAvant[$table] ?? 0) !== ($apres[$table] ?? 0)) {
-                $ecarts[] = "{$table} : {$contexte->vivantAvant[$table]} avant, {$apres[$table]} après";
+                $ecarts[] = "{$table} : ".(($apres[$table] ?? 0) - ($contexte->vivantAvant[$table] ?? 0)).' ligne(s) écrite(s) par la reprise';
             }
         }
 

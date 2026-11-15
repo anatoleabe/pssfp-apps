@@ -30,7 +30,10 @@ class PaiementsRelationManager extends RelationManager
 
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
-        return static::moduleAllows() && $ownerRecord instanceof AcmaDossier && (bool) auth()->user()?->can('view', $ownerRecord);
+        $user = auth()->user();
+
+        return static::moduleAllows() && $ownerRecord instanceof AcmaDossier
+            && (bool) $user?->can('view', $ownerRecord) && (bool) $user?->can('viewAny', AcmaPaiement::class);
     }
 
     public function mount(): void
@@ -46,7 +49,7 @@ class PaiementsRelationManager extends RelationManager
 
         return $table
             ->defaultSort('annee')
-            ->modifyQueryUsing(fn (Builder $query) => $query->orderBy('date_recu')->orderBy('id_acma'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('retire_de_la_source_at')->orderBy('date_recu')->orderBy('id_acma'))
             ->columns([
                 Tables\Columns\TextColumn::make('annee')->label('Année')->sortable(),
                 Tables\Columns\TextColumn::make('niveau_acma')->label('Niveau'),
@@ -65,7 +68,7 @@ class PaiementsRelationManager extends RelationManager
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('annee')->label('Année')
-                    ->options(fn (): array => $this->getOwnerRecord()->paiements()->distinct()->orderBy('annee')->pluck('annee', 'annee')->all()),
+                    ->options(fn (): array => $this->getOwnerRecord()->paiements()->whereNull('retire_de_la_source_at')->distinct()->orderBy('annee')->pluck('annee', 'annee')->all()),
                 Tables\Filters\Filter::make('signalees')->label('Lignes signalées')->toggle()
                     ->query(fn (Builder $query): Builder => $query->where(fn (Builder $w) => $w->where('negatif', true)->orWhere('total_nul', true)
                         ->orWhere('date_aberrante', true)->orWhere('hors_annee', true)->orWhere('doublon_exact', true)->orWhere('niveau_sans_inscription', true))),

@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Services\Acma\ErreurAcma;
 use App\Services\Acma\LectureTransit;
 use App\Services\Acma\Reprise\ControlesAcma;
 use App\Services\Acma\Reprise\RapportsReprise;
 use App\Services\Acma\Reprise\ResultatControle;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
-use RuntimeException;
+use Throwable;
 
 /** Lot 15b (spec du lot 15, §10.5) : contrôles d'équivalence sur l'archive en place, en lecture seule. */
 final class AcmaControler extends Command
@@ -25,8 +26,9 @@ final class AcmaControler extends Command
         try {
             $chargement = LectureTransit::chargement();
             $resultats = $controles->executer(null);
-        } catch (RuntimeException $e) {
-            $this->error($e->getMessage());
+        } catch (Throwable $e) {
+            // Aucune donnée à la console : message de la reprise, ou SQLSTATE, table et contrainte seulement.
+            $this->error(ErreurAcma::sansDonnees($e, 'des contrôles')->getMessage());
 
             return self::FAILURE;
         }

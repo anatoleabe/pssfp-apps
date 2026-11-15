@@ -25,6 +25,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 /**
  * Scolarité > Archives ACMA (lot 15d, spec §7.4 à §7.9) : dossiers des anciens auditeurs repris d'ACMA, en lecture
@@ -97,8 +98,14 @@ class ArchiveAcmaResource extends Resource
                 Tables\Filters\SelectFilter::make('niveau')->label('Niveau')->options(['M1' => 'M1', 'M2' => 'M2'])
                     ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
 ? $query->whereHas('inscriptions', fn (Builder $i) => $i->where('niveau', $data['value'])) : $query),
-                Tables\Filters\Filter::make('retire')->label('Disparus de la source')->toggle()
-                    ->query(fn (Builder $query): Builder => $query->whereNotNull('retire_de_la_source_at')),
+                // Par défaut, les dossiers disparus d'un export plus récent ne sont pas montrés comme vivants.
+                Tables\Filters\TernaryFilter::make('retire')->label('Disparus de la source')->default(false)
+                    ->trueLabel('Seulement les disparus')->falseLabel('Dossiers en vigueur')->placeholder('Tous')
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query->whereNotNull('retire_de_la_source_at'),
+                        false: fn (Builder $query): Builder => $query->whereNull('retire_de_la_source_at'),
+                        blank: fn (Builder $query): Builder => $query,
+                    ),
             ])
             ->actions([Tables\Actions\ViewAction::make()])
             ->bulkActions([]);
@@ -111,17 +118,17 @@ class ArchiveAcmaResource extends Resource
                 Infolists\Components\Tabs\Tab::make('Identité')->schema(self::identite()),
                 Infolists\Components\Tabs\Tab::make('Années et résultats')->schema([
                     Infolists\Components\RepeatableEntry::make('inscriptions')->hiddenLabel()->columns(4)
-                        ->getStateUsing(fn (AcmaDossier $record) => $record->inscriptions()->orderBy('annee')->orderBy('niveau_acma')->get())
+                        ->getStateUsing(fn (AcmaDossier $record) => self::inscriptionsVivantes($record))
                         ->schema([
                             Infolists\Components\TextEntry::make('annee')->label('Année')->weight('bold')
                                 ->formatStateUsing(fn (AcmaInscription $record): string => $record->annee.' · '.$record->niveau.' ('.$record->niveau_acma.')'),
                             Infolists\Components\TextEntry::make('decision')->label('Décision')
-                                ->getStateUsing(fn (AcmaInscription $record): string => ArchivesAcma::decision($record)['libelle'])
-                                ->color(fn (AcmaInscription $record): ?string => match (ArchivesAcma::decision($record)['code']) {
+                                ->getStateUsing(fn (AcmaInscription $record): string => ArchivesAcma::decision($record, $record->dossier->complements)['libelle'])
+                                ->color(fn (AcmaInscription $record): ?string => match (ArchivesAcma::decision($record, $record->dossier->complements)['code']) {
                                     'admis' => 'success', 'non_admis' => 'danger', default => 'warning'
                                 }),
                             Infolists\Components\TextEntry::make('moyenne')->label('Moyenne')
-                                ->getStateUsing(fn (AcmaInscription $record): string => ArchivesAcma::moyenne($record)),
+                                ->getStateUsing(fn (AcmaInscription $record): string => ArchivesAcma::moyenne($record, $record->dossier->complements)),
                             Infolists\Components\TextEntry::make('credits')->label('Crédits acquis (recalcul)')
                                 ->getStateUsing(fn (AcmaInscription $record): string => $record->credits_acquis === null ? 'Aucune note'
                                     : $record->credits_acquis.' / '.($record->credits_programme ?? '?')),
@@ -155,7 +162,7 @@ class ArchiveAcmaResource extends Resource
                 ]),
                 Infolists\Components\Tabs\Tab::make('Soutenances')->schema([
                     Infolists\Components\RepeatableEntry::make('soutenances')->hiddenLabel()->columns(3)
-                        ->getStateUsing(fn (AcmaDossier $record) => $record->soutenances()->orderBy('date')->get())
+                        ->getStateUsing(fn (AcmaDossier $record) => $record->soutenances()->whereNull('retire_de_la_source_at')->orderBy('date')->get())
                         ->schema([
                             Infolists\Components\TextEntry::make('date')->label('Date')
                                 ->getStateUsing(fn (AcmaSoutenance $record): string => $record->date?->format('d/m/Y') ?? ('non lue : '.($record->date_source ?? 'vide'))),
@@ -174,7 +181,7 @@ class ArchiveAcmaResource extends Resource
                 ]),
                 Infolists\Components\Tabs\Tab::make('Documents ACMA')->schema([
                     Infolists\Components\RepeatableEntry::make('documents')->hiddenLabel()->columns(3)
-                        ->getStateUsing(fn (AcmaDossier $record) => $record->documents()->orderBy('type')->orderBy('id_acma')->get())
+                        ->getStateUsing(fn (AcmaDossier $record) => $record->documents()->whereNull('retire_de_la_source_at')->orderBy('type')->orderBy('id_acma')->get())
                         ->schema([
                             Infolists\Components\TextEntry::make('type')->label('Document')
                                 ->formatStateUsing(fn (string $state): string => AcmaDocument::TYPES[$state] ?? $state),
@@ -238,7 +245,7 @@ class ArchiveAcmaResource extends Resource
                 ->description('Ajouts de la scolarité d\'après une pièce : l\'archive ne se modifie jamais. Le dernier complément d\'un champ l\'emporte.')
                 ->schema([
                     Infolists\Components\TextEntry::make('complements')->hiddenLabel()->listWithLineBreaks()
-                        ->getStateUsing(fn (AcmaDossier $record): array => $record->complements()->with(['auteur:id,name', 'inscription:id,annee,niveau_acma'])->latest('id')->get()
+                        ->getStateUsing(fn (AcmaDossier $record): array => ArchivesAcma::complements($record)->loadMissing('inscription:id,annee,niveau_acma')->sortByDesc('id')
                             ->map(fn (AcmaComplement $c): string => $c->created_at->timezone('Africa/Douala')->format('d/m/Y').' — '
                                 .(AcmaComplement::CHAMPS[$c->champ] ?? $c->champ)
                                 .($c->inscription !== null ? ' '.$c->inscription->annee.' '.$c->inscription->niveau_acma : '')
@@ -250,12 +257,25 @@ class ArchiveAcmaResource extends Resource
         ];
     }
 
+    /**
+     * Inscriptions en vigueur (jamais celles disparues de la source), avec les compléments du dossier lus une fois.
+     *
+     * @return Collection<int, AcmaInscription>
+     */
+    public static function inscriptionsVivantes(AcmaDossier $dossier): Collection
+    {
+        ArchivesAcma::complements($dossier);
+
+        return $dossier->inscriptions()->whereNull('retire_de_la_source_at')->orderBy('annee')->orderBy('niveau_acma')->get()
+            ->each(fn (AcmaInscription $i) => $i->setRelation('dossier', $dossier));
+    }
+
     private static function valeurComplement(AcmaComplement $c): string
     {
         return match ($c->champ) {
             'date_naissance' => CarbonImmutable::parse($c->valeur)->format('d/m/Y'),
             'decision' => AcmaInscription::DECISIONS[$c->valeur] ?? $c->valeur,
-            'moyenne' => ArchivesAcma::note((float) $c->valeur),
+            'moyenne' => $c->valeur === ArchivesAcma::SANS_MOYENNE ? 'non portée au PV' : ArchivesAcma::note((float) $c->valeur),
             default => 'note retenue',
         };
     }
