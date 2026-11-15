@@ -83,7 +83,7 @@ beforeEach(function (): void {
         'organisme' => 'Ministère de test', 'lettre_reference' => 'lt-2026-001', 'lettre_date' => '2026-11-10',
         'lettre_path' => LETTRE_ENGAGEMENT, 'contact_nom' => 'Service des ressources humaines', 'contact_email' => 'rh@organisme.example',
         'contact_telephone' => '+237222000000', 'portee' => EngagementPriseEnCharge::DROITS_INSCRIPTION,
-        'annee_academique' => '2026-2027', 'echeance' => '2027-01-31',
+        'annee_academique' => '2026-2027', 'echeance' => '2027-01-15',
     ], $par ?? $this->agent);
     $this->rattacher = fn (EngagementPriseEnCharge $e, array $dossiers, ?User $par = null) => ($this->service)()
         ->rattacher($e, array_map(fn (Candidature $c): Auditeur => $c->fresh()->auditeur, $dossiers), $par ?? $this->agent);
@@ -104,7 +104,7 @@ describe('création', function (): void {
             ->portee->toBe(EngagementPriseEnCharge::DROITS_INSCRIPTION)
             ->annee_academique->toBe('2026-2027')
             ->cree_par->toBe($this->agent->id)
-            ->and($e->echeance->toDateString())->toBe('2027-01-31')
+            ->and($e->echeance->toDateString())->toBe('2027-01-15')
             ->and(SuiviEngagement::de($e->fresh())->etat())->toBe(EngagementPriseEnCharge::SANS_AUDITEUR)
             ->and(Activity::query()->where('event', 'engagement_cree')->sole()->subject_id)->toBe($e->id);
     });
@@ -130,9 +130,16 @@ describe('création', function (): void {
         'année sans barème' => [['annee_academique' => '2031-2032'], 'année'],
         'lettre future' => [['lettre_date' => '2026-11-20'], 'date de la lettre'],
         'échéance passée' => [['echeance' => '2026-11-16'], 'postérieure à aujourd\'hui'],
-        'échéance trop lointaine' => [['echeance' => '2027-06-01'], '180 jours'],
+        'échéance au-delà de 60 jours pour l\'agent' => [['echeance' => '2027-01-16'], '60 jours'],
         'e-mail invalide' => [['contact_email' => 'pas-une-adresse'], 'e-mail'],
     ]);
+
+    it('laisse le responsable fixer une échéance jusqu\'à 180 jours, comme un moratoire', function (): void {
+        expect(($this->engagement)(['echeance' => '2027-05-15'], $this->responsable)->echeance->toDateString())->toBe('2027-05-15')
+            ->and(fn () => ($this->engagement)(['echeance' => '2027-05-16', 'lettre_reference' => 'LT-2',
+                'lettre_path' => 'scolarite/justificatifs/01JLETTRE0000000000000000G.pdf'], $this->responsable))
+            ->toThrow(InvalidArgumentException::class, '180 jours');
+    });
 
     it('refuse de saisir deux fois la même lettre', function (): void {
         ($this->engagement)();
@@ -172,7 +179,7 @@ describe('rattachement', function (): void {
             ->and($resultat->refus)->toBe([])
             ->and($d)->type->toBe(DeblocageAcces::PRISE_EN_CHARGE)->engagement_id->toBe($e->id)->justificatif_path->toBeNull()
             ->statut->toBe(DeblocageAcces::EN_COURS)->accorde_par->toBe($this->agent->id)
-            ->and($d->echeance->toDateString())->toBe('2027-01-31')
+            ->and($d->echeance->toDateString())->toBe('2027-01-15')
             ->and($d->motif)->toBe('Prise en charge : Ministère de test, lettre LT-2026-001 du 10/11/2026')
             ->and(($this->etat)($this->awa))->toBe(AccesEcampus::DISPONIBLE)
             ->and($this->sms)->toBe(['+237699007001'])
@@ -304,7 +311,7 @@ describe('prolongation', function (): void {
         $e = ($this->engagement)();
 
         expect(fn () => ($this->service)()->prolonger($e, '2027-03-31', 'Courrier du ministère reçu', $this->agent))->toThrow(HttpException::class)
-            ->and(fn () => ($this->service)()->prolonger($e, '2027-01-15', 'Courrier du ministère reçu', $this->responsable))->toThrow(InvalidArgumentException::class, 'après l\'échéance actuelle')
+            ->and(fn () => ($this->service)()->prolonger($e, '2027-01-10', 'Courrier du ministère reçu', $this->responsable))->toThrow(InvalidArgumentException::class, 'après l\'échéance actuelle')
             ->and(fn () => ($this->service)()->prolonger($e, '2027-07-01', 'Courrier du ministère reçu', $this->responsable))->toThrow(InvalidArgumentException::class, '180 jours');
     });
 
@@ -342,6 +349,24 @@ describe('relance de l\'organisme', function (): void {
             ->not->toContain((string) $this->bruno->matricule)
             ->and($e->fresh())->relances->toBe(1)->derniere_relance_le->not->toBeNull()
             ->and(Activity::query()->where('event', 'engagement_relance')->sole()->properties['destinataire'])->toBe('rh@organisme.example');
+    });
+
+    it('laisse 24 heures entre deux relances, et ne cite pas un dossier retiré', function (): void {
+        $e = ($this->engagement)();
+        ($this->rattacher)($e, [$this->awa, $this->bruno]);
+        $this->awa->forceFill(['withdrawn_at' => now()])->save();
+
+        ($this->service)()->relancer($e, $this->agent);
+        expect(fn () => ($this->service)()->relancer($e, $this->agent))->toThrow(InvalidArgumentException::class, '24 heures');
+
+        $this->travelTo(now()->addHours(25));
+        ($this->service)()->relancer($e, $this->agent);
+
+        $jobs = Bus::dispatched(SendThrottledMail::class)->values();
+        $html = ($this->lire)($jobs[0], 'mailable')->render();
+        expect($jobs)->toHaveCount(2)
+            ->and($e->fresh()->relances)->toBe(2)
+            ->and($html)->toContain((string) $this->bruno->matricule)->not->toContain((string) $this->awa->matricule);
     });
 
     it('refuse sans adresse du contact, ou quand rien ne reste à régler', function (): void {

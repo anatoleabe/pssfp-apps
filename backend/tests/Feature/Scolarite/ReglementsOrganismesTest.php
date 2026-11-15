@@ -74,7 +74,7 @@ beforeEach(function (): void {
     $this->nouvelEngagement = fn (array $saisie = []): EngagementPriseEnCharge => app(EngagementsPriseEnCharge::class)->creer($saisie + [
         'organisme' => 'Ministère de test', 'lettre_reference' => 'LT-2026-001', 'lettre_date' => '2026-11-10',
         'lettre_path' => 'scolarite/justificatifs/01JLETTRE0000000000000000A.pdf', 'contact_email' => 'rh@organisme.example',
-        'portee' => EngagementPriseEnCharge::DROITS_INSCRIPTION, 'annee_academique' => '2026-2027', 'echeance' => '2027-01-31',
+        'portee' => EngagementPriseEnCharge::DROITS_INSCRIPTION, 'annee_academique' => '2026-2027', 'echeance' => '2027-01-15',
     ], $this->agent);
     $this->rattacher = fn (EngagementPriseEnCharge $e, array $dossiers) => app(EngagementsPriseEnCharge::class)
         ->rattacher($e, array_map(fn (Candidature $c): Auditeur => $c->fresh()->auditeur, $dossiers), $this->agent);

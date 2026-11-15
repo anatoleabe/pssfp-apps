@@ -40,8 +40,14 @@ final class EngagementsPriseEnCharge
 
     public const NOTES_MAX = 2000;
 
-    /** Échéance au plus loin, en jours à compter d'aujourd'hui : celle d'un moratoire. */
+    /** Échéance au plus loin, en jours à compter d'aujourd'hui : celle d'un moratoire, pour le responsable. */
     public const JOURS_MAX = 180;
+
+    /** Échéance au plus loin pour l'agent : celle d'un virement annoncé ; au-delà, le responsable prolonge. */
+    public const JOURS_MAX_AGENT = 60;
+
+    /** Délai minimal entre deux relances d'un organisme : un double clic n'envoie pas deux e-mails. */
+    public const RELANCE_DELAI_HEURES = 24;
 
     private const CHAMPS_CONTACT = ['contact_nom', 'contact_email', 'contact_telephone', 'notes'];
 
@@ -69,9 +75,15 @@ final class EngagementsPriseEnCharge
         return array_combine($annees, $annees) ?: [];
     }
 
-    public static function echeanceMax(): CarbonImmutable
+    /** 180 jours pour le responsable (comme un moratoire), 60 pour l'agent (comme un virement annoncé). */
+    public static function joursMax(?User $u): int
     {
-        return InscriptionAnnuelle::aujourdhui()->addDays(self::JOURS_MAX);
+        return self::peutProlonger($u) ? self::JOURS_MAX : self::JOURS_MAX_AGENT;
+    }
+
+    public static function echeanceMax(?User $u): CarbonImmutable
+    {
+        return InscriptionAnnuelle::aujourdhui()->addDays(self::joursMax($u));
     }
 
     /**
@@ -107,7 +119,7 @@ final class EngagementsPriseEnCharge
         if (! array_key_exists($annee, self::annees())) {
             throw new InvalidArgumentException('Choisissez une année académique dotée d\'un barème.');
         }
-        $echeance = self::echeance($saisie['echeance'] ?? null);
+        $echeance = self::echeance($saisie['echeance'] ?? null, $auteur);
         $contact = self::contact($saisie, []);
 
         if (EngagementPriseEnCharge::query()->whereRaw('lower(organisme) = lower(?)', [$organisme])
@@ -203,7 +215,7 @@ final class EngagementsPriseEnCharge
             if ($nouvelle->toDateString() <= $ancienne) {
                 throw new InvalidArgumentException('La nouvelle échéance doit tomber après l\'échéance actuelle, le '.$e->echeance->format('d/m/Y').'.');
             }
-            self::bornerEcheance($nouvelle);
+            self::bornerEcheance($nouvelle, $auteur);
 
             $e->forceFill(['echeance' => $nouvelle->toDateString(), 'prolongations' => $e->prolongations + 1])->save();
             $n = $this->deblocages->prolongerEngagement($e, $nouvelle, $motif, $auteur);
@@ -266,38 +278,58 @@ final class EngagementsPriseEnCharge
     public function relancer(EngagementPriseEnCharge $engagement, User $auteur): void
     {
         abort_unless(self::peutGerer($auteur), 403);
-        $e = EngagementPriseEnCharge::query()->findOrFail($engagement->id);
-        if (blank($e->contact_email)) {
-            throw new InvalidArgumentException('Le contact de l\'organisme n\'a pas d\'adresse e-mail : complétez-le avant de relancer.');
-        }
-        $suivi = SuiviEngagement::de($e);
-        $ouvertes = array_values(array_filter($suivi->lignes, fn (array $l): bool => $l['reste'] > 0));
-        if ($ouvertes === []) {
-            throw new InvalidArgumentException('Rien à relancer : aucun auditeur couvert n\'a de reste à régler.');
-        }
-        $candidatures = Auditeur::query()->with('candidature:id,nom,prenom,matricule')
+
+        // Sous le verrou de l'engagement : deux clics simultanés n'envoient qu'un e-mail.
+        $this->db->transaction(function () use ($engagement, $auteur): void {
+            $e = EngagementPriseEnCharge::query()->whereKey($engagement->id)->lockForUpdate()->firstOrFail();
+            if (blank($e->contact_email)) {
+                throw new InvalidArgumentException('Le contact de l\'organisme n\'a pas d\'adresse e-mail : complétez-le avant de relancer.');
+            }
+            if ($e->derniere_relance_le !== null && $e->derniere_relance_le->greaterThan(now()->subHours(self::RELANCE_DELAI_HEURES))) {
+                throw new InvalidArgumentException('L\'organisme a déjà été relancé le '.$e->derniere_relance_le->timezone(InscriptionAnnuelle::FUSEAU)->format('d/m/Y à H:i')
+                    .' : laissez '.self::RELANCE_DELAI_HEURES.' heures entre deux relances.');
+            }
+            $lignes = self::lignesRelance($e);
+            if ($lignes === []) {
+                throw new InvalidArgumentException('Rien à relancer : aucun auditeur couvert n\'a de reste à régler.');
+            }
+            $reste = array_sum(array_column($lignes, 'montant'));
+
+            // Mis en file après la validation de la transaction (SendThrottledMail).
+            SendThrottledMail::dispatch([(string) $e->contact_email], new RelanceOrganismeMail(
+                $e->organisme, $e->libelleLettre(), $e->libellePortee(), $e->annee_academique, $e->echeance->format('d/m/Y'),
+                array_map(fn (array $l): array => ['matricule' => $l['matricule'], 'nom' => $l['nom'], 'reste' => RecusVersements::fcfa($l['montant'])], $lignes),
+                RecusVersements::fcfa($reste),
+            ));
+
+            $e->forceFill(['relances' => $e->relances + 1, 'derniere_relance_le' => now()])->save();
+            activity('scolarite')->causedBy($auteur)->performedOn($e)
+                ->event('engagement_relance')
+                ->withProperties(['destinataire' => (string) $e->contact_email, 'reste' => $reste, 'auditeurs' => count($lignes)])
+                ->log('Organisme relancé par e-mail');
+        });
+    }
+
+    /**
+     * Auditeurs couverts qui ont un reste, dossier non retiré (comme les parts d'un règlement).
+     *
+     * @return list<array{matricule: string, nom: string, montant: int}>
+     */
+    private static function lignesRelance(EngagementPriseEnCharge $e): array
+    {
+        $ouvertes = array_values(array_filter(SuiviEngagement::de($e)->lignes, fn (array $l): bool => $l['reste'] > 0));
+        $auditeurs = Auditeur::query()->with('candidature:id,nom,prenom,matricule,withdrawn_at')
             ->whereKey(array_map(fn (array $l): int => (int) $l['inscription']->auditeur_id, $ouvertes))->get()->keyBy('id');
-        $lignes = array_map(function (array $l) use ($candidatures): array {
-            $c = $candidatures->get($l['inscription']->auditeur_id)?->candidature;
+        $lignes = [];
+        foreach ($ouvertes as $l) {
+            $c = $auditeurs->get($l['inscription']->auditeur_id)?->candidature;
+            if ($c === null || $c->withdrawn_at !== null) {
+                continue;
+            }
+            $lignes[] = ['matricule' => (string) ($c->matricule ?: '—'), 'nom' => trim(mb_strtoupper((string) $c->nom).' '.$c->prenom), 'montant' => $l['reste']];
+        }
 
-            return [
-                'matricule' => (string) ($c?->matricule ?: '—'),
-                'nom' => trim(mb_strtoupper((string) $c?->nom).' '.$c?->prenom),
-                'reste' => RecusVersements::fcfa($l['reste']),
-            ];
-        }, $ouvertes);
-        $reste = array_sum(array_column($ouvertes, 'reste'));
-
-        SendThrottledMail::dispatch([(string) $e->contact_email], new RelanceOrganismeMail(
-            $e->organisme, $e->libelleLettre(), $e->libellePortee(), $e->annee_academique, $e->echeance->format('d/m/Y'),
-            $lignes, RecusVersements::fcfa($reste),
-        ));
-
-        EngagementPriseEnCharge::query()->whereKey($e->id)->increment('relances', 1, ['derniere_relance_le' => now()]);
-        activity('scolarite')->causedBy($auteur)->performedOn($e)
-            ->event('engagement_relance')
-            ->withProperties(['destinataire' => (string) $e->contact_email, 'reste' => $reste, 'auditeurs' => count($ouvertes)])
-            ->log('Organisme relancé par e-mail');
+        return $lignes;
     }
 
     /**
@@ -350,25 +382,26 @@ final class EngagementsPriseEnCharge
         return $chemin;
     }
 
-    private static function echeance(mixed $saisie): CarbonImmutable
+    private static function echeance(mixed $saisie, User $auteur): CarbonImmutable
     {
         if (blank($saisie)) {
             throw new InvalidArgumentException('Indiquez l\'échéance de l\'engagement.');
         }
         $date = self::jour($saisie);
-        self::bornerEcheance($date);
+        self::bornerEcheance($date, $auteur);
 
         return $date;
     }
 
-    private static function bornerEcheance(CarbonImmutable $date): void
+    private static function bornerEcheance(CarbonImmutable $date, User $auteur): void
     {
         if ($date->toDateString() <= InscriptionAnnuelle::aujourdhui()->toDateString()) {
             throw new InvalidArgumentException('L\'échéance doit être postérieure à aujourd\'hui.');
         }
-        $max = self::echeanceMax();
+        $max = self::echeanceMax($auteur);
         if ($date->toDateString() > $max->toDateString()) {
-            throw new InvalidArgumentException('Échéance trop lointaine : au plus '.self::JOURS_MAX.' jours, soit le '.$max->format('d/m/Y').'.');
+            throw new InvalidArgumentException('Échéance trop lointaine : au plus '.self::joursMax($auteur).' jours, soit le '.$max->format('d/m/Y').'.'
+                .(self::peutProlonger($auteur) ? '' : ' Au-delà, le responsable de scolarité prolonge l\'engagement.'));
         }
     }
 

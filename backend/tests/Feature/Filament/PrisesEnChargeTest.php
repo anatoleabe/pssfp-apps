@@ -33,6 +33,7 @@ use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -67,7 +68,7 @@ beforeEach(function (): void {
         'organisme' => 'Ministère de test', 'lettre_reference' => 'LT-2026-001', 'lettre_date' => '2026-11-10',
         'lettre_path' => 'scolarite/justificatifs/01JLETTRE0000000000000000A.pdf', 'contact_nom' => 'Service RH',
         'contact_email' => 'rh@organisme.example', 'portee' => EngagementPriseEnCharge::DROITS_INSCRIPTION,
-        'annee_academique' => '2026-2027', 'echeance' => '2027-01-31',
+        'annee_academique' => '2026-2027', 'echeance' => '2027-01-15',
     ], $this->agent);
     $this->rattacher = fn (array $dossiers) => app(EngagementsPriseEnCharge::class)
         ->rattacher($this->engagement, array_map(fn (Candidature $c): Auditeur => $c->fresh()->auditeur, $dossiers), $this->agent);
@@ -110,7 +111,7 @@ it('crée un engagement depuis la liste, lettre obligatoire, pour qui peut débl
 
     $this->actingAs($this->agent);
     $saisie = ['organisme' => 'Société de test', 'lettre_reference' => 'DRH-42', 'lettre_date' => '2026-11-12',
-        'portee' => EngagementPriseEnCharge::SCOLARITE_ANNEE, 'annee_academique' => '2026-2027', 'echeance' => '2027-02-28',
+        'portee' => EngagementPriseEnCharge::SCOLARITE_ANNEE, 'annee_academique' => '2026-2027', 'echeance' => '2027-01-10',
         'contact_email' => 'drh@societe.example'];
     $this->livewire(ListEngagements::class)
         ->callAction('nouvelEngagement', data: $saisie)
@@ -173,6 +174,55 @@ it('enregistre un règlement réparti depuis la fiche, parts proposées au reste
 
     expect(ReglementOrganisme::query()->sole()->montant)->toBe(370000)
         ->and(Versement::query()->where('payeur', 'employeur')->count())->toBe(2);
+});
+
+it('refuse depuis la fiche une somme des parts différente du montant, et exige la confirmation d\'un dépassement', function (): void {
+    ($this->rattacher)([$this->awa, $this->bruno]);
+    $this->actingAs($this->agent);
+    $parts = ReglementsOrganismes::partsProposees($this->engagement);
+    $saisie = ['date_reglement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'OV-56'];
+
+    ($this->fiche)()->callAction('enregistrerReglement', data: $saisie + ['montant' => 400000, 'parts' => $parts])
+        ->assertNotified('Règlement non enregistré');
+    $trop = array_map(fn (int $p): int => $p + 1000, $parts);
+    ($this->fiche)()->callAction('enregistrerReglement', data: $saisie + ['montant' => 372000, 'parts' => $trop])
+        ->assertHasActionErrors(['confirmer_depassement' => 'accepted']);
+
+    expect(ReglementOrganisme::query()->count())->toBe(0)->and(Versement::query()->count())->toBe(0);
+});
+
+it('charge l\'onglet des auditeurs couverts sans requête par ligne', function (): void {
+    ($this->rattacher)([$this->awa, $this->bruno]);
+    $this->actingAs($this->agent);
+    DB::enableQueryLog();
+
+    $this->livewire(AuditeursCouvertsRelationManager::class, ['ownerRecord' => $this->engagement, 'pageClass' => ViewEngagement::class])
+        ->assertSee((string) $this->bruno->matricule);
+
+    // L'imputé est préchargé avec l'inscription : aucune somme lue ligne à ligne.
+    $sommes = collect(DB::getQueryLog())->filter(fn (array $q): bool => str_starts_with($q['query'], 'select sum("montant") as aggregate from "imputations_versements"'));
+    expect($sommes)->toHaveCount(0);
+});
+
+it('prolonge l\'engagement (responsable) et modifie le contact depuis la fiche', function (): void {
+    ($this->rattacher)([$this->awa]);
+    $this->actingAs(($this->compte)('scolarite_responsable'));
+
+    ($this->fiche)()->callAction('prolonger', data: ['echeance' => '2027-03-31', 'motif' => 'Courrier du ministère : paiement en mars'])
+        ->assertHasNoActionErrors();
+    ($this->fiche)()->callAction('modifierContact', data: ['contact_nom' => 'Direction financière', 'contact_email' => 'df@organisme.example'])
+        ->assertHasNoActionErrors();
+
+    expect($this->engagement->fresh())->contact_email->toBe('df@organisme.example')
+        ->and($this->engagement->fresh()->echeance->toDateString())->toBe('2027-03-31')
+        ->and(DeblocageAcces::query()->sole()->echeance->toDateString())->toBe('2027-03-31');
+});
+
+it('ne propose plus de rattacher sur un engagement échu', function (): void {
+    $this->travelTo(now('Africa/Douala')->setDate(2027, 1, 20)->setTime(9, 0));
+    $this->actingAs($this->agent);
+
+    ($this->fiche)()->assertActionHidden('rattacher');
 });
 
 it('réserve l\'annulation d\'un règlement au responsable, depuis l\'onglet des règlements', function (): void {

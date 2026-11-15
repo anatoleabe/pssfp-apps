@@ -57,6 +57,12 @@ class EngagementPriseEnChargeResource extends Resource
         return parent::getEloquentQuery()->avecSuivi()->with('creePar:id,name');
     }
 
+    /** La recherche globale n'affiche que l'organisme : pas de suivi à charger. */
+    public static function getGlobalSearchEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery();
+    }
+
     public static function suivi(EngagementPriseEnCharge $e): SuiviEngagement
     {
         self::$suivis ??= new WeakMap;

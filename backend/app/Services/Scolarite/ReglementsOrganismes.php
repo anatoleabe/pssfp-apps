@@ -98,8 +98,20 @@ final class ReglementsOrganismes
      */
     public static function depassements(EngagementPriseEnCharge $engagement, array $parts): array
     {
+        return self::depassementsDe(self::couverts($engagement), $parts);
+    }
+
+    /**
+     * Même calcul, sur des auditeurs couverts déjà lus (formulaire : aucune requête).
+     *
+     * @param  array<string, array{matricule: string, nom: string, couvert: int, reste: int}>  $couverts
+     * @param  array<string, mixed>  $parts
+     * @return array<string, int> matricule => excédent
+     */
+    public static function depassementsDe(array $couverts, array $parts): array
+    {
         $excedents = [];
-        foreach (self::couverts($engagement) as $uuid => $l) {
+        foreach ($couverts as $uuid => $l) {
             $part = filter_var($parts[$uuid] ?? 0, FILTER_VALIDATE_INT);
             if ($part !== false && $part > $l['reste']) {
                 $excedents[$l['matricule']] = $part - $l['reste'];

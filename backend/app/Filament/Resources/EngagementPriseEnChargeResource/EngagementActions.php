@@ -35,6 +35,9 @@ use Livewire\Component;
  */
 final class EngagementActions
 {
+    /** Auditeurs rattachés au plus par envoi : chacun reçoit aussitôt SMS et e-mail. */
+    public const RATTACHEMENT_MAX = 50;
+
     public static function nouvelEngagement(): Action
     {
         return Action::make('nouvelEngagement')
@@ -44,7 +47,7 @@ final class EngagementActions
             ->modalHeading('Nouvel engagement de prise en charge')
             ->modalDescription('La lettre de l\'organisme ouvre l\'accès des auditeurs qu\'on y rattache ; elle ne compte pas comme un paiement. Les auditeurs se rattachent ensuite depuis la fiche de l\'engagement.')
             ->modalSubmitActionLabel('Enregistrer')
-            ->form(fn (): array => MessagesValidation::appliquer([
+            ->form(fn (): array => self::avecEcheance($echeance = self::champEcheance('echeance', 'Règlement attendu avant le'), MessagesValidation::appliquer([
                 Forms\Components\Section::make('Lettre')->columns(2)->schema([
                     Forms\Components\TextInput::make('organisme')->label('Organisme')->required()->maxLength(EngagementsPriseEnCharge::ORGANISME_MAX)->columnSpan(2),
                     Forms\Components\TextInput::make('lettre_reference')->label('Référence de la lettre')->required()->maxLength(EngagementsPriseEnCharge::LETTRE_REFERENCE_MAX),
@@ -60,10 +63,10 @@ final class EngagementActions
                     Forms\Components\Select::make('annee_academique')->label('Année académique')->required()->native(false)
                         ->options(fn (): array => EngagementsPriseEnCharge::annees())
                         ->default(fn (): ?string => array_key_first(EngagementsPriseEnCharge::annees())),
-                    self::champEcheance('echeance', 'Règlement attendu avant le'),
+                    $echeance,
                 ]),
                 self::sectionContact(),
-            ], self::messages()))
+            ], self::messages())))
             ->action(function (array $data, Action $action, Component $livewire): void {
                 try {
                     // Seule une lettre déposée par ce formulaire, dans cette requête, se rattache à l'engagement.
@@ -88,13 +91,16 @@ final class EngagementActions
         return Action::make('rattacher')
             ->label('Rattacher des auditeurs')
             ->icon('heroicon-o-user-plus')
-            ->visible(fn (): bool => EngagementsPriseEnCharge::peutGerer(auth()->user()))
+            // Échéance dépassée : le service refuserait chacun ; on la fait d'abord prolonger.
+            ->visible(fn (EngagementPriseEnCharge $record): bool => EngagementsPriseEnCharge::peutGerer(auth()->user()) && ! $record->estEchu())
             ->modalHeading('Rattacher des auditeurs')
             ->modalDescription(fn (EngagementPriseEnCharge $record): string => 'Auditeurs inscrits en '.$record->annee_academique.'. Chacun reçoit son accès à eCampus jusqu\'au '
                 .$record->echeance->format('d/m/Y').', et en est prévenu par SMS et par e-mail. Chaque auditeur est traité séparément : un refus ne bloque pas les autres.')
             ->modalSubmitActionLabel('Rattacher')
             ->form([
                 Forms\Components\Select::make('auditeurs')->label('Auditeurs (matricule ou nom)')->multiple()->required()->searchable()
+                    // Chaque rattachement envoie aussitôt SMS et e-mail : des lots raisonnables.
+                    ->maxItems(self::RATTACHEMENT_MAX)->helperText(self::RATTACHEMENT_MAX.' auditeurs au plus par envoi.')
                     ->getSearchResultsUsing(fn (string $search, EngagementPriseEnCharge $record): array => self::rechercherAuditeurs($record, $search))
                     ->getOptionLabelsUsing(fn (array $values): array => self::libellesAuditeurs($values)),
             ])
@@ -123,25 +129,7 @@ final class EngagementActions
                 'mode' => 'virement',
                 'parts' => ReglementsOrganismes::partsProposees($record),
             ])
-            ->form(fn (EngagementPriseEnCharge $record): array => MessagesValidation::appliquer([
-                Forms\Components\Section::make('Règlement')->columns(2)->schema([
-                    Forms\Components\TextInput::make('montant')->label('Montant reçu (FCFA)')->required()->integer()->minValue(1)
-                        ->maxValue(ReglementsOrganismes::MONTANT_MAX)
-                        ->helperText('Somme des parts proposées : '.LibelleSituation::fcfa(array_sum(ReglementsOrganismes::partsProposees($record))).'.'),
-                    Forms\Components\DatePicker::make('date_reglement')->label('Date du règlement')->required()->native(false)->displayFormat('d/m/Y')
-                        ->maxDate(InscriptionAnnuelle::aujourdhui()->endOfDay()->toDateTimeString()),
-                    Forms\Components\Select::make('mode')->label('Mode de paiement')->required()->options(Versement::MODES)->native(false),
-                    Forms\Components\TextInput::make('reference')->label('Référence')->required()->maxLength(ReglementsOrganismes::REFERENCE_MAX)
-                        ->helperText('Chaque versement portera la référence <référence>-<MATRICULE>.'),
-                    AuditeurActions::champJustificatif('Avis de virement ou bordereau (facultatif)', 10,
-                        'Le stockage n\'a pas répondu : la pièce n\'est pas enregistrée. Réessayez dans quelques instants.', 'piece_path')->columnSpan(2),
-                ]),
-                Forms\Components\Section::make('Parts par auditeur')->columns(2)->schema(self::champsParts($record)),
-                Forms\Components\Checkbox::make('confirmer_depassement')
-                    ->label(fn (Forms\Get $get): string => self::libelleDepassement($record, (array) ($get('parts') ?? [])))
-                    ->visible(fn (Forms\Get $get): bool => ReglementsOrganismes::depassements($record, (array) ($get('parts') ?? [])) !== [])
-                    ->accepted(),
-            ], self::messages()))
+            ->form(fn (EngagementPriseEnCharge $record): array => self::formulaireReglement(ReglementsOrganismes::couverts($record)))
             ->action(function (EngagementPriseEnCharge $record, array $data, Action $action, Component $livewire): void {
                 try {
                     if (filled($data['piece_path'] ?? null) && ! AuditeurActions::depose((string) $data['piece_path'])) {
@@ -162,6 +150,37 @@ final class EngagementActions
                     ->send();
                 self::recharger($record, $livewire);
             });
+    }
+
+    /**
+     * Formulaire du règlement réparti, construit sur les auditeurs couverts lus une seule fois
+     * par requête : parts, somme saisie et dépassements s'en déduisent sans requête.
+     *
+     * @param  array<string, array{matricule: string, nom: string, couvert: int, reste: int}>  $couverts
+     * @return list<Forms\Components\Component>
+     */
+    private static function formulaireReglement(array $couverts): array
+    {
+        return MessagesValidation::appliquer([
+            Forms\Components\Section::make('Règlement')->columns(2)->schema([
+                Forms\Components\TextInput::make('montant')->label('Montant reçu (FCFA)')->required()->integer()->minValue(1)
+                    ->maxValue(ReglementsOrganismes::MONTANT_MAX)
+                    ->helperText(fn (Forms\Get $get): string => 'Somme des parts saisies : '.LibelleSituation::fcfa(self::sommeParts((array) ($get('parts') ?? [])))
+                        .' (reste couvert : '.LibelleSituation::fcfa(array_sum(array_column($couverts, 'reste'))).').'),
+                Forms\Components\DatePicker::make('date_reglement')->label('Date du règlement')->required()->native(false)->displayFormat('d/m/Y')
+                    ->maxDate(InscriptionAnnuelle::aujourdhui()->endOfDay()->toDateTimeString()),
+                Forms\Components\Select::make('mode')->label('Mode de paiement')->required()->options(Versement::MODES)->native(false),
+                Forms\Components\TextInput::make('reference')->label('Référence')->required()->maxLength(ReglementsOrganismes::REFERENCE_MAX)
+                    ->helperText('Chaque versement portera la référence <référence>-<MATRICULE>.'),
+                AuditeurActions::champJustificatif('Avis de virement ou bordereau (facultatif)', 10,
+                    'Le stockage n\'a pas répondu : la pièce n\'est pas enregistrée. Réessayez dans quelques instants.', 'piece_path')->columnSpan(2),
+            ]),
+            Forms\Components\Section::make('Parts par auditeur')->columns(2)->schema(self::champsParts($couverts)),
+            Forms\Components\Checkbox::make('confirmer_depassement')
+                ->label(fn (Forms\Get $get): string => self::libelleDepassement($couverts, (array) ($get('parts') ?? [])))
+                ->visible(fn (Forms\Get $get): bool => ReglementsOrganismes::depassementsDe($couverts, (array) ($get('parts') ?? [])) !== [])
+                ->accepted(),
+        ], self::messages());
     }
 
     public static function relancer(): Action
@@ -223,11 +242,11 @@ final class EngagementActions
             ->modalDescription(fn (EngagementPriseEnCharge $record): string => 'Échéance actuelle : '.$record->echeance->format('d/m/Y')
                 .'. La nouvelle échéance s\'applique à l\'engagement et à l\'accès de tous ses auditeurs encore couverts sans avoir soldé leurs droits.')
             ->modalSubmitActionLabel('Prolonger')
-            ->form(MessagesValidation::appliquer([
-                self::champEcheance('echeance', 'Nouvelle échéance'),
+            ->form(fn (): array => self::avecEcheance($echeance = self::champEcheance('echeance', 'Nouvelle échéance'), MessagesValidation::appliquer([
+                $echeance,
                 Forms\Components\Textarea::make('motif')->label('Motif')->required()
                     ->minLength(DeblocagesAcces::MOTIF_MIN)->maxLength(DeblocagesAcces::MOTIF_MAX)->rows(3),
-            ], ['min' => 'Le motif compte au moins '.DeblocagesAcces::MOTIF_MIN.' caractères.'] + self::messages()))
+            ], ['min' => 'Le motif compte au moins '.DeblocagesAcces::MOTIF_MIN.' caractères.'] + self::messages())))
             ->action(function (EngagementPriseEnCharge $record, array $data, Action $action, Component $livewire): void {
                 try {
                     $n = app(EngagementsPriseEnCharge::class)->prolonger($record, $data['echeance'] ?? null, $data['motif'] ?? null, auth()->user());
@@ -314,11 +333,14 @@ final class EngagementActions
         return $a->candidature?->matricule.' — '.trim(mb_strtoupper((string) $a->candidature?->nom).' '.$a->candidature?->prenom);
     }
 
-    /** @return list<Forms\Components\TextInput> une part par auditeur couvert, proposée au reste */
-    private static function champsParts(EngagementPriseEnCharge $e): array
+    /**
+     * @param  array<string, array{matricule: string, nom: string, couvert: int, reste: int}>  $couverts
+     * @return list<Forms\Components\TextInput> une part par auditeur couvert, proposée au reste
+     */
+    private static function champsParts(array $couverts): array
     {
         $champs = [];
-        foreach (ReglementsOrganismes::couverts($e) as $uuid => $l) {
+        foreach ($couverts as $uuid => $l) {
             $champs[] = Forms\Components\TextInput::make('parts.'.$uuid)
                 ->label($l['matricule'].' — '.$l['nom'])
                 ->helperText('Reste dû : '.LibelleSituation::fcfa($l['reste']).' sur '.LibelleSituation::fcfa($l['couvert']).' couverts.')
@@ -329,10 +351,19 @@ final class EngagementActions
     }
 
     /** @param  array<string, mixed>  $parts */
-    private static function libelleDepassement(EngagementPriseEnCharge $e, array $parts): string
+    private static function sommeParts(array $parts): int
+    {
+        return array_sum(array_map(fn ($p): int => max(0, (int) filter_var($p, FILTER_VALIDATE_INT)), $parts));
+    }
+
+    /**
+     * @param  array<string, array{matricule: string, nom: string, couvert: int, reste: int}>  $couverts
+     * @param  array<string, mixed>  $parts
+     */
+    private static function libelleDepassement(array $couverts, array $parts): string
     {
         $excedents = array_map(fn (string $m, int $x): string => $m.' : '.RecusVersements::fcfa($x).' de plus',
-            array_keys($d = ReglementsOrganismes::depassements($e, $parts)), $d);
+            array_keys($d = ReglementsOrganismes::depassementsDe($couverts, $parts)), $d);
 
         return 'Je confirme : des parts dépassent le reste couvert par l\'engagement ('.implode(' ; ', $excedents).'). '
             .'L\'excédent ira sur le reste de l\'année, puis restera en avance réservée, en attente de la décision du responsable.';
@@ -343,8 +374,28 @@ final class EngagementActions
         return Forms\Components\DatePicker::make($nom)->label($libelle)->required()->native(false)->displayFormat('d/m/Y')
             ->minDate(InscriptionAnnuelle::aujourdhui()->addDay()->toDateString())
             // Fin de journée : le sélecteur renvoie une heure (cf. la date d'un versement).
-            ->maxDate(fn (): string => EngagementsPriseEnCharge::echeanceMax()->endOfDay()->toDateTimeString())
-            ->helperText(EngagementsPriseEnCharge::JOURS_MAX.' jours au plus.');
+            ->maxDate(fn (): string => EngagementsPriseEnCharge::echeanceMax(auth()->user())->endOfDay()->toDateTimeString())
+            ->helperText(fn (): string => EngagementsPriseEnCharge::joursMax(auth()->user()).' jours au plus'
+                .(EngagementsPriseEnCharge::peutProlonger(auth()->user()) ? '.' : ' ; au-delà, le responsable de scolarité prolonge l\'engagement.'));
+    }
+
+    /**
+     * Messages propres à l'échéance, posés après les messages communs du formulaire (qui les
+     * remplaceraient) : la date de la lettre et celle du règlement gardent « pas dans le futur ».
+     *
+     * @param  list<Forms\Components\Component>  $champs
+     * @return list<Forms\Components\Component>
+     */
+    private static function avecEcheance(Forms\Components\DatePicker $echeance, array $champs): array
+    {
+        $echeance->validationMessages([
+            'required' => 'Ce champ est obligatoire.',
+            'date' => 'Saisissez une date valide.',
+            'after_or_equal' => 'L\'échéance doit être postérieure à aujourd\'hui.',
+            'before_or_equal' => 'Échéance trop lointaine pour vos droits : faites-la prolonger par le responsable de scolarité.',
+        ]);
+
+        return $champs;
     }
 
     private static function sectionContact(): Forms\Components\Section
@@ -388,8 +439,6 @@ final class EngagementActions
     private static function messages(): array
     {
         return [
-            'after_or_equal' => 'L\'échéance doit être postérieure à aujourd\'hui.',
-            'before_or_equal' => 'Date hors des bornes permises.',
             'uploaded' => 'Le fichier n\'a pas pu être envoyé : 10 Mo au plus.',
             'accepted' => 'Cochez la case pour confirmer le dépassement.',
         ];

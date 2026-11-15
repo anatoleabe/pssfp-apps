@@ -8,6 +8,7 @@ use App\Filament\Concerns\ChecksModuleAccess;
 use App\Filament\Resources\AuditeurResource;
 use App\Models\DeblocageAcces;
 use App\Models\EngagementPriseEnCharge;
+use App\Models\InscriptionAnnuelle;
 use App\Models\Versement;
 use App\Services\Scolarite\LibelleSituation;
 use App\Services\Scolarite\SuiviEngagement;
@@ -63,16 +64,19 @@ class AuditeursCouvertsRelationManager extends RelationManager
             ->defaultSort('id')
             ->paginated([25, 50, 100])
             ->columns([
-                Tables\Columns\TextColumn::make('inscription.auditeur.candidature.matricule')->label('Matricule')->fontFamily('mono'),
+                // Colonne calculée : une colonne « inscription.auditeur… » ferait recharger l'inscription
+                // sans son barème ni son imputé (une requête par ligne).
+                Tables\Columns\TextColumn::make('matricule')->label('Matricule')->fontFamily('mono')
+                    ->getStateUsing(fn (DeblocageAcces $record): ?string => $record->inscription?->auditeur?->candidature?->matricule),
                 Tables\Columns\TextColumn::make('nom')->label('Nom')
                     ->getStateUsing(fn (DeblocageAcces $record): string => trim(mb_strtoupper((string) $record->inscription?->auditeur?->candidature?->nom)
                         .' '.$record->inscription?->auditeur?->candidature?->prenom)),
                 Tables\Columns\TextColumn::make('couvert')->label('Couvert')->alignEnd()
-                    ->getStateUsing(fn (DeblocageAcces $record): string => LibelleSituation::fcfa($this->portee($record)[0])),
+                    ->getStateUsing(fn (DeblocageAcces $record): string => $record->statut === DeblocageAcces::REVOQUE ? '—' : LibelleSituation::fcfa($this->portee($record)[0])),
                 Tables\Columns\TextColumn::make('regle')->label('Réglé par l\'organisme')->alignEnd()
                     ->getStateUsing(fn (DeblocageAcces $record): string => LibelleSituation::fcfa($this->regles()[(int) $record->inscription?->auditeur_id] ?? 0)),
                 Tables\Columns\TextColumn::make('reste')->label('Reste')->alignEnd()->weight('bold')
-                    ->getStateUsing(fn (DeblocageAcces $record): string => LibelleSituation::fcfa($this->portee($record)[1])),
+                    ->getStateUsing(fn (DeblocageAcces $record): string => $record->statut === DeblocageAcces::REVOQUE ? '—' : LibelleSituation::fcfa($this->portee($record)[1])),
                 Tables\Columns\TextColumn::make('statut')->label('Accès anticipé')->badge()
                     ->formatStateUsing(fn (string $state): string => DeblocageAcces::STATUTS[$state] ?? $state)
                     ->color(fn (string $state): string => match ($state) {
@@ -81,7 +85,7 @@ class AuditeursCouvertsRelationManager extends RelationManager
                         default => 'gray',
                     })
                     ->description(fn (DeblocageAcces $record): string => $record->estEnCours() ? 'jusqu\'au '.$record->echeance->format('d/m/Y')
-                        : 'le '.$record->clos_le?->format('d/m/Y')),
+                        : 'le '.$record->clos_le?->timezone(InscriptionAnnuelle::FUSEAU)->format('d/m/Y')),
             ])
             ->recordUrl(fn (DeblocageAcces $record): ?string => $record->inscription?->auditeur !== null && AuditeurResource::canView($record->inscription->auditeur)
                 ? AuditeurResource::getUrl('view', ['record' => $record->inscription->auditeur])

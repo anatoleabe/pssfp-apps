@@ -9,6 +9,7 @@ use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\EngagementPriseEnChargeResource;
 use App\Filament\Resources\EngagementPriseEnChargeResource\EngagementActions;
 use App\Models\EngagementPriseEnCharge;
+use App\Models\InscriptionAnnuelle;
 use App\Models\ReglementOrganisme;
 use App\Models\Versement;
 use App\Services\Scolarite\LibelleSituation;
@@ -60,7 +61,7 @@ class ReglementsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('saisiPar:id,name')
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['saisiPar:id,name', 'annulePar:id,name'])
                 ->withCount(['versements as versements_valides_count' => fn (Builder $v) => $v->whereNull('annule_at')]))
             ->defaultSort('id', 'desc')
             ->columns([
@@ -74,7 +75,9 @@ class ReglementsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('etat')->label('État')->badge()
                     ->getStateUsing(fn (ReglementOrganisme $record): string => $record->estAnnule() ? 'Annulé' : 'Valide')
                     ->color(fn (ReglementOrganisme $record): string => $record->estAnnule() ? 'danger' : 'success')
-                    ->tooltip(fn (ReglementOrganisme $record): ?string => $record->estAnnule() ? 'Le '.$record->annule_at?->format('d/m/Y').' : '.$record->annule_motif : null),
+                    ->tooltip(fn (ReglementOrganisme $record): ?string => $record->estAnnule()
+                        ? 'Le '.$record->annule_at?->timezone(InscriptionAnnuelle::FUSEAU)->format('d/m/Y').' par '.($record->annulePar?->name ?? 'un compte supprimé').' : '.$record->annule_motif
+                        : null),
             ])
             ->headerActions([])
             ->actions([
@@ -101,7 +104,7 @@ class ReglementsRelationManager extends RelationManager
                     ->form(MessagesValidation::appliquer([
                         Forms\Components\Textarea::make('motif')->label('Motif de l\'annulation')->required()
                             ->minLength(ReglementsOrganismes::MOTIF_MIN)->maxLength(ReglementsOrganismes::MOTIF_MAX)->rows(3),
-                    ]))
+                    ], ['min' => 'Le motif compte au moins '.ReglementsOrganismes::MOTIF_MIN.' caractères.']))
                     ->action(function (ReglementOrganisme $record, array $data, Action $action): void {
                         try {
                             app(ReglementsOrganismes::class)->annuler($record, $data['motif'] ?? null, auth()->user());

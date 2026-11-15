@@ -297,7 +297,8 @@ final class DeblocagesAcces
                     $autre = DeblocageAcces::query()->with('engagement:id,organisme')->where('inscription_annuelle_id', $inscription->id)
                         ->whereNotNull('engagement_id')->where('engagement_id', '<>', $e->id)->where('statut', '<>', DeblocageAcces::REVOQUE)->first();
                     if ($autre !== null) {
-                        throw new InvalidArgumentException('Cette inscription est déjà couverte par un autre engagement de prise en charge ('.$autre->engagement?->organisme.') : faites d\'abord révoquer ce lien.');
+                        throw new InvalidArgumentException('Cette inscription est déjà couverte par un autre engagement de prise en charge ('.$autre->engagement?->organisme.') : '
+                            .($autre->estEnCours() ? 'faites d\'abord révoquer cet accès par le responsable de scolarité.' : 'rattachez l\'auditeur de nouveau à cet engagement-là.'));
                     }
 
                     $motif = mb_substr('Prise en charge : '.$e->organisme.', lettre '.$e->libelleLettre(), 0, self::MOTIF_MAX);

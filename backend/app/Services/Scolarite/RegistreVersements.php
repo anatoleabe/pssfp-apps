@@ -191,7 +191,7 @@ final class RegistreVersements
                 .' : annulez le règlement entier depuis l\'écran « Prises en charge ».');
         }
 
-        return $this->annulerVersement($versement, $motif, $auteur);
+        return $this->annulerVersement($versement, $motif, $auteur, false);
     }
 
     /**
@@ -206,21 +206,26 @@ final class RegistreVersements
         if ($versement->reglement_organisme_id === null) {
             throw new LogicException('Ce versement n\'est pas la part d\'un règlement.');
         }
-        $this->annulerVersement($versement, $motif, $auteur);
+        $this->annulerVersement($versement, $motif, $auteur, true);
     }
 
     /** @throws InvalidArgumentException */
-    private function annulerVersement(Versement $versement, string $motif, User $auteur): ResultatOperation
+    private function annulerVersement(Versement $versement, string $motif, User $auteur, bool $partReglement): ResultatOperation
     {
         $motif = trim($motif);
         if ($motif === '') {
             throw new InvalidArgumentException('Indiquez le motif de l\'annulation.');
         }
 
-        $this->ecrire((int) $versement->auditeur_id, function (ImputationsCompte $compte) use ($versement, $motif, $auteur): void {
+        $this->ecrire((int) $versement->auditeur_id, function (ImputationsCompte $compte) use ($versement, $motif, $auteur, $partReglement): void {
             $courant = Versement::query()->whereKey($versement->id)->firstOrFail();
             if ($courant->estAnnule()) {
                 throw new InvalidArgumentException('Ce versement est déjà annulé.');
+            }
+            // Relu sous le verrou : la part d'un règlement ne s'annule qu'avec lui (lot A2).
+            if (($courant->reglement_organisme_id !== null) !== $partReglement) {
+                throw new InvalidArgumentException($partReglement ? 'Ce versement n\'est pas la part d\'un règlement.'
+                    : 'Ce versement fait partie d\'un règlement d\'organisme : annulez le règlement entier depuis l\'écran « Prises en charge ».');
             }
             // R4 : refus d'un versement imputé sur plusieurs années (D4), puis ses imputations d'abord.
             $plan = $compte->avantAnnulation($courant, $motif, $auteur);
