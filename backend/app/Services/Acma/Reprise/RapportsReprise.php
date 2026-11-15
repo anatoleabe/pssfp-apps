@@ -92,7 +92,7 @@ final class RapportsReprise
                     $feuille->setCellValueExplicit([$c + 1, $r + 2], $valeur === null ? '' : (string) $valeur, DataType::TYPE_STRING);
                 }
             }
-            $feuille->getStyle('A1:Z1')->getFont()->setBold(true);
+            $feuille->getStyle([1, 1, count($entetes), 1])->getFont()->setBold(true);
         }
         $classeur->setActiveSheetIndex(0);
         ob_start();

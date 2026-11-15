@@ -35,6 +35,10 @@ final class RepriseAcma
         'inscriptions' => EtapeInscriptions::class,
         'resultats' => EtapeResultats::class,
         'versions_notes' => EtapeVersionsNotes::class,
+        'baremes' => EtapeBaremes::class,
+        'paiements' => EtapePaiements::class,
+        'soutenances' => EtapeSoutenances::class,
+        'documents' => EtapeDocuments::class,
     ];
 
     private static ?ContexteReprise $enCours = null;

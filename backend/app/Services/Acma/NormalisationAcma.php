@@ -130,6 +130,37 @@ final class NormalisationAcma
         };
     }
 
+    /** Mention de soutenance normalisée (`TRES-BIEN`, `TRES BIEN` donnent « Très bien ») ; null si vide ou inconnue. */
+    public static function mention(?string $brut): ?string
+    {
+        $cle = trim((string) preg_replace('/\s+/', ' ', str_replace('-', ' ', explode('/', mb_strtoupper(Str::ascii((string) $brut)))[0])));
+
+        return [
+            'PASSABLE' => 'Passable', 'ASSEZ BIEN' => 'Assez bien', 'BIEN' => 'Bien', 'TRES BIEN' => 'Très bien',
+            'EXCELLENT' => 'Excellent', 'HONORABLE' => 'Honorable', 'TRES HONORABLE' => 'Très honorable',
+        ][$cle] ?? null;
+    }
+
+    /**
+     * Montant d'ACMA (flottant rendu en texte) en francs entiers ; null si vide. Une partie décimale bloque l'étape
+     * (§7.2) : rien n'est arrondi en silence.
+     */
+    public static function montant(?string $brut, string $contexte): ?int
+    {
+        $t = trim((string) $brut);
+        if ($t === '') {
+            return null;
+        }
+        if (preg_match('/^-?\d+$/', $t) === 1) {
+            return (int) $t;
+        }
+        if (! is_numeric($t) || fmod((float) $t, 1.0) !== 0.0 || abs((float) $t) > 2 ** 53) {
+            throw new \RuntimeException("Montant non entier dans ACMA ({$contexte}) : étape bloquée.");
+        }
+
+        return (int) $t;
+    }
+
     /** Année académique au format `AAAA-AAAA`, la seconde suivant la première ; sinon null. */
     public static function annee(?string $brut): ?string
     {
