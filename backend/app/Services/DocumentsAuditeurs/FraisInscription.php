@@ -20,8 +20,9 @@ final class FraisInscription
         return $c->statut === Candidature::STATUT_ACCEPTE && $c->withdrawn_at === null;
     }
 
+    /** Droits soldés, ou accès accordé avant paiement (déblocage en cours, lot A1). */
     public static function payes(Candidature $c): bool
     {
-        return AccesEcampus::inscriptionSoldee($c);
+        return AccesEcampus::accesOuvert($c);
     }
 }

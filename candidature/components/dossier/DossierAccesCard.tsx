@@ -1,6 +1,7 @@
 import { useLocale, useTranslations } from 'next-intl';
-import { AlertCircle, ArrowUpRight, Download, KeyRound } from 'lucide-react';
+import { AlertCircle, ArrowUpRight, CalendarClock, Download, KeyRound } from 'lucide-react';
 import type { MaScolarite } from '@/lib/api/client';
+import { formatJourCourt } from '@/lib/format/date';
 import { formatFcfa } from '@/lib/format/montant';
 import { RevelerMotDePasse } from './RevelerMotDePasse';
 
@@ -24,6 +25,8 @@ export function DossierAccesCard({ scolarite, consultation, erreurLettre = null 
   const t = useTranslations('dossier.acces');
   const locale = useLocale();
   const { etat } = scolarite.acces;
+  // Accès accordé avant paiement (déblocage) : date à laquelle régulariser, AAAA-MM-JJ.
+  const regulariserAvant = scolarite.acces.regulariser_avant ?? null;
   // Lettre PDF : l'API la déclare disponible (accès ouvert, mot de passe connu, date des lettres saisie) ; jamais en consultation.
   const lettreDisponible = scolarite.acces.lettre_disponible === true && !consultation;
 
@@ -53,7 +56,9 @@ export function DossierAccesCard({ scolarite, consultation, erreurLettre = null 
       )}
 
       {etat === 'en_preparation' && (
-        <p className="mt-5 rounded-pssfp-card border border-[#A592BD]/40 bg-[#FAF7FF] p-4 text-sm text-[#3A2452]">{t('preparation')}</p>
+        <p className="mt-5 rounded-pssfp-card border border-[#A592BD]/40 bg-[#FAF7FF] p-4 text-sm text-[#3A2452]">
+          {t(regulariserAvant ? 'preparationAnticipe' : 'preparation')}
+        </p>
       )}
 
       {etat === 'disponible' && (
@@ -105,6 +110,16 @@ export function DossierAccesCard({ scolarite, consultation, erreurLettre = null 
           </div>
           <p className="mt-4 text-xs text-[#5C5C5C]">{t('conseil')}</p>
         </>
+      )}
+
+      {regulariserAvant && etat !== 'bloque' && (
+        <p
+          data-testid="acces-anticipe"
+          className="mt-5 flex items-start gap-2 rounded-pssfp-card border border-amber-200 bg-amber-50/80 p-4 text-sm font-medium text-amber-900"
+        >
+          <CalendarClock size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-amber-700" />
+          {t('anticipe', { date: formatJourCourt(regulariserAvant, locale) })}
+        </p>
       )}
     </section>
   );

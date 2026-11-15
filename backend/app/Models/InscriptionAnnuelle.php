@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\Scolarite\MessagesAuditeurs;
 use App\Services\Scolarite\SituationFinanciere;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Inscription d'un auditeur pour une année académique et un niveau.
@@ -101,6 +103,18 @@ class InscriptionAnnuelle extends Model
         return $this->belongsTo(User::class, 'remise_par');
     }
 
+    /** Accès anticipés (lot A1), clos compris. */
+    public function deblocages(): HasMany
+    {
+        return $this->hasMany(DeblocageAcces::class);
+    }
+
+    /** Le déblocage en cours, s'il y en a un (au plus un, garanti par un index unique partiel). */
+    public function deblocageEnCours(): HasOne
+    {
+        return $this->hasOne(DeblocageAcces::class)->where('statut', DeblocageAcces::EN_COURS);
+    }
+
     /**
      * Sur une liste, charger `withSum('versementsValides', 'montant')` et le
      * barème évite une requête par ligne.
@@ -144,6 +158,16 @@ class InscriptionAnnuelle extends Model
     public function scopeInscriptionNonSoldee(Builder $query): Builder
     {
         return $query->whereRaw(self::VERSE.' < '.self::DU_INSCRIPTION);
+    }
+
+    /**
+     * Équivalent en base de AccesEcampus::accesOuvert() : droits soldés, ou déblocage
+     * en cours d'un auditeur ni exclu ni en abandon.
+     */
+    public function scopeAccesOuvert(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $q) => $q->inscriptionSoldee()->orWhere(fn (Builder $d) => $d->whereHas('deblocageEnCours')
+            ->whereHas('auditeur', fn (Builder $a) => $a->whereNotIn('statut', MessagesAuditeurs::STATUTS_EXCLUS))));
     }
 
     public function scopeEntierementSoldee(Builder $query): Builder

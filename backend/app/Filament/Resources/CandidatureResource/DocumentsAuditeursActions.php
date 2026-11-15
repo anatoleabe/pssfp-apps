@@ -107,7 +107,7 @@ final class DocumentsAuditeursActions
     private static function avertissement(string $document): ?string
     {
         return $document === ParametresLettres::DOCUMENT_ACCES
-            ? 'Seuls les auditeurs dont l\'inscription est soldée y figurent. Ce fichier contient leurs mots de passe, qui ne changent jamais : ne le transmettez pas, ne le déposez sur aucun partage, détruisez les impressions inutiles. Le téléchargement est inscrit sur la fiche de chaque auditeur.'
+            ? 'Seuls les auditeurs dont l\'inscription est soldée, ou dont l\'accès a été débloqué avant paiement, y figurent. Ce fichier contient leurs mots de passe, qui ne changent jamais : ne le transmettez pas, ne le déposez sur aucun partage, détruisez les impressions inutiles. Le téléchargement est inscrit sur la fiche de chaque auditeur.'
             : null;
     }
 

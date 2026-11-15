@@ -79,7 +79,8 @@ class Versement extends Model
     public static function cheminJustificatifValide(?string $chemin): bool
     {
         return $chemin !== null
-            && preg_match('#^'.preg_quote(self::DOSSIER_JUSTIFICATIFS, '#').'/[0-9A-Za-z]{26}\.(pdf|jpg|jpeg|png)$#', $chemin) === 1;
+            // \z et non $ : « $ » accepterait un saut de ligne final.
+            && preg_match('#^'.preg_quote(self::DOSSIER_JUSTIFICATIFS, '#').'/[0-9A-Za-z]{26}\.(pdf|jpg|jpeg|png)\z#', $chemin) === 1;
     }
 
     public static function normaliserReference(string $reference): string

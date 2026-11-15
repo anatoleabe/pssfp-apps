@@ -356,6 +356,7 @@ class CandidatureRelanceResource extends Resource
     {
         $libelles = [
             CandidatureRelance::CAUSE_MANUELLE => 'Notification manuelle',
+            CandidatureRelance::CAUSE_DEBLOCAGE => 'Relance — accès anticipé échu',
             'ready' => 'Relance — dossier complet non soumis',
             'photo_only' => 'Relance — photo manquante',
         ];
@@ -383,6 +384,7 @@ class CandidatureRelanceResource extends Resource
     {
         return match ($cause) {
             CandidatureRelance::CAUSE_MANUELLE => 'Manuelle',
+            CandidatureRelance::CAUSE_DEBLOCAGE => 'Accès anticipé échu',
             'ready' => 'Dossier complet',
             'photo_only' => 'Photo manquante',
             default => $cause,

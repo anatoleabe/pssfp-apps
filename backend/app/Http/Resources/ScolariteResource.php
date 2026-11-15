@@ -64,6 +64,8 @@ final class ScolariteResource extends JsonResource
                     ? ParametresLettres::pour($c->campagne, avecBareme: false)->manquants(ParametresLettres::DOCUMENT_ACCES) === []
                     : null,
                 'reste_inscription' => $etat === AccesEcampus::BLOQUE ? ($s?->resteInscription()) : null,
+                // Accès accordé avant paiement (lot A1) : « à régulariser avant le JJ/MM/AAAA ».
+                'regulariser_avant' => $etat === AccesEcampus::INDISPONIBLE ? null : AccesEcampus::accesAnticipe($c)?->echeance->toDateString(),
             ], fn ($v): bool => $v !== null),
         ];
     }

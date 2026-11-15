@@ -83,7 +83,7 @@ final class IdentifiantsMoodleActions
             ->visible(fn (): bool => (bool) auth()->user()?->can(self::PERMISSION))
             ->requiresConfirmation()
             ->modalHeading('Envoyer leurs identifiants Moodle aux candidats sélectionnés')
-            ->modalDescription('Seuls les retenus dotés d\'un matricule et dont l\'inscription est soldée les reçoivent ; les autres dossiers sélectionnés sont ignorés. Un SMS par candidat, avec un lien vers sa lettre d\'accès (jamais le mot de passe). '
+            ->modalDescription('Seuls les retenus dotés d\'un matricule et dont l\'inscription est soldée (ou l\'accès débloqué avant paiement) les reçoivent ; les autres dossiers sélectionnés sont ignorés. Un SMS par candidat, avec un lien vers sa lettre d\'accès (jamais le mot de passe). '
                 .'Au plus '.IdentifiantsMoodle::ENVOI_GROUPE_MAX.' dossiers par envoi : procédez par lots.')
             ->form([self::canal()])
             ->deselectRecordsAfterCompletion()

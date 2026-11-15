@@ -200,13 +200,14 @@ class Candidature extends Model
     }
 
     /**
-     * Messages rédigés depuis l'admin et effectivement partis vers ce candidat.
-     * Les relances automatiques (texte figé en configuration) en sont exclues.
+     * Messages rédigés depuis l'admin, et relances d'un accès anticipé échu,
+     * effectivement partis vers ce candidat. Les relances des brouillons de
+     * candidature (texte figé en configuration) en sont exclues.
      */
     public function messagesRecus(): HasMany
     {
         return $this->hasMany(CandidatureRelance::class)
-            ->where('cause', CandidatureRelance::CAUSE_MANUELLE)
+            ->whereIn('cause', CandidatureRelance::CAUSES_AFFICHEES)
             ->where('statut', CandidatureRelance::STATUT_ENVOYE)
             ->whereNotNull('message')
             ->orderByDesc('sent_at')

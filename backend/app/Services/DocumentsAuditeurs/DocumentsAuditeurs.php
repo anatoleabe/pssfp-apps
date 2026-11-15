@@ -146,9 +146,9 @@ final class DocumentsAuditeurs
     {
         return AttributionMatricules::retenus($campagne)
             ->whereNotNull('matricule')
-            // La lettre d'accès contient le code : réservée aux inscriptions soldées.
+            // La lettre d'accès contient le code : réservée aux inscriptions soldées, ou débloquées avant paiement.
             ->when($document === ParametresLettres::DOCUMENT_ACCES, fn ($q) => $q->whereNotNull('moodle_password')
-                ->whereHas('auditeur.inscriptionCourante', fn ($i) => $i->inscriptionSoldee()))
+                ->whereHas('auditeur.inscriptionCourante', fn ($i) => $i->accesOuvert()))
             ->when($seulement !== null, fn ($q) => $q->whereIn('id', $seulement))
             ->orderBy('rang_retenu')
             ->get();

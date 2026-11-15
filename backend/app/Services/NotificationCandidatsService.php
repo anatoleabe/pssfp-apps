@@ -100,6 +100,8 @@ final class NotificationCandidatsService
 
     /**
      * @param  Collection<int, Candidature>  $candidatures
+     * @param  User|null  $auteur  null pour un envoi automatique (tâche planifiée)
+     * @param  string  $cause  motif tracé au journal des messages (CandidatureRelance)
      * @return array{sms_envoyes: int, sms_echecs: int, emails_envoyes: int, emails_echecs: int, ignores: int}
      */
     public function envoyer(
@@ -107,8 +109,9 @@ final class NotificationCandidatsService
         string $canal,
         string $corps,
         ?string $sujet,
-        User $auteur,
+        ?User $auteur,
         bool $dejaRendu = false,
+        string $cause = CandidatureRelance::CAUSE_MANUELLE,
     ): array {
         $rapport = [
             'sms_envoyes' => 0,
@@ -128,7 +131,7 @@ final class NotificationCandidatsService
                 $numero = $this->numeroDeContact($candidature);
                 if ($numero !== null) {
                     $touche = true;
-                    $this->envoyerSms($candidature, $numero, $texte, $auteur, $rapport);
+                    $this->envoyerSms($candidature, $numero, $texte, $auteur, $rapport, $cause);
                 }
             }
 
@@ -136,7 +139,7 @@ final class NotificationCandidatsService
                 $adresse = $this->emailDeContact($candidature);
                 if ($adresse !== null) {
                     $touche = true;
-                    $this->envoyerEmail($candidature, $adresse, $texte, $sujet, $auteur, $rapport, $dejaRendu);
+                    $this->envoyerEmail($candidature, $adresse, $texte, $sujet, $auteur, $rapport, $dejaRendu, $cause);
                 }
             }
 
@@ -155,8 +158,9 @@ final class NotificationCandidatsService
         Candidature $candidature,
         string $numero,
         string $texte,
-        User $auteur,
+        ?User $auteur,
         array &$rapport,
+        string $cause,
     ): void {
         try {
             // Une passerelle qui sait se décrire remonte le Sender ID
@@ -168,13 +172,13 @@ final class NotificationCandidatsService
                 $this->sms->send($numero, $texte);
                 $trace = TraceEnvoi::sms(null);
             }
-            $this->tracer($candidature, CandidatureRelance::CANAL_SMS, CandidatureRelance::STATUT_ENVOYE, $texte, null, $auteur, null, $trace);
+            $this->tracer($candidature, CandidatureRelance::CANAL_SMS, CandidatureRelance::STATUT_ENVOYE, $texte, null, $auteur, null, $trace, $cause);
             $rapport['sms_envoyes']++;
         } catch (Throwable $e) {
             // En échec, la passerelle n'a rien rendu : on conserve tout de
             // même l'expéditeur configuré, c'est souvent lui la cause
             // (Sender ID expiré ou refusé).
-            $this->tracer($candidature, CandidatureRelance::CANAL_SMS, CandidatureRelance::STATUT_ECHEC, $texte, null, $auteur, $e->getMessage(), TraceEnvoi::sms($this->expediteurSmsConfigure()));
+            $this->tracer($candidature, CandidatureRelance::CANAL_SMS, CandidatureRelance::STATUT_ECHEC, $texte, null, $auteur, $e->getMessage(), TraceEnvoi::sms($this->expediteurSmsConfigure()), $cause);
             Log::channel('sms')->error('Notification SMS en échec', [
                 'dossier' => $candidature->numero_dossier,
                 'phone' => PhoneMasker::mask($numero),
@@ -192,9 +196,10 @@ final class NotificationCandidatsService
         string $adresse,
         string $texte,
         ?string $sujet,
-        User $auteur,
+        ?User $auteur,
         array &$rapport,
         bool $dejaRendu = false,
+        string $cause = CandidatureRelance::CAUSE_MANUELLE,
     ): void {
         $sujetRendu = $dejaRendu ? ($sujet ?? 'PSSFP — information') : $this->rendre($sujet ?? 'PSSFP — information', $candidature);
 
@@ -202,7 +207,7 @@ final class NotificationCandidatsService
         // identifiant pour la basculer en échec si le message ne part jamais.
         // Sans ce lien, le journal continuait d'afficher « envoyé » pour des
         // messages refusés par le serveur SMTP des heures plus tard.
-        $ligne = $this->tracer($candidature, CandidatureRelance::CANAL_EMAIL, CandidatureRelance::STATUT_ENVOYE, $texte, $sujetRendu, $auteur, null, TraceEnvoi::email($this->expediteurEmailConfigure()));
+        $ligne = $this->tracer($candidature, CandidatureRelance::CANAL_EMAIL, CandidatureRelance::STATUT_ENVOYE, $texte, $sujetRendu, $auteur, null, TraceEnvoi::email($this->expediteurEmailConfigure()), $cause);
 
         try {
             SendThrottledMail::dispatch(
@@ -231,18 +236,19 @@ final class NotificationCandidatsService
         string $statut,
         string $message,
         ?string $sujet,
-        User $auteur,
+        ?User $auteur,
         ?string $erreur,
         ?TraceEnvoi $trace = null,
+        string $cause = CandidatureRelance::CAUSE_MANUELLE,
     ): CandidatureRelance {
         $ligne = CandidatureRelance::create([
             'candidature_id' => $candidature->id,
-            'cause' => CandidatureRelance::CAUSE_MANUELLE,
+            'cause' => $cause,
             'canal' => $canal,
             'statut' => $statut,
             'message' => $message,
             'sujet' => $sujet,
-            'envoye_par' => $auteur->id,
+            'envoye_par' => $auteur?->id,
             'erreur' => $erreur === null ? null : mb_substr((string) SecretRedactor::redact($erreur), 0, 500),
             'expediteur' => $trace?->expediteur,
             'code_fournisseur' => $trace?->codeFournisseur,
@@ -252,12 +258,13 @@ final class NotificationCandidatsService
             'sent_at' => now(),
         ]);
 
+        $manuelle = $cause === CandidatureRelance::CAUSE_MANUELLE;
         activity('candidatures')
             ->causedBy($auteur)
             ->performedOn($candidature)
-            ->withProperties(['canal' => $canal, 'statut' => $statut])
-            ->event('candidature_notification_manuelle')
-            ->log('Notification manuelle envoyée au candidat');
+            ->withProperties(['canal' => $canal, 'statut' => $statut] + ($manuelle ? [] : ['cause' => $cause]))
+            ->event($manuelle ? 'candidature_notification_manuelle' : 'candidature_relance_envoyee')
+            ->log($manuelle ? 'Notification manuelle envoyée au candidat' : 'Relance automatique envoyée au candidat');
 
         return $ligne;
     }

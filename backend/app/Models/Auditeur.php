@@ -64,8 +64,9 @@ class Auditeur extends Model
     }
 
     /**
-     * Journal de la fiche : l'auditeur, ses inscriptions, ses versements et son
-     * dossier. Pour l'affichage seulement (description, auteur, date).
+     * Journal de la fiche : l'auditeur, ses inscriptions, ses versements, ses
+     * accès anticipés et son dossier. Pour l'affichage seulement (description,
+     * auteur, date).
      *
      * @return Collection<int, Activity>
      */
@@ -73,13 +74,15 @@ class Auditeur extends Model
     {
         $inscriptions = $this->inscriptions()->pluck('id');
         $versements = Versement::query()->whereIn('inscription_annuelle_id', $inscriptions)->pluck('id');
+        $deblocages = DeblocageAcces::query()->whereIn('inscription_annuelle_id', $inscriptions)->pluck('id');
 
         return Activity::query()
             ->with('causer')
-            ->where(function ($q) use ($inscriptions, $versements, $avecDossier): void {
+            ->where(function ($q) use ($inscriptions, $versements, $deblocages, $avecDossier): void {
                 $q->where(fn ($s) => $s->where('subject_type', $this->getMorphClass())->where('subject_id', $this->getKey()))
                     ->orWhere(fn ($s) => $s->where('subject_type', (new InscriptionAnnuelle)->getMorphClass())->whereIn('subject_id', $inscriptions))
                     ->orWhere(fn ($s) => $s->where('subject_type', (new Versement)->getMorphClass())->whereIn('subject_id', $versements))
+                    ->orWhere(fn ($s) => $s->where('subject_type', (new DeblocageAcces)->getMorphClass())->whereIn('subject_id', $deblocages))
                     ->when($avecDossier, fn ($w) => $w->orWhere(fn ($s) => $s->where('subject_type', (new Candidature)->getMorphClass())->where('subject_id', $this->candidature_id)));
             })
             ->latest('id')

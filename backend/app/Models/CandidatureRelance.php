@@ -23,6 +23,12 @@ class CandidatureRelance extends Model
     /** Notification rédigée à la main depuis l'admin, par opposition aux relances automatiques. */
     public const CAUSE_MANUELLE = 'manuelle';
 
+    /** Relance d'un accès anticipé échu (Scolarité, lot A1) : réaffichée dans l'espace de l'auditeur. */
+    public const CAUSE_DEBLOCAGE = 'deblocage';
+
+    /** Messages réaffichés dans l'espace du candidat ou de l'auditeur. */
+    public const CAUSES_AFFICHEES = [self::CAUSE_MANUELLE, self::CAUSE_DEBLOCAGE];
+
     public const CANAL_SMS = 'sms';
 
     public const CANAL_EMAIL = 'email';
