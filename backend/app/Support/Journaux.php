@@ -50,6 +50,9 @@ final class Journaux
 
     public const MESSAGERIE = 'messagerie';
 
+    /** Lot 15 (ADR-0014) : reprise d'ACMA, archive, rapprochements et compléments. */
+    public const ARCHIVES = 'archives';
+
     /** Nom de journal → libellé affiché dans la colonne « Journal ». */
     public const LIBELLES = [
         self::CANDIDATURES => 'Candidatures',
@@ -67,13 +70,14 @@ final class Journaux
         self::PARAMETRES => 'Paramètres',
         self::SUPERVISION => 'Contrôle interne',
         self::MESSAGERIE => 'Messagerie interne',
+        self::ARCHIVES => 'Archives ACMA',
         'default' => 'Comptes et bibliothèque (avant le 10/11/2026)',
     ];
 
     /** Domaine du filtre → journaux qui le composent, anciens noms compris. */
     public const DOMAINES = [
         'Admissions' => [self::CANDIDATURES, self::CONNEXIONS_CANDIDATS, self::ENVOIS],
-        'Scolarité' => [self::SCOLARITE],
+        'Scolarité' => [self::SCOLARITE, self::ARCHIVES],
         'Parcours LMD' => [self::LMD],
         'Enseignants et paie' => [self::PAIE],
         'Bibliothèque' => [self::BIBLIOTHEQUE, 'documents'],

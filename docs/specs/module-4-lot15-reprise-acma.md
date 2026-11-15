@@ -1162,3 +1162,14 @@ Données fictives seulement. Une fabrique `TransitAcma` construit un petit sché
 - Reprise des versements 2026-2027 d'ACMA (décision 2).
 - Enseignants, attributions, salles et emplois du temps d'ACMA : vides ou déjà repris par les lots 12 et 13.
 - Numérisation des archives papier (D29, `28_indexation_archives.py`) : une autre partie du lot 15 de la feuille de route (« archivage numérique »), à spécifier à part.
+
+## 17. Points tranchés en réalisation
+
+Écarts à la lettre de la spec, tranchés au plus prudent et dans le sens de l'ADR-0014.
+
+### 15a — Transit et inventaire
+
+1. **Colonnes d'identité non extraites.** En plus des exclusions du §10.1, `acma:extraire` n'extrait pas les coordonnées et l'origine des auditeurs (`etudiant` : `telephone`, `mobile`, `adresse`, `email`, `EmailB`, `numcni`, `region`, `RegionBis`, `departement`). Ni l'archive (§6.2, Q16) ni le rapport des écarts ne s'en servent ; elles restent dans l'export chiffré. Minimisation (§13).
+2. **Rang des lignes.** Chaque table du transit reçoit une colonne technique `_ligne` (rang de la ligne dans le CSV, clé primaire). Elle permet la lecture par lots sans tri des 309 580 versions de notes. Aucune valeur d'ACMA n'est transformée, sauf le caractère nul, que PostgreSQL refuse dans un texte.
+3. **Chiffrement.** L'archive est un zip des CSV et du manifeste, chiffré en AES-256-GCM par morceaux d'un mébioctet (numéro et drapeau « dernier » authentifiés), clé dérivée de la phrase de passe par PBKDF2-SHA256 à 600 000 itérations. La phrase se donne par la variable `ACMA_PHRASE` ou à l'invite, jamais en option. Procédure : `docs/ops/reprise-acma.md`.
+4. **Comptes de l'inventaire.** Trois libellés précisent le §3 sans le contredire : « année de la note différente du programme » ne compte que les années renseignées (64 ; les 3 850 du §3.4 comprenaient 3 786 années vides, déjà comptées parmi les 29 428) ; les négatifs sont appariés un pour un (147 au lieu de 148 : deux négatifs ne partagent pas une contrepartie) ; les « né vers » ne sont pas comptés parmi les dates vides (135 au lieu de 136).
