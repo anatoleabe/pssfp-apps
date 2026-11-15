@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -114,5 +115,11 @@ class Auditeur extends Model
     public function inscriptionCourante(): HasOne
     {
         return $this->hasOne(InscriptionAnnuelle::class)->ofMany(['annee_academique' => 'max']);
+    }
+
+    /** Étiquettes libres, par ordre alphabétique (cf. App\Services\Scolarite\Etiquettes). */
+    public function etiquettes(): BelongsToMany
+    {
+        return $this->belongsToMany(Etiquette::class, Etiquette::PIVOT)->withPivot(['ajoute_par', 'created_at'])->orderBy('etiquettes.nom');
     }
 }

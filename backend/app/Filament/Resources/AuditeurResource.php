@@ -92,6 +92,7 @@ class AuditeurResource extends Resource
                 Tables\Columns\TextColumn::make('retrait')->label('')
                     ->getStateUsing(fn (Auditeur $record): ?string => $record->candidature?->withdrawn_at === null ? null : 'Retiré')
                     ->badge()->color('gray'),
+                AuditeurResource\EtiquettesActions::colonne(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('promotion')->label('Promotion')
@@ -123,6 +124,7 @@ class AuditeurResource extends Resource
                         default => $query,
                     }),
                 AccesAnticipe::filtre(),
+                AuditeurResource\EtiquettesActions::filtre(),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Fiche'),
@@ -130,6 +132,8 @@ class AuditeurResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     AuditeurResource\AuditeurActions::message(),
+                    AuditeurResource\EtiquettesActions::ajouterGroupe(),
+                    AuditeurResource\EtiquettesActions::retirerGroupe(),
                     ComptesEcampusActions::creerGroupe(self::gardeAdmissions(Tables\Actions\BulkAction::make('creerComptesEcampus'))),
                     IdentifiantsMoodleActions::envoyerGroupe(self::gardeAdmissions(Tables\Actions\BulkAction::make('envoyerIdentifiantsMoodleBulk'))),
                     DocumentsAuditeursActions::selection(self::gardeAdmissions(Tables\Actions\BulkAction::make('lettresAdmissionBulk')), ParametresLettres::DOCUMENT_ADMISSION),
@@ -152,6 +156,7 @@ class AuditeurResource extends Resource
                 Infolists\Components\TextEntry::make('candidature.withdrawn_at')->label('Dossier de candidature')
                     ->getStateUsing(fn (Auditeur $record): string => $record->candidature?->withdrawn_at === null ? 'En cours' : 'Retiré le '.$record->candidature->withdrawn_at->timezone('Africa/Douala')->format('d/m/Y'))
                     ->badge()->color(fn (Auditeur $record): string => $record->candidature?->withdrawn_at === null ? 'success' : 'gray'),
+                AuditeurResource\EtiquettesActions::entree(),
             ]),
             Infolists\Components\Section::make('Statut')->columns(3)
                 ->visible(fn (Auditeur $record): bool => $record->statut !== Auditeur::STATUT_ACTIF || $record->statut_depuis !== null)

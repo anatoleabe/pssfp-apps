@@ -133,6 +133,7 @@ final class ModulePermissionMap
                     'scolarite.lettre_acces' => 'Télécharger depuis sa fiche la lettre d\'accès FOAD (avec le mot de passe) d\'un auditeur dont l\'inscription est soldée',
                     'scolarite.deblocage' => 'Débloquer l\'accès à eCampus avant paiement sur un virement annoncé, et le prolonger une fois de 30 jours au plus',
                     'scolarite.deblocage_exceptionnel' => 'Accorder un moratoire ou une dérogation (accès avant paiement), prolonger et révoquer tout déblocage',
+                    'scolarite.etiquettes' => 'Poser et retirer des étiquettes sur les auditeurs ; créer, renommer et supprimer les étiquettes',
                 ],
             ],
             'lmd' => [
