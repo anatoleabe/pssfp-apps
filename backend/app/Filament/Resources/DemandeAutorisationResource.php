@@ -206,6 +206,9 @@ class DemandeAutorisationResource extends Resource
                 Infolists\Components\TextEntry::make('objet')->label('Objet')->columnSpan(2),
                 Infolists\Components\TextEntry::make('demandeur.name')->label('Demandeur'),
                 Infolists\Components\TextEntry::make('motif')->label('Motif')->columnSpanFull(),
+                Infolists\Components\TextEntry::make('precisions')->label('Précisions')->columnSpanFull()->listWithLineBreaks()
+                    ->state(fn (DemandeAutorisation $record): array => TypesDemande::precisions($record->type, $record->parametres))
+                    ->visible(fn (DemandeAutorisation $record): bool => TypesDemande::precisions($record->type, $record->parametres) !== []),
                 Infolists\Components\TextEntry::make('soumise_le')->label('Soumise le')->dateTime('d/m/Y H:i', Demandes::FUSEAU),
                 Infolists\Components\TextEntry::make('echeance')->label('Réponse attendue avant le')->dateTime('d/m/Y H:i', Demandes::FUSEAU),
                 Infolists\Components\TextEntry::make('routage')->label('Qui décide')->state(fn (DemandeAutorisation $record): string => self::routage($record->type)),

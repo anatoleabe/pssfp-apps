@@ -8,11 +8,15 @@ use App\Filament\Resources\DemandeAutorisationResource;
 use App\Models\DemandeAutorisation;
 use App\Models\User;
 use App\Services\Messagerie\Demandes;
+use App\Services\Messagerie\TypesDemande;
+use App\Services\Scolarite\DemandeMoratoire;
+use App\Support\CandidatureObjectStorage;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Exceptions\Halt;
+use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
 class ViewDemande extends ViewRecord
@@ -34,13 +38,27 @@ class ViewDemande extends ViewRecord
             Actions\Action::make('approuver')->label(fn (): string => $this->demande()->statut === DemandeAutorisation::VISA_ATTENDU ? 'Viser' : 'Approuver')
                 ->icon('heroicon-o-check-circle')->color('success')
                 ->visible(fn (): bool => app(Demandes::class)->peutDecider($this->utilisateur(), $this->demande()))
-                ->modalDescription('L\'approbation finale exécute l\'opération demandée, sous l\'identité du responsable qui l\'a approuvée.')
+                ->modalDescription(fn (): string => $this->demande()->type === TypesDemande::ACCORDER_MORATOIRE
+                    ? DemandeMoratoire::avertissement($this->demande()->parametres)
+                    : 'L\'approbation finale exécute l\'opération demandée, sous l\'identité du responsable qui l\'a approuvée.')
                 ->form([Forms\Components\Textarea::make('commentaire')->label('Commentaire (facultatif)')->maxLength(1000)])
                 ->action(fn (array $data) => $this->decider(true, $data['commentaire'] ?? null)),
             Actions\Action::make('rejeter')->label('Rejeter')->icon('heroicon-o-x-circle')->color('danger')
                 ->visible(fn (): bool => app(Demandes::class)->peutDecider($this->utilisateur(), $this->demande()))
                 ->form([Forms\Components\Textarea::make('commentaire')->label('Motif du rejet')->required()->minLength(Demandes::COMMENTAIRE_MIN)->maxLength(1000)])
                 ->action(fn (array $data) => $this->decider(false, $data['commentaire'])),
+            // Pièce jointe par le demandeur (lot A3 : demande écrite de l'auditeur), pour qui voit la demande et les auditeurs.
+            Actions\Action::make('voirPiece')->label('Voir la pièce jointe')->icon('heroicon-o-paper-clip')->color('gray')
+                ->visible(fn (): bool => $this->piece() !== null && $this->utilisateur()->can('view_auditeur'))
+                ->action(function () {
+                    $chemin = $this->piece();
+                    abort_unless($chemin !== null && $this->utilisateur()->can('view_auditeur'), 403);
+                    activity('scolarite')->causedBy($this->utilisateur())->performedOn($this->demande())
+                        ->event('demande_piece_consultee')->withProperties(['demande' => $this->demande()->numero])->log('Pièce d\'une demande consultée');
+
+                    return redirect()->away(Storage::disk(CandidatureObjectStorage::DISK)->temporaryUrl($chemin, now()->addMinutes(30),
+                        ['ResponseContentDisposition' => 'inline; filename="piece-'.$this->demande()->numero.'.'.pathinfo($chemin, PATHINFO_EXTENSION).'"']));
+                }),
             Actions\Action::make('retirer')->label('Retirer ma demande')->icon('heroicon-o-arrow-uturn-left')->color('gray')
                 ->visible(fn (): bool => $this->demande()->demandeur_id === $this->utilisateur()->id
                     && $this->demande()->statut === DemandeAutorisation::SOUMISE && ! $this->demande()->decisions()->exists())
@@ -69,6 +87,11 @@ class ViewDemande extends ViewRecord
         $this->statutAffiche = $this->demande()->statut;
         $echec = $this->demande()->statut === DemandeAutorisation::ECHEC;
         Notification::make()->{$echec ? 'warning' : 'success'}()->title($titre ?? (string) $resultat)->send();
+    }
+
+    private function piece(): ?string
+    {
+        return TypesDemande::piece($this->demande()->type, $this->demande()->parametres);
     }
 
     private function demande(): DemandeAutorisation

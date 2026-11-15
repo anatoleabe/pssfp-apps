@@ -7,6 +7,7 @@ namespace App\Filament\Resources\AuditeurResource\Pages;
 use App\Filament\Resources\AuditeurResource;
 use App\Filament\Resources\AuditeurResource\AccesAnticipe;
 use App\Filament\Resources\AuditeurResource\AuditeurActions;
+use App\Filament\Resources\AuditeurResource\DemandeMoratoireActions;
 use App\Filament\Resources\AuditeurResource\EtiquettesActions;
 use App\Filament\Resources\AuditeurResource\ParcoursActions;
 use App\Filament\Resources\CandidatureResource;
@@ -78,6 +79,8 @@ class ViewAuditeur extends ViewRecord
             EtiquettesActions::gerer(),
             ActionGroup::make([
                 AccesAnticipe::debloquer(),
+                DemandeMoratoireActions::demander(),
+                DemandeMoratoireActions::enAttenteAction(),
                 AccesAnticipe::prolonger(),
                 AccesAnticipe::revoquer(),
                 AccesAnticipe::voirPiece(),
