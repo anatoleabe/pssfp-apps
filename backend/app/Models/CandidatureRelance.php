@@ -29,8 +29,11 @@ class CandidatureRelance extends Model
     /** Avis d'émission d'un reçu de versement (Scolarité lot 4 §5) : réaffiché dans l'espace de l'auditeur. */
     public const CAUSE_RECU = 'recu';
 
+    /** Relance d'un versement non confirmé par la scolarité après 7 jours (15/11/2026) : réaffichée dans l'espace de l'auditeur. */
+    public const CAUSE_CONFIRMATION = 'confirmation';
+
     /** Messages réaffichés dans l'espace du candidat ou de l'auditeur. */
-    public const CAUSES_AFFICHEES = [self::CAUSE_MANUELLE, self::CAUSE_DEBLOCAGE, self::CAUSE_RECU];
+    public const CAUSES_AFFICHEES = [self::CAUSE_MANUELLE, self::CAUSE_DEBLOCAGE, self::CAUSE_RECU, self::CAUSE_CONFIRMATION];
 
     public const CANAL_SMS = 'sms';
 

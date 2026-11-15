@@ -63,6 +63,50 @@ test.describe('Excédent des versements', () => {
   });
 });
 
+/*
+ * Versements à confirmer par la scolarité sur le reçu bancaire (décision du 15/11/2026) : la carte annonce
+ * la part à confirmer et l'état de chaque versement, et tient sans ces clés face à une API antérieure.
+ */
+test.describe('Versements à confirmer', () => {
+  test('les deux langues annoncent la part à confirmer et la vérification de chaque versement', () => {
+    const fr = messages('fr').dossier.scolarite;
+    const en = messages('en').dossier.scolarite;
+
+    for (const cle of ['aConfirmer', 'aConfirmerConsigne', 'colConfirmation', 'confirmeLe', 'aPresenter']) {
+      expect(fr[cle], cle).toBeTruthy();
+      expect(en[cle], cle).toBeTruthy();
+    }
+    expect(fr.aConfirmer).toBe('dont {montant} à confirmer');
+    for (const cle of ['confirmationEnCours', 'palierAConfirmer']) {
+      expect(fr[cle], cle).toBeTruthy();
+      expect(en[cle], cle).toBeTruthy();
+    }
+  });
+
+  test('un accès bloqué en attente de confirmation dit de présenter le reçu, jamais « il reste 0 FCFA »', () => {
+    const fr = messages('fr') as unknown as { dossier: { acces: Record<string, string> } };
+    const en = messages('en') as unknown as { dossier: { acces: Record<string, string> } };
+    const carte = readFileSync(join(__dirname, '..', '..', 'components', 'dossier', 'DossierAccesCard.tsx'), 'utf8');
+
+    expect(fr.dossier.acces.confirmationRecu).toContain('Présentez votre reçu à la scolarité pour faire confirmer votre versement');
+    expect(en.dossier.acces.confirmationRecu).toContain('Show your receipt to the registry');
+    expect(fr.dossier.acces.confirmationEnCours).toBeTruthy();
+    expect(en.dossier.acces.confirmationEnCours).toBeTruthy();
+    expect(carte).toContain('scolarite.acces.confirmation_en_attente');
+    expect(carte).toContain("scolarite.acces.recu_a_presenter === false ? 'confirmationEnCours' : 'confirmationRecu'");
+  });
+
+  test('la carte lit `a_confirmer` et `confirme_le`, absents d\'une API antérieure', () => {
+    const carte = readFileSync(join(__dirname, '..', '..', 'components', 'dossier', 'DossierScolariteCard.tsx'), 'utf8');
+
+    expect(carte).toContain('scolarite.a_confirmer ?? 0');
+    expect(carte).toContain('data-testid="scolarite-a-confirmer"');
+    expect(carte).toContain('v.confirme_le === null');
+    expect(carte).toContain("v.origine === 'reglement'");
+    expect(carte).toContain('palier.a_confirmer ?? 0');
+  });
+});
+
 test.describe('Avance du compte', () => {
   test('la carte lit la clé `avance`, avec repli sur `trop_percu` tant que l\'API n\'est pas à jour', () => {
     const carte = readFileSync(join(__dirname, '..', '..', 'components', 'dossier', 'DossierScolariteCard.tsx'), 'utf8');

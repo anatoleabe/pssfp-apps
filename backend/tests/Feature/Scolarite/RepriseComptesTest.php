@@ -87,6 +87,8 @@ beforeEach(function (): void {
         $courante = $c->auditeur->inscriptionCourante;
         if ($ancien) {
             $courante->setAttribute('imputations_actives_sum_montant', (int) $courante->versementsValides()->sum('montant'));
+            // Avant la confirmation par la scolarité (15/11/2026), tout l'argent comptait.
+            $courante->setAttribute('imputations_confirmees_sum_montant', (int) $courante->versementsValides()->sum('montant'));
         }
 
         return AccesEcampus::etat($c);

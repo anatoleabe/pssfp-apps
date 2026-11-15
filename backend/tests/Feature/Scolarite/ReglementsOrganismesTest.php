@@ -83,12 +83,13 @@ beforeEach(function (): void {
 
     $this->inscriptionDe = fn (Candidature $c): InscriptionAnnuelle => $c->fresh()->auditeur->inscriptionCourante;
     $this->service = fn (): ReglementsOrganismes => app(ReglementsOrganismes::class);
-    $this->regler = fn (array $saisie = [], ?User $par = null, ?EngagementPriseEnCharge $e = null): ReglementOrganisme => ($this->service)()->enregistrer(
+    // Règlement saisi par le service financier puis confirmé par la scolarité, toutes ses parts d'un coup (15/11/2026).
+    $this->regler = fn (array $saisie = [], ?User $par = null, ?EngagementPriseEnCharge $e = null): ReglementOrganisme => tap(($this->service)()->enregistrer(
         $e ?? $this->engagement,
         $saisie + ['montant' => 370000, 'date_reglement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'ov-77',
             'parts' => ReglementsOrganismes::partsProposees($e ?? $this->engagement)],
         $par ?? $this->financier,
-    )->reglement;
+    )->reglement, fn (ReglementOrganisme $r) => confirmerVersement(Versement::query()->where('reglement_organisme_id', $r->id)->orderBy('id')->firstOrFail()));
     $this->parts = fn (array $montants): array => collect($montants)->mapWithKeys(fn (int $m, string $d): array => [($this->inscriptionDe)($this->{$d})->uuid => $m])->all();
     $this->verifier = fn (): int => $this->artisan('scolarite:verifier-comptes')->run();
     $this->cptCoherence = fn (): array => app(Supervision::class)->controles()['CPT_COHERENCE']->cas();

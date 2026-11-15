@@ -20,6 +20,8 @@ final class SecSeparation implements Controle
         'Coordonnées bancaires et états de paie' => ['lmd.dossier_paie', 'lmd.paie_verifier'],
         'Administrer les habilitations et consulter le journal' => ['update_role', 'journal.view'],
         'Préparer et signer le calendrier' => ['lmd.calendrier_preparer', 'lmd.calendrier_signer'],
+        // Décision du 15/11/2026 : le service financier encaisse, la scolarité contrôle.
+        'Enregistrer et confirmer un versement' => ['scolarite.versement_saisir', 'scolarite.versement_confirmer'],
     ];
 
     public function code(): string

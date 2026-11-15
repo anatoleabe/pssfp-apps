@@ -51,6 +51,9 @@ Schedule::command('supervision:executer')->dailyAt('05:30')->withoutOverlapping(
 // Accès anticipé (Scolarité, lot A1) : relance des déblocages échus, à 08:00 heure de Yaoundé.
 Schedule::command('scolarite:relancer-deblocages')->dailyAt('08:00')->timezone('Africa/Douala')->withoutOverlapping();
 
+// Versements non confirmés par la scolarité depuis 7 jours (décision du 15/11/2026) : relance de l'auditeur, à 08:00 heure de Yaoundé.
+Schedule::command('scolarite:relancer-confirmations')->dailyAt('08:00')->timezone('Africa/Douala')->withoutOverlapping();
+
 // Messagerie interne (lot 14b-1, D31) : copies externes (courriel, SMS) des messages, trois tentatives au plus.
 Schedule::command('messagerie:envoyer')->everyFiveMinutes()->withoutOverlapping();
 

@@ -13,6 +13,7 @@ use App\Services\NotificationCandidatsService;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\AnnulationMultiAnnees;
 use App\Services\Scolarite\CompteAuditeur;
+use App\Services\Scolarite\ConfirmationsVersements;
 use App\Services\Scolarite\LibelleSituation;
 use App\Services\Scolarite\LiensLettreAcces;
 use App\Services\Scolarite\MessagesAuditeurs;
@@ -228,7 +229,7 @@ final class AuditeurActions
         return Action::make('creerInscription')
             ->label('Créer l\'inscription')
             ->icon('heroicon-o-plus-circle')
-            ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR)
+            ->visible(fn (Auditeur $record): bool => (auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR) || ConfirmationsVersements::peutConfirmer(auth()->user()))
                 && $record->inscriptionCourante === null && $record->candidature?->withdrawn_at === null)
             ->requiresConfirmation()
             ->modalDescription('Inscription en Master 1 pour l\'année de la promotion, au barème en vigueur.')
@@ -308,7 +309,7 @@ final class AuditeurActions
                         $a = app(MessagesAuditeurs::class)->apercu(MessagesAuditeurs::precharger($selection), (string) $get('canal'), (string) $get('corps'));
 
                         return $a['destinataires'].' destinataire(s)'
-                            .($a['ecartes'] > 0 ? ' ('.$a['ecartes'].' écarté(s) : dossier retiré, exclusion ou abandon)' : '')
+                            .($a['ecartes'] > 0 ? ' ('.$a['ecartes'].' écarté(s) : dossier retiré, exclusion, abandon, ou versement à confirmer pour un message chiffrant l\'impayé)' : '')
                             .', '.$a['sms_par_message'].' SMS par message, '.$a['cout_sms'].' SMS au total'
                             .($a['hors_couverture'] > 0 ? ', dont '.$a['hors_couverture'].' numéro(s) hors du Cameroun, que la passerelle ne dessert pas' : '')
                             .'. Exemple : « '.$a['exemple'].' »';
@@ -469,7 +470,7 @@ final class AuditeurActions
      *
      * @throws InvalidArgumentException
      */
-    private static function exigerScanDepose(?string $chemin): void
+    public static function exigerScanDepose(?string $chemin): void
     {
         if (filled($chemin) && ! self::depose($chemin)) {
             throw new InvalidArgumentException('Le scan du bordereau est invalide : déposez-le à nouveau.');

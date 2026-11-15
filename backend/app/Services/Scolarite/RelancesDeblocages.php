@@ -71,7 +71,8 @@ final class RelancesDeblocages
                 continue;
             }
             $auditeur = $d->inscription?->auditeur;
-            if ($auditeur === null || ! MessagesAuditeurs::destinataire($auditeur)) {
+            // Droits payés, en attente de confirmation par la scolarité : la relance de confirmation prend le relais.
+            if ($auditeur === null || ! MessagesAuditeurs::destinataire($auditeur) || $d->inscription->situation()->confirmationEnAttente()) {
                 $bilan['ignores']++;
 
                 continue;

@@ -59,7 +59,7 @@ class AuditeurResource extends Resource
     {
         return parent::getEloquentQuery()->with([
             'candidature.campagne',
-            'inscriptionCourante' => fn ($q) => $q->with(['bareme', 'deblocageEnCours.accordePar', 'deblocageEnCours.engagement'])->withSum('imputationsActives', 'montant'),
+            'inscriptionCourante' => fn ($q) => $q->with(['bareme', 'deblocageEnCours.accordePar', 'deblocageEnCours.engagement'])->withSum('imputationsActives', 'montant')->withSum('imputationsConfirmees', 'montant'),
         ]);
     }
 
@@ -77,6 +77,8 @@ class AuditeurResource extends Resource
                 Tables\Columns\TextColumn::make('inscriptionCourante.niveau')->label('Niveau')->placeholder('—'),
                 Tables\Columns\TextColumn::make('verse')->label('Versé')->alignEnd()
                     ->getStateUsing(fn (Auditeur $record): ?string => ($s = $record->inscriptionCourante?->situation()) === null ? null : LibelleSituation::fcfa($s->verse))
+                    // Versements à confirmer par la scolarité (15/11/2026) : ils ne comptent pas encore pour la situation.
+                    ->description(fn (Auditeur $record): ?string => ($a = (int) $record->inscriptionCourante?->situation()->aConfirmer) > 0 ? 'dont '.LibelleSituation::fcfa($a).' à confirmer' : null)
                     ->placeholder('—'),
                 Tables\Columns\TextColumn::make('reste')->label('Reste à payer')->alignEnd()
                     ->getStateUsing(fn (Auditeur $record): ?string => ($s = $record->inscriptionCourante?->situation()) === null ? null : LibelleSituation::fcfa($s->reste))

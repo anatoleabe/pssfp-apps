@@ -18,7 +18,6 @@ use App\Services\ExportsRetenus\AttributionMatricules;
 use App\Services\Messagerie\Demandes;
 use App\Services\Messagerie\TypesDemande;
 use App\Services\Scolarite\AccesEcampus;
-use App\Services\Scolarite\RegistreVersements;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\CandidatureObjectStorage;
 use Database\Seeders\DepartementsCamerounSeeder;
@@ -86,7 +85,7 @@ beforeEach(function (): void {
         $parametres + ['echeance' => '2027-01-15', 'justificatif_path' => PIECE_DEMANDE_MORATOIRE],
     );
     $this->etat = fn (): string => AccesEcampus::etat(Candidature::query()->findOrFail($this->dossier->id));
-    $this->verser = fn () => app(RegistreVersements::class)->enregistrer($this->inscription->fresh(), [
+    $this->verser = fn () => verserConfirme($this->inscription->fresh(), [
         'montant' => 185000, 'date_versement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'VIR-'.Str::random(8), 'payeur' => 'auditeur',
     ], $this->encaisseur);
     $this->page = fn () => $this->livewire(ViewAuditeur::class, ['record' => $this->auditeur->getRouteKey()]);

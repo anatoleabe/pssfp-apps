@@ -93,7 +93,7 @@ final class ListesAuditeurs
             ->avecAvance()
             ->with([
                 'candidature',
-                'inscriptionCourante' => fn ($q) => $q->with('bareme')->withSum('imputationsActives', 'montant'),
+                'inscriptionCourante' => fn ($q) => $q->with('bareme')->withSum('imputationsActives', 'montant')->withSum('imputationsConfirmees', 'montant'),
             ])
             ->get()
             ->map(fn (Auditeur $a): array => self::ligne($a))
@@ -160,6 +160,8 @@ final class ListesAuditeurs
             'remise' => $s?->remise,
             // Imputé de l'année ; l'avance du compte se lit à part (décision du 15/11/2026).
             'verse' => $s?->verse,
+            // Dont à confirmer par la scolarité (15/11/2026) : la situation ne le compte pas.
+            'a_confirmer' => (int) $s?->aConfirmer,
             'reste' => $s?->reste,
             'avance' => (int) $a->getAttribute('avance'),
             'situation' => LibelleSituation::libelle($i),
@@ -217,7 +219,7 @@ final class ListesAuditeurs
 
     /**
      * @param  Collection<int, array<string, mixed>>  $lignes
-     * @return array{effectif: int, du: int, remise: int, verse: int, reste: int, avance: int}
+     * @return array{effectif: int, du: int, remise: int, verse: int, a_confirmer: int, reste: int, avance: int}
      */
     private static function totaux(Collection $lignes): array
     {
@@ -226,6 +228,7 @@ final class ListesAuditeurs
             'du' => (int) $lignes->sum('du'),
             'remise' => (int) $lignes->sum('remise'),
             'verse' => (int) $lignes->sum('verse'),
+            'a_confirmer' => (int) $lignes->sum('a_confirmer'),
             'reste' => (int) $lignes->sum('reste'),
             'avance' => (int) $lignes->sum('avance'),
         ];

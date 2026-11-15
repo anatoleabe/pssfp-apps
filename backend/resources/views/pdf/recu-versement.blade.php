@@ -43,6 +43,9 @@
     <tr><td class="l">Reste à payer</td><td>{{ $recu->reste_a_payer === 0 ? 'Soldé' : $fcfa($recu->reste_a_payer) }}</td></tr>
   </table>
 
+  @if ($recu->verifie_le !== null)
+    <p class="pied">Versement vérifié par la scolarité{{ $recu->verifie_par_nom !== null ? ' : '.$recu->verifie_par_nom.',' : '' }} le {{ $recu->verifie_le->format('d/m/Y') }}</p>
+  @endif
   <p class="pied">Émis par {{ $recu->emetteur_nom }}, service administratif et financier du PSSFP. Montants arrêtés à la date d'émission du reçu.</p>
 </body>
 </html>

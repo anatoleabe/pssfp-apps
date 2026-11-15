@@ -91,7 +91,7 @@ beforeEach(function (): void {
         'type' => DeblocageAcces::MORATOIRE, 'motif' => 'Délai accordé sur demande écrite', 'echeance' => '2027-01-15',
     ], $par ?? $this->responsable);
     $this->etat = fn (): string => AccesEcampus::etat(Candidature::query()->findOrFail($this->dossier->id));
-    $this->verser = fn (int $montant = 185000) => app(RegistreVersements::class)->enregistrer($this->inscription->fresh(), [
+    $this->verser = fn (int $montant = 185000) => verserConfirme($this->inscription->fresh(), [
         'montant' => $montant, 'date_versement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'VIR-'.Str::random(8), 'payeur' => 'auditeur',
     ], $this->encaisseur);
     $this->relancer = fn () => $this->artisan('scolarite:relancer-deblocages')->assertSuccessful();

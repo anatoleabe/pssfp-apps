@@ -47,7 +47,8 @@ final class OuvertureAuditeur
     public function creerInscription(Auditeur $auditeur, ?User $auteur = null): ?InscriptionAnnuelle
     {
         if ($auteur !== null) {
-            abort_unless($auteur->can(RegistreVersements::PERMISSION_SAISIR), 403);
+            // Le service financier en a besoin pour saisir, la scolarité pour tenir le dossier (15/11/2026).
+            abort_unless($auteur->can(RegistreVersements::PERMISSION_SAISIR) || $auteur->can(ConfirmationsVersements::PERMISSION), 403);
         }
         $dossier = $auditeur->candidature()->with('campagne')->firstOrFail();
         if ($auteur !== null && $dossier->withdrawn_at !== null) {
@@ -130,6 +131,8 @@ final class OuvertureAuditeur
                 'payeur' => 'auditeur',
                 'saisi_par' => $dossier->frais_inscription_payes_by,
             ])->save();
+            // La case cochée était déjà la vérification de la scolarité : le versement repris est confirmé (15/11/2026).
+            ConfirmationsVersements::poserReprise($versement, $dossier->frais_inscription_payes_by, $dossier->frais_inscription_payes_at);
             $plan = $compte->apresVersement($versement);
 
             activity('scolarite')->performedOn($versement)

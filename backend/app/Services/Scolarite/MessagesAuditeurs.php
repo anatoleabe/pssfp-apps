@@ -34,6 +34,12 @@ final class MessagesAuditeurs
 
     public const MODELE_RELANCE = 'PSSFP : {prenom}, il reste {reste} FCFA à régler pour votre scolarité. Prochaine échéance : {prochaine_echeance}.';
 
+    /**
+     * Variables qui chiffrent l'impayé : un auditeur dont un versement attend sa confirmation par la scolarité
+     * n'en reçoit pas (relecture du 15/11/2026) ; la relance de confirmation lui dit de présenter son reçu.
+     */
+    public const VARIABLES_IMPAYE = ['{reste}', '{reste_inscription}', '{prochaine_echeance}'];
+
     /** Repères qui pourraient un jour désigner un secret : refusés d'office. */
     private const INTERDITES = ['{mot_de_passe}', '{password}', '{code}', '{pin}'];
 
@@ -63,12 +69,36 @@ final class MessagesAuditeurs
             && ! in_array($auditeur->statut, self::STATUTS_EXCLUS, true);
     }
 
+    /** Le message chiffre-t-il l'impayé de l'auditeur ? */
+    public static function chiffreImpaye(string $texte): bool
+    {
+        foreach (self::VARIABLES_IMPAYE as $variable) {
+            if (str_contains($texte, $variable)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** Un versement imputé sur l'inscription courante attend sa confirmation : le reste affiché serait trompeur. */
+    public static function attendConfirmation(Auditeur $auditeur): bool
+    {
+        return (int) $auditeur->inscriptionCourante?->situation()->aConfirmer > 0;
+    }
+
+    /** Destinataire de ce message-là : dossier actif, et pas de chiffrage de l'impayé pour qui attend une confirmation. */
+    public static function recoit(Auditeur $auditeur, string $texte): bool
+    {
+        return self::destinataire($auditeur) && ! (self::chiffreImpaye($texte) && self::attendConfirmation($auditeur));
+    }
+
     /** Précharge ce que rendre() lit, totaux compris, pour toute la sélection. */
     public static function precharger(Collection $auditeurs): Collection
     {
         return \Illuminate\Database\Eloquent\Collection::make($auditeurs->all())->load([
             'candidature.campagne',
-            'inscriptionCourante' => fn ($q) => $q->with('bareme')->withSum('imputationsActives', 'montant'),
+            'inscriptionCourante' => fn ($q) => $q->with('bareme')->withSum('imputationsActives', 'montant')->withSum('imputationsConfirmees', 'montant'),
         ]);
     }
 
@@ -78,7 +108,7 @@ final class MessagesAuditeurs
      */
     public function apercu(Collection $auditeurs, string $canal, string $corps): array
     {
-        $retenus = $auditeurs->filter(fn (Auditeur $a): bool => self::destinataire($a))->values();
+        $retenus = self::precharger($auditeurs)->filter(fn (Auditeur $a): bool => self::recoit($a, $corps))->values();
         // Le texte d'exemple sur un seul auditeur ; les compteurs sur les coordonnées seules.
         $premier = $retenus->first();
         $exemple = $premier instanceof Auditeur ? self::rendre($corps, $premier) : $corps;
@@ -130,7 +160,7 @@ final class MessagesAuditeurs
 
         $rapport = ['sms_envoyes' => 0, 'sms_echecs' => 0, 'emails_envoyes' => 0, 'emails_echecs' => 0, 'ignores' => 0];
         foreach (self::precharger($auditeurs) as $auditeur) {
-            if (! self::destinataire($auditeur)) {
+            if (! self::recoit($auditeur, $corps.' '.$sujet)) {
                 $rapport['ignores']++;
 
                 continue;

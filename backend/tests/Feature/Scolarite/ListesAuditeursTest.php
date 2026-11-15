@@ -91,18 +91,18 @@ it('liste par défaut les auditeurs actifs de la promotion, par spécialité, da
 it('calcule les sous-totaux par spécialité et le total général', function (): void {
     $tableau = ($this->listes)()->tableau(($this->criteres)());
 
-    expect($tableau['groupes'][0]['totaux'])->toBe(['effectif' => 4, 'du' => 3370000, 'remise' => 135000, 'verse' => 1370000, 'reste' => 2000000, 'avance' => 0])
-        ->and($tableau['groupes'][1]['totaux'])->toBe(['effectif' => 2, 'du' => 2320000, 'remise' => 0, 'verse' => 1820000, 'reste' => 500000, 'avance' => 0])
-        ->and($tableau['totaux'])->toBe(['effectif' => 6, 'du' => 5690000, 'remise' => 135000, 'verse' => 3190000, 'reste' => 2500000, 'avance' => 0]);
+    expect($tableau['groupes'][0]['totaux'])->toBe(['effectif' => 4, 'du' => 3370000, 'remise' => 135000, 'verse' => 1370000, 'a_confirmer' => 0, 'reste' => 2000000, 'avance' => 0])
+        ->and($tableau['groupes'][1]['totaux'])->toBe(['effectif' => 2, 'du' => 2320000, 'remise' => 0, 'verse' => 1820000, 'a_confirmer' => 0, 'reste' => 500000, 'avance' => 0])
+        ->and($tableau['totaux'])->toBe(['effectif' => 6, 'du' => 5690000, 'remise' => 135000, 'verse' => 3190000, 'a_confirmer' => 0, 'reste' => 2500000, 'avance' => 0]);
 });
 
 it('regroupe par niveau, les auditeurs sans inscription à part', function (): void {
     $tableau = ($this->listes)()->tableau(($this->criteres)(['regroupement' => CriteresListe::PAR_NIVEAU]));
 
     expect(array_column($tableau['groupes'], 'titre'))->toBe(['Master 1', 'Master 2', 'Sans inscription (barème manquant)'])
-        ->and($tableau['groupes'][0]['totaux'])->toBe(['effectif' => 3, 'du' => 3555000, 'remise' => 0, 'verse' => 2055000, 'reste' => 1500000, 'avance' => 0])
-        ->and($tableau['groupes'][1]['totaux'])->toBe(['effectif' => 2, 'du' => 2135000, 'remise' => 135000, 'verse' => 1135000, 'reste' => 1000000, 'avance' => 0])
-        ->and($tableau['groupes'][2]['totaux'])->toBe(['effectif' => 1, 'du' => 0, 'remise' => 0, 'verse' => 0, 'reste' => 0, 'avance' => 0])
+        ->and($tableau['groupes'][0]['totaux'])->toBe(['effectif' => 3, 'du' => 3555000, 'remise' => 0, 'verse' => 2055000, 'a_confirmer' => 0, 'reste' => 1500000, 'avance' => 0])
+        ->and($tableau['groupes'][1]['totaux'])->toBe(['effectif' => 2, 'du' => 2135000, 'remise' => 135000, 'verse' => 1135000, 'a_confirmer' => 0, 'reste' => 1000000, 'avance' => 0])
+        ->and($tableau['groupes'][2]['totaux'])->toBe(['effectif' => 1, 'du' => 0, 'remise' => 0, 'verse' => 0, 'a_confirmer' => 0, 'reste' => 0, 'avance' => 0])
         ->and($tableau['totaux']['reste'])->toBe(2500000);
 });
 
@@ -286,7 +286,7 @@ it('réintègre les dossiers retirés quand la case est cochée, en les signalan
 
     expect(($this->noms)($tableau))->toBe(['ABENA Essai', 'BEKONO Essai', 'CHOUPO Essai', 'DIBANGO Essai', 'ESSOMBA Essai', 'GWET Essai', 'IKWA Essai'])
         ->and(($this->listes)()->effectif($criteres))->toBe(7)
-        ->and($tableau['totaux'])->toBe(['effectif' => 7, 'du' => 6875000, 'remise' => 135000, 'verse' => 3375000, 'reste' => 3500000, 'avance' => 0])
+        ->and($tableau['totaux'])->toBe(['effectif' => 7, 'du' => 6875000, 'remise' => 135000, 'verse' => 3375000, 'a_confirmer' => 0, 'reste' => 3500000, 'avance' => 0])
         ->and($lignes['IKWA Essai']['statut'])->toBe('Actif (dossier retiré)')
         ->and($lignes['ABENA Essai']['statut'])->toBe('Actif');
 });

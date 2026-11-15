@@ -75,7 +75,8 @@ final class RolePermissionSeeder extends Seeder
             'admin' => [
                 'label' => 'Administrateur',
                 'description' => 'Comptes, rôles, campagnes, réglages et exports.',
-                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage, 'scolarite' => $manage, 'lmd' => $manage],
+                // Scolarité en lecture depuis le 15/11/2026 : le service financier seul enregistre les versements.
+                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage, 'scolarite' => $read, 'lmd' => $manage],
                 'sensitive' => [
                     'candidature.export_csv',
                     'candidature.mark_depot_physique',
@@ -92,6 +93,7 @@ final class RolePermissionSeeder extends Seeder
                     'candidature.espace_candidat',
                     'scolarite.export',
                     'scolarite.versement_annuler',
+                    'scolarite.versement_confirmer',
                     'scolarite.remise',
                     'scolarite.bareme',
                     'scolarite.promotion',
@@ -182,13 +184,13 @@ final class RolePermissionSeeder extends Seeder
                 'label' => 'Agent de scolarité',
                 'description' => 'Consultation des auditeurs et export de la situation financière ; lettre d\'accès FOAD d\'un auditeur soldé et renvoi de ses accès ; préparation des maquettes et inscriptions pédagogiques.',
                 'modules' => ['scolarite' => $read, 'lmd' => $manage],
-                'sensitive' => ['scolarite.export', 'scolarite.lettre_acces', 'scolarite.etiquettes', 'scolarite.deblocage'],
+                'sensitive' => ['scolarite.export', 'scolarite.lettre_acces', 'scolarite.etiquettes', 'scolarite.deblocage', 'scolarite.versement_confirmer'],
             ],
             'scolarite_responsable' => [
                 'label' => 'Responsable de scolarité',
                 'description' => 'Droits de l\'agent, plus l\'annulation des versements, les remises, les barèmes, les réglages de promotion, le statut des auditeurs, les messages, la validation des maquettes, les règles d\'évaluation et les changements de parcours.',
                 'modules' => ['scolarite' => $read, 'lmd' => $manage],
-                'sensitive' => ['scolarite.export', 'scolarite.lettre_acces', 'scolarite.etiquettes', 'scolarite.versement_annuler', 'scolarite.remise', 'scolarite.bareme', 'supervision.consulter',
+                'sensitive' => ['scolarite.export', 'scolarite.lettre_acces', 'scolarite.etiquettes', 'scolarite.versement_annuler', 'scolarite.versement_confirmer', 'scolarite.remise', 'scolarite.bareme', 'supervision.consulter',
                     'scolarite.promotion', 'scolarite.statut', 'scolarite.messages', 'scolarite.deblocage', 'scolarite.deblocage_exceptionnel',
                     'lmd.maquette_valider', 'lmd.regles', 'lmd.parcours_changer',
                     'lmd.notes_verrouiller', 'lmd.notes_rouvrir', 'lmd.derogation_rattrapage',

@@ -204,7 +204,9 @@ final class VerificationComptes
     }
 
     /**
-     * Effectifs des filtres de la liste, avec l'ancienne source du cumul puis la nouvelle.
+     * Effectifs des filtres de la liste, avec l'ancienne source du cumul puis la nouvelle. Les filtres
+     * lisent ici tout l'argent imputé : la vérification porte sur le compte (D1), pas sur la
+     * confirmation par la scolarité (15/11/2026).
      *
      * @param  list<int>  $exclus
      * @return array<string, array{0: int, 1: int}>
@@ -221,13 +223,13 @@ final class VerificationComptes
         $ancienSoldee = self::ANCIEN_VERSE.' >= '.self::DU_INSCRIPTION;
 
         return [
-            'inscription_soldee' => [$base()->whereRaw($ancienSoldee)->count(), $base()->inscriptionSoldee()->count()],
-            'entierement_soldee' => [$base()->whereRaw(self::ANCIEN_VERSE.' >= '.$jusquTranche1.' + '.self::DU_TRANCHE2)->count(), $base()->entierementSoldee()->count()],
-            'en_retard' => [$base()->whereRaw($ancienRetard, [$jour, $jour])->count(), $base()->enRetard()->count()],
+            'inscription_soldee' => [$base()->whereRaw($ancienSoldee)->count(), $base()->inscriptionSoldee(true)->count()],
+            'entierement_soldee' => [$base()->whereRaw(self::ANCIEN_VERSE.' >= '.$jusquTranche1.' + '.self::DU_TRANCHE2)->count(), $base()->entierementSoldee(true)->count()],
+            'en_retard' => [$base()->whereRaw($ancienRetard, [$jour, $jour])->count(), $base()->enRetard(true)->count()],
             'acces_ouvert' => [
                 $base()->where(fn (Builder $q) => $q->whereRaw($ancienSoldee)->orWhere(fn (Builder $d) => $d->whereHas('deblocageEnCours')
                     ->whereHas('auditeur', fn (Builder $a) => $a->whereNotIn('statut', MessagesAuditeurs::STATUTS_EXCLUS))))->count(),
-                $base()->accesOuvert()->count(),
+                $base()->accesOuvert(true)->count(),
             ],
         ];
     }

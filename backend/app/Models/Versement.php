@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Versement d'un auditeur, rattaché à son compte (`auditeur_id`, ADR-0013). Jamais
@@ -99,11 +100,13 @@ class Versement extends Model
     /**
      * Une pièce du dossier des justificatifs ne sert qu'une fois : jamais le
      * bordereau d'un autre versement, la pièce d'un accès anticipé, la lettre
-     * d'un engagement de prise en charge ni la pièce d'un règlement (lot A2).
+     * d'un engagement de prise en charge, la pièce d'un règlement (lot A2) ni le
+     * scan d'une confirmation par la scolarité.
      */
     public static function pieceDejaJointe(string $chemin): bool
     {
         return self::query()->where('justificatif_path', $chemin)->exists()
+            || ConfirmationVersement::query()->where('justificatif_path', $chemin)->exists()
             || DeblocageAcces::query()->where('justificatif_path', $chemin)->exists()
             || EngagementPriseEnCharge::query()->where('lettre_path', $chemin)->exists()
             || ReglementOrganisme::query()->where('piece_path', $chemin)->exists();
@@ -177,5 +180,11 @@ class Versement extends Model
     public function estAnnule(): bool
     {
         return $this->annule_at !== null;
+    }
+
+    /** Confirmation par la scolarité (15/11/2026) : seul l'argent confirmé rend l'auditeur « à jour ». */
+    public function confirmation(): HasOne
+    {
+        return $this->hasOne(ConfirmationVersement::class);
     }
 }

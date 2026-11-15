@@ -18,7 +18,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  */
 final class SituationFinanciereExcel
 {
-    public const ENTETES = ['Matricule', 'Nom', 'Prénom', 'Promotion', 'Niveau', 'Année', 'Dû', 'Remise', 'Versé', 'Reste', 'Situation', 'Avance'];
+    public const ENTETES = ['Matricule', 'Nom', 'Prénom', 'Promotion', 'Niveau', 'Année', 'Dû', 'Remise', 'Versé', 'Reste', 'Situation', 'Avance', 'Dont à confirmer'];
 
     /** @param  Collection<int, Auditeur>  $auditeurs */
     public function generer(Collection $auditeurs): string
@@ -46,15 +46,17 @@ final class SituationFinanciereExcel
                 $feuille->setCellValue('H'.$ligne, $s->remise);
                 $feuille->setCellValue('I'.$ligne, $s->verse);
                 $feuille->setCellValue('J'.$ligne, $s->reste);
+                // Part du versé à confirmer par la scolarité (15/11/2026) : la situation (K) ne la compte pas.
+                $feuille->setCellValue('M'.$ligne, $s->aConfirmer);
             }
             $feuille->setCellValue('L'.$ligne, (int) ($avances[$auditeur->getKey()] ?? 0));
             $ligne++;
         }
-        foreach (range('A', 'L') as $colonne) {
+        foreach (range('A', 'M') as $colonne) {
             $feuille->getColumnDimension($colonne)->setAutoSize(true);
         }
         $feuille->getStyle('G2:J'.max(2, $ligne - 1))->getNumberFormat()->setFormatCode('#,##0');
-        $feuille->getStyle('L2:L'.max(2, $ligne - 1))->getNumberFormat()->setFormatCode('#,##0');
+        $feuille->getStyle('L2:M'.max(2, $ligne - 1))->getNumberFormat()->setFormatCode('#,##0');
 
         ob_start();
         (new Xlsx($classeur))->save('php://output');

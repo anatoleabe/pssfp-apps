@@ -59,7 +59,7 @@ class AuditeursCouvertsRelationManager extends RelationManager
     {
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
-                'inscription' => fn ($i) => $i->with(['bareme', 'auditeur.candidature:id,nom,prenom,matricule'])->withSum('imputationsActives', 'montant'),
+                'inscription' => fn ($i) => $i->with(['bareme', 'auditeur.candidature:id,nom,prenom,matricule'])->withSum('imputationsActives', 'montant')->withSum('imputationsConfirmees', 'montant'),
             ]))
             ->defaultSort('id')
             ->paginated([25, 50, 100])

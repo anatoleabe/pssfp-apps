@@ -111,7 +111,7 @@ class EngagementPriseEnCharge extends Model
     /** @return array<string, \Closure> */
     private static function chargementSuivi(): array
     {
-        return ['deblocagesCouverts.inscription' => fn ($q) => $q->with('bareme')->withSum('imputationsActives', 'montant')];
+        return ['deblocagesCouverts.inscription' => fn ($q) => $q->with('bareme')->withSum('imputationsActives', 'montant')->withSum('imputationsConfirmees', 'montant')];
     }
 
     public function estEchu(): bool

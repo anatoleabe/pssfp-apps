@@ -44,12 +44,13 @@ Cette spec modifie le lot 4 (reçus), D1 (compte de l'auditeur), A1 (accès anti
 
 ### 3.1 PR 1
 
-Aucune table. Une migration de permissions, `revoke_scolarite_versement_saisir` :
+Aucune table. Une migration de permissions, `2026_12_04_100400_revoke_scolarite_versement_saisir` :
 
-- elle retire `scolarite.versement_saisir` à `scolarite_agent` et `scolarite_responsable` ;
+- elle passe **après** la reprise des confirmations et l'octroi de la confirmation (relecture du 15/11) : un échec de la reprise ne laisse pas la scolarité sans saisie ;
+- elle retire `scolarite.versement_saisir` à `scolarite_agent`, `scolarite_responsable` et `admin` ; `super_admin` garde tout ;
 - elle s'assure que `service_financier` porte `scolarite.versement_saisir` et `scolarite.recu_emettre` ;
-- elle met à jour les descriptions des deux rôles de scolarité, si elles n'ont pas été modifiées depuis l'écran Rôles ;
-- `down()` rend la permission aux deux rôles.
+- elle met à jour les descriptions de l'agent de scolarité et du service financier, si elles n'ont pas été modifiées depuis l'écran Rôles ;
+- `down()` rend la permission aux trois rôles.
 
 ### 3.2 PR 2 — `confirmations_versements` (nouvelle, en ajout seul)
 
@@ -96,7 +97,7 @@ Aucune table. Une migration de permissions, `revoke_scolarite_versement_saisir` 
 
 1. **Atomicité du geste.** « Enregistrer et émettre le reçu » fait la saisie et l'émission sous le même verrou de l'auditeur et dans la même transaction. Si l'émission est refusée (par exemple, date de mise en service non réglée), rien n'est enregistré et l'agent voit le motif. L'avis à l'auditeur et la notification des accès partent après la validation.
 2. **Libellé du geste.** Avec `scolarite.recu_emettre`, le bouton de la fiche devient « Enregistrer et émettre le reçu ». Sans elle, il reste « Enregistrer un versement » (administrateurs). L'action « Émettre le reçu » de la ligne reste disponible pour un versement sans reçu en vigueur : reçu annulé puis réémis, part de règlement, saisie d'un administrateur, reçu demandé pour un versement antérieur à la bascule.
-3. **Rôles d'administration.** `admin` et `super_admin` gardent la saisie : la décision ne vise que les deux rôles de scolarité. À retirer à `admin` sur demande.
+3. **Rôles d'administration (relecture du 15/11).** `admin` perd la saisie, comme décidé (« le service financier seul ») : sans `recu_emettre`, il ne pouvait plus encaisser un versement, seulement un règlement d'organisme, ce qui était incohérent. `super_admin` garde tout. Le module Scolarité de `admin` passe au niveau « Lecture ».
 4. **Niveau du module.** `scolarite.versement_saisir` reste la permission de gestion du module Scolarité. Les deux rôles de scolarité passent au niveau « Lecture » et gardent leurs actions sensibles. Le service financier reste au niveau « Gestion ».
 5. **Gestes de scolarité qui dépendaient de la saisie.**
    - « Renvoyer le SMS et l'e-mail » des accès et « Envoyer un nouveau lien » vers la lettre d'accès passent sous `scolarite.lettre_acces` (agent, responsable, administrateurs).
@@ -133,12 +134,38 @@ Aucune table. Une migration de permissions, `revoke_scolarite_versement_saisir` 
    - La migration confirme tous les versements non annulés présents au déploiement (`reprise = true`) : `confirme_par = saisi_par`, `confirme_at = created_at`, scan = bordereau du versement.
    - Les versements annulés ne sont pas repris : ils ne comptent plus.
    - Le test d'équivalence compare l'état d'accès de chaque dossier avant la migration (ancienne règle, tout l'argent) et après.
+   - La migration vérifie aussi, dans sa transaction, que l'imputé confirmé de chaque inscription égale son imputé. Au moindre écart, elle s'annule en nommant les inscriptions, comme la reprise de D1.
+10. **Calendrier des 7 jours.** Le délai se compte en jours de Yaoundé : un versement enregistré le 10 est relancé le 17 à 08:00, puis le 24. Le contrôle interne et le filtre « Plus de 7 jours » de l'écran suivent la même borne.
+11. **Pointage repris (lot 1).** Quand un matricule est attribué, la case « droits payés » d'un dossier devient un versement. Ce versement est confirmé dès sa création (reprise) : la case cochée était déjà la vérification de la scolarité.
+12. **Vérification du compte (D1).** `scolarite:verifier-comptes` et la reprise de D1 comparent toujours les imputations aux versements sur tout l'argent. Les filtres SQL prennent pour cela l'option « tout l'argent ». Ainsi, un versement non confirmé n'est jamais signalé comme une incohérence du compte.
+13. **Retour de la confirmation.** Une confirmation qui solde les droits annonce à l'agent que l'auditeur a été prévenu de ses accès, ou que l'envoi a échoué, comme le faisait la saisie avant le 15/11/2026.
+14. **Affichage de « dont X à confirmer ».** La mention figure à six endroits :
+    - fiche (situation et onglet Versements) ;
+    - liste des auditeurs ;
+    - listes et états du lot C (lignes, sous-totaux, total) ;
+    - export Excel de la situation (colonne « Dont à confirmer ») ;
+    - relevé de scolarité (colonne « Vérifié par la scolarité ») ;
+    - espace de l'auditeur (montant, et pour chaque versement « Vérifié le » ou « Reçu bancaire à présenter à la scolarité »).
+15. **Espace en attente de confirmation (relecture du 15/11).** Quand l'argent saisi solde les droits mais que l'argent confirmé ne les solde pas encore, l'espace ne dit jamais « il reste 0 FCFA à payer ».
+    - L'API expose `acces.confirmation_en_attente` et `acces.recu_a_presenter`, et ne donne plus `acces.reste_inscription`.
+    - L'espace affiche « Présentez votre reçu à la scolarité pour faire confirmer votre versement : vos accès seront disponibles dès sa confirmation. »
+    - Il affiche « Votre versement est en cours de confirmation par la scolarité… » si tout l'argent à confirmer vient d'un organisme.
+    - Chaque palier n'est « soldé » que sur l'argent confirmé ; un palier payé mais à confirmer se lit « Versé, en attente de confirmation par la scolarité ». Le relevé suit (« À confirmer »).
+16. **Messages aux auditeurs (relecture du 15/11).** Un message qui chiffre l'impayé (`{reste}`, `{reste_inscription}`, `{prochaine_echeance}`) écarte l'auditeur dont un versement de l'inscription courante attend sa confirmation : la relance de confirmation lui dit de présenter son reçu. L'aperçu le compte parmi les écartés ; un message sans montant part à tous.
+17. **Relance d'un accès anticipé échu (A1).** Elle n'est plus envoyée à l'auditeur dont les droits payés attendent leur confirmation (« votre virement n'est pas encore arrivé » serait faux). Le contrôle DEB_ECHUS continue de suivre le déblocage pour le personnel.
+18. **Parts d'un règlement d'organisme (relecture du 15/11).** La relance « présentez votre reçu bancaire » ne part jamais pour elles : l'organisme a payé, l'auditeur n'a pas de reçu. L'espace les dit « Confirmation en cours » (origine `reglement` dans l'API). Le contrôle VER_NON_CONFIRMES continue de les suivre pour le personnel.
+19. **Séparation des tâches.** Le couple `scolarite.versement_saisir` / `scolarite.versement_confirmer` entre dans SEC_SEPARATION : un compte qui cumule les deux est signalé (un cumul voulu, super administrateur, se justifie).
+20. **Commande `scolarite:reprendre-confirmations`.**
+    - Elle appelle la reprise vérifiée (`RepriseConfirmations::executer()`, qu'utilise aussi la migration), en tout ou rien.
+    - Elle est idempotente.
+    - En cas d'écart, elle refuse et nomme les inscriptions par leur uuid, sans nom.
+    - Elle est **refusée hors maintenance** : l'application ouverte, elle confirmerait sans scan des versements que le service financier vient de saisir.
 
 ## 6. Permissions avant et après
 
 | Permission | `scolarite_agent` | `scolarite_responsable` | `service_financier` | `admin` | `super_admin` |
 |---|---|---|---|---|---|
-| `scolarite.versement_saisir` (gestion du module) | oui → **non** | oui → **non** | oui | oui | oui |
+| `scolarite.versement_saisir` (gestion du module) | oui → **non** | oui → **non** | oui | oui → **non** | oui |
 | `scolarite.recu_emettre` | non | non | oui | non | oui |
 | `scolarite.versement_annuler` | non | oui | non | oui | oui |
 | `scolarite.versement_confirmer` (nouvelle, PR 2) | **oui** | **oui** | **non** | **oui** | **oui** |
@@ -171,8 +198,20 @@ Aucune table. Une migration de permissions, `revoke_scolarite_versement_saisir` 
 
 ## 9. Déploiement (les deux PR ensemble)
 
-1. Déployer, puis lancer les migrations : permissions (PR 1), puis confirmations, reprise et colonnes du reçu (PR 2).
-2. Vérifier que `pssfp-queue` tourne (e-mails) et que la crontab de `schedule:run` est en place (relance de 08:00).
-3. Au moment de l'arrêt d'ACMA, lancer `php artisan scolarite:bascule-recus` (lot 4 §5.4).
-4. Régénérer `docs/ops/roles.md` (`php artisan roles:matrice`), puis vérifier les rôles dans l'écran Rôles.
-5. Contrôler que « Versements à confirmer » est vide juste après la reprise, et que `scolarite:verifier-comptes` rend 0.
+Les commandes se lancent en utilisateur `pssfp`, depuis `backend`. L'application reste en maintenance de la fusion à la reprise : aucun versement ne se saisit entre la migration et le rechargement du code.
+
+1. `php artisan down`
+2. Fusionner (#134 puis #138) et récupérer le code.
+3. `php artisan migrate`, qui passe dans cet ordre :
+   1. `2026_12_04_100100_create_confirmations_versements_table` : table des confirmations, colonnes de vérification du reçu ;
+   2. `2026_12_04_100200_reprise_confirmations_versements` : reprise vérifiée, qui s'annule au moindre écart ;
+   3. `2026_12_04_100300_grant_scolarite_versement_confirmer` : confirmation pour la scolarité, `admin` et `super_admin` ;
+   4. `2026_12_04_100400_revoke_scolarite_versement_saisir` : saisie retirée à la scolarité et à `admin`.
+4. `php artisan optimize`
+5. Redémarrer la file : `php artisan queue:restart`, puis contrôler `pssfp-queue`.
+6. `php artisan scolarite:reprendre-confirmations` : reprend ce que l'ancien code aurait saisi entre la migration et le rechargement. Elle rend normalement « 0 versement(s) repris ».
+7. `php artisan up`
+8. Vérifier que la crontab de `schedule:run` est en place : relance de 08:00.
+9. Au moment de l'arrêt d'ACMA : `php artisan scolarite:bascule-recus` (lot 4 §5.4).
+10. Régénérer `docs/ops/roles.md` (`php artisan roles:matrice`), puis vérifier les rôles dans l'écran Rôles.
+11. Contrôler que « Versements à confirmer » est vide juste après la reprise, et que `scolarite:verifier-comptes` rend 0.

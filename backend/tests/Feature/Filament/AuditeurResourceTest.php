@@ -99,7 +99,7 @@ it('ne montre jamais le mot de passe FOAD sur la fiche', function (): void {
         ->assertDontSee((string) $this->awa->moodle_password);
 });
 
-it('enregistre un versement depuis la fiche, et prévient par SMS au premier solde', function (): void {
+it('enregistre un versement depuis la fiche ; le SMS des accès part à sa confirmation par la scolarité', function (): void {
     $this->actingAs(($this->compte)('service_financier'));
 
     // Le service financier enregistre et émet le reçu en un geste (15/11/2026).
@@ -108,8 +108,11 @@ it('enregistre un versement depuis la fiche, et prévient par SMS au premier sol
         ->assertHasNoActionErrors()
         ->assertNotified('Versement enregistré, reçu '.RecuVersement::query()->sole()->numero.' émis');
 
-    expect(Versement::query()->where('reference', 'BOR-101')->exists())->toBeTrue()
-        ->and($this->sms)->toBe([$this->awa->phone_e164]);
+    // Depuis le 15/11/2026, l'argent ne compte pour l'accès qu'une fois confirmé par la scolarité.
+    $v = Versement::query()->where('reference', 'BOR-101')->sole();
+    expect($this->sms)->toBe([]);
+    confirmerVersement($v);
+    expect($this->sms)->toBe([$this->awa->phone_e164]);
 });
 
 it('laisse la fenêtre ouverte et explique un doublon de référence', function (): void {

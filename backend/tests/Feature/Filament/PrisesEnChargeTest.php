@@ -23,7 +23,6 @@ use App\Services\Ecampus\ComptesEcampus;
 use App\Services\ExportsRetenus\AttributionMatricules;
 use App\Services\Scolarite\EngagementsPriseEnCharge;
 use App\Services\Scolarite\LibelleSituation;
-use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\ReglementsOrganismes;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\CandidatureObjectStorage;
@@ -146,7 +145,7 @@ it('propose les actions de la fiche selon les droits', function (string $role, a
 ]);
 
 it('rattache des auditeurs depuis la fiche et nomme les refus', function (): void {
-    app(RegistreVersements::class)->enregistrer($this->bruno->fresh()->auditeur->inscriptionCourante, [
+    verserConfirme($this->bruno->fresh()->auditeur->inscriptionCourante, [
         'montant' => 185000, 'date_versement' => '2026-11-16', 'mode' => 'especes', 'reference' => 'ESP-9', 'payeur' => 'auditeur',
     ], $this->encaisseur);
     $this->actingAs($this->agent);

@@ -113,7 +113,7 @@ final class ModulePermissionMap
             ],
             'scolarite' => [
                 'label' => 'Scolarité',
-                'description' => 'Auditeurs, versements et situation financière. La gestion donne le droit d\'enregistrer un versement : elle revient au service financier (décision du 15/11/2026), la scolarité est en lecture avec ses actions sensibles.',
+                'description' => 'Auditeurs, versements et situation financière. La gestion donne le droit d\'enregistrer un versement : elle revient au service financier seul (décision du 15/11/2026) ; la scolarité et l\'administrateur sont en lecture avec leurs actions sensibles.',
                 'read' => [
                     'view_any_auditeur', 'view_auditeur',
                 ],
@@ -124,6 +124,7 @@ final class ModulePermissionMap
                 'sensitive' => [
                     'scolarite.export' => 'Exporter la situation financière des auditeurs',
                     'scolarite.versement_annuler' => 'Annuler un versement',
+                    'scolarite.versement_confirmer' => 'Confirmer un versement sur présentation du reçu bancaire original (scolarité) : scan du bordereau et attestation, jamais un versement que l\'on a saisi',
                     'scolarite.recu_emettre' => 'Émettre les reçus des versements et passer leurs écritures d\'annulation (service financier)',
                     'scolarite.remise' => 'Accorder une remise',
                     'scolarite.bareme' => 'Modifier les barèmes',

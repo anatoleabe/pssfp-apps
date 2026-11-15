@@ -33,7 +33,7 @@ final readonly class CompteAuditeur
 
         return new self(
             $id,
-            InscriptionAnnuelle::query()->where('auditeur_id', $id)->with('bareme')->withSum('imputationsActives', 'montant')
+            InscriptionAnnuelle::query()->where('auditeur_id', $id)->with('bareme')->withSum('imputationsActives', 'montant')->withSum('imputationsConfirmees', 'montant')
                 ->orderBy('annee_academique')->get(),
             Versement::query()->where('auditeur_id', $id)->whereNull('annule_at')->withSum('imputationsActives', 'montant')
                 ->orderBy('date_versement')->orderBy('id')->get(),

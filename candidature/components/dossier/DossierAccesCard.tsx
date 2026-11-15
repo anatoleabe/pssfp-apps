@@ -50,8 +50,14 @@ export function DossierAccesCard({ scolarite, consultation, erreurLettre = null 
       </div>
 
       {etat === 'bloque' && (
-        <p className="mt-5 rounded-pssfp-card border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
-          {t('bloque', { reste: formatFcfa(scolarite.acces.reste_inscription ?? 0, locale) })}
+        <p
+          data-testid={scolarite.acces.confirmation_en_attente ? 'acces-confirmation' : undefined}
+          className="mt-5 rounded-pssfp-card border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900"
+        >
+          {/* Droits payés, versement à confirmer par la scolarité : jamais « il reste 0 FCFA à payer ». */}
+          {scolarite.acces.confirmation_en_attente
+            ? t(scolarite.acces.recu_a_presenter === false ? 'confirmationEnCours' : 'confirmationRecu')
+            : t('bloque', { reste: formatFcfa(scolarite.acces.reste_inscription ?? 0, locale) })}
         </p>
       )}
 
