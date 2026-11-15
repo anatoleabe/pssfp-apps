@@ -97,6 +97,7 @@ final class RolePermissionSeeder extends Seeder
                     'scolarite.promotion',
                     'scolarite.statut',
                     'scolarite.messages',
+                    'scolarite.etiquettes',
                     'lmd.maquette_valider',
                     'lmd.regles',
                     'lmd.parcours_changer',
@@ -171,18 +172,19 @@ final class RolePermissionSeeder extends Seeder
             // Scolarité (spec module 4) : l'agent enregistre l'argent, le responsable
             // corrige et accorde. Aucun des deux n'ouvre les dossiers ; depuis le
             // 13/11/2026, tous deux téléchargent la lettre d'accès FOAD d'un auditeur
-            // soldé, un dossier à la fois (scolarite.lettre_acces).
+            // soldé, un dossier à la fois (scolarite.lettre_acces). Tous deux posent les
+            // étiquettes des auditeurs (scolarite.etiquettes, 30/11/2026).
             'scolarite_agent' => [
                 'label' => 'Agent de scolarité',
                 'description' => 'Consultation des auditeurs, enregistrement des versements et export de la situation financière ; lettre d\'accès FOAD d\'un auditeur soldé ; préparation des maquettes et inscriptions pédagogiques.',
                 'modules' => ['scolarite' => $manage, 'lmd' => $manage],
-                'sensitive' => ['scolarite.export', 'scolarite.lettre_acces'],
+                'sensitive' => ['scolarite.export', 'scolarite.lettre_acces', 'scolarite.etiquettes'],
             ],
             'scolarite_responsable' => [
                 'label' => 'Responsable de scolarité',
                 'description' => 'Droits de l\'agent, plus l\'annulation des versements, les remises, les barèmes, les réglages de promotion, le statut des auditeurs, les messages, la validation des maquettes, les règles d\'évaluation et les changements de parcours.',
                 'modules' => ['scolarite' => $manage, 'lmd' => $manage],
-                'sensitive' => ['scolarite.export', 'scolarite.lettre_acces', 'scolarite.versement_annuler', 'scolarite.remise', 'scolarite.bareme', 'supervision.consulter',
+                'sensitive' => ['scolarite.export', 'scolarite.lettre_acces', 'scolarite.etiquettes', 'scolarite.versement_annuler', 'scolarite.remise', 'scolarite.bareme', 'supervision.consulter',
                     'scolarite.promotion', 'scolarite.statut', 'scolarite.messages',
                     'lmd.maquette_valider', 'lmd.regles', 'lmd.parcours_changer',
                     'lmd.notes_verrouiller', 'lmd.notes_rouvrir', 'lmd.derogation_rattrapage',
