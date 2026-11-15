@@ -81,6 +81,16 @@ final class Relances
         return $bilan;
     }
 
+    /** Rôle relancé pour ce contrôle à ce niveau : l'escalade dédiée d'un contrôle remplace celle du barème commun. */
+    public static function roleCible(Controle $controle, int $niveau, ?string $vise): string
+    {
+        if ($controle instanceof EscaladeDediee && $vise === self::ESCALADE) {
+            $vise = $controle->escalade();
+        }
+
+        return self::roleVise($controle->responsable(), $niveau, $vise);
+    }
+
     /** Rôle relancé à un niveau : jamais, en escalade, le responsable déjà relancé au niveau 1. */
     public static function roleVise(string $responsable, int $niveau, ?string $vise): string
     {
@@ -123,7 +133,7 @@ final class Relances
                 if (in_array($niveau, $deja, true) || $aujourdhui->lt($echeance->addDays($jours))) {
                     continue;
                 }
-                $role = self::roleVise($controle->responsable(), $niveau, $vise);
+                $role = self::roleCible($controle, $niveau, $vise);
                 $cle = $role.'|'.$niveau;
                 $lots[$cle] ??= ['role' => $role, 'niveau' => $niveau, 'relances' => []];
                 $lots[$cle]['relances'][] = ['anomalie' => $a, 'controle' => $controle, 'canaux' => $canaux];
