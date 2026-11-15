@@ -131,6 +131,7 @@ final class ModulePermissionMap
                     'scolarite.statut' => 'Changer le statut d\'un auditeur (suspendu, abandon, exclu, diplômé)',
                     'scolarite.messages' => 'Envoyer un message aux auditeurs (relance des impayés)',
                     'scolarite.lettre_acces' => 'Télécharger depuis sa fiche la lettre d\'accès FOAD (avec le mot de passe) d\'un auditeur dont l\'inscription est soldée',
+                    'scolarite.etiquettes' => 'Poser et retirer des étiquettes sur les auditeurs ; créer, renommer et supprimer les étiquettes',
                 ],
             ],
             'lmd' => [
