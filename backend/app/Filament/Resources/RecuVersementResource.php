@@ -55,9 +55,12 @@ class RecuVersementResource extends Resource
         return $n > 0 ? (string) $n : null;
     }
 
+    /** Reprise par la tuile « À traiter » : dit d'où part la liste d'attente (bascule ACMA, spec §5). */
     public static function getNavigationBadgeTooltip(): ?string
     {
-        return 'Versements sans reçu';
+        $jour = app(RecusVersements::class)->jourDebutAttente();
+
+        return $jour === null ? 'Versements sans reçu' : 'Versements sans reçu (enregistrés depuis le '.$jour.')';
     }
 
     public static function table(Table $table): Table
