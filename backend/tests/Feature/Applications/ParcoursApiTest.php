@@ -9,6 +9,7 @@ use App\Models\Maquette;
 use App\Models\User;
 use App\Services\Lmd\ImportMaquettes;
 use App\Services\Lmd\InscriptionsPedagogiques;
+use App\Services\Lmd\NumerotationSemestres;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
@@ -52,6 +53,32 @@ it('donne à l\'auditeur la maquette validée de son parcours, sans identifiant 
 
     expect($r->getContent())->not->toContain('"id"')
         ->and($r->headers->get('Cache-Control'))->toContain('no-store');
+});
+
+it('donne le numéro de semestre à afficher selon la promotion de l\'auditeur, le numéro enregistré restant le même', function (): void {
+    Maquette::query()->whereHas('parcours', fn ($q) => $q->where('code', 'GTFP'))->firstOrFail()
+        ->forceFill(['statut' => Maquette::VALIDEE, 'validee_at' => now()])->save();
+    $bareme = BaremeScolarite::query()->where('niveau', 'M2')->firstOrFail();
+    $autre = Auditeur::factory()->create();
+    $autre->candidature->forceFill(['specialite' => 'Gouvernance Territoriale et Finances Publiques locales', 'user_id' => User::factory()->create()->id])->save();
+    InscriptionAnnuelle::factory()->create(['auditeur_id' => $autre->id, 'bareme_id' => $bareme->id]);
+
+    $this->withToken(($this->jeton)($this->user))->getJson('/v1/applications/me/parcours')->assertOk()
+        ->assertJsonPath('data.semestres.0.numero', 9)
+        ->assertJsonPath('data.semestres.0.numero_affiche', 3)
+        ->assertJsonPath('data.semestres.1.numero_affiche', 4);
+
+    $this->auditeur->candidature->campagne->update(['numerotation_semestres' => NumerotationSemestres::LMD]);
+    app('auth')->forgetGuards();
+    $this->withToken(($this->jeton)($this->user))->getJson('/v1/applications/me/parcours')->assertOk()
+        ->assertJsonPath('data.semestres.0.numero', 9)
+        ->assertJsonPath('data.semestres.0.numero_affiche', 9)
+        ->assertJsonPath('data.semestres.1.numero_affiche', 10);
+
+    // Une autre promotion reste en S1-S4.
+    app('auth')->forgetGuards();
+    $this->withToken(($this->jeton)($autre->candidature->user))->getJson('/v1/applications/me/parcours')->assertOk()
+        ->assertJsonPath('data.semestres.0.numero_affiche', 3);
 });
 
 it('répond 404 à un compte sans scolarité, et ne lit jamais le parcours d\'un autre', function (): void {

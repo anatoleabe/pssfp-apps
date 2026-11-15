@@ -10,6 +10,7 @@ use App\Models\Maquette;
 use App\Models\MaquetteUe;
 use App\Models\RegleEvaluation;
 use App\Models\UniteEnseignement;
+use App\Services\Lmd\NumerotationSemestres;
 use App\Services\Lmd\PermissionsLmd;
 use App\Support\BelongsToModule;
 use Filament\Forms;
@@ -69,7 +70,8 @@ class UesRelationManager extends RelationManager
                     Forms\Components\TextInput::make('code')->label('Code')->required()->maxLength(20)->regex('/^[A-Z0-9]+$/')->unique('unites_enseignement', 'code'),
                     Forms\Components\TextInput::make('intitule')->label('Intitulé')->required()->maxLength(255),
                 ]),
-            Forms\Components\TextInput::make('semestre')->label('Semestre')->required()->integer()->minValue(1)->maxValue(12),
+            Forms\Components\TextInput::make('semestre')->label('Semestre')->required()->integer()->minValue(1)->maxValue(12)
+                ->helperText('Numéro de la maquette (7 à 10 pour le master). L\'affichage suit le réglage de la promotion : S1 à S4 ou S7 à S10.'),
             Forms\Components\TextInput::make('credits')->label('Crédits')->required()->integer()->minValue(0)->maxValue(60),
             $pourcent('pcc', 'Contrôle continu')->default((string) $regle->pcc_defaut),
             $pourcent('ptp', 'Assiduité (TP)')->default((string) $regle->ptp_defaut),
@@ -94,11 +96,16 @@ class UesRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
+        /** @var Maquette $maquette */
+        $maquette = $this->getOwnerRecord();
+        $promotion = NumerotationSemestres::promotionDeMaquette($maquette);
+
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['ue', 'ecues']))
             ->defaultSort('semestre')
             ->columns([
-                Tables\Columns\TextColumn::make('semestre')->label('Sem.')->sortable(),
+                Tables\Columns\TextColumn::make('semestre')->label('Sem.')->sortable()
+                    ->formatStateUsing(fn ($state): string => NumerotationSemestres::libelleCourt((int) $state, $promotion)),
                 Tables\Columns\TextColumn::make('ue.code')->label('Code')->fontFamily('mono'),
                 Tables\Columns\TextColumn::make('ue.intitule')->label('Intitulé')->wrap(),
                 Tables\Columns\TextColumn::make('credits')->label('Crédits')->alignEnd(),

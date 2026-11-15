@@ -12,11 +12,14 @@ use App\Filament\Resources\RegleEvaluationResource;
 use App\Filament\Resources\RegleEvaluationResource\Pages\EditRegleEvaluation;
 use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
+use App\Models\CampagneCandidature;
+use App\Models\Candidature;
 use App\Models\InscriptionAnnuelle;
 use App\Models\Maquette;
 use App\Models\RegleEvaluation;
 use App\Models\User;
 use App\Services\Lmd\ImportMaquettes;
+use App\Services\Lmd\NumerotationSemestres;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
@@ -71,6 +74,39 @@ it('n\'ouvre l\'édition des UE qu\'en brouillon', function (): void {
     $this->livewire(UesRelationManager::class, ['ownerRecord' => $this->tc->refresh(), 'pageClass' => ViewMaquette::class])
         ->assertTableActionHidden('edit', $this->tc->ues()->first())
         ->assertTableActionHidden('delete', $this->tc->ues()->first());
+});
+
+it('affiche les semestres de la maquette dans la numérotation de sa promotion', function (): void {
+    $promotion = function (int $numero, string $annee): CampagneCandidature {
+        $c = CampagneCandidature::factory()->closed()->create(['nom' => ['fr' => 'Année académique '.$annee], 'promotion_numero' => $numero]);
+        Candidature::factory()->forCampagne($c)->submitted()->create(['statut' => Candidature::STATUT_ACCEPTE]);
+
+        return $c;
+    };
+    $p13 = $promotion(13, '2025-2026');
+    $p14 = $promotion(14, '2026-2027');
+    $gtfp = Maquette::query()->whereHas('parcours', fn ($q) => $q->where('code', 'GTFP'))->firstOrFail();
+    $this->actingAs(($this->compte)('scolarite_agent'));
+
+    // Réglage par défaut : S1-S2 en M1, S3-S4 en M2.
+    $this->get(MaquetteResource::getUrl('view', ['record' => $this->tc]))->assertOk()
+        ->assertSee('Semestre 1 · 30 crédits')->assertSee('Semestre 2 · 30 crédits')->assertDontSee('Semestre 7');
+    $this->get(MaquetteResource::getUrl('view', ['record' => $gtfp]))->assertOk()
+        ->assertSee('Semestre 3 · 30 crédits')->assertSee('Semestre 4 · 30 crédits')->assertDontSee('Semestre 9');
+
+    // La 14e promotion passe en LMD : son M1 devient S7-S8 ; le M2 de la 13e reste en S3-S4.
+    $p14->update(['numerotation_semestres' => NumerotationSemestres::LMD]);
+    $this->get(MaquetteResource::getUrl('view', ['record' => $this->tc]))->assertOk()
+        ->assertSee('Semestre 7 · 30 crédits')->assertSee('Semestre 8 · 30 crédits')->assertDontSee('Semestre 1 ·');
+    $this->get(MaquetteResource::getUrl('view', ['record' => $gtfp]))->assertOk()
+        ->assertSee('Semestre 3 · 30 crédits')->assertDontSee('Semestre 9');
+
+    $page = fn (Maquette $m): array => ['ownerRecord' => $m, 'pageClass' => ViewMaquette::class];
+    $this->livewire(UesRelationManager::class, $page($this->tc))
+        ->assertTableColumnFormattedStateSet('semestre', 'S7', $this->tc->ues()->where('semestre', 7)->firstOrFail());
+    $this->livewire(UesRelationManager::class, $page($gtfp))
+        ->assertTableColumnFormattedStateSet('semestre', 'S3', $gtfp->ues()->where('semestre', 9)->firstOrFail());
+    expect($this->tc->ues()->pluck('semestre')->unique()->sort()->values()->all())->toBe([7, 8]);
 });
 
 it('refuse une pondération par défaut qui ne fait pas 100 %', function (): void {

@@ -19,12 +19,14 @@ use App\Services\Lmd\Deliberations;
 use App\Services\Lmd\DocumentsOfficiels;
 use App\Services\Lmd\ImportMaquettes;
 use App\Services\Lmd\InscriptionsPedagogiques;
+use App\Services\Lmd\NumerotationSemestres;
 use App\Support\CandidatureObjectStorage;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 
 uses()->group('lmd', 'applications');
@@ -168,4 +170,58 @@ it('constate sur le PV papier la signature d\'un membre sans compte, de façon t
 
     $this->service->publier($this->d->refresh(), $this->responsable);
     expect(ParticipationDeliberation::query()->where('membre_jury_id', $sansCompte->id)->value('signature_constatee_par'))->toBe($this->responsable->id);
+});
+
+it('donne dans les résultats le semestre à afficher selon la promotion, le semestre enregistré restant le même', function (): void {
+    ($this->publier)();
+
+    $this->withToken(($this->jeton)($this->admis))->getJson('/v1/applications/me/resultats')->assertOk()
+        ->assertJsonPath('data.resultats.0.ues.0.semestre', 7)
+        ->assertJsonPath('data.resultats.0.ues.0.semestre_affiche', 1);
+
+    $this->admis->auditeur->candidature->campagne->update(['numerotation_semestres' => NumerotationSemestres::LMD]);
+    app('auth')->forgetGuards();
+    $this->withToken(($this->jeton)($this->admis))->getJson('/v1/applications/me/resultats')->assertOk()
+        ->assertJsonPath('data.resultats.0.ues.0.semestre', 7)
+        ->assertJsonPath('data.resultats.0.ues.0.semestre_affiche', 7);
+});
+
+it('numérote les semestres d\'un nouveau relevé selon la promotion, sans jamais refaire un relevé délivré', function (): void {
+    ($this->publier)();
+    $donnees = [];
+    $capture = true;
+    View::composer('pdf.lmd.releve-notes', function ($view) use (&$donnees, &$capture): void {
+        if ($capture) {
+            $donnees[] = $view->getData();
+        }
+    });
+    $html = function (array $d) use (&$capture): string {
+        $capture = false;
+        $rendu = view('pdf.lmd.releve-notes', $d)->render();
+        $capture = true;
+
+        return $rendu;
+    };
+    $url = '/v1/applications/me/documents-officiels/releve_notes?deliberation='.$this->d->uuid;
+
+    // Réglage par défaut : S1 et S2 pour le M1.
+    $premier = $this->withToken(($this->jeton)($this->admis))->get($url)->assertOk()->getContent();
+    expect($donnees)->toHaveCount(1)
+        ->and($html($donnees[0]))->toContain('<td>S1</td>')->toContain('<td>S2</td>')->not->toContain('<td>S7</td>');
+
+    // La promotion passe en LMD : le relevé délivré reste le même fichier, sans nouveau rendu.
+    $this->admis->auditeur->candidature->campagne->update(['numerotation_semestres' => NumerotationSemestres::LMD]);
+    app('auth')->forgetGuards();
+    $second = $this->withToken(($this->jeton)($this->admis))->get($url)->assertOk()->getContent();
+    $doc = DocumentDelivre::query()->sole();
+    expect($second)->toBe($premier)
+        ->and($donnees)->toHaveCount(1)
+        ->and($doc->sha256)->toBe(hash('sha256', $premier))
+        ->and(Storage::disk(CandidatureObjectStorage::DISK)->get($doc->chemin))->toBe($premier);
+
+    // Un nouveau relevé de la promotion suit le réglage : S7 et S8.
+    app('auth')->forgetGuards();
+    $this->withToken(($this->jeton)($this->ajourne))->get($url)->assertOk();
+    expect($donnees)->toHaveCount(2)
+        ->and($html($donnees[1]))->toContain('<td>S7</td>')->toContain('<td>S8</td>')->not->toContain('<td>S1</td>');
 });

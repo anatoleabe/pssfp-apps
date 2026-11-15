@@ -87,6 +87,16 @@ Sans `--appliquer`, elles ne font qu'un rapport.
 - Rubrique « Mon parcours » : semestres, UE et ECUE, crédits et heures. La maquette n'est visible qu'une fois validée.
 - API : `GET /v1/applications/me/parcours`.
 
+### Numérotation des semestres (15/11/2026)
+
+Les maquettes enregistrent le semestre comme l'université : 7 et 8 en M1, 9 et 10 en M2. L'affichage se règle par promotion (Vie académique > Promotions > Réglages, droit `scolarite.promotion`) : « Master (S1 à S4) », par défaut, ou « LMD (S7 à S10) ». Seul `App\Services\Lmd\NumerotationSemestres` compose le libellé (« Semestre 1 », « S1 »).
+
+- Affichage seulement : semestre enregistré, notes, calculs, codes d'UE et règles ne changent pas.
+- Promotion d'une maquette : en M1, celle dont c'est la première année ; en M2, celle de l'année précédente. Promotion d'un auditeur : la campagne qui l'a retenu.
+- Écrans et documents concernés : maquette (titres de semestre, colonne « Sem. » des UE, contrôle « semestre hors 30 crédits »), proposition des quotas horaires, « Mon parcours » et « Mes résultats » (API : `numero_affiche`, `semestre_affiche`), relevé de notes PDF.
+- Les documents déjà délivrés sont des fichiers scellés : ils gardent la numérotation de leur délivrance. Seuls les nouveaux documents suivent le réglage.
+- Le changement de réglage est tracé (journal `scolarite`, événement `numerotation_semestres_modifiee`, valeurs avant et après).
+
 ## 6. Permissions (module « Parcours LMD »)
 
 - **Lecture** : `lmd.consulter`.

@@ -30,7 +30,7 @@ export function EspaceParcours({ parcours, assiduite = [] }: { parcours: MonParc
         <section key={semestre.numero} aria-labelledby={`semestre-${semestre.numero}`} className={CARTE} data-testid={`semestre-${semestre.numero}`}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h3 id={`semestre-${semestre.numero}`} className="font-heading text-xl font-bold text-[#4A2E67]">
-              {t('semestre', { numero: semestre.numero })}
+              {t('semestre', { numero: semestre.numero_affiche })}
             </h3>
             <span className="text-sm font-semibold text-[#3C3C3C]">{t('creditsSemestre', { credits: semestre.credits })}</span>
           </div>

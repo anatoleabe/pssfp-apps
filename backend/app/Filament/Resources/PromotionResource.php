@@ -15,6 +15,7 @@ use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Services\DocumentsAuditeurs\DocumentsAuditeurs;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
+use App\Services\Lmd\NumerotationSemestres;
 use App\Support\BelongsToModule;
 use App\Support\CandidatureObjectStorage;
 use Filament\Forms;
@@ -114,6 +115,19 @@ class PromotionResource extends Resource
                 ]),
 
             self::sectionDocumentsAuditeurs(),
+
+            Forms\Components\Section::make('Parcours LMD')
+                ->schema([
+                    Forms\Components\Select::make('numerotation_semestres')
+                        ->label('Numérotation des semestres')
+                        ->options(NumerotationSemestres::MODES)
+                        ->in(array_keys(NumerotationSemestres::MODES))
+                        ->default(NumerotationSemestres::MASTER)
+                        ->required()
+                        ->native(false)
+                        ->selectablePlaceholder(false)
+                        ->helperText('Affichage seulement : S1 et S2 en M1, S3 et S4 en M2, ou S7 et S8 en M1, S9 et S10 en M2, comme l\'université. Les maquettes, les notes et les codes d\'UE ne changent pas ; les documents déjà délivrés gardent leur numérotation.'),
+                ]),
         ]));
     }
 
