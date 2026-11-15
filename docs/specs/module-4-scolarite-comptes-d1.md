@@ -1,6 +1,7 @@
 # Module 4 — Scolarité, sous-lot D1 : socle du compte de l'auditeur
 
 **Date** : 2026-11-15
+**Statut** : réalisé (branche `feat/scolarite-compte-auditeur-d1`) ; points du §16 tranchés le 15/11/2026, écarts de réalisation au §18
 **Décideur** : M. ABE ETOUMOU Anatole, Chef USI (décisions du 15/11/2026)
 **Décision d'architecture** : [ADR-0013](../adr/0013-compte-de-l-auditeur.md) (précise l'ADR-0010, point 3)
 **Proposition validée** : [lot D, comptes auditeur](module-4-scolarite-comptes-auditeur-proposition.md) (scénarios S1 à S5 ; décisions au §8)
@@ -70,7 +71,7 @@ Pour un auditeur A :
 | Reste d'une inscription, `reste(i)` | `du(i) − imp(i)`. Il n'est jamais négatif (R7). |
 | Ordre chronologique | Pour les versements : `date_versement`, puis `id`. |
 | Disponible d'un versement, `dispo(v)` | `v.montant −` la somme de ses imputations actives. Il est nul pour un versement annulé. |
-| Versement réservé | Versement dont le payeur est `employeur` (décisions 2 et 7). Les autres (`auditeur`, `autre`) sont **libres**. |
+| Versement réservé | Versement dont le payeur est `employeur` (décisions 2 et 7). Les autres (`auditeur`, `autre`) sont **libres** : le payeur « autre » se traite comme l'auditeur (décision du 15/11/2026, §16). |
 | Inscription désignée | `versements.inscription_annuelle_id` : l'inscription sur laquelle le versement a été saisi, qui sert de référence à son reçu. En D1, elle ne commande l'imputation que pour un versement réservé. |
 | Avance | Somme des disponibles des versements valides de A. Elle se divise en **avance libre** et **avance réservée**. Calculée, jamais stockée. |
 | Arriérés | Somme des restes des inscriptions antérieures à l'inscription courante. En production, ils restent nuls pendant D1 : chaque auditeur n'a qu'une inscription. |
@@ -166,6 +167,8 @@ CREATE TRIGGER imputations_versements_immuables BEFORE UPDATE OR DELETE ON imput
 
 **Cohérence du compte** (déclencheur de contrainte, vérifié à la fin de chaque instruction). Cette spec tranche la question laissée ouverte par la proposition (§4.2) : un déclencheur porte aussi sur `inscriptions_annuelles`, puisque la remise y est écrite.
 
+La fonction commence par `PERFORM 1 FROM auditeurs a WHERE a.id = NEW.auditeur_id FOR UPDATE` (ajout de la réalisation, §18) : sans lui, deux écrivains qui ne prendraient pas le verrou de l'application liraient chacun une somme sans les lignes de l'autre et pourraient, ensemble, dépasser un plafond. Dans l'application, le verrou est déjà tenu ; ailleurs, l'écrivain est sérialisé, et la somme, lue après le verrou, voit les écritures validées entre-temps (au pire un interblocage détecté par PostgreSQL, jamais une somme fausse).
+
 ```sql
 CREATE OR REPLACE FUNCTION compte_auditeur_coherent() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE v_id bigint; i_id bigint;
@@ -216,6 +219,13 @@ CREATE CONSTRAINT TRIGGER inscriptions_compte_coherent
   Une erreur apparaît ainsi sur l'instruction fautive, et les tests, enveloppés dans la transaction de `RefreshDatabase`, n'ont rien de particulier à faire.
 - Ils ne garantissent pas l'invariant d'avance (§6.7) : c'est le rôle du service, et `CPT_COHERENCE` le vérifie (§13).
 
+**Immuabilité des versements** (ajout de la réalisation, §18). L'avance se déduit entièrement des versements : un versement supprimé, rehaussé, « dé-annulé » ou passé d'un payeur à l'autre fausserait le compte sans qu'aucun garde-fou ne le voie. Un déclencheur `versements_immuables` (avant modification ou suppression) n'autorise que :
+- l'annulation, une fois, depuis un versement valide (`annule_at`, `annule_par`, `annule_motif`) ;
+- le bordereau, joint une fois (`justificatif_path` depuis nul) ;
+- la mise à nul d'un auteur par la suppression de son compte (clés `SET NULL` du lot 1) et `updated_at`.
+
+Un déclencheur d'instruction refuse aussi `TRUNCATE` sur `versements` et `imputations_versements`.
+
 ### 5.5 `recus_versements` (modifiée)
 
 - `objet` passe de varchar(255) à **varchar(500)**, parce qu'une imputation sur plusieurs années allonge le texte. Élargir un varchar ne réécrit aucune ligne et ne déclenche pas les déclencheurs ligne à ligne : les reçus émis ne changent pas.
@@ -238,7 +248,7 @@ Ordre des opérations de la première migration :
 
 Règles communes :
 - Chaque migration s'exécute dans une transaction (comportement de Laravel sous PostgreSQL) : un échec de la vérification annule tout.
-- Le `down()` de la première refuse dès qu'il existe une imputation d'une autre origine que `reprise`, avec le message « Le compte a servi : revenez au code précédent sans annuler la migration. » (précédent des tables du lot 1). Sinon, il retire déclencheurs, table, clés, uniques et colonne, et ramène `objet` à 255 caractères ; il refuse si un objet plus long existe.
+- Le `down()` de la première refuse dès qu'il existe une imputation d'une autre origine que `reprise`, ou une imputation de reprise annulée ou remplacée (une remise ou une annulation a déjà servi), avec le message « Le compte a servi : revenez au code précédent sans annuler la migration. » (précédent des tables du lot 1). Sinon, il retire déclencheurs, fonctions, table, clés, uniques et colonne, et ramène `objet` à 255 caractères ; il refuse si un objet plus long existe.
 - Le `down()` de la seconde ne fait rien : les imputations de reprise disparaissent avec la table.
 
 ## 6. Règles d'imputation
@@ -385,7 +395,7 @@ Le résultat est exact grâce au déclencheur : un versement annulé n'a aucune 
 
 | Code | Changement |
 |---|---|
-| `RegistreVersements::enregistrer` | Sous le verrou de l'auditeur, au lieu de celui de l'inscription : contrôle du doublon, création du versement avec `auditeur_id` et `inscription_annuelle_id` = l'inscription reçue (la courante), puis `apresVersement`. La signature ne change pas. |
+| `RegistreVersements::enregistrer` | Sous le verrou de l'auditeur, au lieu de celui de l'inscription : contrôle du doublon, création du versement avec `auditeur_id` et `inscription_annuelle_id` = l'inscription reçue (la courante), puis `apresVersement`. La signature ne change pas. Le plafond de 100 000 000 FCFA du formulaire est aussi vérifié par le service. |
 | `RegistreVersements::annuler` | Sous le verrou de l'auditeur : `avantAnnulation`, annulation du versement, `imputerAvance('annulation')`, puis écriture d'annulation du reçu. |
 | `RegistreVersements::accorderRemise` | Sous le verrou de l'auditeur : `avantRemise`, écriture de la remise, puis `imputerAvance('remise')`. Les contrôles (motif, plafond, dossier retiré) ne changent pas. |
 | `RegistreVersements::annulationRebloque`, `remiseRebloque` | Calculés par le planificateur. Même résultat qu'aujourd'hui pour une seule inscription, avec en plus la liste des années touchées. |
@@ -394,6 +404,7 @@ Le résultat est exact grâce au déclencheur : un versement annulé n'a aucune 
 | `OuvertureAuditeur::creerInscription` | Sous le verrou de l'auditeur : contrôle d'existence (un double clic attend le verrou, puis retrouve l'inscription), création de l'inscription, `reprendrePointage` (dont le versement passe par `apresVersement`), puis `imputerAvance('ouverture')`. L'inscription pédagogique (`InscriptionsPedagogiques::inscrire`) reste appelée après, comme aujourd'hui. **Aucun envoi nouveau** : l'ouverture ne prévient toujours pas l'auditeur, et la reprise du lot 1 en dépend. D3 ajoutera l'envoi après l'imputation de l'avance. |
 | `ImportAuditeurs` | Inchangé : il crée un auditeur neuf et son inscription, sans versement. |
 | `DeblocagesAcces::accorder` | Verrouille l'auditeur avant l'inscription (ordre R8). Le contrôle « droits déjà soldés » lit l'imputé. |
+| `DeblocagesAcces::regulariser` | Sous le verrou de l'auditeur (ajout de la réalisation) : une annulation simultanée ne peut pas défaire le solde lu avant la clôture du déblocage. |
 | `Auditeur::versements()` | Devient un `HasMany` sur `auditeur_id` (fin du `HasManyThrough`). `historique()` lit les versements par `auditeur_id`. |
 | Fabrique `VersementFactory` | Renseigne `auditeur_id` depuis l'inscription et appelle `apresVersement` après la création, sous verrou. Un état `sansImputation()` sert aux tests de la reprise. |
 | Assistant de test `annulerVersements()` (`tests/Pest.php`) | Annule d'abord les imputations actives des versements visés (motif « Annulation de test »), puis les versements. |
@@ -401,7 +412,7 @@ Le résultat est exact grâce au déclencheur : un versement annulé n'a aucune 
 ## 8. Concurrence et erreurs
 
 - Deux écritures sur le même auditeur se suivent, grâce au verrou. L'index unique `(mode, reference)` continue de trancher les doublons de bordereau, avec le même message.
-- Le déclencheur de cohérence lève une erreur `check_violation` (SQLSTATE 23514), qui annule toute la transaction. Elle n'est jamais montrée telle quelle à l'agent. `RegistreVersements` la journalise (canal `single`, avec l'`uuid` de l'auditeur) et la convertit en `InvalidArgumentException` : « Le compte de l'auditeur n'a pas pu être mis à jour : rien n'a été enregistré. Prévenez l'USI. » Le cas relève d'un défaut du code, et `CPT_COHERENCE` ne le verra pas, puisque rien n'a été écrit : le journal applicatif est la seule trace.
+- Le déclencheur de cohérence lève une erreur `check_violation` (SQLSTATE 23514), qui annule toute la transaction. Elle n'est jamais montrée telle quelle à l'agent. `ImputationsCompte::sousVerrou`, par où passe toute écriture d'argent (registre, ouverture d'inscription, accès anticipé, reçu), la journalise (canal `single` : `uuid` de l'auditeur, SQLSTATE et première ligne du message, jamais le détail de la ligne refusée, qui peut contenir un motif saisi) et la convertit en `InvalidArgumentException` : « Le compte de l'auditeur n'a pas pu être mis à jour : rien n'a été enregistré. Prévenez l'USI. » Le cas relève d'un défaut du code, et `CPT_COHERENCE` ne le verra pas, puisque rien n'a été écrit : le journal applicatif est la seule trace.
 - Les messages destinés à l'agent restent des `InvalidArgumentException`, comme au lot 1.
 
 ## 9. Effets sur l'existant
@@ -429,14 +440,14 @@ Paliers, reste, « soldé », « en retard », « droits soldés » et accès so
 
 1. Les imputations actives du versement V sont regroupées par inscription, par année croissante.
 2. Pour chaque inscription I touchée, on calcule :
-   - `avant(I)` : l'imputé actif sur I par les versements qui précèdent V (date, puis `id`) ;
+   - `avant(I)` : l'imputé actif sur I par les versements **enregistrés avant V** (`id` croissant), c'est-à-dire dans l'ordre où R2 les a imputés. Écart avec la première rédaction (« date, puis `id` ») : un versement antidaté, saisi après un autre qui a soldé l'année, aurait reçu un reçu « reste à payer 1 185 000 » alors que l'année est soldée (§18) ;
    - `part(I)` : l'imputé actif de V sur I.
 
    La part est découpée sur les paliers de I, de `avant(I)` à `avant(I) + part(I)`, comme aujourd'hui.
 3. `avance(V) = V.montant − Σ part(I)`.
 4. Objet :
    - si V ne touche que son inscription désignée, ou aucune, le **format actuel** est conservé : `Frais de scolarité 2026-2027 : droits d'inscription (185 000 FCFA), 1re tranche (500 000 FCFA), 2e tranche (500 000 FCFA), avance sur la scolarité à venir (1 135 000 FCFA)` ;
-   - si V touche une autre année, l'objet donne une partie par année, avec le niveau, séparées par « ; » : `Frais de scolarité 2026-2027 (M1) : 2e tranche (300 000 FCFA) ; 2027-2028 (M2) : droits d'inscription (135 000 FCFA) ; avance sur la scolarité à venir (40 000 FCFA)` ;
+   - si V touche une autre année, l'objet donne une partie par année, avec le niveau, séparées par « ; » : `Frais de scolarité 2026-2027 (M1) : 2e tranche (300 000 FCFA) ; 2027-2028 (M2) : droits d'inscription (135 000 FCFA), 1re tranche (500 000 FCFA), 2e tranche (500 000 FCFA) ; avance sur la scolarité à venir (40 000 FCFA)` (versement de 1 475 000 ; une avance n'apparaît que si toutes les années touchées sont soldées, R1) ;
    - au-delà de 500 caractères, chaque année est résumée par son total : `2026-2027 (M1) : 300 000 FCFA`.
 5. `total_verse = avant(R) + part(R)` pour l'inscription désignée R, et `reste_a_payer = du(R) − total_verse`. Le PDF les affiche sous « Total versé pour l'année » et « Reste à payer » : l'avance n'y est plus comptée.
 6. **Les reçus déjà émis gardent leurs valeurs**, y compris le trop-perçu compris dans leur total. Ils sont figés, et le PDF se régénère depuis les colonnes stockées.
@@ -474,7 +485,8 @@ Relevé PDF (`releve-scolarite`) : la ligne « Trop-perçu » devient « Avance 
   - la case `confirmer_trop_percu` devient `confirmer_avance`, avec le libellé « Je confirme : Z FCFA dépassent le reste à payer et iront en avance sur la scolarité à venir. » Pour un payeur employeur : « … et resteront en avance, en attente de la décision du responsable. » Elle reste obligatoire dès que le montant dépasse le reste.
 - **Onglet « Versements »** : inchangé, la colonne « Année » montre l'inscription désignée. La répartition par année arrive en D2.
 - **Export Excel** (`SituationFinanciereExcel`) : une colonne **L « Avance »** est ajoutée après « Situation » ; les colonnes A à K ne bougent pas. « Versé » y est l'imputé de l'année.
-- **Liste PDF « Situation financière »** (`ListesAuditeurs`) : colonnes inchangées. Sous le total, une ligne « Avances au compte, non comprises dans le versé : X FCFA » apparaît si X est positif.
+- **Liste PDF « Situation financière »** (`ListesAuditeurs`, écran « Listes et états ») : « Versé » y est l'imputé de l'année, et l'avance a **sa propre colonne « Avance »** (après « Reste »), avec sous-totaux et total général (décision du 15/11/2026, §16, point 3 ; remplace la ligne de pied de liste d'abord prévue). La note de bas de page définit « Versé » et « Avance ».
+- **Fenêtre « Annuler ce versement »** : un versement imputé sur plusieurs années y annonce d'emblée le refus R4.1.
 - **Liste des auditeurs, relances, documents LMD** : inchangés en D1 (D2).
 
 ### 9.6 Ce qui ne change pas
@@ -491,7 +503,7 @@ Relevé PDF (`releve-scolarite`) : la ligne « Trop-perçu » devient « Avance 
 
 Pour chaque auditeur qui a au moins un versement, par `id` croissant et sous son verrou :
 
-1. **Idempotence** : un auditeur qui a déjà une imputation, active ou annulée, est ignoré.
+1. **Idempotence** : un auditeur qui a déjà une imputation, active ou annulée, ou dont la reprise est déjà au journal (`compte_repris` : un exonéré n'a aucune ligne possible), est ignoré.
 2. Pour chaque inscription, par année croissante, `restant = du(i)`. Pour chaque versement valide qui la désigne, dans l'ordre chronologique : imputer `min(montant, restant)` s'il est positif, origine `reprise`, `cree_par` nul, puis diminuer `restant` d'autant.
 3. Ce qui dépasse devient avance, sans ligne.
 4. R3 s'applique ensuite (§6.4), origine `avance`. Elle est sans effet pour un auditeur qui n'a qu'une inscription, ce qui est le cas de tous en production (P14 en M1, P13 admis en M2). Le bilan compte ces imputations : 0 attendu.
@@ -503,7 +515,7 @@ Les versements annulés ne reçoivent aucune imputation. La reprise n'envoie auc
 
 Après la reprise, dans la même transaction :
 
-1. **Équivalence par inscription**, pour toute inscription d'un auditeur qui n'a pas reçu d'imputation `avance` à l'étape 4 : `SituationFinanciere::calculer` donne le même résultat avec l'**ancienne** somme (versements valides de l'inscription) et avec l'imputé. Sont comparés : les paliers (dû, payé, reste, retard), le dû total, le reste, « droits soldés » et « soldé ».
+1. **Équivalence par inscription**, pour toute inscription d'un auditeur dont aucune inscription n'a reçu l'argent d'un versement qui ne la désigne pas (à la reprise, ce sont exactement les auditeurs qui ont reçu une imputation `avance` à l'étape 4) : `SituationFinanciere::calculer` donne le même résultat avec l'**ancienne** somme (versements valides de l'inscription) et avec l'imputé. Sont comparés : les paliers (dû, payé, reste, retard), le dû total, le reste, « droits soldés » et « soldé » ; et l'imputé vaut exactement `min(ancienne somme, dû)`.
 2. **Sommes par auditeur** :
    - la somme des anciens trop-perçus est égale à l'avance ;
    - les versements valides sont égaux à l'imputé plus l'avance ;
@@ -524,7 +536,7 @@ Le bilan est écrit au journal applicatif, par `Log::info('Reprise des comptes',
 
 ### 10.4 Commande de vérification
 
-`php artisan scolarite:verifier-comptes [--equivalence]` s'exécute en **lecture seule** : en production, dans une transaction ouverte en `READ ONLY` ; en test, déjà dans une transaction, en n'émettant que des `SELECT`.
+`php artisan scolarite:verifier-comptes [--equivalence]` s'exécute en **lecture seule** : en production, dans une transaction ouverte en `REPEATABLE READ, READ ONLY` (un seul instantané pour toutes les requêtes, même pendant des saisies) ; en test, déjà dans une transaction, en n'émettant que des `SELECT`.
 
 - **Toujours** :
   - les garde-fous refaits en SQL : sommes par versement et par inscription ;
@@ -556,13 +568,13 @@ Ces sujets (auditeur, inscription, versement) figurent déjà dans l'historique 
 
 Classe `App\Services\Supervision\Controles\CptCoherence`, inscrite au catalogue de `Supervision` avant `SysControles`.
 
-- Criticité **bloquant**, délai d'un jour, responsable `admin` (USI).
+- Criticité **bloquant**, délai d'un jour, responsable `admin` (USI), escalade au `super_admin` (décision du 15/11/2026). L'escalade propre au contrôle passe par l'interface `EscaladeDediee` : le niveau 2 va au super administrateur au lieu du responsable de scolarité du barème commun ; le niveau 3 (direction) ne change pas.
 - Cas, par clé stable :
   - `versement:<uuid>` : imputations actives supérieures au montant, ou imputation active sur un versement annulé ;
   - `inscription:<uuid>` : imputé supérieur au dû ;
   - `auditeur:<uuid>` : invariant d'avance rompu (avance libre à côté d'un reste ouvert, ou avance réservée alors que son inscription désignée a un reste).
 - Résumé : le matricule et les montants, sans nom, comme `DEB_ECHUS`.
-- Les deux premiers cas ne peuvent naître qu'en contournant les déclencheurs. Le troisième signale un oubli de R3 dans le code.
+- Les deux premiers cas ne peuvent naître qu'en désactivant les déclencheurs ou en reportant leurs contraintes (le déclencheur de cohérence prend le verrou de l'auditeur, si bien que même un écrivain extérieur concurrent est sérialisé). Le troisième signale un oubli de R2 ou R3 dans le code.
 
 ## 14. Tests attendus
 
@@ -676,7 +688,7 @@ Le nombre de trop-perçus dit combien d'auditeurs verront leur « Versé » rame
 1. Vérifier que le correctif « avance » de la décision 13 est en production ; sinon, D1 l'inclut.
 2. Choisir une fenêtre courte, hors saisie : mode maintenance (`php artisan down`), file arrêtée.
 3. **Sauvegarder la base** (`pg_dump`, en plus de la sauvegarde quotidienne) et la garder jusqu'à la stabilisation.
-4. Pousser le code, puis lancer `php artisan config:clear` et `php artisan migrate --force` : schéma, reprise, vérification. Un écart annule tout, et le code précédent peut repartir tel quel.
+4. Pousser le code, puis lancer `php artisan config:clear` et `php artisan migrate --force` : schéma, reprise, vérification. Un écart annule la reprise (la première migration reste) : suivre le §15.3 (`php artisan migrate:rollback --step=1`, puis code précédent).
 5. Lancer `php artisan scolarite:verifier-comptes --equivalence` : code 0 attendu, et totaux comparés aux requêtes b) et c) du §15.1.
 6. Lancer `php artisan optimize`, redémarrer la file, puis `php artisan up`.
 7. Exécuter une fois le contrôle `CPT_COHERENCE` : aucun cas attendu.
@@ -689,17 +701,20 @@ Le nombre de trop-perçus dit combien d'auditeurs verront leur « Versé » rame
 
 ### 15.3 Retour arrière
 
-- Tant que D2 et D3 ne sont pas livrés, le code précédent fonctionne sur la base migrée : il lit `versements.inscription_annuelle_id`, toujours renseigné, et ignore les imputations. Les versements saisis entre-temps restent comptés sur leur inscription désignée, ce qui revient au même tant que chaque auditeur n'a qu'une inscription.
-- Le schéma ne se défait plus une fois que le compte a servi (`down()` refusé) : on revient au code précédent, pas au schéma précédent.
+Correction de la réalisation (§18) : le code précédent **ne peut pas écrire d'argent** sur la base migrée. Il ne renseigne pas `versements.auditeur_id` (NOT NULL), il annulerait un versement qui garde des imputations actives et poserait une hausse de remise sans désimputation, deux gestes que les déclencheurs refusent. Il peut seulement lire.
 
-## 16. Points restant à trancher
+- **Si la migration de reprise échoue** (écart de vérification) : elle s'annule seule, mais la première migration reste appliquée. Lancer `php artisan migrate:rollback --step=1` (la seule première migration, que son `down()` autorise tant qu'aucune imputation n'existe), puis redéployer le code précédent.
+- **Après la migration, tant que personne n'a rien saisi** : `php artisan migrate:rollback --step=2` défait les deux migrations (le `down()` de la première l'autorise tant que le compte n'a servi qu'à la reprise), puis on redéploie le code précédent.
+- **Une fois le compte en service** (une imputation `saisie`, `avance`, ou une imputation de reprise annulée ou remplacée) : `down()` refusé. On corrige en avant, ou, en dernier recours, on restaure le `pg_dump` pris à l'étape 3 du §15.2 (en perdant les saisies faites depuis).
 
-1. **Avance réservée de l'employeur** (§6.2). Elle applique la décision 7. Il reste à décider si le payeur « autre » se traite comme un employeur (réservé) ou comme l'auditeur (libre, proposé ici).
-2. **Reçu.** « Total versé pour l'année » ne compte plus l'avance (§9.2, point 5), alors que les reçus antérieurs en trop-perçu la comptaient. À valider avec le service financier.
-3. **Listes et exports.** « Versé » y devient l'imputé de l'année. L'avance s'affiche à part : colonne dans l'Excel, pied de liste dans le PDF. À valider avec le service financier pour ses rapprochements.
-4. **Ordre de livraison.** La demande d'autorisation d'annulation sur plusieurs années (D4) doit être livrée avant D3 ou avec lui (§2).
-5. **Pénalité de l'autorisé à soutenir** (500 000 FCFA, décision 5). À confirmer avant D5.
-6. **Responsable du contrôle `CPT_COHERENCE`.** `admin` (USI) est proposé.
+## 16. Points tranchés par le chef de projet (15/11/2026)
+
+1. **Payeur « autre »** : traité **comme l'auditeur**, son excédent est une avance libre (§4, §6.2).
+2. **Reçu** : « Total versé pour l'année » exclut l'avance, affichée à part dans l'objet (§9.2, point 5) — **validé**.
+3. **Listes et exports** : « Versé » = l'imputé de l'année, l'avance dans une **colonne séparée** — **validé**, y compris pour l'écran « Listes et états » (`ListesAuditeurs`, colonne « Avance » de la liste PDF) et l'export `SituationFinanciereExcel` (colonne L) (§9.5).
+4. **Ordre de livraison** : D1 seul ne permet pas l'annulation sur plusieurs années (refusée, R4.1) ; la demande d'autorisation de D4 doit précéder D3 ou l'accompagner (§2).
+5. **Pénalité de l'autorisé à soutenir** (500 000 FCFA, décision 5) : reste à confirmer avant D5.
+6. **Responsable du contrôle `CPT_COHERENCE`** : **`admin` (USI), escalade `super_admin`** (§13).
 
 ## 17. Critères d'acceptation
 
@@ -716,3 +731,33 @@ Le nombre de trop-perçus dit combien d'auditeurs verront leur « Versé » rame
    - la vérification en lecture seule ne trouve aucun écart.
 5. **Garde-fous** : aucune suite d'événements ne produit d'imputation négative, de sur-imputation, d'imputation sur un versement annulé, ni d'avance libre à côté d'un reste ouvert.
 6. **Envois** : la migration n'envoie ni SMS ni e-mail et n'émet aucun reçu.
+
+## 18. Écarts et précisions de la réalisation
+
+Relectures de sécurité et « métier » faites sur le diff ; leurs constats réels sont corrigés et testés.
+
+| Point | Spec d'origine | Réalisation | Pourquoi |
+|---|---|---|---|
+| Déclencheur de cohérence (§5.4) | Somme lue sans verrou | Prend d'abord le verrou de l'auditeur | Deux écrivains hors application pouvaient dépasser un plafond ensemble (lecture concurrente). |
+| Versements (§5.4) | Aucune immuabilité en base | Déclencheur `versements_immuables` et refus de `TRUNCATE` | L'avance se déduit des seuls versements : une suppression, une hausse de montant ou une « dé-annulation » échappaient à tous les garde-fous. |
+| `down()` (§5.6) | Refus si une origine autre que `reprise` | Refus aussi si une imputation de reprise est annulée ou remplacée | Sinon le retour arrière effaçait l'historique d'une remise ou d'une annulation. |
+| Refus 23514 (§8) | Traduit par `RegistreVersements` | Traduit par `ImputationsCompte::sousVerrou`, pour toute écriture sous verrou ; journal sans le détail de la ligne | L'ouverture d'inscription, l'accès anticipé et le reçu renvoyaient sinon une erreur 500 et un journal avec la ligne SQL complète. |
+| Reçu, `avant(I)` (§9.2) | Ordre « date, puis `id` » | Ordre d'enregistrement (`id`) | Un versement antidaté contredisait la situation (reste affiché alors que l'année est soldée). |
+| Exemple multi-années (§9.2) | 475 000 avec avance de 40 000 | 1 475 000 | Avec une M2 non soldée, R1 met les 40 000 sur sa 1re tranche : l'exemple d'origine n'était pas atteignable. |
+| Libellé de l'avance au reçu | « avance sur la scolarité à venir » | Idem (le correctif de la décision 13 en production disait « avance ») | Repris de la spec D1. |
+| Liste PDF (§9.5) | Ligne de pied de liste | Colonne « Avance » | Décision 3 du §16. |
+| Idempotence de la reprise (§10.1) | Ignorer qui a une imputation | Aussi qui a déjà `compte_repris` au journal | Un exonéré n'a aucune ligne : une seconde exécution le retraitait et journalisait deux fois. |
+| Vérification (§10.4) | `READ ONLY` | `REPEATABLE READ, READ ONLY` | Un seul instantané : pas de faux écart pendant des saisies. |
+| `DeblocagesAcces::regulariser` (§7.4) | Hors verrou | Sous le verrou de l'auditeur | La lecture du solde et la clôture du déblocage ne doivent pas croiser une annulation. |
+| Plafond du montant | Formulaire seulement | Formulaire et service | Au-delà de la capacité d'un entier, la base renvoyait une erreur 500. |
+| Retour arrière (§15.3) | « Le code précédent fonctionne sur la base migrée » | Corrigé : il ne peut que lire | Voir §15.3. |
+
+Limites connues, sans correctif en D1 :
+- `ImputationsCompte` refuse un second auditeur **dans un même appel**, pas dans une même transaction englobante : l'attribution des matricules et la reprise ouvrent plusieurs comptes dans une transaction (auditeurs neufs, ou par `id` croissant), sans risque d'interblocage aujourd'hui.
+- La migration de reprise du lot 1 (`2026_11_06_100200`) appelle `OuvertureAuditeur`, qui dépend désormais du compte : elle ne se rejoue plus sur une sauvegarde antérieure au 06/11/2026 contenant des matricules. Toute restauration part d'une sauvegarde postérieure.
+- La case « je confirme… avance » n'est contrôlée que par le formulaire : deux saisies simultanées peuvent, ensemble, envoyer une part en avance sans confirmation (argent conservé, comme l'ancien trop-perçu).
+- Le propriétaire des tables peut désactiver les déclencheurs (`ALTER TABLE … DISABLE TRIGGER`) : séparer à terme le rôle d'exécution du rôle propriétaire.
+
+Questions ouvertes pour D4 (choix de spec, non des défauts) :
+- Le reçu et l'espace libellent « avance sur la scolarité à venir » aussi l'excédent d'un employeur, qui n'est pourtant pas imputé d'office sur l'année suivante (décision 7).
+- R5 désimpute « le plus récent d'abord » : sur E5, une hausse de remise libère d'abord l'argent de l'employeur (avance réservée) plutôt que celui de l'auditeur, alors que R3 fait régler en priorité l'année couverte par l'employeur.

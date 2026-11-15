@@ -1,6 +1,6 @@
 # ADR-0013 — Compte de l'auditeur : versements rattachés à l'auditeur et imputations enregistrées
 
-**Statut** : Proposé (à passer en « Accepté » à la fusion de la PR #122)
+**Statut** : Accepté (15/11/2026 ; réalisé par le sous-lot D1)
 **Date** : 2026-11-15
 **Décideur** : M. ABE ETOUMOU Anatole, Chef USI (décisions du 15/11/2026 sur la proposition du lot D)
 **Référence** : [proposition du lot D](../specs/module-4-scolarite-comptes-auditeur-proposition.md) (§3, §4 et §8) ; [spec du sous-lot D1](../specs/module-4-scolarite-comptes-d1.md) ; [ADR-0010](0010-vie-academique-auditeurs-phase-1.md), point 3, qu'il précise ; [ADR-0011](0011-lmd-pssfp-systeme-dans-la-plateforme.md), point 5 ; dossier « PSSFP Système », décisions D7 et D8
@@ -35,7 +35,8 @@ Le 15/11/2026, le chef de projet a retenu les options recommandées de la propos
    - les contraintes `CHECK` des imputations ;
    - leurs index partiels ;
    - un déclencheur d'immuabilité (seule l'annulation est permise, une fois) ;
-   - un déclencheur de contrainte, qui vérifie à la fin de chaque instruction qu'aucun versement n'est imputé au-delà de son montant ou après son annulation, et qu'aucune inscription ne l'est au-delà de son dû. Il est reportable (`DEFERRABLE INITIALLY IMMEDIATE`) mais vérifié tout de suite par défaut : le service ordonne ses écritures pour que chaque instruction laisse un compte cohérent ;
+   - un déclencheur de contrainte, qui vérifie à la fin de chaque instruction qu'aucun versement n'est imputé au-delà de son montant ou après son annulation, et qu'aucune inscription ne l'est au-delà de son dû. Il est reportable (`DEFERRABLE INITIALLY IMMEDIATE`) mais vérifié tout de suite par défaut : le service ordonne ses écritures pour que chaque instruction laisse un compte cohérent. Il prend d'abord le verrou de l'auditeur, si bien qu'un écrivain extérieur à l'application est sérialisé comme elle ;
+   - un déclencheur d'immuabilité des versements (seuls l'annulation et le bordereau, une fois chacun) et l'interdiction de tronquer les tables d'argent, puisque l'avance se déduit entièrement des versements ;
    - les expressions SQL de l'imputé et de l'avance utilisées par les filtres et les listes.
 
    Des clés étrangères composites (`auditeur_id` avec le versement, avec l'inscription) interdisent d'imputer un versement sur l'inscription d'un autre auditeur. Elles s'expriment avec le Blueprint de Laravel, sans SQL brut.
