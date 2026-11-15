@@ -805,6 +805,8 @@
       "conseil": "Ce mot de passe vous est propre et ne change pas : ne le communiquez à personne.",
       "bloque": "Vos accès seront disponibles dès le règlement de l'inscription : il reste {reste} à payer.",
       "preparation": "Votre inscription est réglée : vos accès sont en préparation. Vous serez prévenu par SMS dès qu'ils seront prêts.",
+      "preparationAnticipe": "Vos accès sont en préparation. Vous serez prévenu par SMS dès qu'ils seront prêts.",
+      "anticipe": "Accès accordé avant paiement : à régulariser avant le {date}.",
       "consultation": "Consultation en lecture seule : le mot de passe n'est pas affiché.",
       "erreurs": {
         "indisponible": "Vos accès ne sont pas encore disponibles.",

@@ -49,6 +49,24 @@ export function formatDateLong(iso: string, locale: string): string {
   }).format(date);
 }
 
+/**
+ * Date courte JJ/MM/AAAA d'un jour sans heure (« 2026-12-01 » → « 01/12/2026 »).
+ * Lue en UTC : `new Date('2026-12-01')` est minuit UTC, un autre fuseau
+ * pourrait afficher la veille.
+ */
+export function formatJourCourt(jour: string, locale: string): string {
+  const date = new Date(jour);
+  if (Number.isNaN(date.getTime())) {
+    return jour;
+  }
+  return new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+}
+
 export function formatDateFr(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {

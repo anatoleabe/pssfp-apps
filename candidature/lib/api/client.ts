@@ -371,8 +371,18 @@ export interface MaScolarite {
   en_retard: boolean;
   paliers: ScolaritePalier[];
   versements: ScolariteVersement[];
-  /** `mot_de_passe_connu` faux : auditeur d'une promotion antérieure, il garde son mot de passe eCampus. */
-  acces: { etat: AccesEtat; foad_url?: string; reste_inscription?: number; mot_de_passe_connu?: boolean; lettre_disponible?: boolean };
+  /**
+   * `mot_de_passe_connu` faux : auditeur d'une promotion antérieure, il garde son mot de passe eCampus.
+   * `regulariser_avant` (AAAA-MM-JJ) : accès accordé avant paiement, droits à régulariser avant cette date.
+   */
+  acces: {
+    etat: AccesEtat;
+    foad_url?: string;
+    reste_inscription?: number;
+    mot_de_passe_connu?: boolean;
+    lettre_disponible?: boolean;
+    regulariser_avant?: string;
+  };
 }
 
 export interface AccesRevele {
