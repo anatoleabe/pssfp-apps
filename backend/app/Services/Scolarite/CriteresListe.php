@@ -15,7 +15,8 @@ use InvalidArgumentException;
  *
  * Niveau et spécialité nuls : tous. La situation reprend les catégories de
  * LibelleSituation ; « non soldé » couvre tout auditeur qui doit encore de
- * l'argent (inscription non soldée, à jour ou en retard).
+ * l'argent (inscription non soldée, à jour ou en retard). Les dossiers retirés
+ * restent hors liste, sauf si l'agent coche « Inclure les dossiers retirés ».
  */
 final readonly class CriteresListe
 {
@@ -54,6 +55,7 @@ final readonly class CriteresListe
         public string $situation,
         public array $statuts,
         public string $regroupement,
+        public bool $inclureRetires,
     ) {}
 
     /**
@@ -89,6 +91,11 @@ final readonly class CriteresListe
             throw new InvalidArgumentException('Choisissez un regroupement de la liste.');
         }
 
+        $inclureRetires = filter_var($donnees['inclure_retires'] ?? false, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($inclureRetires === null) {
+            throw new InvalidArgumentException('Cochez ou décochez « Inclure les dossiers retirés ».');
+        }
+
         return new self(
             campagne: $campagne,
             niveau: $niveau,
@@ -96,6 +103,7 @@ final readonly class CriteresListe
             situation: $situation,
             statuts: array_values(array_intersect(array_keys(Auditeur::STATUTS), $demandes)),
             regroupement: $regroupement,
+            inclureRetires: $inclureRetires,
         );
     }
 
@@ -119,6 +127,7 @@ final readonly class CriteresListe
             'Situation' => self::SITUATIONS[$this->situation],
             'Statut' => implode(', ', array_map(fn (string $s): string => Auditeur::STATUTS[$s], $this->statuts)),
             'Regroupement' => self::REGROUPEMENTS[$this->regroupement],
+            'Dossiers retirés' => $this->inclureRetires ? 'inclus' : 'exclus',
         ];
     }
 
@@ -137,6 +146,7 @@ final readonly class CriteresListe
             'situation' => $this->situation,
             'statuts' => $this->statuts,
             'regroupement' => $this->regroupement,
+            'inclure_retires' => $this->inclureRetires,
         ];
     }
 

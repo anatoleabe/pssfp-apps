@@ -24,6 +24,7 @@ use InvalidArgumentException;
  *
  * Inscription courante et situation recalculée (SituationFinanciere), chargées
  * en un nombre fixe de requêtes. Ni téléphone ni e-mail : document interne.
+ * Dossiers retirés exclus par défaut ; réintégrés sur demande, ils sont signalés.
  * Chaque édition est journalisée avec ses critères, jamais avec une personne.
  */
 final class ListesAuditeurs
@@ -130,6 +131,7 @@ final class ListesAuditeurs
         return Auditeur::query()
             ->whereIn('statut', $c->statuts)
             ->whereHas('candidature', fn (Builder $q) => $q->where('campagne_id', $c->campagne->id)
+                ->when(! $c->inclureRetires, fn (Builder $r) => $r->whereNull('withdrawn_at'))
                 ->when($c->specialite !== null, fn (Builder $s) => $s->where('specialite', $c->specialite)))
             ->when($c->niveau !== null, fn (Builder $q) => $q->whereHas('inscriptionCourante', fn (Builder $i) => $i->where('niveau', $c->niveau)))
             // Même logique que le filtre « Situation » de la liste des auditeurs (scopes d'InscriptionAnnuelle).
@@ -152,7 +154,7 @@ final class ListesAuditeurs
             'nom' => trim(mb_strtoupper((string) $c?->nom).' '.$c?->prenom),
             'niveau' => $i?->niveau,
             'specialite' => blank($c?->specialite) ? null : (string) $c->specialite,
-            'statut' => Auditeur::STATUTS[$a->statut] ?? (string) $a->statut,
+            'statut' => (Auditeur::STATUTS[$a->statut] ?? (string) $a->statut).($c?->withdrawn_at === null ? '' : ' (dossier retiré)'),
             'du' => $s?->duTotal,
             'remise' => $s?->remise,
             'verse' => $s?->verse,
