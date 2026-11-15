@@ -1,6 +1,6 @@
 # ADR-0014 — Reprise d'ACMA : copie de transit, archive en lecture seule et dossier d'ancien auditeur sans candidature
 
-**Statut** : Proposé
+**Statut** : Accepté (15/11/2026)
 **Date** : 2026-11-15
 **Décideur** : M. ABE ETOUMOU Anatole, Chef USI (décisions du 15/11/2026 sur la reprise d'ACMA)
 **Référence** : [spec du lot 15](../specs/module-4-lot15-reprise-acma.md) ; [ADR-0010](0010-vie-academique-auditeurs-phase-1.md) ; [ADR-0011](0011-lmd-pssfp-systeme-dans-la-plateforme.md) ; [ADR-0013](0013-compte-de-l-auditeur.md) ; analyse du schéma `gestionacademic` (dossier « PSSFP Système », annexe 5)

@@ -993,6 +993,8 @@ Chaque sous-lot a sa branche, ses tests, sa PR et se déploie seul.
 
 ## 12. Cas à arbitrer par le chef de projet
 
+**Tranchés le 15/11/2026.** Le chef de projet retient la recommandation de chaque question. Pour Q4, la délibération finale du M2 2025-2026 (P12) **a eu lieu et son PV est signé** : ses décisions seront transcrites par complément (option a), comme en Q3. Pour Q7, les 3 auditeurs de la P12 actifs en 2026-2027 sont créés sur la plateforme avant J0. Le tableau ci-dessous garde les options proposées.
+
 | N° | Question | Options | Recommandation |
 |---|---|---|---|
 | **Q1** | Les 95 fiches sans aucune inscription datée (aucune note, aucun paiement) sont-elles reprises ? | a) toutes ; b) aucune, la liste est remise ; c) seulement celles qui ont un document (1 PV, 1 certificat) | **c)** Les autres n'ont aucun contenu académique : les reprendre ajouterait des données personnelles sans usage (minimisation). La liste reste dans l'export chiffré. |
