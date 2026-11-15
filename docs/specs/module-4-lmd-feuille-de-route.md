@@ -43,7 +43,7 @@ Chaque lot a sa spec, sa branche, ses tests, et se déploie seul.
 | 14d-2 | **Connexions** : échecs comptés, verrou progressif (15 min, 1 h, puis manuel), refus avant vérification du mot de passe, levée avec nouveau mot de passe (écran, demande d'autorisation, console de secours), routes Fortify fermées, contrôle `SEC_CONNEXIONS` (spec `module-4-lmd-lot14d2-connexions.md`) | D30, D31 | PR #110, en production le 11/11 |
 | 14d-3 | **Revue annuelle des habilitations**, contrôle `SEC_REVUE` | D30 | À faire |
 | 14d-4 | **Double authentification (TOTP)** : écran « Ma sécurité », code demandé à la connexion, codes de secours, alertes au titulaire, obligation qui conduit vers la configuration au lieu de bloquer (spec `module-4-lmd-lot14d4-double-authentification.md`) | CDC (2FA obligatoire) | En cours |
-| 15 | **Archivage numérique** et reprise de l'historique d'ACMA | D29 ; plan de reprise | À faire |
+| 15 | **Archivage numérique** et reprise de l'historique d'ACMA : transit, archive en lecture seule, documents historiques, arriérés au cas par cas, acquis des redoublants (sous-lots 15a à 15h, spec `module-4-lot15-reprise-acma.md`, ADR-0014) ; l'archivage numérique des pièces papier fera l'objet d'une spec à part | D29 ; décisions du 15/11/2026 | Spec de la reprise proposée |
 
 Avant les lots 13c à 15 : chantier « Socle » (navigation, charte de l'admin, rôles, journaux, préparation du hors-ligne), cf. `docs/plans/2026-11-09-socle-plateforme-objectifs.md`.
 
