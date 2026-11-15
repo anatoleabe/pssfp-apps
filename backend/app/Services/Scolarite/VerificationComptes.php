@@ -10,6 +10,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Contrôles du compte de l'auditeur en lecture seule (spec D1, §10.2 et §10.4) : la migration
@@ -86,6 +87,26 @@ final class VerificationComptes
             SQL, Versement::PAYEURS_RESERVES));
     }
 
+    /**
+     * Règlements d'organismes (lot A2) dont les versements valides ne font pas le montant, ou
+     * qui, annulés, gardent un versement valide : un versement annulé seul, hors application.
+     * Vide tant que la table n'existe pas (la reprise de D1 la précède).
+     */
+    public function reglementsIncoherents(): Collection
+    {
+        if (! Schema::hasTable('reglements_organismes')) {
+            return collect();
+        }
+
+        return collect(DB::select(<<<'SQL'
+            SELECT * FROM (
+              SELECT r.uuid, r.reference, r.montant, (r.annule_at IS NOT NULL) AS annule,
+                (SELECT COALESCE(SUM(v.montant), 0) FROM versements v WHERE v.reglement_organisme_id = r.id AND v.annule_at IS NULL) AS verse
+              FROM reglements_organismes r
+            ) c WHERE verse <> CASE WHEN annule THEN 0 ELSE montant END ORDER BY reference
+            SQL));
+    }
+
     /** Auditeurs dont les versements valides ne sont pas égaux à l'imputé plus l'avance. */
     public function comptesDesequilibres(): Collection
     {
@@ -127,7 +148,7 @@ final class VerificationComptes
     /**
      * Écarts toujours valables (§10.4) : garde-fous refaits en SQL, conservation, invariant d'avance.
      *
-     * @return list<string> clés `versement:<uuid>`, `inscription:<uuid>`, `auditeur:<uuid>`
+     * @return list<string> clés `versement:<uuid>`, `inscription:<uuid>`, `auditeur:<uuid>`, `reglement:<uuid>`
      */
     public function ecarts(): array
     {
@@ -136,6 +157,7 @@ final class VerificationComptes
             ...$this->inscriptionsSurImputees()->map(fn ($r): string => 'inscription:'.$r->uuid)->all(),
             ...$this->comptesDesequilibres()->map(fn ($r): string => 'auditeur:'.$r->uuid.' (versé ≠ imputé + avance)')->all(),
             ...$this->avancesIncoherentes()->map(fn ($r): string => 'auditeur:'.$r->uuid.' (avance à côté d\'un reste)')->all(),
+            ...$this->reglementsIncoherents()->map(fn ($r): string => 'reglement:'.$r->uuid.' (versements ≠ montant du règlement)')->all(),
         ];
     }
 

@@ -52,6 +52,7 @@ class DeblocageAcces extends Model
         'prolongations' => 'integer',
         'relances' => 'integer',
         'derniere_relance_le' => 'datetime',
+        'engagement_id' => 'integer',
     ];
 
     protected $hidden = ['justificatif_path'];
@@ -65,6 +66,18 @@ class DeblocageAcces extends Model
     public function inscription(): BelongsTo
     {
         return $this->belongsTo(InscriptionAnnuelle::class, 'inscription_annuelle_id');
+    }
+
+    /** Engagement de prise en charge qui porte la lettre (lot A2) ; nul pour les autres cas. */
+    public function engagement(): BelongsTo
+    {
+        return $this->belongsTo(EngagementPriseEnCharge::class, 'engagement_id');
+    }
+
+    /** Pièce du déblocage : la sienne, ou la lettre de son engagement (lot A2). */
+    public function piece(): ?string
+    {
+        return $this->justificatif_path ?? $this->engagement?->lettre_path;
     }
 
     public function accordePar(): BelongsTo

@@ -320,7 +320,9 @@ final class AuditeurActions
             ->label('Annuler')
             ->icon('heroicon-o-x-circle')
             ->color('danger')
-            ->visible(fn (Versement $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_ANNULER) && ! $record->estAnnule())
+            // Un versement issu d'un règlement d'organisme ne s'annule qu'avec lui (lot A2, §9.7).
+            ->visible(fn (Versement $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_ANNULER) && ! $record->estAnnule()
+                && $record->reglement_organisme_id === null)
             ->modalHeading('Annuler ce versement')
             ->modalDescription(fn (Versement $record): string => 'Le versement de '.LibelleSituation::fcfa($record->montant).' reste visible, barré, avec votre motif. Sa référence pourra être ressaisie.'
                 .($record->recus()->whereDoesntHave('annulation')->exists() ? ' Son reçu reçoit une écriture d\'annulation.' : '')
@@ -403,8 +405,9 @@ final class AuditeurActions
         string $libelle = 'Scan du bordereau (facultatif)',
         int $maxMo = 5,
         string $siPanne = 'Le stockage n\'a pas répondu : le scan n\'est pas enregistré. Vous pourrez le joindre ensuite depuis la liste des versements.',
+        string $champ = 'justificatif_path',
     ): Forms\Components\FileUpload {
-        return Forms\Components\FileUpload::make('justificatif_path')
+        return Forms\Components\FileUpload::make($champ)
             ->label($libelle)
             ->disk(CandidatureObjectStorage::DISK)
             ->directory(self::DOSSIER_JUSTIFICATIFS)

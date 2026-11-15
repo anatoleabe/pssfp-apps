@@ -7,6 +7,7 @@ namespace App\Services\Scolarite;
 use App\Models\Auditeur;
 use App\Models\Candidature;
 use App\Models\DeblocageAcces;
+use App\Models\EngagementPriseEnCharge;
 use App\Models\InscriptionAnnuelle;
 use App\Models\User;
 use App\Models\Versement;
@@ -61,8 +62,8 @@ final class DeblocagesAcces
     ) {}
 
     /**
-     * Cas qu'un compte peut accorder. La prise en charge passe par un
-     * engagement (lot A2) : en attendant, le responsable l'accorde comme un moratoire.
+     * Cas qu'un compte peut accorder. La prise en charge passe toujours par un
+     * engagement (lot A2) : `rattacher`, jamais `accorder`.
      *
      * @return array<string, string>
      */
@@ -71,6 +72,7 @@ final class DeblocagesAcces
         $types = [];
         if ($u?->can(self::PERMISSION) || $u?->can(self::PERMISSION_EXCEPTIONNEL)) {
             $types[DeblocageAcces::VIREMENT_ANNONCE] = DeblocageAcces::TYPES[DeblocageAcces::VIREMENT_ANNONCE];
+            $types[DeblocageAcces::PRISE_EN_CHARGE] = DeblocageAcces::TYPES[DeblocageAcces::PRISE_EN_CHARGE];
         }
         if ($u?->can(self::PERMISSION_EXCEPTIONNEL)) {
             $types[DeblocageAcces::MORATOIRE] = DeblocageAcces::TYPES[DeblocageAcces::MORATOIRE];
@@ -102,7 +104,8 @@ final class DeblocagesAcces
 
     public static function peutProlonger(DeblocageAcces $d, ?User $u): bool
     {
-        if (! $d->estEnCours()) {
+        // L'échéance d'un auditeur couvert est celle de son engagement : on prolonge l'engagement (lot A2).
+        if (! $d->estEnCours() || $d->engagement_id !== null) {
             return false;
         }
         if ($u?->can(self::PERMISSION_EXCEPTIONNEL)) {
@@ -158,7 +161,7 @@ final class DeblocagesAcces
             throw new InvalidArgumentException('Choisissez un cas de la liste.');
         }
         if ($type === DeblocageAcces::PRISE_EN_CHARGE) {
-            throw new InvalidArgumentException('Les engagements de prise en charge arrivent avec un prochain lot : en attendant, le responsable enregistre la prise en charge comme un moratoire, avec la lettre de l\'employeur en pièce.');
+            throw new InvalidArgumentException('Une prise en charge passe par un engagement de l\'organisme : rattachez l\'auditeur à son engagement (écran « Prises en charge »).');
         }
         abort_unless(array_key_exists($type, self::typesPermis($auteur)), 403);
 
@@ -224,6 +227,9 @@ final class DeblocagesAcces
             if (! $d->estEnCours()) {
                 throw new InvalidArgumentException('Ce déblocage est clos : il ne se prolonge plus. Accordez-en un nouveau si besoin.');
             }
+            if ($d->engagement_id !== null) {
+                throw new InvalidArgumentException(self::messageEngagement());
+            }
             if (! $exceptionnel) {
                 // L'agent ne prolonge que le virement annoncé ; le reste revient au responsable.
                 abort_unless($d->type === DeblocageAcces::VIREMENT_ANNONCE, 403);
@@ -251,6 +257,99 @@ final class DeblocagesAcces
                 ->withProperties(['ancienne' => $ancienne, 'nouvelle' => $nouvelle->toDateString(), 'motif' => $motif])
                 ->log('Accès anticipé prolongé jusqu\'au '.$nouvelle->format('d/m/Y'));
         });
+    }
+
+    /**
+     * Rattache l'inscription courante d'un auditeur à un engagement de prise en charge (lot A2,
+     * §9.5) : un déblocage `prise_en_charge` lié à l'engagement, à son échéance, sans pièce (la
+     * lettre est sur l'engagement). Mêmes refus qu'un déblocage (A1), plus : autre année, autre
+     * engagement, échéance dépassée. Verrous : l'engagement en partage, puis l'auditeur (R8),
+     * l'ordre du règlement réparti.
+     *
+     * @throws InvalidArgumentException
+     */
+    public function rattacher(EngagementPriseEnCharge $engagement, InscriptionAnnuelle $inscription, User $auteur): ResultatDeblocage
+    {
+        abort_unless(isset(self::typesPermis($auteur)[DeblocageAcces::PRISE_EN_CHARGE]), 403);
+        $dossier = self::dossierOuvert($inscription);
+        if ($inscription->annee_academique !== $engagement->annee_academique) {
+            throw new InvalidArgumentException('L\'engagement couvre l\'année '.$engagement->annee_academique.' ; l\'inscription en cours de l\'auditeur est de '.$inscription->annee_academique.'.');
+        }
+
+        try {
+            $deblocage = $this->db->transaction(function () use ($engagement, $inscription, $auteur): DeblocageAcces {
+                $e = EngagementPriseEnCharge::query()->whereKey($engagement->id)->sharedLock()->firstOrFail();
+                if ($e->estEchu()) {
+                    throw new InvalidArgumentException('L\'échéance de l\'engagement, le '.$e->echeance->format('d/m/Y').', est dépassée : faites-la prolonger par le responsable de scolarité avant de rattacher des auditeurs.');
+                }
+
+                return $this->imputations->sousVerrou((int) $inscription->auditeur_id, function () use ($e, $inscription, $auteur): DeblocageAcces {
+                    $verrouillee = InscriptionAnnuelle::query()->with('bareme')->whereKey($inscription->id)->lockForUpdate()->firstOrFail();
+                    if ($verrouillee->situation()->inscriptionSoldee()) {
+                        throw new InvalidArgumentException('Les droits d\'inscription sont déjà soldés : l\'accès est ouvert sans prise en charge. Le règlement de l\'organisme pour cet auditeur s\'enregistre sur sa fiche (payé par : son employeur).');
+                    }
+                    if (DeblocageAcces::query()->enCours()->where('inscription_annuelle_id', $inscription->id)->exists()) {
+                        throw new InvalidArgumentException(self::messageDejaEnCours());
+                    }
+                    if (! self::peutAccorderApresRevocation($verrouillee, $auteur)) {
+                        throw new InvalidArgumentException('Le responsable de scolarité a révoqué un accès anticipé sur cette inscription : lui seul peut en accorder un nouveau.');
+                    }
+                    $autre = DeblocageAcces::query()->with('engagement:id,organisme')->where('inscription_annuelle_id', $inscription->id)
+                        ->whereNotNull('engagement_id')->where('engagement_id', '<>', $e->id)->where('statut', '<>', DeblocageAcces::REVOQUE)->first();
+                    if ($autre !== null) {
+                        throw new InvalidArgumentException('Cette inscription est déjà couverte par un autre engagement de prise en charge ('.$autre->engagement?->organisme.') : '
+                            .($autre->estEnCours() ? 'faites d\'abord révoquer cet accès par le responsable de scolarité.' : 'rattachez l\'auditeur de nouveau à cet engagement-là.'));
+                    }
+
+                    $motif = mb_substr('Prise en charge : '.$e->organisme.', lettre '.$e->libelleLettre(), 0, self::MOTIF_MAX);
+                    $d = new DeblocageAcces;
+                    $d->forceFill([
+                        'inscription_annuelle_id' => $inscription->id,
+                        'type' => DeblocageAcces::PRISE_EN_CHARGE,
+                        'engagement_id' => $e->id,
+                        'motif' => $motif,
+                        'justificatif_path' => null,
+                        'echeance' => $e->echeance->toDateString(),
+                        'statut' => DeblocageAcces::EN_COURS,
+                        'accorde_par' => $auteur->id,
+                    ])->save();
+
+                    activity('scolarite')->causedBy($auteur)->performedOn($d)
+                        ->event('deblocage_accorde')
+                        ->withProperties(['type' => DeblocageAcces::PRISE_EN_CHARGE, 'echeance' => $e->echeance->toDateString(), 'motif' => $motif,
+                            'piece' => false, 'inscription' => $verrouillee->uuid, 'engagement' => $e->uuid])
+                        ->log('Accès anticipé accordé (prise en charge), à régulariser avant le '.$e->echeance->format('d/m/Y'));
+
+                    return $d;
+                });
+            });
+        } catch (UniqueConstraintViolationException) {
+            throw new InvalidArgumentException(self::messageDejaEnCours());
+        }
+
+        return new ResultatDeblocage($deblocage, $this->notification->siDisponible($dossier, $auteur));
+    }
+
+    /**
+     * Reporte l'échéance des déblocages en cours d'un engagement prolongé (lot A2, §9.4). Appelé par
+     * EngagementsPriseEnCharge, dans sa transaction, sous le verrou de l'engagement.
+     *
+     * @return int déblocages prolongés
+     */
+    public function prolongerEngagement(EngagementPriseEnCharge $engagement, CarbonImmutable $nouvelle, string $motif, User $auteur): int
+    {
+        abort_unless($auteur->can(self::PERMISSION_EXCEPTIONNEL), 403);
+        $deblocages = DeblocageAcces::query()->enCours()->where('engagement_id', $engagement->id)->orderBy('id')->lockForUpdate()->get();
+        foreach ($deblocages as $d) {
+            $ancienne = $d->echeance->toDateString();
+            $d->forceFill(['echeance' => $nouvelle->toDateString(), 'prolongations' => $d->prolongations + 1])->save();
+            activity('scolarite')->causedBy($auteur)->performedOn($d)
+                ->event('deblocage_prolonge')
+                ->withProperties(['ancienne' => $ancienne, 'nouvelle' => $nouvelle->toDateString(), 'motif' => $motif, 'engagement' => $engagement->uuid])
+                ->log('Accès anticipé prolongé jusqu\'au '.$nouvelle->format('d/m/Y').' (engagement prolongé)');
+        }
+
+        return $deblocages->count();
     }
 
     /**
@@ -378,6 +477,11 @@ final class DeblocagesAcces
         } catch (InvalidFormatException) {
             throw new InvalidArgumentException('Date invalide : choisissez-la dans le calendrier.');
         }
+    }
+
+    private static function messageEngagement(): string
+    {
+        return 'Cet accès dépend d\'un engagement de prise en charge : prolongez l\'engagement (écran « Prises en charge »).';
     }
 
     private static function messageDejaEnCours(): string

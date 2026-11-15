@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\AuditeurResource;
 
+use App\Filament\Resources\EngagementPriseEnChargeResource;
 use App\Models\Auditeur;
 use App\Models\DeblocageAcces;
+use App\Models\EngagementPriseEnCharge;
 use App\Models\InscriptionAnnuelle;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\DeblocagesAcces;
@@ -52,10 +54,20 @@ final class AccesAnticipe
                     ->in(fn (): array => array_keys(DeblocagesAcces::typesPermis(auth()->user())))
                     ->default(DeblocageAcces::VIREMENT_ANNONCE)
                     ->afterStateUpdated(fn (Forms\Set $set, ?string $state) => $set('echeance', DeblocagesAcces::echeanceParDefaut((string) $state)?->toDateString()))
-                    ->helperText(fn (): ?string => isset(DeblocagesAcces::typesPermis(auth()->user())[DeblocageAcces::MORATOIRE])
-                        ? 'Prise en charge par l\'employeur : choisissez « Moratoire ou dérogation » et joignez la lettre de l\'employeur.'
+                    ->helperText(fn (Forms\Get $get): ?string => $get('type') === DeblocageAcces::PRISE_EN_CHARGE
+                        ? 'L\'échéance et la lettre sont celles de l\'engagement de l\'organisme. Un engagement se crée dans Scolarité > Prises en charge.'
+                        : null),
+                // Lot A2 : une prise en charge passe par l'engagement de l'organisme (échéance et lettre comprises).
+                Forms\Components\Select::make('engagement')->label('Engagement de l\'organisme')->native(false)
+                    ->visible(fn (Forms\Get $get): bool => $get('type') === DeblocageAcces::PRISE_EN_CHARGE)
+                    ->required(fn (Forms\Get $get): bool => $get('type') === DeblocageAcces::PRISE_EN_CHARGE)
+                    ->options(fn (Auditeur $record): array => self::engagementsOuverts($record))
+                    ->in(fn (Auditeur $record): array => array_keys(self::engagementsOuverts($record)))
+                    ->helperText(fn (Auditeur $record): ?string => self::engagementsOuverts($record) === []
+                        ? 'Aucun engagement en cours pour l\'année '.$record->inscriptionCourante?->annee_academique.' : créez-le d\'abord dans Scolarité > Prises en charge.'
                         : null),
                 Forms\Components\DatePicker::make('echeance')->label('À régulariser avant le')->native(false)->displayFormat('d/m/Y')
+                    ->visible(fn (Forms\Get $get): bool => $get('type') !== DeblocageAcces::PRISE_EN_CHARGE)
                     ->required(fn (Forms\Get $get): bool => $get('type') !== DeblocageAcces::VIREMENT_ANNONCE)
                     ->default(DeblocagesAcces::echeanceParDefaut(DeblocageAcces::VIREMENT_ANNONCE)?->toDateString())
                     ->minDate(InscriptionAnnuelle::aujourdhui()->addDay()->toDateString())
@@ -65,9 +77,11 @@ final class AccesAnticipe
                         ? 'Obligatoire, '.DeblocagesAcces::JOURS_MAX[DeblocageAcces::MORATOIRE].' jours au plus.'
                         : DeblocagesAcces::JOURS_DEFAUT_VIREMENT.' jours par défaut, '.DeblocagesAcces::JOURS_MAX[DeblocageAcces::VIREMENT_ANNONCE].' jours au plus.'),
                 Forms\Components\Textarea::make('motif')->label('Motif')->required()
+                    ->visible(fn (Forms\Get $get): bool => $get('type') !== DeblocageAcces::PRISE_EN_CHARGE)
                     ->minLength(DeblocagesAcces::MOTIF_MIN)->maxLength(DeblocagesAcces::MOTIF_MAX)->rows(3),
-                AuditeurActions::champJustificatif('Pièce (preuve du virement, demande écrite, lettre de l\'employeur)', 10,
+                AuditeurActions::champJustificatif('Pièce (preuve du virement, demande écrite)', 10,
                     'Le stockage n\'a pas répondu : la pièce n\'est pas enregistrée. Réessayez dans quelques instants.')
+                    ->visible(fn (Forms\Get $get): bool => $get('type') !== DeblocageAcces::PRISE_EN_CHARGE)
                     ->required(fn (Forms\Get $get): bool => $get('type') === DeblocageAcces::VIREMENT_ANNONCE),
             ], self::messages()))
             ->action(function (Auditeur $record, array $data, Action $action): void {
@@ -76,7 +90,12 @@ final class AccesAnticipe
                     if (filled($data['justificatif_path'] ?? null) && ! AuditeurActions::depose((string) $data['justificatif_path'])) {
                         throw new InvalidArgumentException('La pièce jointe est invalide : déposez-la à nouveau.');
                     }
-                    $resultat = app(DeblocagesAcces::class)->accorder($record->inscriptionCourante, $data, auth()->user());
+                    $resultat = ($data['type'] ?? null) === DeblocageAcces::PRISE_EN_CHARGE
+                        ? app(DeblocagesAcces::class)->rattacher(
+                            EngagementPriseEnCharge::query()->where('uuid', (string) ($data['engagement'] ?? ''))->first()
+                                ?? throw new InvalidArgumentException('Choisissez l\'engagement de l\'organisme.'),
+                            $record->inscriptionCourante, auth()->user())
+                        : app(DeblocagesAcces::class)->accorder($record->inscriptionCourante, $data, auth()->user());
                 } catch (InvalidArgumentException $e) {
                     AuditeurActions::supprimerScanOrphelin($data['justificatif_path'] ?? null);
                     Notification::make()->danger()->title('Accès non débloqué')->body($e->getMessage())->send();
@@ -159,16 +178,17 @@ final class AccesAnticipe
             ->label('Voir la pièce de l\'accès anticipé')
             ->icon('heroicon-o-paper-clip')
             // Seuls les chemins du dossier des justificatifs sont signés (même bucket que les pièces des candidats).
+            // Pièce du déblocage, ou lettre de son engagement de prise en charge (lot A2).
             ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can('view_auditeur')
-                && DeblocageAcces::cheminPieceValide(self::enCours($record)?->justificatif_path))
+                && DeblocageAcces::cheminPieceValide(self::enCours($record)?->piece()))
             ->action(function (Auditeur $record) {
                 $d = self::enCours($record);
-                abort_unless($d !== null && DeblocageAcces::cheminPieceValide($d->justificatif_path) && auth()->user()?->can('view_auditeur'), 403);
+                abort_unless($d !== null && DeblocageAcces::cheminPieceValide($d->piece()) && auth()->user()?->can('view_auditeur'), 403);
                 activity('scolarite')->causedBy(auth()->user())->performedOn($d)->event('deblocage_piece_consultee')->log('Pièce de l\'accès anticipé consultée');
-                $extension = pathinfo((string) $d->justificatif_path, PATHINFO_EXTENSION);
+                $extension = pathinfo((string) $d->piece(), PATHINFO_EXTENSION);
 
                 return redirect()->away(Storage::disk(CandidatureObjectStorage::DISK)->temporaryUrl(
-                    (string) $d->justificatif_path,
+                    (string) $d->piece(),
                     now()->addMinutes(30),
                     ['ResponseContentDisposition' => 'inline; filename="piece-acces-anticipe.'.$extension.'"'],
                 ));
@@ -191,11 +211,20 @@ final class AccesAnticipe
                 Infolists\Components\TextEntry::make('anticipe_accorde')->label('Accordé')
                     ->getStateUsing(fn (Auditeur $record): ?string => ($d = self::enCours($record)) === null ? null
                         : 'Par '.($d->accordePar?->name ?? 'un compte supprimé').', le '.$d->created_at?->timezone(InscriptionAnnuelle::FUSEAU)->format('d/m/Y à H:i')),
+                Infolists\Components\TextEntry::make('anticipe_engagement')->label('Engagement')->columnSpan(3)
+                    ->visible(fn (Auditeur $record): bool => self::enCours($record)?->engagement !== null)
+                    ->getStateUsing(fn (Auditeur $record): ?string => ($e = self::enCours($record)?->engagement) === null ? null
+                        : $e->organisme.' — lettre '.$e->libelleLettre().' ('.mb_strtolower($e->libellePortee()).')')
+                    ->url(fn (Auditeur $record): ?string => ($e = self::enCours($record)?->engagement) !== null && EngagementPriseEnChargeResource::canView($e)
+                        ? EngagementPriseEnChargeResource::getUrl('view', ['record' => $e]) : null),
                 Infolists\Components\TextEntry::make('anticipe_motif')->label('Motif')->columnSpan(2)
                     ->getStateUsing(fn (Auditeur $record): ?string => self::enCours($record)?->motif),
                 Infolists\Components\TextEntry::make('anticipe_piece')->label('Pièce')
-                    ->getStateUsing(fn (Auditeur $record): string => filled(self::enCours($record)?->justificatif_path)
-                        ? 'Jointe (menu « Accès eCampus »)' : 'Aucune'),
+                    ->getStateUsing(fn (Auditeur $record): string => match (true) {
+                        self::enCours($record)?->engagement_id !== null => 'Lettre de l\'engagement (menu « Accès eCampus »)',
+                        filled(self::enCours($record)?->justificatif_path) => 'Jointe (menu « Accès eCampus »)',
+                        default => 'Aucune',
+                    }),
                 Infolists\Components\TextEntry::make('anticipe_relances')->label('Relances')->columnSpan(3)
                     ->getStateUsing(fn (Auditeur $record): string => self::suivi(self::enCours($record))),
             ]);
@@ -235,6 +264,26 @@ final class AccesAnticipe
     public static function enCours(Auditeur $record): ?DeblocageAcces
     {
         return $record->inscriptionCourante?->deblocageEnCours;
+    }
+
+    /**
+     * Engagements de l'année de l'inscription courante dont l'échéance n'est pas dépassée.
+     *
+     * @return array<string, string> uuid => libellé
+     */
+    private static function engagementsOuverts(Auditeur $record): array
+    {
+        $annee = $record->inscriptionCourante?->annee_academique;
+        if ($annee === null) {
+            return [];
+        }
+
+        return EngagementPriseEnCharge::query()->where('annee_academique', $annee)
+            ->where('echeance', '>=', InscriptionAnnuelle::aujourdhui()->toDateString())
+            ->orderBy('organisme')->get()
+            ->mapWithKeys(fn (EngagementPriseEnCharge $e): array => [(string) $e->uuid => $e->organisme.' — lettre '.$e->libelleLettre()
+                .' ('.mb_strtolower($e->libellePortee()).', jusqu\'au '.$e->echeance->format('d/m/Y').')'])
+            ->all();
     }
 
     /** Dossier ouvert, auditeur en formation, droits non soldés et rien d'en cours (aussi pour demander un moratoire, A3). */

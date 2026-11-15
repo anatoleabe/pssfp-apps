@@ -66,6 +66,7 @@ class Versement extends Model
         'saisi_par' => 'integer',
         'annule_at' => 'datetime',
         'annule_par' => 'integer',
+        'reglement_organisme_id' => 'integer',
     ];
 
     /** Le chemin privé ne sort jamais du back-office. */
@@ -97,12 +98,15 @@ class Versement extends Model
 
     /**
      * Une pièce du dossier des justificatifs ne sert qu'une fois : jamais le
-     * bordereau d'un autre versement ni la pièce d'un accès anticipé.
+     * bordereau d'un autre versement, la pièce d'un accès anticipé, la lettre
+     * d'un engagement de prise en charge ni la pièce d'un règlement (lot A2).
      */
     public static function pieceDejaJointe(string $chemin): bool
     {
         return self::query()->where('justificatif_path', $chemin)->exists()
-            || DeblocageAcces::query()->where('justificatif_path', $chemin)->exists();
+            || DeblocageAcces::query()->where('justificatif_path', $chemin)->exists()
+            || EngagementPriseEnCharge::query()->where('lettre_path', $chemin)->exists()
+            || ReglementOrganisme::query()->where('piece_path', $chemin)->exists();
     }
 
     public static function normaliserReference(string $reference): string
@@ -141,6 +145,12 @@ class Versement extends Model
     public function estReserve(): bool
     {
         return in_array($this->payeur, self::PAYEURS_RESERVES, true);
+    }
+
+    /** Règlement d'organisme dont ce versement est une part (lot A2) ; il ne s'annule qu'avec lui. */
+    public function reglement(): BelongsTo
+    {
+        return $this->belongsTo(ReglementOrganisme::class, 'reglement_organisme_id');
     }
 
     public function saisiPar(): BelongsTo

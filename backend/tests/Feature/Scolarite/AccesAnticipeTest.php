@@ -175,8 +175,9 @@ describe('droits', function (): void {
 
         ($this->moratoire)();
         expect(DeblocageAcces::query()->sole()->type)->toBe(DeblocageAcces::MORATOIRE)
-            ->and(DeblocagesAcces::typesPermis($this->agent))->toBe([DeblocageAcces::VIREMENT_ANNONCE => 'Virement annoncé'])
-            ->and(array_keys(DeblocagesAcces::typesPermis($this->responsable)))->toBe([DeblocageAcces::VIREMENT_ANNONCE, DeblocageAcces::MORATOIRE]);
+            // La prise en charge passe par un engagement (lot A2), ouvert à l'agent comme au responsable.
+            ->and(DeblocagesAcces::typesPermis($this->agent))->toBe([DeblocageAcces::VIREMENT_ANNONCE => 'Virement annoncé', DeblocageAcces::PRISE_EN_CHARGE => 'Prise en charge'])
+            ->and(array_keys(DeblocagesAcces::typesPermis($this->responsable)))->toBe([DeblocageAcces::VIREMENT_ANNONCE, DeblocageAcces::PRISE_EN_CHARGE, DeblocageAcces::MORATOIRE]);
     });
 
     it('refuse tout déblocage à qui n\'a aucun des deux droits', function (string $role): void {
@@ -283,8 +284,8 @@ describe('refus', function (): void {
             ->and(DeblocagesAcces::echeanceParDefaut(DeblocageAcces::VIREMENT_ANNONCE)?->toDateString())->toBe('2026-12-01');
     });
 
-    it('n\'accorde pas encore de prise en charge : elle s\'enregistre comme un moratoire (lot A2)', function (): void {
-        expect(fn () => ($this->moratoire)(['type' => DeblocageAcces::PRISE_EN_CHARGE]))->toThrow(InvalidArgumentException::class, 'moratoire');
+    it('n\'accorde pas de prise en charge hors engagement : elle passe par le rattachement (lot A2)', function (): void {
+        expect(fn () => ($this->moratoire)(['type' => DeblocageAcces::PRISE_EN_CHARGE]))->toThrow(InvalidArgumentException::class, 'engagement');
     });
 
     it('garantit en base un seul déblocage en cours par inscription, et la preuve d\'un virement', function (): void {

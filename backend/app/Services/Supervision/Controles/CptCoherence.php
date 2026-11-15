@@ -17,7 +17,9 @@ use Illuminate\Support\Collection;
  * - `versement:<uuid>` : imputations actives au-delà du montant, ou sur un versement annulé ;
  * - `inscription:<uuid>` : imputé au-delà du dû ;
  * - `auditeur:<uuid>` : invariant d'avance rompu (avance libre à côté d'un reste ouvert, ou
- *   avance réservée alors que son inscription désignée a un reste).
+ *   avance réservée alors que son inscription désignée a un reste) ;
+ * - `reglement:<uuid>` (lot A2) : les versements valides d'un règlement d'organisme ne font pas
+ *   son montant, ou un règlement annulé garde un versement valide (versement annulé seul).
  *
  * Les deux premiers cas ne naissent qu'en contournant les déclencheurs ; le troisième signale
  * un oubli de R3 dans le code. Responsable : l'USI (`admin`) ; escalade au super administrateur
@@ -83,6 +85,14 @@ final class CptCoherence implements Controle, EscaladeDediee
             $cas['inscription:'.$i->uuid] = [
                 'resume' => $matricules($i->auditeur_id).' — inscription imputée à '.$fcfa($i->impute).' pour un dû de '.$fcfa($i->du),
                 'inscription' => (string) $i->uuid,
+            ];
+        }
+        foreach ($this->verification->reglementsIncoherents() as $r) {
+            $cas['reglement:'.$r->uuid] = [
+                'resume' => 'Règlement '.$r->reference.' — '.($r->annule
+                    ? 'annulé, garde '.$fcfa($r->verse).' de versements valides'
+                    : 'montant de '.$fcfa($r->montant).', versements valides de '.$fcfa($r->verse)),
+                'reglement' => (string) $r->uuid,
             ];
         }
         foreach ($avances as $a) {
