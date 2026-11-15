@@ -26,8 +26,11 @@ class CandidatureRelance extends Model
     /** Relance d'un accès anticipé échu (Scolarité, lot A1) : réaffichée dans l'espace de l'auditeur. */
     public const CAUSE_DEBLOCAGE = 'deblocage';
 
+    /** Avis d'émission d'un reçu de versement (Scolarité lot 4 §5) : réaffiché dans l'espace de l'auditeur. */
+    public const CAUSE_RECU = 'recu';
+
     /** Messages réaffichés dans l'espace du candidat ou de l'auditeur. */
-    public const CAUSES_AFFICHEES = [self::CAUSE_MANUELLE, self::CAUSE_DEBLOCAGE];
+    public const CAUSES_AFFICHEES = [self::CAUSE_MANUELLE, self::CAUSE_DEBLOCAGE, self::CAUSE_RECU];
 
     public const CANAL_SMS = 'sms';
 

@@ -52,6 +52,7 @@ beforeEach(function (): void {
     $this->travelTo(now('Africa/Douala')->setDate(2026, 11, 16)->setTime(9, 0));
     $this->compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole($role));
     $this->agent = ($this->compte)('scolarite_agent');
+    $this->encaisseur = ($this->compte)('service_financier');
     $this->responsable = ($this->compte)('scolarite_responsable');
     $campagne = CampagneCandidature::factory()->closed()->create([
         'nom' => ['fr' => 'Année académique 2026-2027'], 'promotion_numero' => 14,
@@ -90,7 +91,7 @@ beforeEach(function (): void {
     $this->etat = fn (Candidature $c): string => AccesEcampus::etat(Candidature::query()->findOrFail($c->id));
     $this->verser = fn (Candidature $c, int $montant = 185000) => app(RegistreVersements::class)->enregistrer($c->fresh()->auditeur->inscriptionCourante, [
         'montant' => $montant, 'date_versement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'VIR-'.Str::random(8), 'payeur' => 'auditeur',
-    ], $this->agent);
+    ], $this->encaisseur);
 });
 
 describe('création', function (): void {

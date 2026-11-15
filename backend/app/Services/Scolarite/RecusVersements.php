@@ -31,6 +31,12 @@ final class RecusVersements
     /** Versements enregistrés à partir de cette date (mise en service) : les antérieurs n'ont pas de reçu. */
     public const CLE_DEPUIS = 'scolarite.recus_depuis';
 
+    /**
+     * Arrêt d'ACMA (décision du 15/11/2026), posé par `scolarite:bascule-recus` : la liste d'attente part
+     * de cette date ; les versements antérieurs ont un reçu ACMA et n'en reçoivent un qu'à la demande.
+     */
+    public const CLE_BASCULE = 'scolarite.recus_bascule';
+
     private const LIBELLES_PALIERS = [Palier::INSCRIPTION => 'droits d\'inscription', Palier::TRANCHE1 => '1re tranche', Palier::TRANCHE2 => '2e tranche'];
 
     public const LIBELLE_AVANCE = 'avance sur la scolarité à venir';
@@ -38,14 +44,18 @@ final class RecusVersements
     /** Longueur de la colonne `recus_versements.objet` (spec D1, §5.5). */
     public const OBJET_MAX = 500;
 
-    public function __construct(private readonly ImputationsCompte $imputations) {}
+    public function __construct(
+        private readonly ImputationsCompte $imputations,
+        private readonly AvisRecus $avis,
+    ) {}
 
-    /** Le versement peut-il recevoir un reçu (hors permission) ? null si oui, sinon la raison. */
+    /**
+     * Le versement peut-il recevoir un reçu (hors permission) ? null si oui, sinon la raison. Depuis le
+     * 15/11/2026, l'agent qui a saisi le versement en émet le reçu (le contrôle passe à la scolarité) :
+     * `$auteur` ne sert plus qu'à la signature, gardée pour les appelants.
+     */
     public function raisonRefus(Versement $v, ?User $auteur = null): ?string
     {
-        if ($auteur !== null && $v->saisi_par === $auteur->id) {
-            return 'Vous avez enregistré ce versement : son reçu est émis par un autre agent du service financier.';
-        }
         if ($v->estAnnule()) {
             return 'Ce versement est annulé : il ne reçoit pas de reçu.';
         }
@@ -67,21 +77,22 @@ final class RecusVersements
     }
 
     /**
-     * Versements qui attendent leur reçu de la part de cet agent : la
-     * traduction en requête de raisonRefus() (pastille du menu, tableau de
-     * bord). Vide tant que la mise en service n'est pas réglée.
+     * Versements qui attendent leur reçu : la traduction en requête de
+     * raisonRefus() (pastille du menu, tableau de bord), bornée par
+     * debutAttente(). Vide tant que la mise en service n'est pas réglée.
+     * `$agent` reste dans la signature des écrans : depuis le 15/11/2026, la
+     * liste ne dépend plus de qui a saisi le versement.
      *
      * @return Builder<Versement>
      */
     public function enAttente(User $agent): Builder
     {
-        $depuis = $this->miseEnService();
+        $debut = $this->debutAttente();
 
         return Versement::query()
-            ->when($depuis === null, fn (Builder $q) => $q->whereIn('id', []))
-            ->when($depuis !== null, fn (Builder $q) => $q->where('created_at', '>=', $depuis))
+            ->when($debut === null, fn (Builder $q) => $q->whereIn('id', []))
+            ->when($debut !== null, fn (Builder $q) => $q->where('created_at', '>=', $debut))
             ->whereNull('annule_at')
-            ->where(fn (Builder $q) => $q->whereNull('saisi_par')->orWhere('saisi_par', '<>', $agent->id))
             ->whereDoesntHave('recus', fn (Builder $q) => $q->whereDoesntHave('annulation'))
             ->whereDoesntHave('auditeur.candidature', fn (Builder $q) => $q->whereNotNull('withdrawn_at'));
     }
@@ -129,6 +140,10 @@ final class RecusVersements
             $recu->save();
             activity('scolarite')->causedBy($auteur)->performedOn($v)->event('recu_emis')
                 ->withProperties(['numero' => $recu->numero, 'montant' => $recu->montant])->log('Reçu émis');
+            if ($dossier !== null) {
+                // Après la validation de la transaction : jamais d'avis pour un reçu défait (spec §5).
+                $this->avis->apresEmission($recu, $dossier, $auteur);
+            }
 
             return $recu;
         });
@@ -162,12 +177,45 @@ final class RecusVersements
     /** Date de mise en service des reçus ; null si le réglage manque ou n'est pas une date (l'émission est alors refusée). */
     public function miseEnService(): ?CarbonImmutable
     {
-        $v = AppSettings::get(self::CLE_DEPUIS);
+        return self::dateReglage(self::CLE_DEPUIS);
+    }
+
+    /** Date de bascule ACMA ; null tant que `scolarite:bascule-recus` ne l'a pas posée. */
+    public function bascule(): ?CarbonImmutable
+    {
+        return self::dateReglage(self::CLE_BASCULE);
+    }
+
+    /**
+     * Début de la liste d'attente : la plus tardive de la mise en service et de la bascule.
+     * Sans bascule, la mise en service (comportement d'avant le 15/11/2026) ; sans mise en service, null.
+     */
+    public function debutAttente(): ?CarbonImmutable
+    {
+        $depuis = $this->miseEnService();
+        $bascule = $this->bascule();
+
+        return $depuis === null || $bascule === null || $bascule->lessThan($depuis) ? $depuis : $bascule;
+    }
+
+    /** Jour du début de la liste d'attente, JJ/MM/AAAA à l'heure de Yaoundé ; null sans mise en service. */
+    public function jourDebutAttente(): ?string
+    {
+        return $this->debutAttente()?->setTimezone(InscriptionAnnuelle::FUSEAU)->format('d/m/Y');
+    }
+
+    /**
+     * Date d'un réglage, ramenée au fuseau de l'application : une requête écrit la date sans
+     * son fuseau, si bien qu'une date gardée à l'heure de Yaoundé décalerait la borne.
+     */
+    private static function dateReglage(string $cle): ?CarbonImmutable
+    {
+        $v = AppSettings::get($cle);
         if (! is_string($v) || $v === '') {
             return null;
         }
         try {
-            return CarbonImmutable::parse($v);
+            return CarbonImmutable::parse($v)->setTimezone((string) config('app.timezone'));
         } catch (\Throwable) {
             return null;
         }

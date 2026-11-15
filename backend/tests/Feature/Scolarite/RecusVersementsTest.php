@@ -58,7 +58,7 @@ beforeEach(function (): void {
     $this->inscription = $this->awa->auditeur->inscriptionCourante;
     $this->service = app(RecusVersements::class);
     $this->verser = fn (int $montant, string $date = '2026-11-02'): Versement => app(RegistreVersements::class)->enregistrer($this->inscription,
-        ['montant' => $montant, 'date_versement' => $date, 'mode' => 'cremincam_agence', 'reference' => 'BOR-'.Str::random(6), 'payeur' => 'auditeur'], $this->agent)->versement;
+        ['montant' => $montant, 'date_versement' => $date, 'mode' => 'cremincam_agence', 'reference' => 'BOR-'.Str::random(6), 'payeur' => 'auditeur'], $this->financier)->versement;
     $this->jeton = fn (Candidature $c): string => $c->user->createToken('candidat', ['profile:read', 'application:read'])->plainTextToken;
 });
 
@@ -109,7 +109,7 @@ it('détaille l\'objet par année quand le versement règle une autre année que
 
     // Saisi sur l'inscription courante (2027-2028) : l'arriéré du M1 passe d'abord (R1).
     $v = app(RegistreVersements::class)->enregistrer($m2, ['montant' => 1475000, 'date_versement' => '2026-11-08', 'mode' => 'virement',
-        'reference' => 'BOR-MULTI', 'payeur' => 'auditeur'], $this->agent)->versement;
+        'reference' => 'BOR-MULTI', 'payeur' => 'auditeur'], $this->financier)->versement;
     $r = $this->service->emettre($v, $this->financier);
 
     expect($r->objet)->toBe('Frais de scolarité 2026-2027 (M1) : 2e tranche (300 000 FCFA) ; 2027-2028 (M2) : droits d\'inscription (135 000 FCFA), '
@@ -127,7 +127,7 @@ it('résume chaque année par son total quand le détail dépasse 500 caractère
             'bareme_id' => BaremeScolarite::factory()->create(['annee_academique' => $annee])->id]);
     }
     $v = app(RegistreVersements::class)->enregistrer($derniere, ['montant' => 6 * 1185000 + 1000, 'date_versement' => '2026-11-08',
-        'mode' => 'virement', 'reference' => 'BOR-LONG', 'payeur' => 'auditeur'], $this->agent)->versement;
+        'mode' => 'virement', 'reference' => 'BOR-LONG', 'payeur' => 'auditeur'], $this->financier)->versement;
 
     $r = $this->service->emettre($v, $this->financier);
 
@@ -193,11 +193,10 @@ it('refuse le reçu d\'un versement annulé, déjà couvert ou antérieur à la 
     app(RegistreVersements::class)->annuler($annule, 'Doublon de saisie', $this->responsable);
     expect(fn () => $this->service->emettre($annule->refresh(), $this->financier))->toThrow(InvalidArgumentException::class, 'annulé');
 
-    // Séparation des tâches (Chef USI, 08/11/2026) : qui enregistre le versement n'en émet pas le reçu.
+    // Séparation levée le 15/11/2026 : qui enregistre le versement en émet le reçu (le contrôle passe à la scolarité).
     $propre = app(RegistreVersements::class)->enregistrer($this->inscription,
         ['montant' => 20000, 'date_versement' => '2026-11-03', 'mode' => 'especes', 'reference' => 'CAISSE-01', 'payeur' => 'auditeur'], $this->financier)->versement;
-    expect(fn () => $this->service->emettre($propre, $this->financier))->toThrow(InvalidArgumentException::class, 'Vous avez enregistré ce versement');
-    $this->service->emettre($propre, ($this->compte)('service_financier'));
+    $this->service->emettre($propre, $this->financier);
 
     // Enregistré avant la mise en service : la base refuse de réécrire un versement, on remonte donc le temps.
     $this->travelTo(now()->subMonth());
@@ -300,12 +299,12 @@ it('sert à l\'auditeur son reçu annulé, journalise le téléchargement, et r�
         ->getJson('/v1/applications/me/scolarite/recus/'.$r->uuid)->assertNotFound()->assertJsonPath('code', 'recu_missing');
 });
 
-it('liste les versements qui attendent leur reçu, sauf pour l\'agent qui les a saisis', function (): void {
+it('liste les versements qui attendent leur reçu, saisis par l\'émetteur compris (séparation levée le 15/11/2026)', function (): void {
     $a = ($this->verser)(185000);
     $b = ($this->verser)(300000, '2026-11-05');
 
     expect($this->service->enAttente($this->financier)->pluck('id')->all())->toEqualCanonicalizing([$a->id, $b->id])
-        ->and($this->service->enAttente($this->agent)->count())->toBe(0);
+        ->and($a->saisi_par)->toBe($this->financier->id);
 
     $this->service->emettre($a, $this->financier);
 

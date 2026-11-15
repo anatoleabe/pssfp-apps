@@ -62,6 +62,47 @@ final class RegistreVersements
     {
         abort_unless($auteur->can(self::PERMISSION_SAISIR), 403);
 
+        [$montant, $date, $mode, $reference, $payeur, $justificatif] = $this->validerSaisie($inscription, $saisie);
+        $versement = $this->ecrireVersement($inscription, $montant, $date, $mode, $reference, $payeur, $justificatif, $auteur, null);
+        $this->auteurCourant = $auteur;
+
+        return new ResultatOperation($versement, $this->notifier($inscription));
+    }
+
+    /**
+     * « Enregistrer et émettre le reçu » (service financier, décision du 15/11/2026) : le versement et son
+     * reçu s'écrivent sous le même verrou et dans la même transaction. Un reçu refusé n'enregistre rien.
+     * L'avis du reçu et la notification des accès partent après la validation.
+     *
+     * @param  array{montant: mixed, date_versement: mixed, mode: mixed, reference: mixed, payeur: mixed, justificatif_path?: ?string}  $saisie
+     *
+     * @throws InvalidArgumentException
+     */
+    public function encaisser(InscriptionAnnuelle $inscription, array $saisie, User $auteur): ResultatOperation
+    {
+        abort_unless($auteur->can(self::PERMISSION_SAISIR) && $auteur->can(RecusVersements::PERMISSION_EMETTRE), 403);
+
+        [$montant, $date, $mode, $reference, $payeur, $justificatif] = $this->validerSaisie($inscription, $saisie);
+        [$versement, $recu] = $this->ecrire((int) $inscription->auditeur_id, function () use ($inscription, $montant, $date, $mode, $reference, $payeur, $justificatif, $auteur): array {
+            $versement = $this->ecrireVersement($inscription, $montant, $date, $mode, $reference, $payeur, $justificatif, $auteur, null);
+
+            return [$versement, $this->recus->emettre($versement, $auteur)];
+        });
+        $this->auteurCourant = $auteur;
+
+        return new ResultatOperation($versement, $this->notifier($inscription), $recu);
+    }
+
+    /**
+     * Contrôles de la saisie d'un versement, avant toute écriture.
+     *
+     * @param  array<string, mixed>  $saisie
+     * @return array{int, CarbonImmutable, string, string, string, ?string} montant, date, mode, référence, payeur, scan
+     *
+     * @throws InvalidArgumentException
+     */
+    private function validerSaisie(InscriptionAnnuelle $inscription, array $saisie): array
+    {
         $montant = filter_var($saisie['montant'] ?? null, FILTER_VALIDATE_INT);
         if ($montant === false || $montant <= 0) {
             throw new InvalidArgumentException('Le montant doit être un nombre entier de FCFA, supérieur à zéro.');
@@ -94,10 +135,7 @@ final class RegistreVersements
         }
         $this->refuserDossierRetire($inscription);
 
-        $versement = $this->ecrireVersement($inscription, $montant, $date, $mode, $reference, $payeur, $justificatif, $auteur, null);
-        $this->auteurCourant = $auteur;
-
-        return new ResultatOperation($versement, $this->notifier($inscription));
+        return [$montant, $date, $mode, $reference, $payeur, $justificatif];
     }
 
     /**

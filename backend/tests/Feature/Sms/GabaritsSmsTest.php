@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\DeblocageAcces;
+use App\Services\Scolarite\AvisRecus;
 use App\Services\Scolarite\LiensLettreAcces;
 use App\Services\Scolarite\NotificationAcces;
 use App\Services\Scolarite\RelancesDeblocages;
@@ -56,6 +57,9 @@ function gabaritsSms(): array
     foreach (DeblocageAcces::TYPES as $type => $libelle) {
         $gabarits["relance acces anticipe {$type}"] = RelancesDeblocages::texteSms($type);
     }
+
+    // Avis d'émission d'un reçu de versement (spec lot 4 §5) : montant réaliste le plus long.
+    $gabarits['avis recu'] = AvisRecus::texteSms('RCPT-2026-000012', 1500000);
 
     return $gabarits;
 }

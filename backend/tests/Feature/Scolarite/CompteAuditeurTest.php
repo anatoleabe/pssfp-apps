@@ -48,7 +48,8 @@ beforeEach(function (): void {
     $this->travelTo(CarbonImmutable::parse('2027-12-01 09:00', 'Africa/Douala'));
     $this->seed([PaysSeeder::class, RegionsCamerounSeeder::class, DepartementsCamerounSeeder::class, RolePermissionSeeder::class]);
     $compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole($role));
-    $this->agent = $compte('scolarite_agent');
+    // Depuis le 15/11/2026, le service financier enregistre l'argent (spec encaissement-confirmation §2.1).
+    $this->agent = $compte('service_financier');
     $this->responsable = $compte('scolarite_responsable');
     $this->financier = $compte('service_financier');
     $this->admin = $compte('admin');

@@ -15,6 +15,7 @@ use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\DeblocageAcces;
 use App\Models\InscriptionAnnuelle;
+use App\Models\RecuVersement;
 use App\Models\User;
 use App\Models\Versement;
 use App\Services\Ecampus\ComptesEcampus;
@@ -22,9 +23,11 @@ use App\Services\ExportsRetenus\AttributionMatricules;
 use App\Services\Scolarite\ImputationsCompte;
 use App\Services\Scolarite\LibelleSituation;
 use App\Services\Scolarite\OuvertureAuditeur;
+use App\Services\Scolarite\RecusVersements;
 use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\SituationFinanciereExcel;
 use App\Services\Sms\SmsServiceInterface;
+use App\Support\AppSettings;
 use App\Support\CandidatureObjectStorage;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
@@ -57,10 +60,14 @@ beforeEach(function (): void {
     $this->bruno->refresh();
     $this->fiche = $this->awa->auditeur;
 
+    AppSettings::set(RecusVersements::CLE_DEPUIS, now()->subYear()->toIso8601String());
     $this->sms = [];
     $this->mock(SmsServiceInterface::class, function ($mock): void {
-        $mock->shouldReceive('send')->andReturnUsing(function (string $tel): void {
-            $this->sms[] = $tel;
+        $mock->shouldReceive('send')->andReturnUsing(function (string $tel, string $texte): void {
+            // L'avis du reçu (émis dans le même geste que la saisie) n'est pas un SMS des accès.
+            if (! str_starts_with($texte, 'PSSFP : votre recu ')) {
+                $this->sms[] = $tel;
+            }
         });
     });
     $this->saisie = fn (array $champs = []): array => $champs + [
@@ -93,19 +100,20 @@ it('ne montre jamais le mot de passe FOAD sur la fiche', function (): void {
 });
 
 it('enregistre un versement depuis la fiche, et prévient par SMS au premier solde', function (): void {
-    $this->actingAs(($this->compte)('scolarite_agent'));
+    $this->actingAs(($this->compte)('service_financier'));
 
+    // Le service financier enregistre et émet le reçu en un geste (15/11/2026).
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
         ->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'BOR-101']))
         ->assertHasNoActionErrors()
-        ->assertNotified('Versement enregistré');
+        ->assertNotified('Versement enregistré, reçu '.RecuVersement::query()->sole()->numero.' émis');
 
     expect(Versement::query()->where('reference', 'BOR-101')->exists())->toBeTrue()
         ->and($this->sms)->toBe([$this->awa->phone_e164]);
 });
 
 it('laisse la fenêtre ouverte et explique un doublon de référence', function (): void {
-    $this->actingAs(($this->compte)('scolarite_agent'));
+    $this->actingAs(($this->compte)('service_financier'));
     $page = $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()]);
     $page->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'BOR-7']));
 
@@ -116,7 +124,7 @@ it('laisse la fenêtre ouverte et explique un doublon de référence', function 
 });
 
 it('exige la confirmation d\'un versement au-delà du reste à payer, en annonçant l\'avance', function (): void {
-    $this->actingAs(($this->compte)('scolarite_agent'));
+    $this->actingAs(($this->compte)('service_financier'));
 
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
         ->mountAction('enregistrerVersement')
@@ -131,7 +139,7 @@ it('exige la confirmation d\'un versement au-delà du reste à payer, en annonç
 });
 
 it('annonce que l\'excédent d\'un employeur attend la décision du responsable', function (): void {
-    $this->actingAs(($this->compte)('scolarite_agent'));
+    $this->actingAs(($this->compte)('service_financier'));
 
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
         ->mountAction('enregistrerVersement')
@@ -164,7 +172,7 @@ it('annonce dans la fenêtre d\'annulation qu\'un versement imputé sur deux ann
 it('présente l\'avance du compte sur la fiche, avec la part réservée de l\'employeur', function (): void {
     Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id, 'montant' => 1285000]);
     Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id, 'montant' => 50000, 'payeur' => 'employeur']);
-    $this->actingAs(($this->compte)('scolarite_agent'));
+    $this->actingAs(($this->compte)('service_financier'));
 
     $this->get(AuditeurResource::getUrl('view', ['record' => $this->fiche]))
         ->assertOk()
@@ -175,7 +183,7 @@ it('présente l\'avance du compte sur la fiche, avec la part réservée de l\'em
 
 it('accepte la date du jour, y compris le soir à Yaoundé', function (string $heure): void {
     Carbon::setTestNow($heure);
-    $this->actingAs(($this->compte)('scolarite_agent'));
+    $this->actingAs(($this->compte)('service_financier'));
 
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
         ->callAction('enregistrerVersement', data: ($this->saisie)(['date_versement' => InscriptionAnnuelle::aujourdhui()->toDateString()]))
@@ -186,7 +194,7 @@ it('accepte la date du jour, y compris le soir à Yaoundé', function (string $h
 })->with(['matin' => '2026-11-05 08:00:00', 'soir' => '2026-11-05 19:44:00', 'nuit (déjà le 6 à Yaoundé)' => '2026-11-05 23:30:00']);
 
 it('refuse une date future et un montant nul dans le formulaire', function (): void {
-    $this->actingAs(($this->compte)('scolarite_agent'));
+    $this->actingAs(($this->compte)('service_financier'));
 
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
         ->callAction('enregistrerVersement', data: ($this->saisie)(['montant' => 0, 'date_versement' => '2099-01-01']))
@@ -196,7 +204,7 @@ it('refuse une date future et un montant nul dans le formulaire', function (): v
 it('réserve l\'annulation et la remise au responsable', function (): void {
     $v = Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id, 'reference' => 'BOR-9']);
 
-    $this->actingAs(($this->compte)('scolarite_agent'));
+    $this->actingAs(($this->compte)('service_financier'));
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])->assertActionHidden('accorderRemise');
     $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
         ->assertTableActionHidden('annuler', $v);
@@ -216,7 +224,7 @@ it('réserve l\'annulation et la remise au responsable', function (): void {
 
 it('filtre la liste par situation et retrouve un auditeur par son matricule', function (): void {
     Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id, 'montant' => 185000]);
-    $this->actingAs(($this->compte)('scolarite_agent'));
+    $this->actingAs(($this->compte)('service_financier'));
     $bruno = $this->bruno->auditeur;
 
     $this->livewire(ListAuditeurs::class)
@@ -266,7 +274,7 @@ it('exporte « Versé » imputé à l\'année et l\'avance dans une colonne L, s
 });
 
 it('cache l\'export à qui n\'a pas le droit', function (): void {
-    $agent = ($this->compte)('scolarite_agent');
+    $agent = ($this->compte)('service_financier');
     $agent->revokePermissionTo('scolarite.export');
     $agent->syncRoles([]);
     $agent->givePermissionTo(['view_any_auditeur', 'view_auditeur']);
@@ -276,7 +284,7 @@ it('cache l\'export à qui n\'a pas le droit', function (): void {
 });
 
 it('réserve les barèmes au responsable et refuse un doublon année + niveau', function (): void {
-    $this->actingAs(($this->compte)('scolarite_agent'));
+    $this->actingAs(($this->compte)('service_financier'));
     $this->get(BaremeScolariteResource::getUrl('index'))->assertForbidden();
 
     $this->actingAs(($this->compte)('scolarite_responsable'));
@@ -305,7 +313,7 @@ it('mène de la liste des candidatures à la fiche auditeur', function (): void 
 });
 
 it('refuse un chemin de bordereau qui ne vient pas du formulaire', function (string $chemin): void {
-    $agent = ($this->compte)('scolarite_agent');
+    $agent = ($this->compte)('service_financier');
     $v = Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id]);
 
     expect(fn () => app(RegistreVersements::class)->joindreJustificatif($v, $chemin, $agent))
@@ -329,7 +337,7 @@ it('refuse un chemin de bordereau qui ne vient pas du formulaire', function (str
 ]);
 
 it('joint un bordereau valide une seule fois, et le journalise', function (): void {
-    $agent = ($this->compte)('scolarite_agent');
+    $agent = ($this->compte)('service_financier');
     $v = Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id]);
     $chemin = 'scolarite/justificatifs/01JABCDEFGHJKMNPQRSTVWXYZ0.pdf';
 
@@ -341,7 +349,7 @@ it('joint un bordereau valide une seule fois, et le journalise', function (): vo
 });
 
 it('refuse le bordereau déjà joint à un autre versement ou à un accès anticipé, à la saisie comme après coup', function (string $origine): void {
-    $agent = ($this->compte)('scolarite_agent');
+    $agent = ($this->compte)('service_financier');
     $chemin = 'scolarite/justificatifs/01JBORDEREAUAUTREDOSSIER00.pdf';
     $ailleurs = ['inscription_annuelle_id' => $this->bruno->auditeur->inscriptionCourante->id, 'justificatif_path' => $chemin];
     $origine === 'versement' ? Versement::factory()->create($ailleurs) : DeblocageAcces::factory()->create($ailleurs);
@@ -371,14 +379,14 @@ describe('bordereau déposé par le formulaire', function (): void {
 
             return $chemin;
         };
-        $this->actingAs(($this->compte)('scolarite_agent'));
+        $this->actingAs(($this->compte)('service_financier'));
     });
 
     it('enregistre un versement avec le scan déposé par le formulaire', function (): void {
         $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
             ->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'BOR-201', 'justificatif_path' => ($this->scan)()]))
             ->assertHasNoActionErrors()
-            ->assertNotified('Versement enregistré');
+            ->assertNotified('Versement enregistré, reçu '.RecuVersement::query()->sole()->numero.' émis');
 
         $v = Versement::query()->where('reference', 'BOR-201')->sole();
         expect(Versement::cheminJustificatifValide($v->justificatif_path))->toBeTrue()
@@ -435,7 +443,7 @@ it('refuse de créer une inscription sur un dossier retiré, et vérifie le droi
     $this->fiche->inscriptions()->delete();
     $this->awa->forceFill(['withdrawn_at' => now()])->save();
 
-    expect(fn () => app(OuvertureAuditeur::class)->creerInscription($this->fiche->fresh(), ($this->compte)('scolarite_agent')))
+    expect(fn () => app(OuvertureAuditeur::class)->creerInscription($this->fiche->fresh(), ($this->compte)('service_financier')))
         ->toThrow(InvalidArgumentException::class)
         ->and(fn () => app(OuvertureAuditeur::class)->creerInscription($this->fiche->fresh(), ($this->compte)('caisse')))
         ->toThrow(HttpException::class);
