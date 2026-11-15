@@ -13,6 +13,7 @@ use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
+use App\Models\DeblocageAcces;
 use App\Models\InscriptionAnnuelle;
 use App\Models\User;
 use App\Models\Versement;
@@ -22,11 +23,14 @@ use App\Services\Scolarite\OuvertureAuditeur;
 use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\SituationFinanciereExcel;
 use App\Services\Sms\SmsServiceInterface;
+use App\Support\CandidatureObjectStorage;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Spatie\Activitylog\Models\Activity;
@@ -268,6 +272,87 @@ it('joint un bordereau valide une seule fois, et le journalise', function (): vo
     expect($v->fresh()->justificatif_path)->toBe($chemin)
         ->and(Activity::query()->where('event', 'justificatif_joint')->count())->toBe(1)
         ->and(fn () => app(RegistreVersements::class)->joindreJustificatif($v, $chemin, $agent))->toThrow(InvalidArgumentException::class);
+});
+
+it('refuse le bordereau déjà joint à un autre versement ou à un accès anticipé, à la saisie comme après coup', function (string $origine): void {
+    $agent = ($this->compte)('scolarite_agent');
+    $chemin = 'scolarite/justificatifs/01JBORDEREAUAUTREDOSSIER00.pdf';
+    $ailleurs = ['inscription_annuelle_id' => $this->bruno->auditeur->inscriptionCourante->id, 'justificatif_path' => $chemin];
+    $origine === 'versement' ? Versement::factory()->create($ailleurs) : DeblocageAcces::factory()->create($ailleurs);
+    $sansScan = Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id]);
+
+    expect(fn () => app(RegistreVersements::class)->enregistrer($this->fiche->inscriptionCourante,
+        ($this->saisie)(['reference' => 'BOR-301', 'justificatif_path' => $chemin]), $agent))
+        ->toThrow(InvalidArgumentException::class, 'déjà joint')
+        ->and(fn () => app(RegistreVersements::class)->joindreJustificatif($sansScan, $chemin, $agent))
+        ->toThrow(InvalidArgumentException::class, 'déjà joint')
+        ->and(Versement::query()->where('reference', 'BOR-301')->exists())->toBeFalse()
+        ->and($sansScan->fresh()->justificatif_path)->toBeNull()
+        ->and(Activity::query()->where('event', 'justificatif_joint')->exists())->toBeFalse();
+})->with(['versement', 'déblocage']);
+
+describe('bordereau déposé par le formulaire', function (): void {
+    beforeEach(function (): void {
+        Storage::fake(CandidatureObjectStorage::DISK);
+        $this->scan = fn (): UploadedFile => UploadedFile::fake()->createWithContent('bordereau.pdf', "%PDF-1.4\n%%EOF\n");
+        // Bordereau d'un autre dossier, présent dans le bucket ; ou fichier du bucket rattaché à rien.
+        $this->recopie = function (string $origine): string {
+            $chemin = 'scolarite/justificatifs/01JZZZZZZZZZZZZZZZZZZZZZZZ.pdf';
+            Storage::disk(CandidatureObjectStorage::DISK)->put($chemin, '%PDF-1.4');
+            if ($origine === 'autre versement') {
+                Versement::factory()->create(['inscription_annuelle_id' => $this->bruno->auditeur->inscriptionCourante->id, 'justificatif_path' => $chemin]);
+            }
+
+            return $chemin;
+        };
+        $this->actingAs(($this->compte)('scolarite_agent'));
+    });
+
+    it('enregistre un versement avec le scan déposé par le formulaire', function (): void {
+        $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
+            ->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'BOR-201', 'justificatif_path' => ($this->scan)()]))
+            ->assertHasNoActionErrors()
+            ->assertNotified('Versement enregistré');
+
+        $v = Versement::query()->where('reference', 'BOR-201')->sole();
+        expect(Versement::cheminJustificatifValide($v->justificatif_path))->toBeTrue()
+            ->and(Storage::disk(CandidatureObjectStorage::DISK)->exists((string) $v->justificatif_path))->toBeTrue();
+    });
+
+    it('refuse à la saisie d\'un versement un chemin recopié dans l\'état du formulaire, sans effacer le fichier', function (string $origine): void {
+        $chemin = ($this->recopie)($origine);
+
+        $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
+            ->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'BOR-202', 'justificatif_path' => [(string) Str::uuid() => $chemin]]))
+            ->assertNotified('Versement non enregistré');
+
+        expect(Versement::query()->where('reference', 'BOR-202')->exists())->toBeFalse()
+            ->and(Versement::query()->where('justificatif_path', $chemin)->count())->toBe($origine === 'autre versement' ? 1 : 0)
+            ->and(Storage::disk(CandidatureObjectStorage::DISK)->exists($chemin))->toBeTrue();
+    })->with(['autre versement', 'fichier rattaché à rien']);
+
+    it('joint après coup le scan déposé par le formulaire', function (): void {
+        $v = Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id]);
+
+        $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
+            ->callTableAction('ajouterJustificatif', $v, data: ['justificatif_path' => ($this->scan)()])
+            ->assertNotified('Bordereau joint');
+
+        expect(Versement::cheminJustificatifValide($v->fresh()->justificatif_path))->toBeTrue()
+            ->and(Storage::disk(CandidatureObjectStorage::DISK)->exists((string) $v->fresh()->justificatif_path))->toBeTrue();
+    });
+
+    it('refuse de joindre après coup un chemin recopié dans l\'état du formulaire, sans effacer le fichier', function (string $origine): void {
+        $chemin = ($this->recopie)($origine);
+        $v = Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id]);
+
+        $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
+            ->callTableAction('ajouterJustificatif', $v, data: ['justificatif_path' => [(string) Str::uuid() => $chemin]])
+            ->assertNotified('Bordereau non joint');
+
+        expect($v->fresh()->justificatif_path)->toBeNull()
+            ->and(Storage::disk(CandidatureObjectStorage::DISK)->exists($chemin))->toBeTrue();
+    })->with(['autre versement', 'fichier rattaché à rien']);
 });
 
 it('journalise les montants d\'un barème modifié', function (): void {

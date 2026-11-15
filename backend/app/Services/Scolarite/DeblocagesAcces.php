@@ -315,8 +315,7 @@ final class DeblocagesAcces
             throw new InvalidArgumentException('La pièce jointe est invalide : déposez-la à nouveau.');
         }
         // Une preuve ne sert qu'une fois : jamais le bordereau d'un versement ni la pièce d'un autre déblocage.
-        if ($chemin !== null && (Versement::query()->where('justificatif_path', $chemin)->exists()
-            || DeblocageAcces::query()->where('justificatif_path', $chemin)->exists())) {
+        if ($chemin !== null && Versement::pieceDejaJointe($chemin)) {
             throw new InvalidArgumentException('Cette pièce est déjà jointe à un versement ou à un autre déblocage : déposez la pièce propre à ce dossier.');
         }
 

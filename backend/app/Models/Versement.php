@@ -83,6 +83,16 @@ class Versement extends Model
             && preg_match('#^'.preg_quote(self::DOSSIER_JUSTIFICATIFS, '#').'/[0-9A-Za-z]{26}\.(pdf|jpg|jpeg|png)\z#', $chemin) === 1;
     }
 
+    /**
+     * Une pièce du dossier des justificatifs ne sert qu'une fois : jamais le
+     * bordereau d'un autre versement ni la pièce d'un accès anticipé.
+     */
+    public static function pieceDejaJointe(string $chemin): bool
+    {
+        return self::query()->where('justificatif_path', $chemin)->exists()
+            || DeblocageAcces::query()->where('justificatif_path', $chemin)->exists();
+    }
+
     public static function normaliserReference(string $reference): string
     {
         return mb_strtoupper(trim($reference));

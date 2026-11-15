@@ -76,8 +76,8 @@ final class RegistreVersements
             throw new InvalidArgumentException('Indiquez la référence du bordereau (100 caractères au plus).');
         }
         $justificatif = $saisie['justificatif_path'] ?? null;
-        if ($justificatif !== null && ! Versement::cheminJustificatifValide($justificatif)) {
-            throw new InvalidArgumentException('Le scan du bordereau est invalide : déposez-le à nouveau.');
+        if ($justificatif !== null) {
+            self::verifierScan($justificatif);
         }
         $this->refuserDossierRetire($inscription);
 
@@ -199,9 +199,7 @@ final class RegistreVersements
     {
         abort_unless($auteur->can(self::PERMISSION_SAISIR), 403);
 
-        if (! Versement::cheminJustificatifValide($chemin)) {
-            throw new InvalidArgumentException('Le scan du bordereau est invalide : déposez-le à nouveau.');
-        }
+        self::verifierScan($chemin);
         $this->refuserDossierRetire($versement->inscription()->firstOrFail());
 
         $modifies = Versement::query()->whereKey($versement->id)
@@ -256,6 +254,22 @@ final class RegistreVersements
             $this->deblocages->regulariser($inscription, $this->auteurCourant);
         } catch (Throwable $e) {
             Log::channel('single')->error('Régularisation de l\'accès anticipé impossible : la tâche quotidienne la rattrapera.', ['inscription' => $inscription->uuid, 'erreur' => $e::class]);
+        }
+    }
+
+    /**
+     * Chemin du dossier des bordereaux, rattaché à rien : un scan ne sert qu'à un
+     * versement (même garde que la pièce d'un accès anticipé).
+     *
+     * @throws InvalidArgumentException
+     */
+    private static function verifierScan(string $chemin): void
+    {
+        if (! Versement::cheminJustificatifValide($chemin)) {
+            throw new InvalidArgumentException('Le scan du bordereau est invalide : déposez-le à nouveau.');
+        }
+        if (Versement::pieceDejaJointe($chemin)) {
+            throw new InvalidArgumentException('Ce scan est déjà joint à un autre versement ou à un accès anticipé : déposez le bordereau propre à ce versement.');
         }
     }
 
