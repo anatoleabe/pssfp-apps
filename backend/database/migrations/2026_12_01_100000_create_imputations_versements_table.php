@@ -89,18 +89,17 @@ return new class extends Migration
         DB::statement('CREATE INDEX imputations_versements_inscription_actives ON imputations_versements (inscription_annuelle_id) WHERE annule_at IS NULL');
         DB::statement('CREATE UNIQUE INDEX imputations_versements_remplace_unique ON imputations_versements (remplace_id) WHERE remplace_id IS NOT NULL');
 
-        // Immuabilité : seule l'annulation est permise, une fois.
+        // Immuabilité : seule l'annulation est permise, une fois. Toute autre colonne est figée, y compris
+        // une colonne ajoutée plus tard (comparaison de la ligne entière, hors colonnes de l'annulation).
         DB::unprepared(<<<'SQL'
             CREATE OR REPLACE FUNCTION imputations_immuables() RETURNS trigger LANGUAGE plpgsql AS $$
+            DECLARE annulation text[] := ARRAY['annule_at', 'annule_par', 'annule_motif', 'updated_at'];
             BEGIN
               IF TG_OP = 'DELETE' THEN
                 RAISE EXCEPTION 'Imputation immuable : annulez-la, ne la supprimez pas' USING ERRCODE = 'check_violation';
               END IF;
               IF OLD.annule_at IS NOT NULL OR NEW.annule_at IS NULL
-                 OR ROW(NEW.id, NEW.uuid, NEW.auditeur_id, NEW.versement_id, NEW.inscription_annuelle_id, NEW.montant,
-                        NEW.origine, NEW.remplace_id, NEW.cree_par, NEW.created_at)
-                    IS DISTINCT FROM ROW(OLD.id, OLD.uuid, OLD.auditeur_id, OLD.versement_id, OLD.inscription_annuelle_id, OLD.montant,
-                        OLD.origine, OLD.remplace_id, OLD.cree_par, OLD.created_at) THEN
+                 OR (to_jsonb(NEW) - annulation) IS DISTINCT FROM (to_jsonb(OLD) - annulation) THEN
                 RAISE EXCEPTION 'Imputation immuable : seule son annulation, une fois, est permise' USING ERRCODE = 'check_violation';
               END IF;
               RETURN NEW;
@@ -154,21 +153,20 @@ return new class extends Migration
 
         // Versements immuables : l'avance (versements valides − imputations actives) en dépend. Seuls permis :
         // l'annulation, une fois, depuis un versement valide ; le bordereau, joint une fois ; la mise à nul
-        // d'un auteur par la suppression de son compte (clés SET NULL du lot 1).
+        // d'un auteur par la seule suppression de son compte (clés SET NULL du lot 1, déclencheur imbriqué :
+        // pg_trigger_depth() > 1). Toute autre colonne est figée, y compris une colonne ajoutée plus tard.
         DB::unprepared(<<<'SQL'
             CREATE OR REPLACE FUNCTION versements_immuables() RETURNS trigger LANGUAGE plpgsql AS $$
+            DECLARE libres text[] := ARRAY['annule_at', 'annule_par', 'annule_motif', 'justificatif_path', 'saisi_par', 'updated_at'];
             BEGIN
               IF TG_OP = 'DELETE' THEN
                 RAISE EXCEPTION 'Versement immuable : annulez-le, ne le supprimez pas' USING ERRCODE = 'check_violation';
               END IF;
-              IF ROW(NEW.id, NEW.uuid, NEW.auditeur_id, NEW.inscription_annuelle_id, NEW.montant, NEW.date_versement, NEW.mode,
-                     NEW.reference, NEW.payeur, NEW.created_at)
-                   IS DISTINCT FROM ROW(OLD.id, OLD.uuid, OLD.auditeur_id, OLD.inscription_annuelle_id, OLD.montant, OLD.date_versement, OLD.mode,
-                     OLD.reference, OLD.payeur, OLD.created_at)
-                 OR (NEW.saisi_par IS DISTINCT FROM OLD.saisi_par AND NEW.saisi_par IS NOT NULL)
+              IF (to_jsonb(NEW) - libres) IS DISTINCT FROM (to_jsonb(OLD) - libres)
+                 OR (NEW.saisi_par IS DISTINCT FROM OLD.saisi_par AND (NEW.saisi_par IS NOT NULL OR pg_trigger_depth() < 2))
                  OR (NEW.justificatif_path IS DISTINCT FROM OLD.justificatif_path AND OLD.justificatif_path IS NOT NULL)
                  OR (OLD.annule_at IS NOT NULL AND (NEW.annule_at IS DISTINCT FROM OLD.annule_at OR NEW.annule_motif IS DISTINCT FROM OLD.annule_motif
-                     OR (NEW.annule_par IS DISTINCT FROM OLD.annule_par AND NEW.annule_par IS NOT NULL)))
+                     OR (NEW.annule_par IS DISTINCT FROM OLD.annule_par AND (NEW.annule_par IS NOT NULL OR pg_trigger_depth() < 2))))
                  OR (OLD.annule_at IS NULL AND NEW.annule_at IS NULL
                      AND ROW(NEW.annule_par, NEW.annule_motif) IS DISTINCT FROM ROW(OLD.annule_par, OLD.annule_motif)) THEN
                 RAISE EXCEPTION 'Versement immuable : seuls son annulation et son bordereau, une fois chacun, sont permis' USING ERRCODE = 'check_violation';

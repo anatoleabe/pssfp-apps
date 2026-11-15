@@ -164,6 +164,26 @@ it('garde les versements immuables en base, sauf l\'annulation et le bordereau, 
         ->and($ligne()->value('annule_motif'))->toBe('Bordereau rejeté');
 });
 
+it('ne laisse mettre l\'auteur d\'un versement à nul que par la suppression de son compte', function (): void {
+    $agent = User::factory()->create();
+    $v = Versement::factory()->sansImputation()->create(['inscription_annuelle_id' => $this->inscription->id, 'saisi_par' => $agent->id]);
+
+    ($this->refuse)(fn () => DB::table('versements')->where('id', $v->id)->update(['saisi_par' => null]));
+    DB::table('users')->where('id', $agent->id)->delete();
+
+    expect(DB::table('versements')->where('id', $v->id)->value('saisi_par'))->toBeNull();
+});
+
+it('fige par défaut toute colonne ajoutée plus tard aux versements et aux imputations', function (): void {
+    $id = ($this->imputer)(185000);
+    DB::statement('ALTER TABLE versements ADD COLUMN colonne_future integer');
+    DB::statement('ALTER TABLE imputations_versements ADD COLUMN colonne_future integer');
+
+    ($this->refuse)(fn () => DB::table('versements')->where('id', $this->versement->id)->update(['colonne_future' => 1]));
+    ($this->refuse)(fn () => DB::table('imputations_versements')->where('id', $id)
+        ->update(['colonne_future' => 1, 'annule_at' => now(), 'annule_motif' => 'Annulation de contrôle']));
+});
+
 it('fait prendre au déclencheur de cohérence le verrou de l\'auditeur, pour sérialiser tout écrivain', function (): void {
     $source = (string) DB::scalar("SELECT prosrc FROM pg_proc WHERE proname = 'compte_auditeur_coherent'");
 

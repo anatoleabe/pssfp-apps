@@ -222,7 +222,9 @@ CREATE CONSTRAINT TRIGGER inscriptions_compte_coherent
 **Immuabilité des versements** (ajout de la réalisation, §18). L'avance se déduit entièrement des versements : un versement supprimé, rehaussé, « dé-annulé » ou passé d'un payeur à l'autre fausserait le compte sans qu'aucun garde-fou ne le voie. Un déclencheur `versements_immuables` (avant modification ou suppression) n'autorise que :
 - l'annulation, une fois, depuis un versement valide (`annule_at`, `annule_par`, `annule_motif`) ;
 - le bordereau, joint une fois (`justificatif_path` depuis nul) ;
-- la mise à nul d'un auteur par la suppression de son compte (clés `SET NULL` du lot 1) et `updated_at`.
+- la mise à nul d'un auteur par la seule suppression de son compte (clés `SET NULL` du lot 1, reconnues à `pg_trigger_depth() > 1`) et `updated_at`.
+
+Les deux déclencheurs d'immuabilité (versements, imputations) comparent la ligne entière (`to_jsonb`), hors colonnes permises : une colonne ajoutée plus tard est figée par défaut.
 
 Un déclencheur d'instruction refuse aussi `TRUNCATE` sur `versements` et `imputations_versements`.
 
@@ -740,6 +742,7 @@ Relectures de sécurité et « métier » faites sur le diff ; leurs constats r�
 |---|---|---|---|
 | Déclencheur de cohérence (§5.4) | Somme lue sans verrou | Prend d'abord le verrou de l'auditeur | Deux écrivains hors application pouvaient dépasser un plafond ensemble (lecture concurrente). |
 | Versements (§5.4) | Aucune immuabilité en base | Déclencheur `versements_immuables` et refus de `TRUNCATE` | L'avance se déduit des seuls versements : une suppression, une hausse de montant ou une « dé-annulation » échappaient à tous les garde-fous. |
+| Immuabilité des imputations (§5.4) | Liste de colonnes figées (`ROW(…)`) | Ligne entière hors colonnes de l'annulation (`to_jsonb`) | Une colonne ajoutée par un sous-lot suivant serait sinon modifiable par défaut. |
 | `down()` (§5.6) | Refus si une origine autre que `reprise` | Refus aussi si une imputation de reprise est annulée ou remplacée | Sinon le retour arrière effaçait l'historique d'une remise ou d'une annulation. |
 | Refus 23514 (§8) | Traduit par `RegistreVersements` | Traduit par `ImputationsCompte::sousVerrou`, pour toute écriture sous verrou ; journal sans le détail de la ligne | L'ouverture d'inscription, l'accès anticipé et le reçu renvoyaient sinon une erreur 500 et un journal avec la ligne SQL complète. |
 | Reçu, `avant(I)` (§9.2) | Ordre « date, puis `id` » | Ordre d'enregistrement (`id`) | Un versement antidaté contredisait la situation (reste affiché alors que l'année est soldée). |
@@ -757,6 +760,8 @@ Limites connues, sans correctif en D1 :
 - La migration de reprise du lot 1 (`2026_11_06_100200`) appelle `OuvertureAuditeur`, qui dépend désormais du compte : elle ne se rejoue plus sur une sauvegarde antérieure au 06/11/2026 contenant des matricules. Toute restauration part d'une sauvegarde postérieure.
 - La case « je confirme… avance » n'est contrôlée que par le formulaire : deux saisies simultanées peuvent, ensemble, envoyer une part en avance sans confirmation (argent conservé, comme l'ancien trop-perçu).
 - Le propriétaire des tables peut désactiver les déclencheurs (`ALTER TABLE … DISABLE TRIGGER`) : séparer à terme le rôle d'exécution du rôle propriétaire.
+- Le verrou pris par le déclencheur de cohérence ne protège un écrivain extérieur qu'en `READ COMMITTED` (niveau de Laravel et de `psql` par défaut) : en `REPEATABLE READ`, la somme se lit dans l'instantané du début de transaction.
+- Une annulation de versement sans motif reste acceptée par la base (lot 1) ; l'application exige toujours le motif.
 
 Questions ouvertes pour D4 (choix de spec, non des défauts) :
 - Le reçu et l'espace libellent « avance sur la scolarité à venir » aussi l'excédent d'un employeur, qui n'est pourtant pas imputé d'office sur l'année suivante (décision 7).
