@@ -1,0 +1,178 @@
+# Module 4 — Scolarité : encaissement par le service financier, confirmation par la scolarité
+
+**Date** : 2026-11-15. **Décideur** : M. ABE ETOUMOU Anatole, Chef USI (décisions du 15/11/2026, prises après celles de la bascule ACMA et de l'avis à l'auditeur, lot 4 §5, qui restent valables).
+
+Cette spec modifie le lot 4 (reçus), D1 (compte de l'auditeur), A1 (accès anticipé), A2 (prises en charge) et C (listes et états). Livraison en deux PR empilées, déployées ensemble :
+
+- **PR 1** — encaissement par le service financier : un seul geste « Enregistrer et émettre le reçu », séparation des tâches levée sur le reçu, saisie retirée à la scolarité. Elle contient aussi la bascule ACMA et l'avis à l'auditeur (lot 4 §5).
+- **PR 2** — confirmation par la scolarité : confirmation de chaque versement, effet « à jour », écran « Versements à confirmer », relance, contrôle interne et reprise des versements existants.
+
+## 1. Nouveau circuit
+
+1. L'auditeur paie à la banque (CREMINCAM). Il reçoit un reçu bancaire.
+2. Le **service financier** enregistre le versement (référence du bordereau) **et émet aussitôt le reçu officiel**, en un seul geste. L'auditeur est prévenu par SMS et e-mail (lot 4 §5).
+3. L'auditeur présente son reçu bancaire original à la **scolarité**. Un agent vérifie le reçu, scanne le bordereau bancaire et **confirme** le versement.
+4. Un auditeur n'est « à jour » qu'avec des versements confirmés. L'argent compte dans son compte et sur le reçu dès l'enregistrement, mais l'accès à eCampus et les listes « à jour » attendent la confirmation.
+
+## 2. Décisions
+
+### 2.1 Encaissement (PR 1)
+
+1. **Un geste.** « Enregistrer et émettre le reçu » écrit le versement et son reçu dans la même transaction : un versement ainsi saisi n'existe jamais sans son reçu. Le geste exige `scolarite.versement_saisir` et `scolarite.recu_emettre`.
+2. **Séparation levée.** La règle « celui qui a saisi le versement n'en émet pas le reçu » (lot 4 §2.1, `raisonRefus()`, `enAttente()`) est supprimée. Le contrôle passe à la scolarité, par la confirmation.
+3. **Seul le service financier enregistre des versements.** `scolarite.versement_saisir` est retirée aux rôles `scolarite_agent` et `scolarite_responsable`, par une migration additive (jamais `RolePermissionSeeder` en prod). `ModulePermissionMap` et `RolePermissionSeeder` suivent.
+4. Le **règlement réparti d'un organisme** (A2) dépend de la même permission : il passe au service financier.
+5. `scolarite.versement_annuler` ne change pas : le responsable de scolarité annule, le service financier n'annule pas sa propre saisie.
+
+### 2.2 Confirmation (PR 2)
+
+1. **Permission.** Nouvelle permission sensible `scolarite.versement_confirmer`. Elle va à `scolarite_agent`, `scolarite_responsable` et `admin`. `super_admin` la reçoit avec toutes les actions sensibles. Le service financier ne la reçoit pas.
+2. **Geste.** Confirmer un versement exige le **scan du bordereau bancaire**, déposé par la scolarité, et la case « J'atteste avoir vérifié le reçu bancaire original : le montant a bien été versé ».
+3. **Contrôle croisé.** Personne ne confirme un versement qu'il a lui-même saisi.
+4. **Définitive.** La confirmation est tracée (qui, quand, pièce) et écrite au journal `scolarite`. Elle se fait une seule fois. Une erreur se corrige par l'annulation du versement.
+5. **Effet « à jour ».**
+   - L'accès à eCampus (`AccesEcampus::accesOuvert`, `inscriptionSoldee`) ne compte que les montants confirmés. Il en va de même pour tout ce qui en découle : codes remettables, lien et lettre d'accès, export Word des lettres, régularisation des déblocages A1 et A2, SMS « accès disponibles ».
+   - Les listes « à jour » (lot C : filtres, listes de situation, relances des impayés) ne comptent aussi que les montants confirmés.
+   - Partout, le versé s'affiche avec « dont X à confirmer ».
+   - Le déblocage anticipé (A1) reste la voie d'exception.
+6. **Reçu.** Le reçu porte « Versement vérifié par la scolarité : <nom>, le <date> » quand la confirmation existe au moment de l'émission (§5, point 6).
+7. **Relance.** Un versement non confirmé 7 jours après son enregistrement déclenche un SMS et un e-mail à l'auditeur, ainsi qu'un contrôle interne (catalogue du lot 14a, relances graduées du lot 14b-2). La tâche tourne chaque jour à 08:00, heure de Yaoundé. L'auditeur est relancé au plus une fois tous les 7 jours.
+8. **Écran.** Un écran « Versements à confirmer » (groupe Scolarité) donne des filtres, l'action de confirmation et une pastille de menu.
+9. **Reprise.** Les versements existants sont repris comme confirmés par leur auteur (`saisi_par`), à leur date d'enregistrement, avec leur scan s'il existe. Aucun auditeur ne perd son accès au déploiement : un test vérifie que l'état d'accès est le même avant et après.
+
+## 3. Données
+
+### 3.1 PR 1
+
+Aucune table. Une migration de permissions, `revoke_scolarite_versement_saisir` :
+
+- elle retire `scolarite.versement_saisir` à `scolarite_agent` et `scolarite_responsable` ;
+- elle s'assure que `service_financier` porte `scolarite.versement_saisir` et `scolarite.recu_emettre` ;
+- elle met à jour les descriptions des deux rôles de scolarité, si elles n'ont pas été modifiées depuis l'écran Rôles ;
+- `down()` rend la permission aux deux rôles.
+
+### 3.2 PR 2 — `confirmations_versements` (nouvelle, en ajout seul)
+
+| Colonne | Type | Règle |
+|---|---|---|
+| `id` | bigserial | interne |
+| `versement_id` | FK `versements`, **unique** | une confirmation par versement, suppression refusée |
+| `confirme_par` | FK `users`, nullable | nul seulement pour une reprise sans auteur |
+| `confirme_at` | timestamptz | |
+| `justificatif_path` | varchar, nullable | scan du bordereau ; nul seulement pour une reprise sans scan |
+| `attestation` | boolean | vraie pour toute confirmation faite à l'écran |
+| `reprise` | boolean, défaut faux | ligne posée par la migration de reprise |
+| `created_at` | timestamptz | |
+
+- Une contrainte `CHECK (reprise OR (confirme_par IS NOT NULL AND justificatif_path IS NOT NULL AND attestation))` impose ces règles.
+- Le déclencheur `confirmations_versements_immuables` refuse UPDATE et DELETE, comme pour les reçus.
+
+**Pourquoi une table, et pas des colonnes sur `versements`.** Le déclencheur de D1 (`versements_immuables`) n'autorise que l'annulation et le bordereau. Ajouter la confirmation sur la ligne obligerait à élargir ce déclencheur, donc à affaiblir l'immuabilité de l'argent. Une table en ajout seul garde le déclencheur intact et rend la confirmation définitive par construction. Elle laisse aussi l'historique lisible : la confirmation d'un versement annulé ensuite reste visible.
+
+### 3.3 PR 2 — `recus_versements` (modifiée)
+
+- Deux colonnes nullables, figées à l'émission : `verifie_par_nom` et `verifie_le`.
+- Le déclencheur d'immuabilité des reçus n'est pas touché : les colonnes sont remplies à l'insertion.
+
+### 3.4 PR 2 — autres changements
+
+- Journal des envois : nouveau motif `confirmation` (relance), réaffiché dans l'espace de l'auditeur.
+- Contrôle interne : nouveau contrôle `VER_NON_CONFIRMES`.
+
+## 4. Effets sur les lots existants
+
+| Lot | Effet |
+|---|---|
+| D1 (compte) | Inchangé. Les imputations sont posées à la saisie et le reçu compte l'argent dès l'enregistrement. `CompteAuditeur`, le formulaire de saisie (reste, avance annoncée) et `CPT_COHERENCE` lisent tout l'argent. |
+| Lot 4 (reçus) | Émission au moment de la saisie ; séparation levée ; mention de vérification figée à l'émission (§3.3). |
+| A1 (accès anticipé) | Régularisé à la confirmation qui solde les droits, plus à la saisie. La tâche quotidienne de rattrapage suit la même règle. |
+| A2 (prises en charge) | Le règlement est saisi par le service financier. Ses parts se confirment comme tout versement (§5, point 4). « Réglé » reste l'argent reçu de l'organisme. |
+| C (listes, états) | Les filtres et les états « soldé », « à jour », « en retard » et « inscription soldée » ne comptent que les montants confirmés. Les colonnes de montants affichent le versé, avec la part à confirmer. |
+| Accès | Les codes, la lettre d'accès, l'export Word des lettres et le SMS « accès disponibles » partent à la confirmation qui solde les droits d'inscription. |
+
+## 5. Points tranchés en réalisation
+
+### PR 1
+
+1. **Atomicité du geste.** « Enregistrer et émettre le reçu » fait la saisie et l'émission sous le même verrou de l'auditeur et dans la même transaction. Si l'émission est refusée (par exemple, date de mise en service non réglée), rien n'est enregistré et l'agent voit le motif. L'avis à l'auditeur et la notification des accès partent après la validation.
+2. **Libellé du geste.** Avec `scolarite.recu_emettre`, le bouton de la fiche devient « Enregistrer et émettre le reçu ». Sans elle, il reste « Enregistrer un versement » (administrateurs). L'action « Émettre le reçu » de la ligne reste disponible pour un versement sans reçu en vigueur : reçu annulé puis réémis, part de règlement, saisie d'un administrateur, reçu demandé pour un versement antérieur à la bascule.
+3. **Rôles d'administration.** `admin` et `super_admin` gardent la saisie : la décision ne vise que les deux rôles de scolarité. À retirer à `admin` sur demande.
+4. **Niveau du module.** `scolarite.versement_saisir` reste la permission de gestion du module Scolarité. Les deux rôles de scolarité passent au niveau « Lecture » et gardent leurs actions sensibles. Le service financier reste au niveau « Gestion ».
+5. **Gestes de scolarité qui dépendaient de la saisie.**
+   - « Renvoyer le SMS et l'e-mail » des accès et « Envoyer un nouveau lien » vers la lettre d'accès passent sous `scolarite.lettre_acces` (agent, responsable, administrateurs).
+   - « Joindre le bordereau » reste à la saisie (service financier).
+   - « Créer l'inscription » reste à la saisie dans la PR 1. La PR 2 l'ouvre aussi à la confirmation (point 5 de la PR 2).
+6. **Pastille « Versements sans reçu ».** Sans séparation, elle compte aussi les versements saisis par l'agent lui-même. Dans le nouveau circuit, elle ne compte donc que les versements sans reçu en vigueur.
+7. **Matrice des rôles.** `docs/ops/roles.md` se régénère en production après le déploiement (`php artisan roles:matrice`), parce qu'elle compte les comptes réels.
+
+### PR 2
+
+1. **« À jour » sans changer le compte.**
+   - `SituationFinanciere` garde ses montants (versé, payé par palier, reste), lus sur tout l'argent imputé, comme D1.
+   - Elle gagne `aConfirmer`, l'imputé des versements non confirmés.
+   - Ses états (`inscriptionSoldee`, `solde`, `enRetard`) se calculent sur l'imputé confirmé.
+   - Les filtres SQL d'`InscriptionAnnuelle` (`inscriptionSoldee`, `accesOuvert`, `entierementSoldee`, `enRetard`) ne lisent que les imputations de versements confirmés.
+   - Le compte (`CompteAuditeur`, avance, formulaire de saisie, avertissements « rebloque ») reste sur tout l'argent.
+2. **Confirmation sans verrou de l'auditeur.** La confirmation n'écrit pas d'argent : elle verrouille la ligne du versement, ce qui la sérialise avec son annulation. L'index unique tranche entre deux confirmations simultanées. La régularisation A1/A2 et la notification des accès partent après la validation.
+3. **Scan.**
+   - Le scan de la confirmation est propre à la confirmation : une même pièce ne sert jamais deux fois (`Versement::pieceDejaJointe`).
+   - Si le versement n'a pas encore de bordereau, le même scan lui est joint, ce que le déclencheur de D1 autorise.
+4. **Parts d'un règlement d'organisme.** L'organisme n'a pas de reçu à présenter pour chaque auditeur. Une part se confirme donc avec son règlement : l'action confirme d'un coup toutes les parts non confirmées du règlement, avec le scan de la pièce bancaire du règlement. Le contrôle croisé s'applique à chaque part.
+5. **« Créer l'inscription »** est ouverte à la saisie ou à la confirmation : le service financier en a besoin pour saisir, la scolarité pour tenir le dossier.
+6. **Mention sur le reçu.** Le reçu est figé et se régénère à l'identique (lot 4 §2.3).
+   - La mention « Versement vérifié par la scolarité : <nom>, le <date> » n'y figure que si la confirmation existait au moment de l'émission, c'est-à-dire pour un reçu réémis après une annulation. Elle est figée dans les colonnes de §3.3.
+   - Dans le circuit normal, le reçu précède la confirmation : la vérification se lit alors dans l'espace de l'auditeur (« Vérifié par la scolarité le JJ/MM/AAAA »), sur la fiche et sur le relevé de scolarité, qui se recalculent.
+7. **Relance de l'auditeur.**
+   - Elle est envoyée par le circuit des messages aux auditeurs, sous le motif `confirmation`, et réaffichée dans l'espace.
+   - Le délai de 7 jours se compte par auditeur, sur le journal des envois : au plus une relance aboutie tous les 7 jours.
+   - Un dossier retiré, exclu ou en abandon n'est pas relancé.
+8. **Contrôle `VER_NON_CONFIRMES`.**
+   - Niveau majeur, délai de 7 jours, responsable `scolarite_agent`.
+   - Un cas par versement non confirmé depuis 7 jours, désigné par le matricule, sans nom.
+9. **Reprise.**
+   - La migration confirme tous les versements non annulés présents au déploiement (`reprise = true`) : `confirme_par = saisi_par`, `confirme_at = created_at`, scan = bordereau du versement.
+   - Les versements annulés ne sont pas repris : ils ne comptent plus.
+   - Le test d'équivalence compare l'état d'accès de chaque dossier avant la migration (ancienne règle, tout l'argent) et après.
+
+## 6. Permissions avant et après
+
+| Permission | `scolarite_agent` | `scolarite_responsable` | `service_financier` | `admin` | `super_admin` |
+|---|---|---|---|---|---|
+| `scolarite.versement_saisir` (gestion du module) | oui → **non** | oui → **non** | oui | oui | oui |
+| `scolarite.recu_emettre` | non | non | oui | non | oui |
+| `scolarite.versement_annuler` | non | oui | non | oui | oui |
+| `scolarite.versement_confirmer` (nouvelle, PR 2) | **oui** | **oui** | **non** | **oui** | **oui** |
+| `scolarite.lettre_acces` (renvoi des accès en plus, PR 1) | oui | oui | non | oui | oui |
+
+## 7. Textes
+
+- SMS de l'avis de reçu et e-mail : voir le lot 4 §5.2, point 5.
+- SMS de relance (ASCII, un segment, sans adresse ni téléphone) : `PSSFP : votre versement n'est pas encore confirme. Presentez votre recu bancaire original a la scolarite pour le faire valider.`
+- E-mail de relance, sujet : `PSSFP — Versement à confirmer à la scolarité`. Corps : la liste des versements à confirmer (date, montant, référence, numéro du reçu), puis la consigne de présenter le reçu bancaire original à la scolarité, et l'adresse de l'espace en fin de ligne.
+
+## 8. Critères d'acceptation
+
+### PR 1
+
+1. Un agent du service financier enregistre un versement et son reçu en un geste. L'auditeur reçoit l'avis.
+2. Si l'émission est refusée, aucun versement n'est écrit.
+3. Un agent et un responsable de scolarité ne peuvent plus enregistrer de versement, ni par l'écran ni par le service.
+4. La migration retire la permission aux deux rôles, la garde au service financier, et se défait.
+5. L'émetteur peut émettre le reçu d'un versement qu'il a saisi. La pastille compte ces versements.
+
+### PR 2
+
+1. Une confirmation exige le scan et l'attestation. Elle est refusée pour son propre versement, un versement annulé ou déjà confirmé, et sans la permission.
+2. Un versement non confirmé ne débloque pas l'accès. Sa confirmation, si elle solde les droits, ouvre l'accès, régularise le déblocage et envoie le SMS des accès.
+3. Les listes et filtres « à jour » ignorent les versements non confirmés. L'affichage donne « dont X à confirmer ».
+4. La relance part au 7e jour, puis au plus tous les 7 jours. Le contrôle interne relève les mêmes versements.
+5. Après la reprise, l'état d'accès de chaque dossier est celui d'avant.
+6. Une part de règlement se confirme avec son règlement.
+
+## 9. Déploiement (les deux PR ensemble)
+
+1. Déployer, puis lancer les migrations : permissions (PR 1), puis confirmations, reprise et colonnes du reçu (PR 2).
+2. Vérifier que `pssfp-queue` tourne (e-mails) et que la crontab de `schedule:run` est en place (relance de 08:00).
+3. Au moment de l'arrêt d'ACMA, lancer `php artisan scolarite:bascule-recus` (lot 4 §5.4).
+4. Régénérer `docs/ops/roles.md` (`php artisan roles:matrice`), puis vérifier les rôles dans l'écran Rôles.
+5. Contrôler que « Versements à confirmer » est vide juste après la reprise, et que `scolarite:verifier-comptes` rend 0.
