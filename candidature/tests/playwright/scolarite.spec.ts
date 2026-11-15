@@ -44,9 +44,10 @@ function messages(locale: 'fr' | 'en'): Messages {
 }
 
 /*
- * L'excédent des versements (clé d'API `trop_percu`) se lit « Avance » depuis la
- * décision du chef de projet du 15/11/2026. La carte connectée demande une API
- * réelle : ici, les textes des deux langues.
+ * L'avance du compte de l'auditeur (clé d'API `avance`, ADR-0013 ; `trop_percu` en
+ * reste l'alias jusqu'au sous-lot D2) se lit « Avance » dans les deux langues. La
+ * carte connectée demande une API réelle et se vérifie au navigateur avant la mise
+ * en production : ici, les textes des deux langues et la clé que lit la carte.
  */
 test.describe('Excédent des versements', () => {
   test('les deux langues le présentent comme une avance, jamais comme un trop-perçu', () => {
@@ -59,5 +60,16 @@ test.describe('Excédent des versements', () => {
     expect(JSON.stringify(en)).not.toMatch(/overpa/i);
     expect(fr).not.toHaveProperty('tropPercu');
     expect(en).not.toHaveProperty('tropPercu');
+  });
+});
+
+test.describe('Avance du compte', () => {
+  test('la carte lit la clé `avance`, avec repli sur `trop_percu` tant que l\'API n\'est pas à jour', () => {
+    const carte = readFileSync(join(__dirname, '..', '..', 'components', 'dossier', 'DossierScolariteCard.tsx'), 'utf8');
+    const client = readFileSync(join(__dirname, '..', '..', 'lib', 'api', 'client.ts'), 'utf8');
+
+    expect(client).toMatch(/\n\s+avance: number;/);
+    expect(carte).toContain('scolarite.avance ?? scolarite.trop_percu');
+    expect(carte).toContain('data-testid="scolarite-avance"');
   });
 });
