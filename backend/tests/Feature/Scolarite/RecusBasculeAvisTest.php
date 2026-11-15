@@ -71,7 +71,7 @@ beforeEach(function (): void {
     $this->inscription = $this->awa->auditeur->inscriptionCourante;
     $this->service = fn (): RecusVersements => app(RecusVersements::class);
     $this->verser = fn (int $montant, string $date = '2026-11-02'): Versement => app(RegistreVersements::class)->enregistrer($this->inscription,
-        ['montant' => $montant, 'date_versement' => $date, 'mode' => 'cremincam_agence', 'reference' => 'BOR-'.Str::random(6), 'payeur' => 'auditeur'], $this->agent)->versement;
+        ['montant' => $montant, 'date_versement' => $date, 'mode' => 'cremincam_agence', 'reference' => 'BOR-'.Str::random(6), 'payeur' => 'auditeur'], $this->financier)->versement;
     $this->a = fn (int $jour, int $heure, int $minute = 0) => $this->travelTo(now('Africa/Douala')->setDate(2026, 11, $jour)->setTime($heure, $minute));
 
     // Avis des reçus seulement : un versement peut aussi annoncer les accès FOAD.

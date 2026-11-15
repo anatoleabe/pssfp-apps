@@ -55,6 +55,7 @@ beforeEach(function (): void {
         fn (User $u) => $u->assignRole($role),
     );
     $this->agent = ($this->compte)('scolarite_agent');
+    $this->encaisseur = ($this->compte)('service_financier');
     $this->responsable = ($this->compte)('scolarite_responsable');
     $this->campagne = CampagneCandidature::factory()->closed()->create([
         'nom' => ['fr' => 'Année académique 2026-2027'], 'promotion_numero' => 14,
@@ -87,7 +88,7 @@ beforeEach(function (): void {
     $this->etat = fn (): string => AccesEcampus::etat(Candidature::query()->findOrFail($this->dossier->id));
     $this->verser = fn () => app(RegistreVersements::class)->enregistrer($this->inscription->fresh(), [
         'montant' => 185000, 'date_versement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'VIR-'.Str::random(8), 'payeur' => 'auditeur',
-    ], $this->agent);
+    ], $this->encaisseur);
     $this->page = fn () => $this->livewire(ViewAuditeur::class, ['record' => $this->auditeur->getRouteKey()]);
 });
 

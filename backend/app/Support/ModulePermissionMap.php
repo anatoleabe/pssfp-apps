@@ -113,7 +113,7 @@ final class ModulePermissionMap
             ],
             'scolarite' => [
                 'label' => 'Scolarité',
-                'description' => 'Auditeurs, versements et situation financière. La gestion donne le droit d\'enregistrer un versement.',
+                'description' => 'Auditeurs, versements et situation financière. La gestion donne le droit d\'enregistrer un versement : elle revient au service financier (décision du 15/11/2026), la scolarité est en lecture avec ses actions sensibles.',
                 'read' => [
                     'view_any_auditeur', 'view_auditeur',
                 ],
@@ -130,7 +130,7 @@ final class ModulePermissionMap
                     'scolarite.promotion' => 'Modifier les réglages d\'une promotion (lettres, rentrée, consignes)',
                     'scolarite.statut' => 'Changer le statut d\'un auditeur (suspendu, abandon, exclu, diplômé)',
                     'scolarite.messages' => 'Envoyer un message aux auditeurs (relance des impayés)',
-                    'scolarite.lettre_acces' => 'Télécharger depuis sa fiche la lettre d\'accès FOAD (avec le mot de passe) d\'un auditeur dont l\'inscription est soldée',
+                    'scolarite.lettre_acces' => 'Télécharger depuis sa fiche la lettre d\'accès FOAD (avec le mot de passe) d\'un auditeur dont l\'inscription est soldée ; lui renvoyer le SMS et l\'e-mail des accès, ou un nouveau lien vers sa lettre',
                     'scolarite.deblocage' => 'Débloquer l\'accès à eCampus avant paiement sur un virement annoncé, et le prolonger une fois de 30 jours au plus ; enregistrer les engagements de prise en charge des organismes, y rattacher des auditeurs et relancer l\'organisme',
                     'scolarite.deblocage_exceptionnel' => 'Accorder un moratoire ou une dérogation (accès avant paiement), prolonger et révoquer tout déblocage, prolonger un engagement de prise en charge',
                     'scolarite.etiquettes' => 'Poser et retirer des étiquettes sur les auditeurs ; créer, renommer et supprimer les étiquettes',

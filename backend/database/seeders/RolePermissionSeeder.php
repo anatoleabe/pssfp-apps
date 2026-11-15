@@ -171,21 +171,23 @@ final class RolePermissionSeeder extends Seeder
              * 2026_10_19_200000_library_admin_roles (vérifié par
              * LibraryAdminRolesMigrationTest).
              */
-            // Scolarité (spec module 4) : l'agent enregistre l'argent, le responsable
-            // corrige et accorde. Aucun des deux n'ouvre les dossiers ; depuis le
-            // 13/11/2026, tous deux téléchargent la lettre d'accès FOAD d'un auditeur
-            // soldé, un dossier à la fois (scolarite.lettre_acces). Tous deux posent les
-            // étiquettes des auditeurs (scolarite.etiquettes, 30/11/2026).
+            // Scolarité (spec module 4) : depuis le 15/11/2026, le service financier
+            // enregistre l'argent (gestion du module) et la scolarité est en lecture ;
+            // le responsable corrige et accorde. Aucun des deux n'ouvre les dossiers ;
+            // depuis le 13/11/2026, tous deux téléchargent la lettre d'accès FOAD d'un
+            // auditeur soldé, un dossier à la fois, et en renvoient les accès
+            // (scolarite.lettre_acces). Tous deux posent les étiquettes des auditeurs
+            // (scolarite.etiquettes, 30/11/2026).
             'scolarite_agent' => [
                 'label' => 'Agent de scolarité',
-                'description' => 'Consultation des auditeurs, enregistrement des versements et export de la situation financière ; lettre d\'accès FOAD d\'un auditeur soldé ; préparation des maquettes et inscriptions pédagogiques.',
-                'modules' => ['scolarite' => $manage, 'lmd' => $manage],
+                'description' => 'Consultation des auditeurs et export de la situation financière ; lettre d\'accès FOAD d\'un auditeur soldé et renvoi de ses accès ; préparation des maquettes et inscriptions pédagogiques.',
+                'modules' => ['scolarite' => $read, 'lmd' => $manage],
                 'sensitive' => ['scolarite.export', 'scolarite.lettre_acces', 'scolarite.etiquettes', 'scolarite.deblocage'],
             ],
             'scolarite_responsable' => [
                 'label' => 'Responsable de scolarité',
                 'description' => 'Droits de l\'agent, plus l\'annulation des versements, les remises, les barèmes, les réglages de promotion, le statut des auditeurs, les messages, la validation des maquettes, les règles d\'évaluation et les changements de parcours.',
-                'modules' => ['scolarite' => $manage, 'lmd' => $manage],
+                'modules' => ['scolarite' => $read, 'lmd' => $manage],
                 'sensitive' => ['scolarite.export', 'scolarite.lettre_acces', 'scolarite.etiquettes', 'scolarite.versement_annuler', 'scolarite.remise', 'scolarite.bareme', 'supervision.consulter',
                     'scolarite.promotion', 'scolarite.statut', 'scolarite.messages', 'scolarite.deblocage', 'scolarite.deblocage_exceptionnel',
                     'lmd.maquette_valider', 'lmd.regles', 'lmd.parcours_changer',
@@ -226,7 +228,7 @@ final class RolePermissionSeeder extends Seeder
             ],
             'service_financier' => [
                 'label' => 'Service administratif et financier',
-                'description' => 'Dossiers de paie des enseignants : NIU, banque et compte de virement.',
+                'description' => 'Encaissement des versements de scolarité et émission de leurs reçus ; dossiers de paie des enseignants : NIU, banque et compte de virement.',
                 'modules' => ['scolarite' => $manage],
                 'sensitive' => ['lmd.dossier_paie', 'scolarite.recu_emettre', 'lmd.paie_payer', 'lmd.controle_gestion'],
             ],

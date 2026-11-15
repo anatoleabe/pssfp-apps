@@ -26,6 +26,7 @@ uses()->group('scolarite');
 
 beforeEach(function (): void {
     $this->seed([PaysSeeder::class, RegionsCamerounSeeder::class, DepartementsCamerounSeeder::class, RolePermissionSeeder::class]);
+    $this->encaisseur = tap(User::factory()->create(['email' => 'sf-'.Str::random(5).'@pssfp.local']), fn (User $u) => $u->assignRole('service_financier'));
     $this->responsable = tap(User::factory()->create(['email' => 'resp-'.Str::random(5).'@pssfp.local']), fn (User $u) => $u->assignRole('scolarite_responsable'));
     $this->admin = tap(User::factory()->create(['email' => 'adm-'.Str::random(5).'@pssfp.local']), fn (User $u) => $u->assignRole('admin'));
     $this->campagne = CampagneCandidature::factory()->create(['nom' => ['fr' => 'Année académique 2026-2027'], 'promotion_numero' => 14]);
@@ -49,7 +50,7 @@ beforeEach(function (): void {
     });
     $this->verser = fn (int $montant = 185000) => app(RegistreVersements::class)->enregistrer($this->inscription->fresh(), [
         'montant' => $montant, 'date_versement' => '2026-11-02', 'mode' => 'virement', 'reference' => 'BOR-'.Str::random(8), 'payeur' => 'auditeur',
-    ], $this->responsable);
+    ], $this->encaisseur);
     $this->etat = fn (): string => AccesEcampus::etat(Candidature::query()->findOrFail($this->dossier->id));
     $this->compteCree = fn () => $this->dossier->forceFill(['ecampus_statut' => ComptesEcampus::CREE])->save();
 });

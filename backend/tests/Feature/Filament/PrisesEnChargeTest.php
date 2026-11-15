@@ -64,6 +64,8 @@ beforeEach(function (): void {
     Mail::fake();
 
     $this->agent = ($this->compte)('scolarite_agent');
+    // Depuis le 15/11/2026, le service financier enregistre l'argent, règlements d'organismes compris.
+    $this->encaisseur = ($this->compte)('service_financier');
     $this->engagement = app(EngagementsPriseEnCharge::class)->creer([
         'organisme' => 'Ministère de test', 'lettre_reference' => 'LT-2026-001', 'lettre_date' => '2026-11-10',
         'lettre_path' => 'scolarite/justificatifs/01JLETTRE0000000000000000A.pdf', 'contact_nom' => 'Service RH',
@@ -91,7 +93,7 @@ it('liste les engagements avec auditeurs, couvert, réglé, reste et état', fun
     app(ReglementsOrganismes::class)->enregistrer($this->engagement, [
         'montant' => 185000, 'date_reglement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'OV-1',
         'parts' => [$this->awa->fresh()->auditeur->inscriptionCourante->uuid => 185000],
-    ], $this->agent);
+    ], $this->encaisseur);
     $this->actingAs($this->agent);
 
     $this->livewire(ListEngagements::class)
@@ -138,15 +140,15 @@ it('propose les actions de la fiche selon les droits', function (string $role, a
         $page->assertActionHidden($a);
     }
 })->with([
-    'agent' => ['scolarite_agent', ['rattacher', 'enregistrerReglement', 'relancer', 'lettre', 'modifierContact'], ['prolonger']],
-    'responsable' => ['scolarite_responsable', ['rattacher', 'enregistrerReglement', 'relancer', 'lettre', 'prolonger'], []],
+    'agent' => ['scolarite_agent', ['rattacher', 'relancer', 'lettre', 'modifierContact'], ['prolonger', 'enregistrerReglement']],
+    'responsable' => ['scolarite_responsable', ['rattacher', 'relancer', 'lettre', 'prolonger'], ['enregistrerReglement']],
     'service financier' => ['service_financier', ['enregistrerReglement', 'lettre'], ['rattacher', 'relancer', 'prolonger', 'modifierContact']],
 ]);
 
 it('rattache des auditeurs depuis la fiche et nomme les refus', function (): void {
     app(RegistreVersements::class)->enregistrer($this->bruno->fresh()->auditeur->inscriptionCourante, [
         'montant' => 185000, 'date_versement' => '2026-11-16', 'mode' => 'especes', 'reference' => 'ESP-9', 'payeur' => 'auditeur',
-    ], $this->agent);
+    ], $this->encaisseur);
     $this->actingAs($this->agent);
 
     ($this->fiche)()
@@ -162,7 +164,7 @@ it('rattache des auditeurs depuis la fiche et nomme les refus', function (): voi
 
 it('enregistre un règlement réparti depuis la fiche, parts proposées au reste', function (): void {
     ($this->rattacher)([$this->awa, $this->bruno]);
-    $this->actingAs($this->agent);
+    $this->actingAs($this->encaisseur);
     $parts = ReglementsOrganismes::partsProposees($this->engagement);
 
     ($this->fiche)()
@@ -178,7 +180,7 @@ it('enregistre un règlement réparti depuis la fiche, parts proposées au reste
 
 it('refuse depuis la fiche une somme des parts différente du montant, et exige la confirmation d\'un dépassement', function (): void {
     ($this->rattacher)([$this->awa, $this->bruno]);
-    $this->actingAs($this->agent);
+    $this->actingAs($this->encaisseur);
     $parts = ReglementsOrganismes::partsProposees($this->engagement);
     $saisie = ['date_reglement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'OV-56'];
 
@@ -230,7 +232,7 @@ it('réserve l\'annulation d\'un règlement au responsable, depuis l\'onglet des
     $r = app(ReglementsOrganismes::class)->enregistrer($this->engagement, [
         'montant' => 185000, 'date_reglement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'OV-1',
         'parts' => ReglementsOrganismes::partsProposees($this->engagement),
-    ], $this->agent)->reglement;
+    ], $this->encaisseur)->reglement;
     $onglet = fn () => $this->livewire(ReglementsRelationManager::class, ['ownerRecord' => $this->engagement, 'pageClass' => ViewEngagement::class]);
 
     $this->actingAs($this->agent);
@@ -273,7 +275,7 @@ it('ne propose pas d\'annuler seul, sur la fiche, un versement issu d\'un règle
     app(ReglementsOrganismes::class)->enregistrer($this->engagement, [
         'montant' => 185000, 'date_reglement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'OV-1',
         'parts' => ReglementsOrganismes::partsProposees($this->engagement),
-    ], $this->agent);
+    ], $this->encaisseur);
     $this->actingAs(($this->compte)('scolarite_responsable'));
 
     $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->awa->fresh()->auditeur, 'pageClass' => ViewAuditeur::class])

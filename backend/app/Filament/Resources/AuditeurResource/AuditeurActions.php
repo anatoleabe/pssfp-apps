@@ -8,6 +8,7 @@ use App\Models\Auditeur;
 use App\Models\InscriptionAnnuelle;
 use App\Models\LienLettreAcces;
 use App\Models\Versement;
+use App\Services\DocumentsAuditeurs\DocumentsAuditeurs;
 use App\Services\NotificationCandidatsService;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\AnnulationMultiAnnees;
@@ -17,6 +18,7 @@ use App\Services\Scolarite\LiensLettreAcces;
 use App\Services\Scolarite\MessagesAuditeurs;
 use App\Services\Scolarite\NotificationAcces;
 use App\Services\Scolarite\OuvertureAuditeur;
+use App\Services\Scolarite\RecusVersements;
 use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\ResultatOperation;
 use App\Services\Scolarite\StatutAuditeur;
@@ -58,19 +60,29 @@ final class AuditeurActions
         return $chemin !== null && in_array($chemin, self::$deposes, true);
     }
 
+    /**
+     * Le service financier enregistre et émet le reçu en un seul geste (décision du 15/11/2026) ; sans le droit
+     * d'émettre (administrateurs), le geste n'enregistre que le versement.
+     */
+    public static function encaisseAvecRecu(): bool
+    {
+        return (bool) auth()->user()?->can(RecusVersements::PERMISSION_EMETTRE);
+    }
+
     public static function enregistrerVersement(): Action
     {
         return Action::make('enregistrerVersement')
-            ->label('Enregistrer un versement')
+            ->label(fn (): string => self::encaisseAvecRecu() ? 'Enregistrer et émettre le reçu' : 'Enregistrer un versement')
             ->icon('heroicon-o-banknotes')
             ->color('primary')
             ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR)
                 && $record->inscriptionCourante !== null && $record->candidature?->withdrawn_at === null)
-            ->modalHeading('Enregistrer un versement')
+            ->modalHeading(fn (): string => self::encaisseAvecRecu() ? 'Enregistrer le versement et émettre son reçu' : 'Enregistrer un versement')
             // Reste sur le parcours (arriérés compris), égal en D1 au reste de l'année courante.
             ->modalDescription(fn (Auditeur $record): string => 'Reste à payer : '.LibelleSituation::fcfa(CompteAuditeur::pour($record)->resteParcours())
-                .'. Le versement compte aussitôt ; seul le responsable de scolarité peut l\'annuler.')
-            ->modalSubmitActionLabel('Enregistrer')
+                .'. Le versement compte aussitôt ; seul le responsable de scolarité peut l\'annuler.'
+                .(self::encaisseAvecRecu() ? ' Le reçu numéroté est émis à votre nom et l\'auditeur en est prévenu par SMS et par e-mail.' : ''))
+            ->modalSubmitActionLabel(fn (): string => self::encaisseAvecRecu() ? 'Enregistrer et émettre le reçu' : 'Enregistrer')
             ->form(fn (Auditeur $record): array => MessagesValidation::appliquer([
                 Forms\Components\TextInput::make('montant')->label('Montant (FCFA)')->required()->integer()->minValue(1)->maxValue(RegistreVersements::MONTANT_MAX)->live(onBlur: true),
                 Forms\Components\DatePicker::make('date_versement')->label('Date du versement')->required()->native(false)
@@ -90,7 +102,10 @@ final class AuditeurActions
             ->action(function (Auditeur $record, array $data, Action $action): void {
                 try {
                     self::exigerScanDepose($data['justificatif_path'] ?? null);
-                    $resultat = app(RegistreVersements::class)->enregistrer($record->inscriptionCourante, $data, auth()->user());
+                    $registre = app(RegistreVersements::class);
+                    $resultat = self::encaisseAvecRecu()
+                        ? $registre->encaisser($record->inscriptionCourante, $data, auth()->user())
+                        : $registre->enregistrer($record->inscriptionCourante, $data, auth()->user());
                 } catch (InvalidArgumentException $e) {
                     self::supprimerScanOrphelin($data['justificatif_path'] ?? null);
                     Notification::make()->danger()->title('Versement non enregistré')->body($e->getMessage())->send();
@@ -99,7 +114,7 @@ final class AuditeurActions
                     return;
                 }
                 $record->refresh();
-                self::notifier('Versement enregistré', $resultat);
+                self::notifier($resultat->recu === null ? 'Versement enregistré' : 'Versement enregistré, reçu '.$resultat->recu->numero.' émis', $resultat);
             });
     }
 
@@ -152,20 +167,26 @@ final class AuditeurActions
             });
     }
 
+    /** Renvoi des accès et du lien vers la lettre : la scolarité, depuis que la saisie est au service financier (15/11/2026). */
+    public static function peutRenvoyerAcces(): bool
+    {
+        return (bool) auth()->user()?->can(DocumentsAuditeurs::PERMISSION_LETTRE_ACCES_DOSSIER);
+    }
+
     public static function renvoyerSms(): Action
     {
         return Action::make('renvoyerSms')
             ->label('Renvoyer le SMS et l\'e-mail')
             ->icon('heroicon-o-chat-bubble-left-ellipsis')
             ->color('warning')
-            ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR)
+            ->visible(fn (Auditeur $record): bool => self::peutRenvoyerAcces()
                 && $record->candidature !== null
                 && AccesEcampus::etat($record->candidature) === AccesEcampus::DISPONIBLE
                 && $record->inscriptionCourante?->acces_notifie_at === null)
             ->requiresConfirmation()
             ->modalDescription('Ni le SMS ni l\'e-mail des accès ne sont partis. Ils contiennent un lien vers la lettre d\'accès (date de naissance demandée), ou à défaut l\'adresse de l\'espace ; jamais de mot de passe.')
             ->action(function (Auditeur $record): void {
-                abort_unless(auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR), 403);
+                abort_unless(self::peutRenvoyerAcces(), 403);
                 $envoye = app(NotificationAcces::class)->siDisponible($record->candidature, auth()->user());
                 $record->refresh();
                 match ($envoye) {
@@ -186,7 +207,7 @@ final class AuditeurActions
             ->label('Envoyer un nouveau lien')
             ->icon('heroicon-o-link')
             ->color('gray')
-            ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR)
+            ->visible(fn (Auditeur $record): bool => self::peutRenvoyerAcces()
                 && $record->candidature !== null
                 && LiensLettreAcces::possible($record->candidature))
             ->requiresConfirmation()
@@ -194,7 +215,7 @@ final class AuditeurActions
             ->modalDescription(fn (Auditeur $record): string => 'SMS au '.($record->candidature?->phone_e164 ?? '—').' et e-mail à '.($record->candidature?->email ?: '—').' : lien valable '
                 .LienLettreAcces::DUREE_JOURS.' jours, date de naissance demandée avant le téléchargement. Le lien précédent cesse de fonctionner.')
             ->action(function (Auditeur $record): void {
-                abort_unless(auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR), 403);
+                abort_unless(self::peutRenvoyerAcces(), 403);
                 $envoye = app(LiensLettreAcces::class)->envoyer($record->candidature, auth()->user());
                 $envoye
                     ? Notification::make()->success()->title('Lien envoyé')->send()
@@ -474,7 +495,7 @@ final class AuditeurActions
         match ($resultat->sms) {
             true => Notification::make()->success()->title($titre)->body('Inscription soldée : l\'auditeur a été prévenu de ses accès par SMS et par e-mail (détail par canal dans le journal d\'activité).')->send(),
             false => Notification::make()->warning()->persistent()->title($titre)
-                ->body('Inscription soldée, mais ni le SMS ni l\'e-mail des accès ne sont partis. Utilisez « Renvoyer le SMS et l\'e-mail » sur la fiche.')->send(),
+                ->body('Inscription soldée, mais ni le SMS ni l\'e-mail des accès ne sont partis. La scolarité peut les renvoyer depuis la fiche (« Renvoyer le SMS et l\'e-mail »).')->send(),
             null => Notification::make()->success()->title($titre)->send(),
         };
     }

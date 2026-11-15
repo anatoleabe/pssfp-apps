@@ -26,7 +26,8 @@ uses()->group('scolarite');
 beforeEach(function (): void {
     $this->seed([PaysSeeder::class, RegionsCamerounSeeder::class, DepartementsCamerounSeeder::class, RolePermissionSeeder::class]);
     $agent = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole($role));
-    $this->agent = $agent('scolarite_agent');
+    // Depuis le 15/11/2026, le service financier enregistre l'argent (spec encaissement-confirmation §2.1).
+    $this->agent = $agent('service_financier');
     $this->responsable = $agent('scolarite_responsable');
     $this->admin = $agent('admin');
 

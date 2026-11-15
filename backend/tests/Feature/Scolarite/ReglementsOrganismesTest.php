@@ -87,7 +87,7 @@ beforeEach(function (): void {
         $e ?? $this->engagement,
         $saisie + ['montant' => 370000, 'date_reglement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'ov-77',
             'parts' => ReglementsOrganismes::partsProposees($e ?? $this->engagement)],
-        $par ?? $this->agent,
+        $par ?? $this->financier,
     )->reglement;
     $this->parts = fn (array $montants): array => collect($montants)->mapWithKeys(fn (int $m, string $d): array => [($this->inscriptionDe)($this->{$d})->uuid => $m])->all();
     $this->verifier = fn (): int => $this->artisan('scolarite:verifier-comptes')->run();
@@ -98,7 +98,7 @@ describe('parts proposées', function (): void {
     it('propose à chaque auditeur couvert le reste dû dans la portée', function (): void {
         app(RegistreVersements::class)->enregistrer(($this->inscriptionDe)($this->awa), [
             'montant' => 100000, 'date_versement' => '2026-11-16', 'mode' => 'especes', 'reference' => 'ESP-1', 'payeur' => 'auditeur',
-        ], $this->agent);
+        ], $this->financier);
         $annee = ($this->nouvelEngagement)(['portee' => EngagementPriseEnCharge::SCOLARITE_ANNEE, 'lettre_reference' => 'LT-ANNEE',
             'lettre_path' => 'scolarite/justificatifs/01JLETTRE0000000000000000B.pdf']);
         ($this->rattacher)($annee, [$this->chantal]);
@@ -119,7 +119,7 @@ describe('enregistrement', function (): void {
         $r = ($this->regler)();
 
         expect($r->fresh())->montant->toBe(370000)->reference->toBe('OV-77')->mode->toBe('virement')
-            ->saisi_par->toBe($this->agent->id)->engagement_id->toBe($this->engagement->id)->annule_at->toBeNull();
+            ->saisi_par->toBe($this->financier->id)->engagement_id->toBe($this->engagement->id)->annule_at->toBeNull();
         $versements = Versement::query()->orderBy('auditeur_id')->get();
         expect($versements)->toHaveCount(2);
         foreach ([$this->awa, $this->bruno] as $i => $dossier) {
@@ -172,19 +172,19 @@ describe('enregistrement', function (): void {
         $registre = app(RegistreVersements::class);
         $registre->enregistrer(($this->inscriptionDe)($this->awa), [
             'montant' => 50000, 'date_versement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'OV-77', 'payeur' => 'employeur',
-        ], $this->agent);
+        ], $this->financier);
         // Reste après ce versement : 135 000 (Awa) + 185 000 (Bruno).
         expect(fn () => ($this->regler)(['montant' => 320000]))->toThrow(InvalidArgumentException::class, 'déjà été saisie comme versement');
 
         $registre->enregistrer(($this->inscriptionDe)($this->awa), [
             'montant' => 50000, 'date_versement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'OV-88-'.$this->bruno->matricule, 'payeur' => 'auditeur',
-        ], $this->agent);
+        ], $this->financier);
         expect(fn () => ($this->regler)(['reference' => 'OV-88', 'montant' => 270000]))->toThrow(InvalidArgumentException::class, (string) $this->bruno->matricule);
 
         ($this->regler)(['reference' => 'OV-99', 'montant' => 270000, 'parts' => ($this->parts)(['awa' => 85000, 'bruno' => 185000])]);
         expect(fn () => $registre->enregistrer(($this->inscriptionDe)($this->awa), [
             'montant' => 1000, 'date_versement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'ov-99', 'payeur' => 'auditeur',
-        ], $this->agent))->toThrow(InvalidArgumentException::class, 'règlement');
+        ], $this->financier))->toThrow(InvalidArgumentException::class, 'règlement');
     });
 
     it('exige la confirmation au-delà du reste couvert : l\'excédent va sur l\'année, puis en avance réservée', function (): void {

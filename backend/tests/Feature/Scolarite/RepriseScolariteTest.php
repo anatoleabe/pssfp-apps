@@ -108,7 +108,7 @@ it('est idempotente', function (): void {
 
 it('n\'envoie aucun SMS, ni à la reprise ni au versement suivant', function (): void {
     app(RepriseScolarite::class)->executer();
-    $agent = tap(User::factory()->create(['email' => 'ag-'.Str::random(5).'@pssfp.local']), fn (User $u) => $u->assignRole('scolarite_agent'));
+    $agent = tap(User::factory()->create(['email' => 'ag-'.Str::random(5).'@pssfp.local']), fn (User $u) => $u->assignRole('service_financier'));
 
     app(RegistreVersements::class)->enregistrer($this->coche->fresh()->auditeur->inscriptionCourante, [
         'montant' => 100000, 'date_versement' => '2026-11-04', 'mode' => 'virement', 'reference' => 'BOR-77', 'payeur' => 'auditeur',

@@ -49,12 +49,13 @@ final class RecusVersements
         private readonly AvisRecus $avis,
     ) {}
 
-    /** Le versement peut-il recevoir un reçu (hors permission) ? null si oui, sinon la raison. */
+    /**
+     * Le versement peut-il recevoir un reçu (hors permission) ? null si oui, sinon la raison. Depuis le
+     * 15/11/2026, l'agent qui a saisi le versement en émet le reçu (le contrôle passe à la scolarité) :
+     * `$auteur` ne sert plus qu'à la signature, gardée pour les appelants.
+     */
     public function raisonRefus(Versement $v, ?User $auteur = null): ?string
     {
-        if ($auteur !== null && $v->saisi_par === $auteur->id) {
-            return 'Vous avez enregistré ce versement : son reçu est émis par un autre agent du service financier.';
-        }
         if ($v->estAnnule()) {
             return 'Ce versement est annulé : il ne reçoit pas de reçu.';
         }
@@ -76,10 +77,11 @@ final class RecusVersements
     }
 
     /**
-     * Versements qui attendent leur reçu de la part de cet agent : la
-     * traduction en requête de raisonRefus() (pastille du menu, tableau de
-     * bord), bornée par debutAttente(). Vide tant que la mise en service
-     * n'est pas réglée.
+     * Versements qui attendent leur reçu : la traduction en requête de
+     * raisonRefus() (pastille du menu, tableau de bord), bornée par
+     * debutAttente(). Vide tant que la mise en service n'est pas réglée.
+     * `$agent` reste dans la signature des écrans : depuis le 15/11/2026, la
+     * liste ne dépend plus de qui a saisi le versement.
      *
      * @return Builder<Versement>
      */
@@ -91,7 +93,6 @@ final class RecusVersements
             ->when($debut === null, fn (Builder $q) => $q->whereIn('id', []))
             ->when($debut !== null, fn (Builder $q) => $q->where('created_at', '>=', $debut))
             ->whereNull('annule_at')
-            ->where(fn (Builder $q) => $q->whereNull('saisi_par')->orWhere('saisi_par', '<>', $agent->id))
             ->whereDoesntHave('recus', fn (Builder $q) => $q->whereDoesntHave('annulation'))
             ->whereDoesntHave('auditeur.candidature', fn (Builder $q) => $q->whereNotNull('withdrawn_at'));
     }
