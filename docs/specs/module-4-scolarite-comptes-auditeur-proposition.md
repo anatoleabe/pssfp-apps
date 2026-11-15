@@ -1,9 +1,9 @@
 # Module 4 — Scolarité, lot D : comptes auditeur (proposition de conception)
 
 **Date** : 2026-11-15
-**Statut** : **proposition à valider**. Ce n'est pas encore une spec : les décisions du §7 doivent être prises avant d'écrire la spec du sous-lot D1 et l'ADR qui l'accompagne.
+**Statut** : **validée le 15/11/2026**. Le chef de projet a tranché les treize questions du §7, toutes selon l'option recommandée (§8). Suite : [ADR-0013](../adr/0013-compte-de-l-auditeur.md) et [spec du sous-lot D1](module-4-scolarite-comptes-d1.md).
 **Demandeur** : Chef USI (chef de projet)
-**Références** : [Scolarité, lot 1](module-4-scolarite-lot1-2026-11.md) (§1 hors périmètre : « report d'un trop-perçu », « passage automatique en M2 ») · [lot 4, reçus](module-4-scolarite-lot4-recus.md) (§8 : « compte unique de l'auditeur sur tout le parcours ») · [feuille de route LMD](module-4-lmd-feuille-de-route.md) (§4, écarts D7 et D8) · lot A, accès anticipé (`module-4-scolarite-acces-anticipe.md`, branche `feat/scolarite-acces-anticipe-a1`) · [ADR-0010](../adr/0010-vie-academique-auditeurs-phase-1.md) · dossier « PSSFP Système », décisions D5 à D9.
+**Références** : [Scolarité, lot 1](module-4-scolarite-lot1-2026-11.md) (§1 hors périmètre : « report d'un trop-perçu », « passage automatique en M2 ») · [lot 4, reçus](module-4-scolarite-lot4-recus.md) (§8 : « compte unique de l'auditeur sur tout le parcours ») · [feuille de route LMD](module-4-lmd-feuille-de-route.md) (§4, écarts D7 et D8) · lot A, accès anticipé ([`module-4-scolarite-acces-anticipe.md`](module-4-scolarite-acces-anticipe.md), A1 fusionné par la PR #125 le 15/11/2026) · [ADR-0010](../adr/0010-vie-academique-auditeurs-phase-1.md) · dossier « PSSFP Système », décisions D5 à D9.
 
 ## 1. Le besoin
 
@@ -257,7 +257,7 @@ Chaque sous-lot a sa spec, sa branche et ses tests, et se déploie seul.
 
 | Sous-lot | Contenu | Prérequis | Échéance utile |
 |---|---|---|---|
-| **D1, socle du compte** | ADR-0013, migration (`auditeur_id`, `imputations_versements`, déclencheurs), service `ImputationsCompte` (R1 à R5, R7 à R9), verrou de l'auditeur, `SituationFinanciere` et scopes, objet des reçus, reprise et test d'équivalence. Changement visible : « trop-perçu » devient « avance ». | Décisions Q1, Q12 et Q13 ; lot A1 fusionné (pour l'adapter en une seule fois) | Avant la fin de 2026 : les P14 paient déjà |
+| **D1, socle du compte** | ADR-0013, migration (`auditeur_id`, `imputations_versements`, déclencheurs), service `ImputationsCompte` (R1 à R5, R7 à R9), verrou de l'auditeur, `SituationFinanciere` et scopes, objet des reçus, reprise et test d'équivalence. Changement visible : « trop-perçu » devient « avance ». | Décisions Q1, Q12 et Q13 (prises) ; lot A1 fusionné (fait, PR #125) | Avant la fin de 2026 : les P14 paient déjà |
 | **D2, compte visible** | Onglet « Compte » de la fiche, colonnes et filtres de la liste, export, variables de relance, rubrique « Mon compte » de l'espace et relevé PDF, versement sans inscription. | D1 ; Q4 | Avant les relances de la 1re tranche 2026-2027 |
 | **D3, ouverture de l'année suivante** | Réinscription en groupe à partir des résultats publiés : AD en M1 → M2 ; AJ → M1 avec plafond de 2 inscriptions par niveau (D5) ; au barème de la nouvelle année. Imputation automatique de l'avance (R3), SMS d'accès, refus avant la date d'ouverture de l'année. | D1 ; Q5 et Q11 ; délibérations M1 (lot 6) | Rentrée 2027-2028, voire plus tôt pour les P13 non admis en M2 (feuille de route, question 3) |
 | **D4, affectation et réimputation** | Année désignée à la saisie (Q2), réimputation manuelle (R6), demande d'autorisation 14c pour une annulation qui touche une autre année (Q8), contrôles `CPT_*`, branchement du lot A2. | D2 ; Q2 et Q8 | Au plus tard avec le lot A2 |
@@ -296,7 +296,7 @@ Chaque sous-lot a sa spec, sa branche et ses tests, et se déploie seul.
 
 ## 7. Questions au chef de projet
 
-Pour chacune, l'option recommandée est en gras.
+Pour chacune, l'option recommandée est en gras. Toutes ont été tranchées le 15/11/2026 : voir le §8.
 
 | N° | Question | Options | Recommandation et raison |
 |---|---|---|---|
@@ -313,3 +313,32 @@ Pour chacune, l'option recommandée est en gras.
 | **Q11** | Qui ouvre l'année suivante (passage en M2, redoublement), et quand ? | a) l'agent, fiche par fiche ; b) le responsable, en groupe | **b) Le responsable, en groupe**, après publication des résultats, à partir de la date d'ouverture de l'année. Jamais avant : l'inscription deviendrait « courante » trop tôt (§4.4). |
 | **Q12** | Peut-on enregistrer un versement pour un auditeur qui n'a pas encore d'inscription (P13 non admis en M2, barème manquant) ? | a) non ; b) oui, en avance | **b) Oui, en avance.** Il s'imputera à l'ouverture de son inscription. |
 | **Q13** | Dès maintenant, avant D1 : remplacer « trop-perçu » par « avance sur la scolarité à venir » sur les reçus, et demander aux agents d'enregistrer le versement entier ? | a) oui ; b) attendre D1 | **a) Oui.** Le correctif tient en une ligne, et la reprise D1 transformera les trop-perçus en avances sans perte. |
+
+## 8. Décisions du chef de projet (15/11/2026)
+
+Les treize décisions retiennent l'option recommandée du §7. L'approche C2 (compte de l'auditeur à imputations enregistrées, §4) en découle et fait l'objet de l'[ADR-0013](../adr/0013-compte-de-l-auditeur.md).
+
+| N° | Décision | Où elle s'applique |
+|---|---|---|
+| **1** (Q1) | Un nouveau versement solde d'abord les **arriérés**, de l'année la plus ancienne non réglée à la plus récente, puis l'**année en cours** ; le reste devient **avance**. | Règles R1 et R2, sous-lot D1 |
+| **2** (Q2) | Un versement peut être **affecté à une année précise**, sur accord du responsable de scolarité. Un **règlement d'employeur** va d'office aux années couvertes par son engagement (lot A2). | D4 (affectation). D1 pose déjà la règle de l'employeur : son excédent n'est pas imputé d'office sur une autre année. |
+| **3** (Q3) | Paiement d'avance : l'auditeur doit le **barème de l'année où il s'inscrit**. L'avance est déduite, la différence reste due. | R3 à l'ouverture de l'inscription (règle en D1, outil en D3) |
+| **4** (Q4) | Les arriérés **ne bloquent pas** la réinscription, mais ils sont **signalés partout** et **comptent pour « être en règle »** : attestation de réussite et certificat de scolarité bloqués, sauf levée de restriction par le responsable. | D2 (affichage, `DocumentsOfficiels::enRegle`) ; D3 (signalement à la réinscription) |
+| **5** (Q5) | **Redoublant** : barème complet de l'année, remise possible. **Autorisé à soutenir** : pénalité de 500 000 FCFA seule, **à confirmer**, montant paramétrable. | D3 (redoublant), D5 (pénalité) |
+| **6** (Q6) | **Avance inutilisée** : remboursable sur demande, décision du chef de la structure, tracée dans le compte. | D5 |
+| **7** (Q7) | **Excédent payé par un employeur** : au cas par cas, signalé au contrôle interne. Le responsable décide : remboursement à l'organisme ou avance des collaborateurs. | D1 (l'excédent reste réservé, sans imputation d'office) ; D4 (signalement et décision) |
+| **8** (Q8) | **Annuler un versement imputé sur une autre année** : par demande d'autorisation (circuit du lot 14c, validée par une autre personne). Une annulation qui ne touche qu'une année reste au responsable seul. | D4. En D1, l'annulation d'un versement imputé sur plusieurs années est refusée : ce cas ne peut pas se produire avant D3. |
+| **9** (Q9) | **Aucun document** à l'imputation automatique d'une avance : le relevé de compte suffit (fiche et espace de l'auditeur). | D1 (journal), D2 (relevé) |
+| **10** (Q10) | **Dettes anciennes d'ACMA** : reprises au cas par cas, dossier par dossier, lors de l'intégration d'ACMA, jamais en masse. | Lot 15 (reprise d'ACMA) |
+| **11** (Q11) | L'**année suivante** (passage en M2, redoublement) est ouverte par le **responsable, en groupe**, après les résultats, à la date qu'il fixe. Les avances s'imputent à ce moment. | D3 |
+| **12** (Q12) | Un versement peut être enregistré **sans inscription de l'année suivante** : il devient avance, avec son reçu. | D1 (excédent sur l'année en cours) ; D2 (auditeur qui n'a encore aucune inscription) |
+| **13** (Q13) | **Dès maintenant**, hors D1, par un petit changement séparé : « avance » remplace « trop-perçu » sur les reçus et dans l'espace, et les agents saisissent le **versement entier**. | Correctif immédiat ; D1 le reprend dans le nouveau calcul de l'objet du reçu |
+
+### 8.1 Ce que la spec D1 précise par rapport à l'esquisse du §4
+
+- **Déclencheur de cohérence** : il porte aussi sur `inscriptions_annuelles`, ce qui tranche la question laissée ouverte au §4.2. Il est reportable, mais vérifié à la fin de chaque instruction : le service ordonne ses écritures en conséquence.
+- **Clés étrangères composites** : versement, inscription et imputation appartiennent au même auditeur.
+- **`versements.inscription_annuelle_id`** reste NOT NULL en D1. Elle devient facultative en D2, avec le versement sans inscription.
+- **Avance d'un versement d'employeur** : elle est « réservée », et ne s'impute d'office que sur l'année que ce versement désigne (décision 7).
+- **Objet des reçus** : élargi à 500 caractères, et format actuel conservé quand une seule année est touchée.
+- **Contrôle `CPT_COHERENCE`** : avancé en D1. `CPT_REIMPUTATION` et `CPT_AVANCE_DORMANTE` restent en D4.
