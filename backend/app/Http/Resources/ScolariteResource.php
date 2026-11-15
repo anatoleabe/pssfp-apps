@@ -33,6 +33,8 @@ final class ScolariteResource extends JsonResource
         $avance = $c->auditeur === null ? 0 : CompteAuditeur::pour($c->auditeur)->avance();
         $etat = AccesEcampus::etat($c);
         $motDePasseConnu = $etat === AccesEcampus::DISPONIBLE ? AccesEcampus::motDePasseConnu($c) : null;
+        // Droits payés mais pas encore confirmés par la scolarité : jamais « il reste 0 FCFA » sous un accès bloqué.
+        $enAttente = $etat === AccesEcampus::BLOQUE && $s !== null && $s->confirmationEnAttente();
 
         return [
             'matricule' => $c->matricule,
@@ -52,16 +54,19 @@ final class ScolariteResource extends JsonResource
             // Conservé jusqu'à D2, égal à `avance`, pour le portail déployé avant D1.
             'trop_percu' => $avance,
             'en_retard' => $s?->enRetard() ?? false,
-            'paliers' => $s === null ? [] : array_map(fn (Palier $p): array => [
+            // Payé et reste sur tout l'argent ; « soldé » et « en retard » sur l'argent confirmé (15/11/2026) ;
+            // `a_confirmer` : la part du payé que la scolarité n'a pas encore confirmée.
+            'paliers' => $s === null ? [] : array_map(fn (Palier $p, Palier $confirme): array => [
                 'cle' => $p->cle,
                 'du' => $p->du,
                 'paye' => $p->paye,
                 'reste' => $p->reste,
-                'solde' => $p->solde(),
-                'en_retard' => $p->enRetard,
+                'solde' => $confirme->solde(),
+                'a_confirmer' => $p->paye - $confirme->paye,
+                'en_retard' => $confirme->enRetard,
                 'echeance' => $p->echeance?->toDateString(),
                 'echeance_texte' => $p->cle === Palier::INSCRIPTION ? $inscription?->bareme?->inscription_echeance : null,
-            ], $s->paliers),
+            ], $s->paliers, $s->paliersConfirmes()),
             'versements' => $inscription === null ? [] : self::versements($inscription),
             'acces' => array_filter([
                 'etat' => $etat,
@@ -71,14 +76,24 @@ final class ScolariteResource extends JsonResource
                 'lettre_disponible' => $motDePasseConnu === true && $c->campagne !== null
                     ? ParametresLettres::pour($c->campagne, avecBareme: false)->manquants(ParametresLettres::DOCUMENT_ACCES) === []
                     : null,
-                'reste_inscription' => $etat === AccesEcampus::BLOQUE ? ($s?->resteInscription()) : null,
+                'reste_inscription' => $etat === AccesEcampus::BLOQUE && ! $enAttente ? ($s?->resteInscription()) : null,
+                'confirmation_en_attente' => $enAttente ? true : null,
+                // Faux quand tout l'argent à confirmer vient d'un organisme (lot A2) : l'auditeur n'a pas de reçu à présenter.
+                'recu_a_presenter' => $enAttente ? self::recuAPresenter($c) : null,
                 // Accès accordé avant paiement (lot A1) : « à régulariser avant le JJ/MM/AAAA ».
                 'regulariser_avant' => $etat === AccesEcampus::INDISPONIBLE ? null : AccesEcampus::accesAnticipe($c)?->echeance->toDateString(),
             ], fn ($v): bool => $v !== null),
         ];
     }
 
-    /** @return list<array{date: string, montant: int, mode: string, reference: string, recu: ?array{uuid: string, numero: string}, confirme_le: ?string}> */
+    /** Un versement de l'auditeur lui-même (hors règlement d'organisme) attend sa confirmation sur le reçu bancaire. */
+    private static function recuAPresenter(Candidature $c): bool
+    {
+        return $c->auditeur !== null && Versement::query()->where('auditeur_id', $c->auditeur->id)->whereNull('annule_at')
+            ->whereNull('reglement_organisme_id')->whereDoesntHave('confirmation')->exists();
+    }
+
+    /** @return list<array{date: string, montant: int, mode: string, reference: string, recu: ?array{uuid: string, numero: string}, origine: string, confirme_le: ?string}> */
     private static function versements(InscriptionAnnuelle $inscription): array
     {
         return $inscription->versementsValides()->with(['recus.annulation', 'confirmation'])->orderByDesc('date_versement')->orderByDesc('id')->get()
@@ -89,6 +104,8 @@ final class ScolariteResource extends JsonResource
                 'reference' => $v->reference,
                 // Reçu en vigueur (Scolarité lot 4) : uuid public, jamais l'id interne.
                 'recu' => ($r = $v->recuEnVigueur()) === null ? null : ['uuid' => $r->uuid, 'numero' => $r->numero],
+                // Part d'un règlement d'organisme (lot A2) : l'espace dit « confirmation en cours », sans reçu à présenter.
+                'origine' => $v->reglement_organisme_id === null ? 'auditeur' : 'reglement',
                 // Vérifié par la scolarité (jour, heure de Yaoundé) ; null : à présenter à la scolarité. Jamais le nom de l'agent.
                 'confirme_le' => $v->confirmation?->confirme_at?->setTimezone(InscriptionAnnuelle::FUSEAU)->toDateString(),
             ])->all();

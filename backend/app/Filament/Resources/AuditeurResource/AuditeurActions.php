@@ -309,7 +309,7 @@ final class AuditeurActions
                         $a = app(MessagesAuditeurs::class)->apercu(MessagesAuditeurs::precharger($selection), (string) $get('canal'), (string) $get('corps'));
 
                         return $a['destinataires'].' destinataire(s)'
-                            .($a['ecartes'] > 0 ? ' ('.$a['ecartes'].' écarté(s) : dossier retiré, exclusion ou abandon)' : '')
+                            .($a['ecartes'] > 0 ? ' ('.$a['ecartes'].' écarté(s) : dossier retiré, exclusion, abandon, ou versement à confirmer pour un message chiffrant l\'impayé)' : '')
                             .', '.$a['sms_par_message'].' SMS par message, '.$a['cout_sms'].' SMS au total'
                             .($a['hors_couverture'] > 0 ? ', dont '.$a['hors_couverture'].' numéro(s) hors du Cameroun, que la passerelle ne dessert pas' : '')
                             .'. Exemple : « '.$a['exemple'].' »';

@@ -339,6 +339,8 @@ export interface ScolaritePalier {
   paye: number;
   reste: number;
   solde: boolean;
+  /** Part du payé que la scolarité n'a pas encore confirmée : le palier n'est « soldé » qu'une fois confirmé. */
+  a_confirmer?: number;
   en_retard: boolean;
   /** Date ISO (YYYY-MM-DD) ; null pour l'inscription, dont l'échéance est un texte. */
   echeance: string | null;
@@ -354,6 +356,8 @@ export interface ScolariteVersement {
   recu: { uuid: string; numero: string } | null;
   /** Jour de la vérification par la scolarité (AAAA-MM-JJ) ; null : reçu bancaire à présenter. Absent d'une API antérieure. */
   confirme_le?: string | null;
+  /** `reglement` : part d'un règlement d'organisme, sans reçu à présenter par l'auditeur. Absent d'une API antérieure. */
+  origine?: 'auditeur' | 'reglement';
 }
 
 export type AccesEtat = 'bloque' | 'en_preparation' | 'disponible';
@@ -386,6 +390,10 @@ export interface MaScolarite {
     etat: AccesEtat;
     foad_url?: string;
     reste_inscription?: number;
+    /** Droits payés, accès en attente de la confirmation du versement par la scolarité : rien à payer. */
+    confirmation_en_attente?: boolean;
+    /** Faux quand l'argent à confirmer vient d'un organisme : l'auditeur n'a pas de reçu à présenter. */
+    recu_a_presenter?: boolean;
     mot_de_passe_connu?: boolean;
     lettre_disponible?: boolean;
     regulariser_avant?: string;

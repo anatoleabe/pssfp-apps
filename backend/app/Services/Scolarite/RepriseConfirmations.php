@@ -7,15 +7,40 @@ namespace App\Services\Scolarite;
 use App\Models\InscriptionAnnuelle;
 use App\Models\Versement;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 /**
  * Reprise des versements d'avant le 15/11/2026 comme confirmés (spec
  * module-4-scolarite-encaissement-confirmation §2.2 point 9) : par leur auteur (`saisi_par`), à leur
  * date d'enregistrement, avec leur scan s'il existe. Les versements annulés ne sont pas repris : ils
- * ne comptent plus. Idempotente. Appelée par la migration 2026_12_04_100200, qui vérifie `ecarts()`.
+ * ne comptent plus. Idempotente. Appelée par la migration 2026_12_04_100200, puis par la commande
+ * `scolarite:reprendre-confirmations` juste après le rechargement du code, application en maintenance.
  */
 final class RepriseConfirmations
 {
+    /**
+     * Reprise vérifiée, tout ou rien : après elle, l'imputé confirmé de chaque inscription égale son imputé,
+     * donc aucun état ne change. Au moindre écart, rien n'est écrit et l'exception nomme les inscriptions par
+     * leur uuid (jamais de nom).
+     *
+     * @return int nombre de confirmations posées
+     *
+     * @throws RuntimeException écart d'équivalence
+     */
+    public function executer(): int
+    {
+        return DB::transaction(function (): int {
+            $lignes = $this->reprendre();
+            $ecarts = $this->ecarts();
+            if ($ecarts !== []) {
+                throw new RuntimeException('Reprise des confirmations annulée, '.count($ecarts).' inscription(s) changeraient d\'état : '
+                    .implode(' ; ', array_slice($ecarts, 0, 50)).(count($ecarts) > 50 ? ' ; …' : ''));
+            }
+
+            return $lignes;
+        });
+    }
+
     /** @return int nombre de confirmations posées */
     public function reprendre(): int
     {

@@ -53,7 +53,7 @@
           <td>{{ $libelles[$p['cle']] }}</td>
           <td class="n">{{ $fcfa($p['du']) }}</td>
           <td class="n">{{ $fcfa($p['paye']) }}</td>
-          <td class="n">{{ $p['solde'] ? 'Soldé' : $fcfa($p['reste']) }}</td>
+          <td class="n">{{ $p['solde'] ? 'Soldé' : (($p['a_confirmer'] ?? 0) > 0 && $p['reste'] === 0 ? 'À confirmer' : $fcfa($p['reste'])) }}</td>
           <td>{{ $p['echeance_texte'] ?? $date($p['echeance']) }}</td>
         </tr>
       @endforeach

@@ -21,14 +21,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $reprise = app(RepriseConfirmations::class);
-        $lignes = $reprise->reprendre();
-
-        $ecarts = $reprise->ecarts();
-        if ($ecarts !== []) {
-            throw new RuntimeException('Reprise des confirmations annulée, '.count($ecarts).' inscription(s) changeraient d\'état : '
-                .implode(' ; ', array_slice($ecarts, 0, 50)).(count($ecarts) > 50 ? ' ; …' : ''));
-        }
+        // Tout ou rien, dans sa propre transaction : un écart nomme les inscriptions et n'écrit rien.
+        $lignes = app(RepriseConfirmations::class)->executer();
 
         Log::info('Reprise des confirmations de versements', ['confirmations' => $lignes]);
     }

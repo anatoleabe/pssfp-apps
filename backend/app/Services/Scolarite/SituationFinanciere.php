@@ -146,6 +146,26 @@ final readonly class SituationFinanciere
         return false;
     }
 
+    /**
+     * Paliers sur l'argent confirmé seul : sources des états (soldé, en retard). Les montants payés et le reste
+     * s'affichent sur `paliers` (tout l'argent imputé).
+     *
+     * @return list<Palier>
+     */
+    public function paliersConfirmes(): array
+    {
+        return $this->paliersConfirmes;
+    }
+
+    /**
+     * Droits d'inscription soldés par l'argent saisi, mais pas encore par l'argent confirmé : l'accès attend
+     * la confirmation par la scolarité, il ne reste rien à payer.
+     */
+    public function confirmationEnAttente(): bool
+    {
+        return $this->paliers[0]->solde() && ! $this->inscriptionSoldee();
+    }
+
     /** Imputé des versements confirmés par la scolarité. */
     public function verseConfirme(): int
     {

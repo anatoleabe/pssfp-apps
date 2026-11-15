@@ -32,6 +32,8 @@ function Palier({ palier }: { palier: ScolaritePalier }): JSX.Element {
       <p className="mt-2 flex flex-wrap gap-x-3 text-sm">
         {palier.solde ? (
           <span className="font-semibold text-emerald-800">{t('solde')}</span>
+        ) : (palier.a_confirmer ?? 0) > 0 && palier.reste === 0 ? (
+          <span className="font-semibold text-amber-800">{t('palierAConfirmer')}</span>
         ) : (
           <span className="text-[#3C3C3C]">
             {t.rich('resteMontant', {
@@ -138,6 +140,8 @@ export function DossierScolariteCard({ scolarite }: DossierScolariteCardProps): 
                     <td className="py-2 pr-4">
                       {v.confirme_le ? (
                         t('confirmeLe', { date: formatDateLong(v.confirme_le, locale) })
+                      ) : v.confirme_le === null && v.origine === 'reglement' ? (
+                        <span className="text-[#5C5C5C]">{t('confirmationEnCours')}</span>
                       ) : v.confirme_le === null ? (
                         <span className="font-semibold text-amber-800">{t('aPresenter')}</span>
                       ) : (

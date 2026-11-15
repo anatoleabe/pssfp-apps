@@ -113,7 +113,7 @@ final class ModulePermissionMap
             ],
             'scolarite' => [
                 'label' => 'Scolarité',
-                'description' => 'Auditeurs, versements et situation financière. La gestion donne le droit d\'enregistrer un versement : elle revient au service financier (décision du 15/11/2026), la scolarité est en lecture avec ses actions sensibles.',
+                'description' => 'Auditeurs, versements et situation financière. La gestion donne le droit d\'enregistrer un versement : elle revient au service financier seul (décision du 15/11/2026) ; la scolarité et l\'administrateur sont en lecture avec leurs actions sensibles.',
                 'read' => [
                     'view_any_auditeur', 'view_auditeur',
                 ],

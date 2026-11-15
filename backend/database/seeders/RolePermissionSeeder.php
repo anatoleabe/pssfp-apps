@@ -75,7 +75,8 @@ final class RolePermissionSeeder extends Seeder
             'admin' => [
                 'label' => 'Administrateur',
                 'description' => 'Comptes, rôles, campagnes, réglages et exports.',
-                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage, 'scolarite' => $manage, 'lmd' => $manage],
+                // Scolarité en lecture depuis le 15/11/2026 : le service financier seul enregistre les versements.
+                'modules' => ['site' => $manage, 'admissions' => $manage, 'administration' => $manage, 'bibliotheque' => $manage, 'scolarite' => $read, 'lmd' => $manage],
                 'sensitive' => [
                     'candidature.export_csv',
                     'candidature.mark_depot_physique',

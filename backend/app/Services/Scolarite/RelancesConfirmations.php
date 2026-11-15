@@ -18,7 +18,7 @@ use Illuminate\Support\Collection;
  * chaque matin, un SMS et un e-mail à l'auditeur dont un versement attend sa confirmation depuis 7 jours,
  * au plus une fois tous les 7 jours. Circuit des messages aux auditeurs : tracé au journal des envois
  * (motif « confirmation ») et réaffiché dans son espace. Le contrôle interne VER_NON_CONFIRMES relève les
- * mêmes versements pour la scolarité.
+ * mêmes versements pour la scolarité, parts des règlements d'organismes comprises (jamais relancées auprès de l'auditeur).
  */
 final class RelancesConfirmations
 {
@@ -59,7 +59,8 @@ final class RelancesConfirmations
     {
         $bilan = ['relances' => 0, 'ignores' => 0, 'echecs' => 0];
         $seuil = self::seuil();
-        $aConfirmer = fn ($q) => $q->whereNull('annule_at')->whereDoesntHave('confirmation');
+        // Les parts d'un règlement d'organisme (lot A2) n'ont pas de reçu de l'auditeur : le contrôle interne les suit.
+        $aConfirmer = fn ($q) => $q->whereNull('annule_at')->whereNull('reglement_organisme_id')->whereDoesntHave('confirmation');
 
         $auditeurs = Auditeur::query()
             ->whereHas('versements', fn ($q) => $aConfirmer($q)->where('created_at', '<', $seuil))

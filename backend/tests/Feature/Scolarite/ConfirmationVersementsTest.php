@@ -22,16 +22,19 @@ use App\Models\User;
 use App\Models\Versement;
 use App\Services\Ecampus\ComptesEcampus;
 use App\Services\ExportsRetenus\AttributionMatricules;
+use App\Services\NotificationCandidatsService;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\ConfirmationsVersements;
 use App\Services\Scolarite\DeblocagesAcces;
 use App\Services\Scolarite\EngagementsPriseEnCharge;
 use App\Services\Scolarite\LibelleSituation;
+use App\Services\Scolarite\MessagesAuditeurs;
 use App\Services\Scolarite\OuvertureAuditeur;
 use App\Services\Scolarite\RecusVersements;
 use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\ReglementsOrganismes;
 use App\Services\Scolarite\RelancesConfirmations;
+use App\Services\Scolarite\RelancesDeblocages;
 use App\Services\Scolarite\RepriseConfirmations;
 use App\Services\Sms\SmsServiceInterface;
 use App\Services\Supervision\Supervision;
@@ -55,6 +58,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 uses()->group('scolarite');
 
 const MIGRATION_CONFIRMER = '2026_12_04_100300_grant_scolarite_versement_confirmer.php';
+
+const MIGRATION_REPRISE_CONFIRMATIONS = '2026_12_04_100200_reprise_confirmations_versements.php';
 
 beforeEach(function (): void {
     config()->set('pssfp.filament.require_2fa', false);
@@ -127,7 +132,7 @@ describe('confirmation', function (): void {
             ->and(fn () => $service->confirmer($v, ($this->scan)(), true, $this->financier))->toThrow(HttpException::class);
 
         // Personne ne confirme un versement qu'il a lui-même saisi.
-        $admin = ($this->compte)('admin');
+        $admin = ($this->compte)('super_admin');
         $sien = app(RegistreVersements::class)->enregistrer(($this->inscription)($this->bruno), ['montant' => 10000, 'date_versement' => '2026-11-09',
             'mode' => 'especes', 'reference' => 'CAISSE-1', 'payeur' => 'auditeur'], $admin)->versement;
         expect(fn () => $service->confirmer($sien, ($this->scan)(), true, $admin))->toThrow(InvalidArgumentException::class, 'Vous avez enregistré ce versement');
@@ -398,5 +403,174 @@ describe('droits', function (): void {
         $auditeur->inscriptions()->delete();
 
         expect(app(OuvertureAuditeur::class)->creerInscription(Auditeur::query()->findOrFail($auditeur->id), $this->agent))->not->toBeNull();
+    });
+});
+
+describe('espace de l\'auditeur en attente de confirmation (relecture du 15/11)', function (): void {
+    beforeEach(function (): void {
+        $this->espace = fn () => $this->withToken($this->awa->user->createToken('candidat', ['profile:read', 'application:read'])->plainTextToken)
+            ->getJson('/v1/applications/me/scolarite')->assertOk();
+    });
+
+    it('dit de présenter le reçu, sans « il reste 0 FCFA » ni palier soldé sous un accès bloqué', function (): void {
+        $v = ($this->encaisser)(185000);
+
+        ($this->espace)()
+            ->assertJsonPath('data.acces.etat', AccesEcampus::BLOQUE)
+            ->assertJsonPath('data.acces.confirmation_en_attente', true)
+            ->assertJsonPath('data.acces.recu_a_presenter', true)
+            ->assertJsonMissingPath('data.acces.reste_inscription')
+            ->assertJsonPath('data.paliers.0.solde', false)
+            ->assertJsonPath('data.paliers.0.reste', 0)
+            ->assertJsonPath('data.paliers.0.a_confirmer', 185000)
+            ->assertJsonPath('data.versements.0.origine', 'auditeur');
+
+        ($this->confirmer)($v);
+        $this->app['auth']->forgetGuards();
+        ($this->espace)()
+            ->assertJsonMissingPath('data.acces.confirmation_en_attente')
+            ->assertJsonPath('data.paliers.0.solde', true)
+            ->assertJsonPath('data.paliers.0.a_confirmer', 0);
+    });
+
+    it('garde le reste à payer quand le versé ne solde pas les droits', function (): void {
+        ($this->encaisser)(100000);
+
+        ($this->espace)()
+            ->assertJsonPath('data.acces.reste_inscription', 85000)
+            ->assertJsonMissingPath('data.acces.confirmation_en_attente');
+    });
+
+    it('écarte des messages chiffrant l\'impayé qui attend la confirmation d\'un versement, pas des autres', function (): void {
+        ($this->encaisser)(185000);
+        $service = app(MessagesAuditeurs::class);
+        $auditeurs = collect([$this->awa->fresh()->auditeur, $this->bruno->fresh()->auditeur]);
+        $relances = fn (): array => array_values(array_filter($this->sms, fn (string $t): bool => str_contains($t, 'il reste')));
+
+        $apercu = $service->apercu($auditeurs, NotificationCandidatsService::CANAL_SMS, MessagesAuditeurs::MODELE_RELANCE);
+        expect($apercu['destinataires'])->toBe(1)->and($apercu['ecartes'])->toBe(1);
+
+        $rapport = $service->envoyer($auditeurs, NotificationCandidatsService::CANAL_SMS, MessagesAuditeurs::MODELE_RELANCE, null, $this->responsable);
+        expect($rapport['sms_envoyes'])->toBe(1)
+            ->and($rapport['ignores'])->toBe(1)
+            ->and($relances())->toHaveCount(1)
+            ->and($relances()[0])->toContain('Essai, il reste 1 185 000');
+
+        $rapport = $service->envoyer($auditeurs, NotificationCandidatsService::CANAL_SMS, 'PSSFP : reunion d\'information le 20/11 a 10h.', null, $this->responsable);
+        expect($rapport['sms_envoyes'])->toBe(2);
+    });
+
+    it('ne relance pas un accès anticipé échu dont les droits payés attendent leur confirmation', function (): void {
+        app(DeblocagesAcces::class)->accorder(($this->inscription)($this->awa), ['type' => DeblocageAcces::MORATOIRE,
+            'motif' => 'Délai accordé sur demande écrite', 'echeance' => '2026-11-20'], $this->responsable);
+        ($this->encaisser)(185000);
+        $this->travelTo(now('Africa/Douala')->setDate(2026, 11, 21)->setTime(8, 0));
+
+        $this->artisan('scolarite:relancer-deblocages')->assertSuccessful();
+
+        expect(array_filter($this->sms, fn (string $t): bool => $t === RelancesDeblocages::texteSms(DeblocageAcces::MORATOIRE)))->toBe([])
+            ->and(DeblocageAcces::query()->sole()->relances)->toBe(0);
+    });
+});
+
+describe('parts d\'un règlement d\'organisme à confirmer (relecture du 15/11)', function (): void {
+    it('ne demande pas de reçu à l\'auditeur, dit « en cours » dans l\'espace, et reste suivi par le contrôle interne', function (): void {
+        $engagements = app(EngagementsPriseEnCharge::class);
+        $e = $engagements->creer(['organisme' => 'Ministère de test', 'lettre_reference' => 'LT-2026-002', 'lettre_date' => '2026-11-09',
+            'lettre_path' => 'scolarite/justificatifs/01JLETTRE0000000000000000B.pdf', 'contact_email' => 'rh@organisme.example',
+            'portee' => EngagementPriseEnCharge::DROITS_INSCRIPTION, 'annee_academique' => '2026-2027', 'echeance' => '2026-12-31'], $this->agent);
+        $engagements->rattacher($e, [$this->awa->fresh()->auditeur], $this->agent);
+        app(ReglementsOrganismes::class)->enregistrer($e, ['montant' => 185000, 'date_reglement' => '2026-11-09', 'mode' => 'virement', 'reference' => 'OV-78',
+            'parts' => ReglementsOrganismes::partsProposees($e)], $this->financier);
+        $part = Versement::query()->whereNotNull('reglement_organisme_id')->sole();
+
+        $this->travelTo(now('Africa/Douala')->setDate(2026, 11, 17)->setTime(8, 0));
+        $this->artisan('scolarite:relancer-confirmations')->assertSuccessful();
+
+        expect(array_filter($this->sms, fn (string $t): bool => $t === RelancesConfirmations::TEXTE_SMS))->toBe([])
+            ->and(app(Supervision::class)->controles()['VER_NON_CONFIRMES']->cas())->toHaveKey((string) $part->id);
+        $this->withToken($this->awa->user->createToken('candidat', ['profile:read', 'application:read'])->plainTextToken)
+            ->getJson('/v1/applications/me/scolarite')->assertOk()
+            ->assertJsonPath('data.versements.0.origine', 'reglement')
+            ->assertJsonPath('data.versements.0.confirme_le', null);
+    });
+});
+
+describe('déploiement (relecture du 15/11)', function (): void {
+    it('retire la saisie après la reprise et l\'octroi de la confirmation', function (): void {
+        $fichiers = collect(scandir(database_path('migrations')))->filter(fn (string $f): bool => str_starts_with($f, '2026_12_04_1'))->sort()->values()->all();
+
+        expect($fichiers)->toBe([
+            '2026_12_04_100100_create_confirmations_versements_table.php',
+            MIGRATION_REPRISE_CONFIRMATIONS,
+            MIGRATION_CONFIRMER,
+            '2026_12_04_100400_revoke_scolarite_versement_saisir.php',
+        ]);
+    });
+
+    it('s\'annule en entier sur un écart de la reprise, en nommant l\'inscription', function (): void {
+        $v = Versement::factory()->nonConfirme()->create(['inscription_annuelle_id' => ($this->inscription)($this->awa)->id, 'montant' => 185000]);
+        $autre = Versement::factory()->nonConfirme()->create(['inscription_annuelle_id' => ($this->inscription)($this->bruno)->id, 'montant' => 100000]);
+        // Écart simulé : un versement annulé dont l'imputation reste active. Le contrôle de cohérence de D1 est
+        // différé à la validation, qui n'arrive jamais dans la transaction du test.
+        DB::statement('SET CONSTRAINTS ALL DEFERRED');
+        DB::table('versements')->where('id', $autre->id)->update(['annule_at' => now(), 'annule_motif' => 'Écart simulé']);
+        $migration = require database_path('migrations/'.MIGRATION_REPRISE_CONFIRMATIONS);
+
+        expect(fn () => $migration->up())->toThrow(RuntimeException::class, (string) ($this->inscription)($this->bruno)->uuid)
+            ->and(ConfirmationVersement::query()->whereIn('versement_id', [$v->id, $autre->id])->exists())->toBeFalse();
+    });
+
+    it('se défait : down() retire les confirmations de la reprise et garde celles de la scolarité', function (): void {
+        $repris = Versement::factory()->nonConfirme()->create(['inscription_annuelle_id' => ($this->inscription)($this->awa)->id, 'montant' => 185000]);
+        $confirme = ($this->encaisser)(50000, $this->bruno);
+        ($this->confirmer)($confirme);
+        $migration = require database_path('migrations/'.MIGRATION_REPRISE_CONFIRMATIONS);
+
+        $migration->up();
+        expect(ConfirmationVersement::query()->where('versement_id', $repris->id)->value('reprise'))->toBeTrue();
+
+        $migration->down();
+        expect(ConfirmationVersement::query()->where('versement_id', $repris->id)->exists())->toBeFalse()
+            ->and(ConfirmationVersement::query()->where('versement_id', $confirme->id)->exists())->toBeTrue();
+    });
+
+    it('reprend par la commande, sous maintenance seulement, sans rien écrire sur un écart', function (): void {
+        config()->set('app.maintenance.driver', 'cache');
+        config()->set('app.maintenance.store', 'array');
+        $v = Versement::factory()->nonConfirme()->create(['inscription_annuelle_id' => ($this->inscription)($this->awa)->id, 'montant' => 185000]);
+
+        // Hors maintenance, elle confirmerait des versements saisis normalement : refus.
+        $this->artisan('scolarite:reprendre-confirmations')->assertFailed();
+        expect(ConfirmationVersement::query()->where('versement_id', $v->id)->exists())->toBeFalse();
+
+        app()->maintenanceMode()->activate([]);
+        try {
+            $this->artisan('scolarite:reprendre-confirmations')->expectsOutputToContain('1 versement(s) repris')->assertSuccessful();
+            $this->artisan('scolarite:reprendre-confirmations')->expectsOutputToContain('0 versement(s) repris')->assertSuccessful();
+
+            $encore = Versement::factory()->nonConfirme()->create(['inscription_annuelle_id' => ($this->inscription)($this->awa)->id, 'montant' => 10000]);
+            $autre = Versement::factory()->nonConfirme()->create(['inscription_annuelle_id' => ($this->inscription)($this->bruno)->id, 'montant' => 100000]);
+            DB::statement('SET CONSTRAINTS ALL DEFERRED');
+            DB::table('versements')->where('id', $autre->id)->update(['annule_at' => now(), 'annule_motif' => 'Écart simulé']);
+
+            $this->artisan('scolarite:reprendre-confirmations')
+                ->expectsOutputToContain((string) ($this->inscription)($this->bruno)->uuid)
+                ->doesntExpectOutputToContain('Bekono')
+                ->assertFailed();
+            expect(ConfirmationVersement::query()->where('versement_id', $encore->id)->exists())->toBeFalse();
+        } finally {
+            app()->maintenanceMode()->deactivate();
+        }
+    });
+
+    it('signale au contrôle de séparation un compte qui saisit et confirme', function (): void {
+        $cumul = ($this->compte)('service_financier');
+        $cumul->assignRole('scolarite_agent');
+
+        $cas = app(Supervision::class)->controles()['SEC_SEPARATION']->cas();
+        expect($cas)->toHaveKey($cumul->id.'|scolarite.versement_saisir|scolarite.versement_confirmer')
+            ->and($cas)->not->toHaveKey($this->agent->id.'|scolarite.versement_saisir|scolarite.versement_confirmer')
+            ->and($cas)->not->toHaveKey($this->financier->id.'|scolarite.versement_saisir|scolarite.versement_confirmer');
     });
 });

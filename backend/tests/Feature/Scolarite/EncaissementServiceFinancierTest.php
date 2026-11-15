@@ -32,7 +32,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses()->group('scolarite');
 
-const MIGRATION_SAISIE = '2026_12_04_100000_revoke_scolarite_versement_saisir.php';
+const MIGRATION_SAISIE = '2026_12_04_100400_revoke_scolarite_versement_saisir.php';
 
 beforeEach(function (): void {
     config()->set('pssfp.filament.require_2fa', false);
@@ -111,16 +111,18 @@ describe('un geste : enregistrer et émettre le reçu', function (): void {
         expect(RecuVersement::query()->sole()->versement->reference)->toBe('BOR-902');
     });
 
-    it('garde « Enregistrer un versement » pour un administrateur, sans reçu', function (): void {
+    it('n\'offre plus la saisie à un administrateur ; le super administrateur encaisse avec le reçu', function (): void {
         $this->actingAs(($this->compte)('admin'));
+        $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])->assertActionHidden('enregistrerVersement');
 
+        $this->actingAs(($this->compte)('super_admin'));
         $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
-            ->assertActionHasLabel('enregistrerVersement', 'Enregistrer un versement')
+            ->assertActionHasLabel('enregistrerVersement', 'Enregistrer et émettre le reçu')
             ->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'BOR-903']))
             ->assertHasNoActionErrors();
 
         expect(Versement::query()->count())->toBe(1)
-            ->and(RecuVersement::query()->count())->toBe(0);
+            ->and(RecuVersement::query()->count())->toBe(1);
     });
 });
 
@@ -152,13 +154,15 @@ describe('saisie réservée au service financier', function (): void {
 
         expect($niveau('scolarite_agent'))->toBe(ModulePermissionMap::LEVEL_READ)
             ->and($niveau('scolarite_responsable'))->toBe(ModulePermissionMap::LEVEL_READ)
+            ->and($niveau('admin'))->toBe(ModulePermissionMap::LEVEL_READ)
             ->and($niveau('service_financier'))->toBe(ModulePermissionMap::LEVEL_MANAGE);
     });
 
     it('retire la saisie par migration additive, la garde au service financier, et se défait', function (): void {
-        // État de la production avant la migration : les deux rôles de scolarité saisissent.
+        // État de la production avant la migration : les deux rôles de scolarité et l'administrateur saisissent.
         Role::findByName('scolarite_agent', 'web')->givePermissionTo(RegistreVersements::PERMISSION_SAISIR);
         Role::findByName('scolarite_responsable', 'web')->givePermissionTo(RegistreVersements::PERMISSION_SAISIR);
+        Role::findByName('admin', 'web')->givePermissionTo(RegistreVersements::PERMISSION_SAISIR);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         $avant = fn (string $r): int => Role::findByName($r, 'web')->permissions()->count();
         $agentAvant = $avant('scolarite_agent');
@@ -173,14 +177,16 @@ describe('saisie réservée au service financier', function (): void {
         expect($droits('scolarite_agent'))->not->toContain(RegistreVersements::PERMISSION_SAISIR)
             ->and($droits('scolarite_responsable'))->not->toContain(RegistreVersements::PERMISSION_SAISIR)
             ->and($droits('service_financier'))->toContain(RegistreVersements::PERMISSION_SAISIR)->toContain(RecusVersements::PERMISSION_EMETTRE)
-            ->and($droits('admin'))->toContain(RegistreVersements::PERMISSION_SAISIR)
+            ->and($droits('admin'))->not->toContain(RegistreVersements::PERMISSION_SAISIR)
+            ->and($droits('super_admin'))->toContain(RegistreVersements::PERMISSION_SAISIR)
             ->and($avant('scolarite_agent'))->toBe($agentAvant - 1)
             ->and($avant('service_financier'))->toBe($financierAvant);
 
         $migration->down();
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         expect($droits('scolarite_agent'))->toContain(RegistreVersements::PERMISSION_SAISIR)
-            ->and($droits('scolarite_responsable'))->toContain(RegistreVersements::PERMISSION_SAISIR);
+            ->and($droits('scolarite_responsable'))->toContain(RegistreVersements::PERMISSION_SAISIR)
+            ->and($droits('admin'))->toContain(RegistreVersements::PERMISSION_SAISIR);
     });
 
     it('laisse à la scolarité, et non plus à la saisie, le renvoi des accès et du lien vers la lettre', function (): void {
