@@ -759,7 +759,7 @@
       "enRetard": "Overdue",
       "echeance": "Due: {date}",
       "remise": "Reduction granted: {montant}",
-      "tropPercu": "Overpayment: {montant}",
+      "avance": "Advance payment: {montant}",
       "versementsTitre": "My payments ({count})",
       "aucunVersement": "No payment recorded yet.",
       "colDate": "Date",

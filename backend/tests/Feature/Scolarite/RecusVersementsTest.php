@@ -80,10 +80,10 @@ it('numérote les reçus RCPT-AAAA-NNNNNN, fige leur contenu et impute le versem
         ->and($this->service->enLettres(185000))->toBe('cent quatre-vingt-cinq mille francs CFA')
         ->and(substr($this->service->pdf($r1), 0, 4))->toBe('%PDF');
 
-    // Un versement à cheval sur deux paliers et un trop-perçu.
+    // Un versement à cheval sur deux paliers, dont l'excédent est conservé comme avance (décision du 15/11/2026).
     $c = ($this->verser)(800000, '2026-11-06');
     expect($this->service->emettre($c, $this->financier)->objet)
-        ->toBe('Frais de scolarité 2026-2027 : 1re tranche (200 000 FCFA), 2e tranche (500 000 FCFA), trop-perçu (100 000 FCFA)');
+        ->toBe('Frais de scolarité 2026-2027 : 1re tranche (200 000 FCFA), 2e tranche (500 000 FCFA), avance (100 000 FCFA)');
 });
 
 it('refuse le reçu d\'un versement annulé, déjà couvert ou antérieur à la mise en service, et sans la permission', function (): void {

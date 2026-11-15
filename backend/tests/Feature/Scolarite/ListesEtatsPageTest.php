@@ -11,6 +11,7 @@ use App\Models\InscriptionAnnuelle;
 use App\Models\User;
 use App\Models\Versement;
 use App\Services\Scolarite\CriteresListe;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Select;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
@@ -65,6 +66,7 @@ it('propose par défaut la dernière promotion, ses spécialités et les auditeu
         ->assertFormSet([
             'campagne_id' => $this->campagne->id, 'niveau' => null, 'specialite' => null,
             'situation' => CriteresListe::TOUTES, 'statuts' => [Auditeur::STATUT_ACTIF], 'regroupement' => CriteresListe::PAR_SPECIALITE,
+            'inclure_retires' => false,
         ])
         ->assertFormFieldExists('specialite', fn (Select $champ): bool => $champ->getOptions() === ['Économie Publique et Gestion Publique' => 'Économie Publique et Gestion Publique'])
         ->assertSee('1 auditeur correspond à ces critères');
@@ -110,4 +112,26 @@ it('exige une promotion et au moins un statut', function (): void {
         ->assertNoFileDownloaded();
 
     expect(Activity::query()->where('event', 'liste_editee')->exists())->toBeFalse();
+});
+
+it('laisse les dossiers retirés hors de la liste, sauf si l\'agent coche la case', function (): void {
+    $c = Candidature::factory()->forCampagne($this->campagne)->submitted()->create([
+        'nom' => 'Retire', 'prenom' => 'Essai', 'specialite' => 'Économie Publique et Gestion Publique', 'statut' => Candidature::STATUT_ACCEPTE,
+        'phone_e164' => '+237699660009', 'email' => 'liste9@example.org', 'withdrawn_at' => now(),
+    ]);
+    $c->forceFill(['matricule' => '26PAG0009', 'rang_retenu' => 2, 'matricule_attribue_at' => now()])->save();
+    Auditeur::query()->create(['candidature_id' => $c->id]);
+    $this->actingAs(($this->compte)('scolarite_agent'));
+
+    $this->livewire(ListesEtats::class)
+        ->assertFormFieldExists('inclure_retires', fn (Checkbox $champ): bool => $champ->getLabel() === 'Inclure les dossiers retirés')
+        ->assertSee('1 auditeur correspond à ces critères')
+        ->fillForm(['inclure_retires' => true])
+        ->assertSee('2 auditeurs correspondent à ces critères')
+        ->callAction('listeNominative')
+        ->assertFileDownloaded();
+
+    $journal = Activity::query()->where('event', 'liste_editee')->sole();
+    expect($journal->properties['inclure_retires'])->toBeTrue()
+        ->and($journal->properties['lignes'])->toBe(2);
 });

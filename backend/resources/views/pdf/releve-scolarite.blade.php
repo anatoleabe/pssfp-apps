@@ -64,7 +64,7 @@
     <p>Remise accordée : {{ $fcfa($situation['remise']) }}</p>
   @endif
   @if ($situation['trop_percu'] > 0)
-    <p>Trop-perçu : {{ $fcfa($situation['trop_percu']) }}</p>
+    <p>Avance : {{ $fcfa($situation['trop_percu']) }}</p>
   @endif
 
   <h2>Versements enregistrés</h2>

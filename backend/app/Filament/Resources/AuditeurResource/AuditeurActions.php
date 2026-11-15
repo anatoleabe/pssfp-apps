@@ -45,7 +45,7 @@ final class AuditeurActions
     /**
      * Chemins écrits par le champ de pièce pendant cette requête. L'état d'un champ de
      * fichier se modifie depuis le navigateur : seuls ces chemins se suppriment sur un
-     * refus, ou se rattachent à un accès anticipé.
+     * refus, ou se rattachent à un versement ou à un accès anticipé.
      *
      * @var list<string>
      */
@@ -80,12 +80,13 @@ final class AuditeurActions
                 Forms\Components\Select::make('payeur')->label('Payé par')->required()->options(Versement::PAYEURS)->default('auditeur')->native(false),
                 self::champJustificatif(),
                 Forms\Components\Checkbox::make('confirmer_trop_percu')
-                    ->label('Je confirme : ce montant dépasse le reste à payer.')
+                    ->label('Je confirme : ce montant dépasse le reste à payer ; l\'excédent sera conservé comme avance.')
                     ->visible(fn (Forms\Get $get): bool => (int) $get('montant') > $record->inscriptionCourante->situation()->reste)
                     ->accepted(),
             ]))
             ->action(function (Auditeur $record, array $data, Action $action): void {
                 try {
+                    self::exigerScanDepose($data['justificatif_path'] ?? null);
                     $resultat = app(RegistreVersements::class)->enregistrer($record->inscriptionCourante, $data, auth()->user());
                 } catch (InvalidArgumentException $e) {
                     self::supprimerScanOrphelin($data['justificatif_path'] ?? null);
@@ -361,6 +362,7 @@ final class AuditeurActions
                     return;
                 }
                 try {
+                    self::exigerScanDepose((string) $chemin);
                     app(RegistreVersements::class)->joindreJustificatif($record, (string) $chemin, auth()->user());
                 } catch (InvalidArgumentException $e) {
                     self::supprimerScanOrphelin((string) $chemin);
@@ -415,6 +417,19 @@ final class AuditeurActions
                     return null;
                 }
             });
+    }
+
+    /**
+     * Seul un scan déposé par ce formulaire, dans cette requête, se rattache au
+     * versement : jamais un chemin recopié dans l'état du formulaire.
+     *
+     * @throws InvalidArgumentException
+     */
+    private static function exigerScanDepose(?string $chemin): void
+    {
+        if (filled($chemin) && ! self::depose($chemin)) {
+            throw new InvalidArgumentException('Le scan du bordereau est invalide : déposez-le à nouveau.');
+        }
     }
 
     /** Un scan déposé pour un versement (ou un déblocage) refusé ne doit pas rester dans le bucket. */

@@ -66,6 +66,6 @@
         <p style="margin-top:.75rem;font-size:.875rem;">Remise accordée : <strong>{{ $fcfa($situation->remise) }}</strong>@if ($inscription->remise_motif) — {{ $inscription->remise_motif }}@endif</p>
     @endif
     @if ($situation->tropPercu > 0)
-        <p style="margin-top:.5rem;font-size:.875rem;font-weight:600;color:rgb(var(--warning-600));">Trop-perçu : {{ $fcfa($situation->tropPercu) }}</p>
+        <p style="margin-top:.5rem;font-size:.875rem;font-weight:600;color:rgb(var(--warning-600));">Avance : {{ $fcfa($situation->tropPercu) }}</p>
     @endif
 @endif

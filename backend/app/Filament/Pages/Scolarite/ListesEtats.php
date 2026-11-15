@@ -69,6 +69,7 @@ class ListesEtats extends Page implements HasForms
             'situation' => CriteresListe::TOUTES,
             'statuts' => [Auditeur::STATUT_ACTIF],
             'regroupement' => CriteresListe::PAR_SPECIALITE,
+            'inclure_retires' => false,
         ]);
     }
 
@@ -89,6 +90,8 @@ class ListesEtats extends Page implements HasForms
                 Forms\Components\CheckboxList::make('statuts')->label('Statut de l\'auditeur')->required()->live()
                     ->options(Auditeur::STATUTS)->columns(3)->columnSpan(2)
                     ->helperText('Par défaut, les auditeurs actifs seulement. Cochez « Exclu » ou « Abandon » pour les ajouter.'),
+                Forms\Components\Checkbox::make('inclure_retires')->label('Inclure les dossiers retirés')->live()
+                    ->helperText('Décochée par défaut : un dossier retiré n\'apparaît sur aucune liste. Cochée, il est signalé « dossier retiré ».'),
             ]),
             Forms\Components\Section::make('Présentation')->schema([
                 Forms\Components\Radio::make('regroupement')->label('Regrouper les auditeurs')->required()->inline()->inlineLabel(false)

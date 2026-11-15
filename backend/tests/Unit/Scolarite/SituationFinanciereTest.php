@@ -58,7 +58,7 @@ it('expose le total dû, le cumul et la remise appliquée', function (): void {
         ->and($s->solde())->toBeFalse();
 });
 
-it('signale le trop-perçu sans le reporter sur un palier', function (): void {
+it('signale l\'excédent (affiché « avance ») sans le reporter sur un palier', function (): void {
     $s = situation(M1, 0, 1200000);
 
     expect($s->tropPercu)->toBe(15000)

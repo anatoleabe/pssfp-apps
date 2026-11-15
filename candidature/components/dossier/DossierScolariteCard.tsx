@@ -92,8 +92,9 @@ export function DossierScolariteCard({ scolarite }: DossierScolariteCardProps): 
       {(scolarite.remise ?? 0) > 0 && (
         <p className="mt-4 text-sm text-[#3C3C3C]">{t('remise', { montant: formatFcfa(scolarite.remise ?? 0, locale) })}</p>
       )}
+      {/* Excédent des versements, conservé comme avance (décision du 15/11/2026) ; la clé d'API garde son nom. */}
       {scolarite.trop_percu > 0 && (
-        <p className="mt-2 text-sm font-semibold text-amber-800">{t('tropPercu', { montant: formatFcfa(scolarite.trop_percu, locale) })}</p>
+        <p className="mt-2 text-sm font-semibold text-amber-800">{t('avance', { montant: formatFcfa(scolarite.trop_percu, locale) })}</p>
       )}
 
       <details className="mt-6 rounded-pssfp-card border border-[#F4EFFA] px-4 py-1">

@@ -32,6 +32,7 @@ const LISTES_MPPP = 'Marchés Publics et Partenariats Public-Privés';
  *   MPPP  ESSOMBA  M2  versé 1 135 000              soldé
  *   MPPP  FOUDA    M1  exclu
  *   P13   HOUNKPE  M1  autre promotion
+ *   FFCP  IKWA     M1  versé   185 000              dossier retiré (hors liste par défaut)
  */
 beforeEach(function (): void {
     $this->compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole($role));
@@ -71,6 +72,7 @@ beforeEach(function (): void {
     ($this->auditeur)('Fouda', LISTES_MPPP, 'M1', 0, 0, Auditeur::STATUT_EXCLU);
     $p13 = ($this->auditeur)('Hounkpe', LISTES_FFCP, null, 0, 0, Auditeur::STATUT_ACTIF, $this->anterieure);
     InscriptionAnnuelle::factory()->create(['auditeur_id' => $p13->id, 'bareme_id' => $this->baremes['P13']->id]);
+    ($this->auditeur)('Ikwa', LISTES_FFCP, 'M1', 185000)->candidature->forceFill(['withdrawn_at' => now()])->save();
 
     $this->criteres = fn (array $donnees = []): CriteresListe => CriteresListe::depuis($donnees + ['campagne_id' => $this->campagne->id]);
     $this->noms = fn (array $tableau): array => collect($tableau['groupes'])->flatMap(fn (array $g) => array_column($g['lignes'], 'nom'))->all();
@@ -224,7 +226,7 @@ it('journalise l\'édition avec les critères, sans aucune donnée nominative', 
         ->and($journal->properties->toArray())->toMatchArray([
             'liste' => ListesAuditeurs::SITUATION_FINANCIERE, 'campagne_id' => $this->campagne->id, 'promotion' => 14,
             'niveau' => null, 'specialite' => LISTES_FFCP, 'situation' => CriteresListe::TOUTES,
-            'statuts' => [Auditeur::STATUT_ACTIF], 'regroupement' => CriteresListe::PAR_SPECIALITE, 'lignes' => 4,
+            'statuts' => [Auditeur::STATUT_ACTIF], 'regroupement' => CriteresListe::PAR_SPECIALITE, 'inclure_retires' => false, 'lignes' => 4,
         ]);
     $brut = json_encode($journal->toArray(), JSON_UNESCAPED_UNICODE);
     foreach (['Abena', 'ABENA', 'Bekono', 'Essai', '26TST', '+23769955', '@example.org'] as $nominatif) {
@@ -252,7 +254,46 @@ it('refuse des critères hors liste', function (array $donnees): void {
     'statut inconnu' => [['statuts' => ['fantome']]],
     'aucun statut' => [['statuts' => []]],
     'regroupement inconnu' => [['regroupement' => 'par_ville']],
+    'case des dossiers retirés illisible' => [['inclure_retires' => 'peut-etre']],
 ]);
+
+it('écarte par défaut les dossiers retirés, de la liste comme de l\'effectif', function (): void {
+    $criteres = ($this->criteres)(['regroupement' => CriteresListe::SANS_REGROUPEMENT]);
+
+    expect(($this->noms)(($this->listes)()->tableau($criteres)))->not->toContain('IKWA Essai')
+        ->and(($this->listes)()->effectif($criteres))->toBe(6)
+        ->and(($this->listes)()->effectif(($this->criteres)(['situation' => CriteresListe::EN_RETARD])))->toBe(1);
+});
+
+it('réintègre les dossiers retirés quand la case est cochée, en les signalant', function (): void {
+    $criteres = ($this->criteres)(['inclure_retires' => true, 'regroupement' => CriteresListe::SANS_REGROUPEMENT]);
+    $tableau = ($this->listes)()->tableau($criteres);
+    $lignes = collect($tableau['groupes'][0]['lignes'])->keyBy('nom');
+
+    expect(($this->noms)($tableau))->toBe(['ABENA Essai', 'BEKONO Essai', 'CHOUPO Essai', 'DIBANGO Essai', 'ESSOMBA Essai', 'GWET Essai', 'IKWA Essai'])
+        ->and(($this->listes)()->effectif($criteres))->toBe(7)
+        ->and($tableau['totaux'])->toBe(['effectif' => 7, 'du' => 6875000, 'remise' => 135000, 'verse' => 3375000, 'reste' => 3500000])
+        ->and($lignes['IKWA Essai']['statut'])->toBe('Actif (dossier retiré)')
+        ->and($lignes['ABENA Essai']['statut'])->toBe('Actif');
+});
+
+it('rappelle en tête de liste si les dossiers retirés sont exclus ou inclus', function (bool $inclure, string $libelle): void {
+    $html = ($this->listes)()->html(ListesAuditeurs::NOMINATIVE, ($this->criteres)(['inclure_retires' => $inclure]));
+
+    expect($html)->toContain('Dossiers retirés&nbsp;:</span> <strong>'.$libelle.'</strong>');
+})->with([
+    'par défaut' => [false, 'exclus'],
+    'case cochée' => [true, 'inclus'],
+]);
+
+it('journalise l\'inclusion des dossiers retirés, toujours sans donnée nominative', function (): void {
+    ($this->listes)()->editer(ListesAuditeurs::NOMINATIVE, ($this->criteres)(['inclure_retires' => true, 'specialite' => LISTES_FFCP]), ($this->compte)('scolarite_agent'));
+
+    $journal = Activity::query()->where('event', 'liste_editee')->sole();
+    expect($journal->properties['inclure_retires'])->toBeTrue()
+        ->and($journal->properties['lignes'])->toBe(5)
+        ->and(json_encode($journal->toArray(), JSON_UNESCAPED_UNICODE))->not->toContain('Ikwa')->not->toContain('IKWA');
+});
 
 it('propose les promotions qui ont des auditeurs et les spécialités de la promotion choisie', function (): void {
     CampagneCandidature::factory()->create(['nom' => ['fr' => 'Année académique 2027-2028'], 'promotion_numero' => 15]);

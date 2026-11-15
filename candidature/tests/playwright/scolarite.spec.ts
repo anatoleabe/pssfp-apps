@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 
 /*
@@ -32,5 +34,30 @@ test.describe("Reçu d'un versement", () => {
     await page.goto('/dossier/recus/pas-un-uuid', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/login|\/dossier/);
     expect(appels.some((u) => u.includes('/scolarite/recus/'))).toBe(false);
+  });
+});
+
+type Messages = { dossier: { scolarite: Record<string, unknown> } };
+
+function messages(locale: 'fr' | 'en'): Messages {
+  return JSON.parse(readFileSync(join(__dirname, '..', '..', 'messages', `${locale}.json`), 'utf8')) as Messages;
+}
+
+/*
+ * L'excédent des versements (clé d'API `trop_percu`) se lit « Avance » depuis la
+ * décision du chef de projet du 15/11/2026. La carte connectée demande une API
+ * réelle : ici, les textes des deux langues.
+ */
+test.describe('Excédent des versements', () => {
+  test('les deux langues le présentent comme une avance, jamais comme un trop-perçu', () => {
+    const fr = messages('fr').dossier.scolarite;
+    const en = messages('en').dossier.scolarite;
+
+    expect(fr.avance).toBe('Avance : {montant}');
+    expect(en.avance).toBe('Advance payment: {montant}');
+    expect(JSON.stringify(fr)).not.toMatch(/trop[- ]perçu/i);
+    expect(JSON.stringify(en)).not.toMatch(/overpa/i);
+    expect(fr).not.toHaveProperty('tropPercu');
+    expect(en).not.toHaveProperty('tropPercu');
   });
 });
