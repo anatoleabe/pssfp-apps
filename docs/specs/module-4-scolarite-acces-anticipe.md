@@ -388,12 +388,125 @@ Journal `scolarite`, scellé (lot 14d-1). Montants et `uuid` seulement, sauf l'a
 
 ## 10. A3 — Demande de moratoire
 
-Nouveau type de demande `accorder_moratoire` (circuit du lot 14c) :
+L'agent de scolarité n'accorde pas de moratoire (§2). Il le **demande** au responsable par le circuit des demandes d'autorisation du lot 14c, depuis la fiche de l'auditeur. Le responsable approuve ou rejette ; l'approbation crée le moratoire à son nom.
 
-- Décideurs : `scolarite.deblocage_exceptionnel`. Pas de visa.
-- L'agent soumet : l'auditeur, l'échéance proposée et le motif.
-- À la décision favorable, l'exécution crée le moratoire au nom du responsable.
-- Migration : la liste fermée des types (CHECK) est élargie, sur le même précédent que `deverrouiller_compte`.
+### Le type `accorder_moratoire`
+
+| Rubrique | Règle |
+|---|---|
+| Libellé | Accord d'un moratoire sur les droits d'inscription |
+| Famille | Levée de verrou (message de priorité haute aux décideurs) |
+| Objet visé | L'**inscription annuelle courante** de l'auditeur (`entite_id`) |
+| Qui demande | `scolarite.deblocage` : l'agent de scolarité |
+| Qui décide | `scolarite.deblocage_exceptionnel` : responsable de scolarité, admin, super_admin. **Pas de visa** |
+| Réponse attendue | Sous 48 h (contrôle `DEM_ATTENTE` du lot 14c au-delà) |
+
+Qui détient déjà le droit de décider agit directement, sans demande : le circuit le refuse (« Vous détenez déjà ce droit »).
+
+### Soumission, depuis la fiche de l'auditeur
+
+- Menu « Accès eCampus » :
+  - « Demander un moratoire », pour qui a `scolarite.deblocage` **sans** `scolarite.deblocage_exceptionnel`, quand un déblocage serait possible (mêmes conditions que « Débloquer l'accès ») et qu'aucune demande n'attend déjà sur l'inscription ;
+  - le responsable garde l'action directe « Débloquer l'accès » (moratoire) d'A1 et ne voit pas l'action de demande ;
+  - « Demande de moratoire en attente » mène à la demande, pour qui peut la voir : l'agent qui l'a soumise, les décideurs.
+- Saisie :
+  - échéance proposée, **obligatoire**, au plus 180 jours ;
+  - motif, au moins 10 caractères ;
+  - pièce **facultative** : la demande écrite de l'auditeur (PDF, JPG ou PNG, 10 Mo), rangée comme les pièces d'A1.
+- Contrôles à la soumission, avec les messages d'A1 :
+  - dossier retiré, auditeur exclu ou en abandon, inscription qui n'est pas celle de l'année en cours ;
+  - droits d'inscription déjà soldés ;
+  - déblocage déjà en cours ;
+  - échéance absente, passée ou au-delà de 180 jours ; pièce invalide ou déjà jointe ailleurs ;
+  - **une seule demande en attente par inscription** : l'index unique du lot 14c sur (type, objet) le garantit, même sous deux soumissions simultanées.
+- Après une révocation, l'agent peut demander : c'est le responsable qui décide, ce qui respecte le garde-fou d'A1 (§4).
+- Le type n'apparaît pas dans l'écran général « Nouvelle demande » : seule la fiche saisit l'échéance et la pièce.
+- Les décideurs reçoivent le message habituel du lot 14c, avec l'échéance proposée et la mention de la pièce.
+
+### Décision et exécution
+
+- **Approbation** : l'exécution appelle `DeblocagesAcces::accorder`, **au nom du responsable** qui a approuvé :
+  - `accorde_par` = le responsable, type `moratoire` ;
+  - échéance proposée, pièce s'il y en a une ;
+  - motif « Demande DM-AAAA-NNNNN : <motif de l'agent> ».
+  
+  L'auditeur est prévenu comme en A1 : SMS et e-mail du lien vers sa lettre d'accès. Le résultat de la demande le dit : « Moratoire accordé jusqu'au JJ/MM/AAAA ; auditeur prévenu par SMS et par e-mail ».
+- **Le décideur n'ajuste pas l'échéance.** Une demande du lot 14c est figée : ce qui est approuvé est ce qui a été demandé et examiné. Pour un autre délai :
+  - plus court : il rejette en le disant, et l'agent soumet une nouvelle demande ;
+  - plus long : il approuve, puis prolonge lui-même le moratoire depuis la fiche (« Prolonger », A1).
+- **Rejet** : rien n'est créé. Le demandeur est prévenu avec le motif du rejet.
+- **Contrôles refaits à l'exécution**, sous les verrous d'A1, car l'état a pu changer depuis la soumission :
+  - droits soldés entre-temps ;
+  - dossier retiré, auditeur exclu ou en abandon ;
+  - déblocage accordé entre-temps (par exemple directement par le responsable) ;
+  - échéance désormais passée ;
+  - nouvelle inscription annuelle ;
+  - droit retiré au décideur.
+
+  Dans ces cas, rien n'est créé. La demande passe en « Échec d'exécution » avec le message d'A1 (par exemple « Échec de l'exécution : Les droits d'inscription sont déjà soldés… »), et le demandeur en est prévenu.
+- Pas d'empreinte de l'inscription : les contrôles ci-dessus la remplacent. Une empreinte échouerait sur des changements sans rapport, avec un message moins clair.
+
+### Données
+
+Migration `2026_12_02_110000_add_accorder_moratoire_to_demandes_autorisation` :
+
+- la liste fermée des types (CHECK `demandes_autorisation_check`) s'élargit à `accorder_moratoire`, sur le précédent de `deverrouiller_compte` ;
+- nouvelle colonne `demandes_autorisation.parametres` (JSONB, nullable), qui porte ce que le type demande en plus de son objet. Pour `accorder_moratoire` : `{"echeance": "AAAA-MM-JJ", "justificatif_path": <chemin> | null}` ;
+- CHECK `demandes_autorisation_parametres_check` :
+  - `parametres` est un objet JSON ;
+  - une demande `accorder_moratoire` porte une échéance au format date ;
+- le déclencheur `demandes_autorisation_figees` fige aussi `parametres` ;
+- `down()` rétablit le CHECK et le déclencheur d'avant, puis retire la colonne. Comme pour le précédent, il échoue tant qu'il reste une demande `accorder_moratoire`, puisqu'une demande ne se supprime pas.
+
+### Fiche de la demande
+
+- Rubrique « Précisions » : échéance proposée, pièce jointe ou non.
+- « Voir la pièce jointe » : lien signé de 30 minutes. Il exige de voir la demande et d'avoir `view_auditeur`. La consultation est journalisée.
+- La fenêtre d'approbation rappelle que le moratoire sera accordé au nom du décideur, à l'échéance proposée.
+
+### Journal
+
+- Journal `messagerie` (lot 14c) : `demande_soumise`, `demande_approuvee` ou `demande_rejetee`, `demande_executee` ou `demande_echec`.
+- Journal `scolarite` :
+  - `deblocage_accorde`, causé par le responsable (A1) ;
+  - `demande_piece_consultee`.
+
+### Tests (A3)
+
+- Soumission :
+  - l'agent soumet ;
+  - le responsable et l'admin ne peuvent pas soumettre (ils agissent directement), un compte sans `scolarite.deblocage` non plus ;
+  - échéance au-delà de 180 jours refusée ;
+  - doublon de demande en attente refusé ;
+  - refus sur un dossier soldé, retiré, exclu ou débloqué.
+- Décision :
+  - un décideur sans `scolarite.deblocage_exceptionnel` ne peut pas décider ;
+  - une approbation crée le moratoire au nom du responsable, ouvre l'accès et prévient l'auditeur ;
+  - un rejet ne crée rien.
+- Exécution : soldé, débloqué, retiré ou exclu entre-temps donnent un échec propre, avec un message clair, et rien n'est créé.
+- Migration : CHECK et déclencheur, réversibilité.
+- Filament :
+  - l'action de demande est visible pour l'agent seul ;
+  - le lien vers la demande en attente ;
+  - soumission avec pièce ;
+  - précisions et pièce sur la fiche de la demande, approbation depuis la fiche.
+
+### Déploiement (A3)
+
+`migrate`, puis `optimize`. Aucun nouveau droit : A3 réutilise `scolarite.deblocage` et `scolarite.deblocage_exceptionnel`, posés en A1.
+
+### Points tranchés en réalisation
+
+1. **Objet de la demande : l'inscription courante**, pas l'auditeur. L'index unique du lot 14c sur (type, objet) interdit ainsi une seconde demande en attente sur la même inscription.
+2. **Échéance et pièce dans une colonne `parametres` (JSONB) figée.** La demande du lot 14c n'avait pas de place pour ce que le type exige en plus de son objet. Une colonne générique, figée par le déclencheur existant, garde la règle « ce qui est demandé ne change plus ».
+3. **Le décideur n'ajuste pas l'échéance** : il approuve telle quelle, ou rejette en disant pourquoi. Après approbation, il peut prolonger (A1). C'est la règle du circuit 14c : ce qui s'exécute est ce qui a été examiné.
+4. **Pas d'empreinte** pour ce type : les contrôles d'`accorder()` refaits à l'exécution sont plus justes, et leurs messages plus clairs.
+5. **Réponse sous 48 h, famille « Levée de verrou »** : l'auditeur attend ses accès, mais un moratoire n'est pas aussi urgent qu'un compte du personnel verrouillé (8 h).
+6. **Hors de l'écran général « Nouvelle demande »** : il ne saisit ni échéance ni pièce. Une demande forcée sans échéance est de toute façon refusée par le service et par la base.
+7. **L'agent peut demander après une révocation** : la décision revient au responsable, seul habilité à accorder de nouveau (A1, §4).
+8. **Notification de l'auditeur dans l'exécution**, comme le déverrouillage d'un compte qui envoie son lien dans la même exécution. `NotificationAcces` ne lève jamais : un incident de passerelle n'empêche pas le moratoire.
+9. **Pièce d'une demande rejetée ou en échec** : elle reste rangée avec la demande, comme trace de ce qui a été examiné. Une nouvelle demande exige un nouveau dépôt.
+10. **Motif limité à 900 caractères dans le formulaire** : il laisse la place au numéro de la demande dans le motif du moratoire (1 000 caractères au plus).
 
 ## 11. Tests
 

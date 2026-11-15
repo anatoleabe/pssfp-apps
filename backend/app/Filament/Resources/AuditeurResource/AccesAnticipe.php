@@ -286,8 +286,8 @@ final class AccesAnticipe
             ->all();
     }
 
-    /** Dossier ouvert, auditeur en formation, droits non soldés et rien d'en cours. */
-    private static function deblocable(Auditeur $record): bool
+    /** Dossier ouvert, auditeur en formation, droits non soldés et rien d'en cours (aussi pour demander un moratoire, A3). */
+    public static function deblocable(Auditeur $record): bool
     {
         $inscription = $record->inscriptionCourante;
 

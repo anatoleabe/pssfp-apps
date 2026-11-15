@@ -42,7 +42,8 @@ class DemandeAutorisation extends Model
 
     protected $fillable = [];
 
-    protected $casts = ['soumise_le' => 'immutable_datetime', 'echeance' => 'immutable_datetime', 'traitee_le' => 'immutable_datetime'];
+    /** `parametres` : ce que le type exige en plus de son objet (lot A3 : échéance proposée et pièce d'un moratoire), figé comme le reste. */
+    protected $casts = ['soumise_le' => 'immutable_datetime', 'echeance' => 'immutable_datetime', 'traitee_le' => 'immutable_datetime', 'parametres' => 'array'];
 
     public function uniqueIds(): array
     {

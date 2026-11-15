@@ -126,6 +126,30 @@ final class DeblocagesAcces
     }
 
     /**
+     * Moratoire demandé par l'agent au responsable (lot A3) : les contrôles d'accorder(), hors droits de l'auteur,
+     * sans rien écrire ni verrouiller. accorder() les refait à l'exécution de la demande, sous verrou.
+     *
+     * @return array{echeance: string, justificatif_path: ?string}
+     *
+     * @throws InvalidArgumentException
+     */
+    public static function controlerMoratoire(InscriptionAnnuelle $inscription, mixed $echeance, mixed $piece): array
+    {
+        $echeance = self::echeance(DeblocageAcces::MORATOIRE, $echeance);
+        $piece = self::piece(DeblocageAcces::MORATOIRE, $piece);
+        self::dossierOuvert($inscription);
+        $courante = InscriptionAnnuelle::query()->with('bareme')->findOrFail($inscription->id);
+        if ($courante->situation()->inscriptionSoldee()) {
+            throw new InvalidArgumentException('Les droits d\'inscription sont déjà soldés : l\'accès est ouvert sans déblocage.');
+        }
+        if (DeblocageAcces::query()->enCours()->where('inscription_annuelle_id', $inscription->id)->exists()) {
+            throw new InvalidArgumentException(self::messageDejaEnCours());
+        }
+
+        return ['echeance' => $echeance->toDateString(), 'justificatif_path' => $piece];
+    }
+
+    /**
      * @param  array{type?: mixed, motif?: mixed, echeance?: mixed, justificatif_path?: mixed}  $saisie
      *
      * @throws InvalidArgumentException
