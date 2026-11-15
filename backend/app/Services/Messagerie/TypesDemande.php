@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Messagerie;
 
+use App\Models\DeblocageAcces;
 use App\Models\DocumentDelivre;
 use App\Models\EtapeSaisie;
 use App\Models\EtatPaie;
+use App\Models\InscriptionAnnuelle;
 use App\Models\Maquette;
 use App\Models\PointageEnseignant;
 use App\Models\QuotaHoraire;
@@ -19,6 +21,8 @@ use App\Services\Lmd\PointagesEnseignant;
 use App\Services\Lmd\Programmations;
 use App\Services\Lmd\SaisieNotes;
 use App\Services\Lmd\ValidationMaquette;
+use App\Services\Scolarite\DeblocagesAcces;
+use App\Services\Scolarite\DemandeMoratoire;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
@@ -47,6 +51,9 @@ final class TypesDemande
 
     public const DEVERROUILLER_COMPTE = 'deverrouiller_compte';
 
+    /** Lot A3 (scolarité) : l'agent demande au responsable un moratoire sur les droits d'inscription. */
+    public const ACCORDER_MORATOIRE = 'accorder_moratoire';
+
     public const LEVEE_VERROU = 'levee_verrou';
 
     public const VALIDATION = 'validation';
@@ -65,6 +72,7 @@ final class TypesDemande
         self::REVOQUER_DOCUMENT => ['libelle' => 'Révocation d\'un document délivré', 'famille' => self::ANNULATION, 'permission' => PermissionsLmd::DOCUMENTS_REVOQUER, 'visa' => true, 'heures' => 48],
         self::REJETER_ETAT_PAIE => ['libelle' => 'Rejet d\'un état de paie vérifié, visé ou transmis', 'famille' => self::ANNULATION, 'permission' => PermissionsLmd::PAIE_VERIFIER, 'visa' => true, 'heures' => 48],
         self::DEVERROUILLER_COMPTE => ['libelle' => 'Déverrouillage d\'un compte', 'famille' => self::LEVEE_VERROU, 'permission' => VerrouillageComptes::PERMISSION_DEVERROUILLER, 'visa' => false, 'heures' => 8],
+        self::ACCORDER_MORATOIRE => ['libelle' => 'Accord d\'un moratoire sur les droits d\'inscription', 'famille' => self::LEVEE_VERROU, 'permission' => DeblocagesAcces::PERMISSION_EXCEPTIONNEL, 'visa' => false, 'heures' => 48],
     ];
 
     /**
@@ -83,14 +91,19 @@ final class TypesDemande
         self::REJETER_ETAT_PAIE => [PermissionsLmd::PAIE_PREPARER, PermissionsLmd::PAIE_VERIFIER, PermissionsLmd::PAIE_VISER, PermissionsLmd::PAIE_PAYER],
         // Un collègue demande pour le compte verrouillé, qui ne peut plus se connecter.
         self::DEVERROUILLER_COMPTE => [],
+        // L'agent de scolarité, qui accorde un virement annoncé mais pas un moratoire.
+        self::ACCORDER_MORATOIRE => [DeblocagesAcces::PERMISSION],
     ];
 
     /** @var array<string, class-string<Model>> */
     public const CLASSES = [
         self::ROUVRIR_ETAPE => EtapeSaisie::class, self::VALIDER_QUOTA => QuotaHoraire::class, self::VALIDER_MAQUETTE => Maquette::class,
         self::ANNULER_POINTAGE => PointageEnseignant::class, self::REVOQUER_DOCUMENT => DocumentDelivre::class, self::REJETER_ETAT_PAIE => EtatPaie::class,
-        self::DEVERROUILLER_COMPTE => User::class,
+        self::DEVERROUILLER_COMPTE => User::class, self::ACCORDER_MORATOIRE => InscriptionAnnuelle::class,
     ];
+
+    /** Types soumis depuis l'écran de leur objet, qui saisit leurs paramètres : absents de l'écran général « Nouvelle demande ». */
+    public const DEPUIS_LEUR_ECRAN = [self::ACCORDER_MORATOIRE];
 
     public const ETATS_PAIE_REJETABLES = [EtatPaie::VERIFIE, EtatPaie::VISE, EtatPaie::TRANSMIS];
 
@@ -116,10 +129,50 @@ final class TypesDemande
         return $permissions !== null && ($permissions === [] || collect($permissions)->contains(fn (string $p): bool => $user->can($p)));
     }
 
-    /** @return array<string, string> types ouverts à l'utilisateur */
+    /** @return array<string, string> types ouverts à l'utilisateur dans l'écran général « Nouvelle demande » */
     public static function libellesPour(User $user): array
     {
-        return array_filter(self::libelles(), fn (string $code): bool => self::peutViser($user, $code), ARRAY_FILTER_USE_KEY);
+        return array_filter(self::libelles(), fn (string $code): bool => ! in_array($code, self::DEPUIS_LEUR_ECRAN, true)
+            && self::peutViser($user, $code), ARRAY_FILTER_USE_KEY);
+    }
+
+    /**
+     * Paramètres que le type exige en plus de son objet, contrôlés et normalisés ; null pour un type qui n'en a pas.
+     *
+     * @param  array<string, mixed>  $saisie
+     * @return array<string, mixed>|null
+     *
+     * @throws InvalidArgumentException
+     */
+    public function parametres(string $code, ?int $entiteId, array $saisie): ?array
+    {
+        if ($code === self::ACCORDER_MORATOIRE) {
+            return DemandeMoratoire::parametres(InscriptionAnnuelle::query()->findOrFail($entiteId), $saisie);
+        }
+        if (array_filter($saisie, fn (mixed $v): bool => filled($v)) !== []) {
+            throw new InvalidArgumentException('Ce type de demande ne prend pas de paramètres.');
+        }
+
+        return null;
+    }
+
+    /**
+     * Ce que la demande précise en plus de son objet, ligne à ligne (message aux décideurs, fiche de la demande).
+     *
+     * @param  array<string, mixed>|null  $parametres
+     * @return list<string>
+     */
+    public static function precisions(string $code, ?array $parametres): array
+    {
+        return $code === self::ACCORDER_MORATOIRE ? DemandeMoratoire::precisions($parametres) : [];
+    }
+
+    /** Pièce jointe à la demande, seulement si son chemin est bien celui d'un justificatif (jamais un chemin forgé). */
+    public static function piece(string $code, ?array $parametres): ?string
+    {
+        $chemin = $code === self::ACCORDER_MORATOIRE ? ($parametres['justificatif_path'] ?? null) : null;
+
+        return is_string($chemin) && DeblocageAcces::cheminPieceValide($chemin) ? $chemin : null;
     }
 
     public static function aUnObjet(string $code): bool
@@ -182,7 +235,8 @@ final class TypesDemande
      */
     public function empreinte(string $code, ?int $id): ?string
     {
-        if (! self::aUnObjet($code) || $id === null) {
+        // Moratoire : les contrôles d'accorder(), refaits à l'exécution, remplacent l'empreinte (spec A3, §10).
+        if (! self::aUnObjet($code) || $id === null || $code === self::ACCORDER_MORATOIRE) {
             return null;
         }
         $m = (self::CLASSES[$code])::query()->find($id);
@@ -200,8 +254,12 @@ final class TypesDemande
         return hash('sha256', (string) json_encode($donnees));
     }
 
-    /** Exécute l'opération demandée, sous l'identité du responsable qui l'a approuvée. Renvoie le résultat lisible. */
-    public function executer(string $code, ?int $id, User $auteur, string $motif): string
+    /**
+     * Exécute l'opération demandée, sous l'identité du responsable qui l'a approuvée. Renvoie le résultat lisible.
+     *
+     * @param  array<string, mixed>  $parametres
+     */
+    public function executer(string $code, ?int $id, User $auteur, string $motif, array $parametres = []): string
     {
         $objet = fn (string $classe): Model => $classe::query()->findOrFail($id);
 
@@ -220,6 +278,7 @@ final class TypesDemande
             }, 'Document révoqué (la vérification publique affiche « révoqué »)'),
             self::REJETER_ETAT_PAIE => $this->faire(fn () => app(EtatsPaie::class)->rejeter($objet(EtatPaie::class), $motif, $auteur), 'État de paie rejeté ; émargements libérés'),
             self::DEVERROUILLER_COMPTE => $this->faire(fn () => app(VerrouillageComptes::class)->deverrouiller($objet(User::class), $auteur, $motif), 'Compte déverrouillé'),
+            self::ACCORDER_MORATOIRE => DemandeMoratoire::executer($objet(InscriptionAnnuelle::class), $parametres, $auteur, $motif),
             default => throw new InvalidArgumentException('Type de demande inconnu.'),
         };
     }
@@ -242,6 +301,7 @@ final class TypesDemande
             self::REVOQUER_DOCUMENT => DocumentDelivre::query()->whereNull('revoque_at'),
             self::REJETER_ETAT_PAIE => EtatPaie::query()->whereIn('statut', self::ETATS_PAIE_REJETABLES),
             self::DEVERROUILLER_COMPTE => VerrouillageComptes::verrouilles(),
+            self::ACCORDER_MORATOIRE => InscriptionAnnuelle::query()->whereHas('auditeur.candidature')->with('auditeur.candidature'),
             default => throw new InvalidArgumentException('Ce type de demande ne vise pas d\'objet.'),
         };
     }
@@ -258,6 +318,7 @@ final class TypesDemande
             self::REVOQUER_DOCUMENT => $m->numero.' — '.(DocumentDelivre::TYPES[$m->type] ?? $m->type),
             self::REJETER_ETAT_PAIE => $m->numero.' — '.(EtatPaie::STATUTS[$m->statut] ?? $m->statut),
             self::DEVERROUILLER_COMPTE => $m->name.' — verrouillé le '.$m->verrouille_le?->setTimezone('Africa/Douala')->format('d/m/Y à H:i'),
+            self::ACCORDER_MORATOIRE => DemandeMoratoire::libelle($m),
             default => (string) $m->getKey(),
         }, 290);
     }

@@ -48,7 +48,10 @@ final class Demandes
         private readonly Messagerie $messagerie,
     ) {}
 
-    public function soumettre(User $demandeur, string $type, ?int $entiteId, string $motif, ?string $objetLibre = null): DemandeAutorisation
+    /**
+     * @param  array<string, mixed>  $parametres  ce que le type exige en plus de son objet (lot A3 : échéance et pièce d'un moratoire)
+     */
+    public function soumettre(User $demandeur, string $type, ?int $entiteId, string $motif, ?string $objetLibre = null, array $parametres = []): DemandeAutorisation
     {
         $t = TypesDemande::type($type);
         $motif = trim($motif);
@@ -70,8 +73,9 @@ final class Demandes
         if (! $t['visa'] && $demandeur->can($this->types->permission($type, $entiteId))) {
             throw new InvalidArgumentException('Vous détenez déjà ce droit : agissez directement, sans demande.');
         }
+        $parametres = $this->types->parametres($type, $entiteId, $parametres);
 
-        $demande = $this->enregistrer($demandeur, $type, $entiteId, $objet, $motif, $t['heures']);
+        $demande = $this->enregistrer($demandeur, $type, $entiteId, $objet, $motif, $t['heures'], $parametres);
         RateLimiter::hit($cle, 3600);
         $this->prevenir($demandeur, $this->destinataires($demande), $demande, 'Demande '.$demande->numero.' — '.$t['libelle'],
             $this->resume($demande)."\n\nRéponse attendue avant le ".$demande->echeance->setTimezone(self::FUSEAU)->format('d/m/Y à H:i').'.'
@@ -245,7 +249,7 @@ final class Demandes
                     throw new InvalidArgumentException('l\'objet a été modifié depuis la demande ; soumettez-en une nouvelle sur sa version actuelle.');
                 }
 
-                return $this->types->executer($d->type, $d->entite_id, $responsable, $motif);
+                return $this->types->executer($d->type, $d->entite_id, $responsable, $motif, $d->parametres ?? []);
             });
             $d->forceFill(['statut' => DemandeAutorisation::EXECUTEE, 'traitee_le' => now(), 'resultat' => mb_substr($resultat, 0, 1000)])->save();
             $this->journal($responsable, $d, 'demande_executee', 'Demande exécutée', ['resultat' => $resultat]);
@@ -265,18 +269,19 @@ final class Demandes
         }
     }
 
-    private function enregistrer(User $demandeur, string $type, ?int $entiteId, string $objet, string $motif, int $heures): DemandeAutorisation
+    /** @param  array<string, mixed>|null  $parametres */
+    private function enregistrer(User $demandeur, string $type, ?int $entiteId, string $objet, string $motif, int $heures, ?array $parametres): DemandeAutorisation
     {
         for ($essai = 1; ; $essai++) {
             try {
-                return DB::transaction(function () use ($demandeur, $type, $entiteId, $objet, $motif, $heures): DemandeAutorisation {
+                return DB::transaction(function () use ($demandeur, $type, $entiteId, $objet, $motif, $heures, $parametres): DemandeAutorisation {
                     $annee = (int) CarbonImmutable::now(self::FUSEAU)->format('Y');
                     $sequence = (int) DemandeAutorisation::query()->where('annee', $annee)->max('sequence') + 1;
                     $d = new DemandeAutorisation;
                     $d->forceFill([
                         'numero' => sprintf('DM-%d-%05d', $annee, $sequence), 'annee' => $annee, 'sequence' => $sequence,
                         'type' => $type, 'demandeur_id' => $demandeur->id, 'entite_id' => $entiteId, 'objet' => $objet, 'motif' => $motif,
-                        'empreinte' => $this->types->empreinte($type, $entiteId),
+                        'empreinte' => $this->types->empreinte($type, $entiteId), 'parametres' => $parametres,
                         'statut' => DemandeAutorisation::SOUMISE, 'soumise_le' => now(), 'echeance' => now()->addHours($heures),
                     ])->save();
 
@@ -351,7 +356,11 @@ final class Demandes
 
     private function resume(DemandeAutorisation $d): string
     {
-        return 'Type : '.TypesDemande::type($d->type)['libelle']."\nObjet : ".$d->objet."\nDemandeur : ".($d->demandeur?->name ?? '—')."\nMotif : ".$d->motif;
+        $precisions = TypesDemande::precisions($d->type, $d->parametres);
+
+        return 'Type : '.TypesDemande::type($d->type)['libelle']."\nObjet : ".$d->objet
+            .($precisions === [] ? '' : "\n".implode("\n", $precisions))
+            ."\nDemandeur : ".($d->demandeur?->name ?? '—')."\nMotif : ".$d->motif;
     }
 
     /** @param  array<string, mixed>  $proprietes */
