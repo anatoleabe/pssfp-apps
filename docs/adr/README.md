@@ -23,6 +23,7 @@ Règle d'or : si une décision n'est pas dans un ADR, elle peut être renégoci�
 | [0010](0010-vie-academique-auditeurs-phase-1.md) | Vie académique en Phase I, sur une fiche auditeur distincte de la candidature | Accepté | 2026-11-05 |
 | [0011](0011-lmd-pssfp-systeme-dans-la-plateforme.md) | Le LMD complet (dossier « PSSFP Système ») construit dans la plateforme Laravel | Accepté | 2026-11-07 |
 | [0012](0012-travail-hors-ligne.md) | Travail hors ligne : périmètre, architecture et conventions à appliquer dès maintenant | Proposé | 2026-11-10 |
+| [0013](0013-compte-de-l-auditeur.md) | Compte de l'auditeur : versements rattachés à l'auditeur et imputations enregistrées | Proposé | 2026-11-15 |
 
 ## Workflow ADR
 
