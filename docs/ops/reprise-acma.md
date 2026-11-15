@@ -62,7 +62,20 @@ php artisan acma:inventaire
 
 Préférer `read -s ACMA_PHRASE && export ACMA_PHRASE` à une phrase écrite sur la ligne de commande, puis `unset ACMA_PHRASE`.
 
-## 5. Purge et conservation
+## 5. Reprise dans l'archive et contrôles (15b)
+
+```bash
+php artisan acma:reprendre --auteur=<e-mail admin>               # à blanc : tout est fait puis annulé
+php artisan acma:reprendre --auteur=<e-mail admin> --appliquer   # validée si aucun contrôle bloquant n'échoue
+php artisan acma:controler                                        # contrôles sur l'archive en place, lecture seule
+```
+
+- Une étape seule : `--etapes=resultats` (les précédentes doivent être en place). Ordre : `referentiels`, `dossiers`, `rapprochement`, `inscriptions`, `resultats`, `versions_notes`.
+- Rejouée sur le même export, la reprise n'écrit rien. Sur un export plus récent : lignes nouvelles insérées, lignes modifiées mises à jour, lignes disparues marquées « retirées », jamais supprimées ; les arbitrages restent.
+- Sorties dans le stockage privé (`storage/app/private/acma/`) : `controles-AAAAMMJJ.md` (comptes seulement, à joindre à la décision de gel) et `rapprochement-AAAAMMJJ.xlsx` (**nominatif** : cas à arbitrer, absents, exclusions, fusions, collisions, actifs 2026-2027 hors plateforme).
+- Durée mesurée sur l'export du 15/11/2026, sur un poste de développement : environ 45 s pour la première application, 15 s pour un rejeu.
+
+## 6. Purge et conservation
 
 - Le transit entre dans les sauvegardes quotidiennes tant qu'il existe : la fenêtre entre chargement et purge reste courte.
 - Après le gel de l'archive : `acma:purger-transit` (sous-lot 15c).
