@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\VerificationRecuController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
@@ -9,6 +10,11 @@ use Symfony\Component\HttpFoundation\Response;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Vérification publique d'un reçu par son QR code (reçu A4) : minimum de données, limitée en débit, non indexée.
+Route::get('/recus/verifier/{uuid}', VerificationRecuController::class)
+    ->middleware('throttle:verification-recus')
+    ->name('recus.verifier');
 
 // Les routes HTTP de Fortify sont fermées (lot 14d-2) : « login » reste nommé pour les redirections d'invités de Laravel.
 Route::redirect('/login', '/admin/login')->name('login');

@@ -132,6 +132,7 @@ final class RecusVersements
                 'inscription_annuelle_id' => $inscription->id,
                 'montant' => $v->montant,
                 'objet' => $calcul['objet'],
+                'ventilation' => $calcul['ventilation'],
                 'auditeur_nom' => trim(mb_strtoupper((string) $dossier?->nom).' '.$dossier?->prenom),
                 'matricule' => $dossier?->matricule,
                 'annee_academique' => $inscription->annee_academique,
@@ -235,7 +236,7 @@ final class RecusVersements
 
     public function pdf(RecuVersement $recu): string
     {
-        return Pdf::loadView('pdf.recu-versement', $this->donneesPdf($recu))->setPaper('a5', 'landscape')->output();
+        return Pdf::loadView('pdf.recu-versement', $this->donneesPdf($recu))->setPaper('a4', 'portrait')->output();
     }
 
     /** Données du PDF d'un reçu (sa vue se rend aussi telle quelle dans les tests). @return array<string, mixed> */
@@ -245,16 +246,37 @@ final class RecusVersements
         // Pièce qui relie ce reçu au reçu qu'il remplace, ou au reçu qui le remplace.
         $correction = CorrectionVersement::query()->whereIn('recu_remplacant_id', array_filter([$recu->id, $recu->remplacant?->id]))->first();
 
-        return ['recu' => $recu, 'correction' => $correction, 'lettres' => $this->enLettres($recu->montant)];
+        return ['recu' => $recu, 'correction' => $correction, 'lettres' => $this->enLettres($recu->montant)] + self::commun($recu);
+    }
+
+    /** Données de l'écriture d'annulation (sa vue se rend aussi telle quelle dans les tests). @return array<string, mixed> */
+    public function donneesPdfAnnulation(AnnulationRecu $a): array
+    {
+        $a->loadMissing(['recu.versement:id,auditeur_id', 'recu.remplacant.versement:id,auditeur_id']);
+        $correction = $a->recu->remplacant === null ? null : CorrectionVersement::query()->where('recu_remplacant_id', $a->recu->remplacant->id)->first();
+
+        return ['annulation' => $a, 'recu' => $a->recu, 'correction' => $correction, 'lettres' => $this->enLettres($a->recu->montant)] + self::commun($a->recu);
+    }
+
+    /**
+     * Logo et QR code de vérification de chaque exemplaire (reçu A4) : images en data URI, que DomPDF affiche sans imagick.
+     *
+     * @return array{logo: ?string, qr: string, urlVerification: string}
+     */
+    private static function commun(RecuVersement $recu): array
+    {
+        $logo = resource_path('images/pdf/logo.png');
+
+        return [
+            'logo' => is_file($logo) ? 'data:image/png;base64,'.base64_encode((string) file_get_contents($logo)) : null,
+            'qr' => VerificationRecus::qrCode($recu),
+            'urlVerification' => VerificationRecus::url($recu),
+        ];
     }
 
     public function pdfAnnulation(AnnulationRecu $a): string
     {
-        $a->loadMissing(['recu.versement:id,auditeur_id', 'recu.remplacant.versement:id,auditeur_id']);
-
-        $correction = $a->recu->remplacant === null ? null : CorrectionVersement::query()->where('recu_remplacant_id', $a->recu->remplacant->id)->first();
-
-        return Pdf::loadView('pdf.annulation-recu', ['annulation' => $a, 'recu' => $a->recu, 'correction' => $correction, 'lettres' => $this->enLettres($a->recu->montant)])->setPaper('a5', 'landscape')->output();
+        return Pdf::loadView('pdf.annulation-recu', $this->donneesPdfAnnulation($a))->setPaper('a4', 'portrait')->output();
     }
 
     /** Montant en toutes lettres : « cent quatre-vingt-cinq mille francs CFA ». */
@@ -271,7 +293,9 @@ final class RecusVersements
      * la situation. Ce qui n'est imputé nulle part est l'avance. « Total versé pour l'année » porte sur
      * l'inscription désignée, avance exclue.
      *
-     * @return array{objet: string, total_verse: int, reste: int}
+     * La ventilation (reçu A4) détaille la même part par palier de l'inscription désignée, puis les autres années et l'avance.
+     *
+     * @return array{objet: string, total_verse: int, reste: int, ventilation: list<array<string, mixed>>}
      */
     public function imputation(InscriptionAnnuelle $designee, Versement $v): array
     {
@@ -307,7 +331,11 @@ final class RecusVersements
         $du = SituationFinanciere::calculer($designee->montant_inscription, $designee->montant_tranche1, $designee->montant_tranche2,
             (int) $designee->remise_montant, 0, InscriptionAnnuelle::aujourdhui())->duTotal;
 
-        return ['objet' => mb_substr($objet, 0, self::OBJET_MAX), 'total_verse' => $total, 'reste' => max(0, $du - $total)];
+        $partDesignee = $parts->get($designee->id, 0);
+        $ventilation = VentilationRecu::parPalier($designee, $this->imputeAvant($designee, $v), $partDesignee,
+            (int) $parts->sum() - $partDesignee, $avance);
+
+        return ['objet' => mb_substr($objet, 0, self::OBJET_MAX), 'total_verse' => $total, 'reste' => max(0, $du - $total), 'ventilation' => $ventilation];
     }
 
     /** Imputé actif sur l'inscription par les versements enregistrés avant `$v` (ordre d'imputation de R2). */
