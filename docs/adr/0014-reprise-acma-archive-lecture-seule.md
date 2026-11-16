@@ -113,6 +113,13 @@ Contraintes :
 - **Arriéré porté comme une inscription dont le dû est l'arriéré lui-même**, sans versement de reprise. Plus simple, mais l'inscription ne serait plus au barème de son année (ADR-0013, point 2). Et l'auditeur ne verrait pas ce qui a été tenu pour payé.
 - **Garder ACMA en lecture seule.** Écartée : WinDev et MySQL 5.7 sont obsolètes, les mots de passe sont en clair, et ACMA continue d'être utilisé pour 2026-2027, ce qui crée une double saisie.
 
+## Avenant du 16/11/2026
+
+Décisions du chef de projet ([spec de la réinscription des anciens](../specs/module-4-lot15-reinscription-anciens.md)) :
+
+- **Point 4 précisé.** Un ancien auditeur reste un dossier d'archive, sauf s'il est **réinscrit** dans l'année en cours. Il devient alors un auditeur par une candidature hors PV créée depuis son dossier (matricule ACMA conservé), et le lien vers l'archive est posé par une décision signée, comme un arbitrage. Le modèle vivant ne change pas : `auditeurs.candidature_id` reste NOT NULL. L'alternative écartée (« candidature d'archive pour chaque ancien ») le reste : seuls les réinscrits ont une candidature.
+- **Minimisation levée pour les données des auditeurs.** Téléphones, e-mails, adresse, région et les autres colonnes de `etudiant` entrent dans le transit et l'archive (format `pssfp-acma-transit/3`). Aucun envoi ne lit ces coordonnées. Restent exclus les secrets et les données du personnel d'ACMA.
+
 ## Références
 
 - `docs/specs/module-4-lot15-reprise-acma.md` : inventaire, correspondances, modèle, arriérés, mécanique, sous-lots, cas à arbitrer.
