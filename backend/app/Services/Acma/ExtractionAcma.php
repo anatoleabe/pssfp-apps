@@ -10,14 +10,18 @@ use Illuminate\Support\Facades\File;
  * Lot 15a (spec du lot 15, §10.1) : CSV des tables utiles d'ACMA et manifeste, sur le poste de l'USI, puis archive
  * chiffrée. Le dossier en clair est supprimé, même après un échec.
  *
- * Liste blanche (ADR-0014, minimisation) : seules sortent d'ACMA les colonnes que la reprise, l'inventaire et le rapport
- * des écarts lisent réellement. Tout le reste reste dans l'export chiffré : mots de passe et identifiants FTP, groupware,
- * journal, coordonnées et région des auditeurs (§6.2, Q16), identifiants du personnel d'ACMA, colonnes de cumul fausses.
- * La même liste est revérifiée au chargement : une colonne en trop ou en moins fait refuser l'archive.
+ * Liste blanche (ADR-0014 et son avenant du 16/11/2026) : sortent d'ACMA toutes les données des auditeurs, coordonnées
+ * comprises (format /3, spec de la réinscription des anciens §4.1), et les colonnes que la reprise, l'inventaire et le
+ * rapport des écarts lisent. Restent dans l'export chiffré : mots de passe et identifiants FTP, clé de plateforme,
+ * groupware, journal, identifiants du personnel d'ACMA, copies de l'identité dans les autres tables, colonnes de cumul
+ * fausses. La même liste est revérifiée au chargement : une colonne en trop ou en moins fait refuser l'archive.
  */
 final class ExtractionAcma
 {
-    public const FORMAT = 'pssfp-acma-transit/2';
+    public const FORMAT = 'pssfp-acma-transit/3';
+
+    /** Coordonnées et autres colonnes de la fiche, ajoutées au format /3 (décision du 16/11/2026). */
+    public const COORDONNEES = ['telephone', 'mobile', 'email', 'EmailB', 'adresse', 'region', 'RegionBis', 'departement', 'numcni', 'expression', 'Suspendu', 'idcampus'];
 
     /** Table → colonnes extraites, dans cet ordre. */
     public const COLONNES = [
@@ -26,9 +30,10 @@ final class ExtractionAcma
         'certificat' => ['IdCertificat', 'Matricule', 'Niveau', 'Datedujour', 'specialite', 'Parcourt'],
         'configurationdu' => ['IDdroitC', 'anneaacademic', 'Categorie', 'montantAregler', 'niveau', 'tranche1', 'tranche2', 'tranche3', 'inscription', 'TenuSport'],
         'du' => ['IddroitU', 'matricule', 'Niveau', 'anneacademic', 'Montant', 'inscriptions', 'bibliotheque', 'fraisperiscol', 'tenuesport', 'dateRecu', 'NumeroRecu', 'NomBanque', 'codephase'],
-        'etudiant' => ['matricule', 'parcours', 'codcategorie', 'nometudiant', 'datenaissance', 'sexe', 'lieunaissance', 'nationalite', 'typedatenais', 'datenaisbis'],
+        'etudiant' => ['matricule', 'parcours', 'codcategorie', 'nometudiant', 'datenaissance', 'sexe', 'lieunaissance', 'nationalite', 'typedatenais', 'datenaisbis',
+            'telephone', 'mobile', 'email', 'EmailB', 'adresse', 'region', 'RegionBis', 'departement', 'numcni', 'expression', 'Suspendu', 'idcampus'],
         'grpue' => ['codgrp', 'libelegrp', 'codniveau'],
-        'inscription_academic' => ['id_inscription', 'matricule', 'anneeacademic', 'niveau', 'moydunivo', 'admis', 'redouble', 'Fraiscolarite', 'NbreDette', 'Totalcredit'],
+        'inscription_academic' => ['id_inscription', 'matricule', 'anneeacademic', 'niveau', 'moydunivo', 'admis', 'redouble', 'Fraiscolarite', 'NbreDette', 'Totalcredit', 'parcours'],
         'misedispos' => ['Idmise', 'Matricule', 'Niveau', 'jourOperation', 'specialite', 'session', 'NoteMemoire', 'Mention', 'Memoire', 'Parcourt'],
         'nonperceptionb' => ['Idnonper', 'Matricule', 'Niveau', 'datedujour', 'Parcourt'],
         'notes' => ['idnote', 'idprog', 'codue', 'matricule', 'cc', 'tp', 'exam', 'ratra', 'ok', 'anneeacademic', 'dateoperation'],

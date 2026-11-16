@@ -72,9 +72,11 @@ it('n\'extrait aucune table ni colonne exclue, chiffre l\'archive et supprime le
     expect($fichiers)->toBe($attendus);
 
     $tout = implode("\n", array_map('file_get_contents', glob($this->dossier.'/ouvert/*.csv')));
-    foreach (['MOTDEPASSE-FTP-FICTIF', 'MOTDEPASSE-CLAIR-FICTIF', 'CLE-PLATEFORME-FICTIVE', 'IDENTIFIANT-FTP-FICTIF', 'ftp.invalid', '600000000', 'ADRESSE FICTIVE', 'NOM COPIE', 'agent', '258000000000'] as $secret) {
+    foreach (['MOTDEPASSE-FTP-FICTIF', 'MOTDEPASSE-CLAIR-FICTIF', 'CLE-PLATEFORME-FICTIVE', 'IDENTIFIANT-FTP-FICTIF', 'ftp.invalid', 'NOM COPIE', 'agent', '258000000000'] as $secret) {
         expect($tout)->not->toContain($secret);
     }
+    // Format /3 (décision du 16/11/2026) : les coordonnées des auditeurs sortent d'ACMA, les secrets et le personnel non.
+    expect($tout)->toContain('600000000')->toContain('ADRESSE FICTIVE');
     // Liste blanche : chaque CSV porte exactement ses colonnes, rien de plus (ni identifiants du personnel d'ACMA).
     $manifeste = json_decode(file_get_contents($this->dossier.'/ouvert/manifeste.json'), true);
     foreach (ExtractionAcma::TABLES as $table) {
@@ -82,7 +84,9 @@ it('n\'extrait aucune table ni colonne exclue, chiffre l\'archive et supprime le
     }
     expect($manifeste['tables']['du']['non_extraites'])->toContain('username')->toContain('stan')->toContain('nometudiant')->toContain('Versement')
         ->and($manifeste['tables']['notes_hist']['non_extraites'])->toContain('usercon')->toContain('IDutilisateur')
-        ->and($manifeste['tables']['etudiant']['non_extraites'])->toContain('telephone')->toContain('adresse')
+        ->and($manifeste['tables']['etudiant']['non_extraites'])->toBe([])
+        ->and($manifeste['format'])->toBe('pssfp-acma-transit/3')
+        ->and($manifeste['tables']['inscription_academic']['non_extraites'])->not->toContain('parcours')
         ->and($manifeste['non_extraites']['tables'])->toContain('utilisateur')->toContain('tachesutili')->toContain('etablissement')->toContain('categorie')
         ->and($manifeste['tables']['du']['lignes'])->toBe(18)
         ->and($manifeste['tables']['notes_hist']['lignes'])->toBe(9)
@@ -183,6 +187,14 @@ it('refuse une phrase de passe erronée, une archive altérée ou tronquée, et 
     $tableEnTrop = $manifeste;
     $tableEnTrop['tables']['utilisateur'] = ['fichier' => 'utilisateur.csv', 'lignes' => 1, 'sha256' => 'x', 'colonnes' => [['nom' => 'Motdepasse', 'type' => 'varchar(32)']]];
     expect(fn () => ChargementTransit::verifierManifeste($tableEnTrop))->toThrow(RuntimeException::class, 'hors de la liste des tables utiles');
+    // Une extraction antérieure au format /3 (sans les coordonnées) est refusée avec un message clair.
+    $ancien = $manifeste;
+    $ancien['format'] = 'pssfp-acma-transit/2';
+    expect(fn () => ChargementTransit::verifierManifeste($ancien))->toThrow(RuntimeException::class, 'refaire acma:extraire');
+    // Les secrets et le personnel d'ACMA restent refusés au chargement.
+    $personnel = $manifeste;
+    $personnel['tables']['notes_hist']['colonnes'][] = ['nom' => 'usercon', 'type' => 'varchar(40)'];
+    expect(fn () => ChargementTransit::verifierManifeste($personnel))->toThrow(RuntimeException::class, 'hors de la liste blanche');
     expect(fn () => ChargementTransit::identifiant('a"; DROP TABLE users; --'))->toThrow(RuntimeException::class)
         ->and(fn () => ChargementTransit::identifiant("matricule\n"))->toThrow(RuntimeException::class);
 

@@ -218,6 +218,42 @@ it('lie R1 et R2, laisse R3, R4 et R6 à arbitrer, liste R5 et produit le classe
     expect($r1->candidature->fresh()->nom)->toBe('ALPHA');
 });
 
+it('reprend les coordonnées brutes des fiches et le parcours des inscriptions, sans remettre un lien à arbitrer au rejeu', function (): void {
+    TransitAcma::construire();
+    $auditeur = auditeurAcma('90EFP001', 'ESSAI', 'Alpha Béta', '1985-03-12');
+    reprendre($this->usi);
+
+    $d = dossierAcma('90EFP001');
+    expect($d)->telephone_source->toBe('600000000')->adresse_source->toBe('ADRESSE FICTIVE')->email_source->toBe('x')
+        ->region_source->toBe('REGION')->numcni_source->toBe('REGION')->mobile_source->toBeNull()
+        ->statut_rapprochement->toBe('lie_auto')->auditeur_id->toBe($auditeur->id);
+    expect(inscriptionAcma('90EFP001', '2025-2026', 'AUCO5')->parcours_source)->not->toBeNull();
+
+    // Export plus récent : un mobile ajouté, des coordonnées divergentes sur une fiche fusionnée.
+    TransitAcma::construireAvec(function (array &$lignes): void {
+        foreach ($lignes['etudiant'] as &$e) {
+            if ($e['matricule'] === '90EFP001') {
+                $e['mobile'] = '6 99 00 00 01 / 677000002';
+                $e['EmailB'] = 'Essai.Alpha@Exemple.invalid';
+            }
+            if ($e['matricule'] === '90efp003') {
+                $e['telephone'] = '611111111';
+            }
+        }
+    });
+    $rejeu = reprendre($this->usi);
+
+    expect($rejeu['statut'])->toBe('appliquee')
+        ->and($rejeu['comptes']['dossiers']['dossiers'])->toMatchArray(['inserees' => 0, 'modifiees' => 2])
+        ->and($rejeu['comptes']['dossiers']['coordonnees_divergentes'])->toBe(1)
+        ->and($rejeu['comptes']['rapprochement']['liens_remis_a_arbitrer'])->toBe(0)
+        ->and(dossierAcma('90EFP001'))->mobile_source->toBe('6 99 00 00 01 / 677000002')->statut_rapprochement->toBe('lie_auto')
+        ->and(json_decode(dossierAcma('90EFP003')->signalements))->toContain('coordonnees_divergentes');
+
+    // Hors reprise, les coordonnées de l'archive ne se modifient pas.
+    refusee(fn () => DB::table('acma_dossiers')->where('matricule', '90EFP001')->update(['mobile_source' => '600000009']), 'lecture seule');
+});
+
 it('ne réécrit rien au second passage, met à jour et marque retiré sur un export modifié, garde les arbitrages', function (): void {
     TransitAcma::construire();
     $auditeur = auditeurAcma('90EFP011', 'ESSAI', 'Epsilon', '1983-03-03');
@@ -397,7 +433,10 @@ it('se défait et se refait, mais refuse d\'être défaite une fois l\'archive g
     $academique = require database_path('migrations/2026_12_07_100000_create_acma_archive_academique_tables.php');
     $financiere = require database_path('migrations/2026_12_07_100100_create_acma_archive_financiere_tables.php');
     $complements = require database_path('migrations/2026_12_07_100200_create_acma_complements_table.php');
+    $coordonnees = require database_path('migrations/2026_12_10_100000_add_coordonnees_to_acma_archive.php');
 
+    $coordonnees->down();
+    expect(Schema::hasColumn('acma_dossiers', 'mobile_source'))->toBeFalse()->and(Schema::hasColumn('acma_inscriptions', 'parcours_source'))->toBeFalse();
     $complements->down();
     $financiere->down();
     expect(Schema::hasTable('acma_paiements'))->toBeFalse()->and(Schema::hasTable('acma_dossiers'))->toBeTrue();
@@ -406,7 +445,9 @@ it('se défait et se refait, mais refuse d\'être défaite une fois l\'archive g
     $academique->up();
     $financiere->up();
     $complements->up();
-    expect(Schema::hasTable('acma_versions_notes'))->toBeTrue()->and(Schema::hasTable('acma_documents'))->toBeTrue();
+    $coordonnees->up();
+    expect(Schema::hasTable('acma_versions_notes'))->toBeTrue()->and(Schema::hasTable('acma_documents'))->toBeTrue()
+        ->and(Schema::hasColumn('acma_dossiers', 'mobile_source'))->toBeTrue();
 
     TransitAcma::construire();
     reprendre($this->usi);
@@ -415,6 +456,7 @@ it('se défait et se refait, mais refuse d\'être défaite une fois l\'archive g
         DB::table('acma_reprises')->update(['statut' => 'gelee', 'gelee_at' => now()]);
         RepriseAcma::mode(false);
     });
-    expect(fn () => $financiere->down())->toThrow(RuntimeException::class, 'Archive ACMA gelée')
+    expect(fn () => $coordonnees->down())->toThrow(RuntimeException::class, 'Archive ACMA gelée')
+        ->and(fn () => $financiere->down())->toThrow(RuntimeException::class, 'Archive ACMA gelée')
         ->and(fn () => $academique->down())->toThrow(RuntimeException::class, 'Archive ACMA gelée');
 });

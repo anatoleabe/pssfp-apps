@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Acma\Reprise;
 
 use App\Services\Acma\CorrespondancesAcma;
+use App\Services\Acma\ExtractionAcma;
 use App\Services\Acma\LectureTransit;
 use App\Services\Acma\NormalisationAcma;
 
@@ -32,7 +33,7 @@ final class FichesAcma
     {
         $groupes = [];
         $n = 0;
-        foreach (LectureTransit::lignes('etudiant', ['matricule', 'parcours', 'codcategorie', 'nometudiant', 'datenaissance', 'sexe', 'lieunaissance', 'nationalite', 'typedatenais', 'datenaisbis']) as $f) {
+        foreach (LectureTransit::lignes('etudiant', ExtractionAcma::COLONNES['etudiant']) as $f) {
             $norme = NormalisationAcma::matricule($f->matricule);
             $cle = $norme === null ? 'invalide:'.(++$n) : 'k'.$norme;
             $groupes[$cle] ??= ['matricule' => (string) $norme, 'fiches' => [], 'annees' => [], 'en_cours' => false, 'document' => false, 'exclusion' => null];

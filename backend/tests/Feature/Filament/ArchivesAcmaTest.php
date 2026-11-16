@@ -221,6 +221,15 @@ it('refuse les notes et les paiements à un rôle sans accès aux archives', fun
     $this->livewire(PaiementsRelationManager::class, ['ownerRecord' => ($this->dossier)('90EFP001'), 'pageClass' => ViewArchiveAcma::class])->assertForbidden();
 });
 
+it('montre les coordonnées reprises d\'ACMA sur la fiche, avec la proposition E.164, sans les journaliser', function (): void {
+    $this->actingAs($this->agent);
+
+    ($this->fiche)('90EFP001')->assertSee('Coordonnées (ACMA)')
+        ->assertSee('600000000 → +237600000000')->assertSee('x (forme invalide)')->assertSee('ADRESSE FICTIVE')
+        ->assertSee('Région d&#039;origine (champ « numcni » d&#039;ACMA)', false);
+    expect(DB::table('activity_log')->pluck('properties')->implode(' '))->not->toContain('600000000')->not->toContain('ADRESSE FICTIVE');
+});
+
 it('journalise chaque fiche d\'archive ouverte', function (): void {
     $this->actingAs($this->agent);
     ($this->fiche)('90EFP001');

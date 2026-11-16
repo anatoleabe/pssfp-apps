@@ -78,8 +78,7 @@ Le conteneur n'ayant pas de réseau, l'extraction tourne dans un conteneur PHP q
    Sur un poste **Linux**, on peut aussi partager la socket du MariaDB (`-v ~/acma/socket:/run/mysqld` au `docker run` du §1) et lancer `php artisan acma:extraire` sur l'hôte avec `ACMA_DB_SOCKET=$HOME/acma/socket/mysqld.sock` (chemin de moins de 104 caractères). Sous macOS (Docker Desktop), une socket partagée n'est pas joignable depuis l'hôte (« Connection refused », constaté le 15/11/2026) : utiliser le conteneur PHP.
 
 - Sortie : `acma-transit-AAAAMMJJ-HHMMSS.chiffre` (0600), un zip des CSV et du manifeste, chiffré en AES-256-GCM (clé dérivée par PBKDF2-SHA256, 600 000 itérations). Le dossier en clair et le zip intermédiaire (0600) sont supprimés, même après un échec.
-- **À venir (sous-lot 15i, [spec](../specs/module-4-lot15-reinscription-anciens.md) §4)** : format `pssfp-acma-transit/3`, qui ajoute les coordonnées et les autres colonnes de `etudiant` (décision du 16/11/2026) ; une extraction `/2` sera alors refusée au chargement, et la reprise provisoire sera rejouée sur une nouvelle extraction de l'export du 15/11.
-- **Liste blanche** (`ExtractionAcma::COLONNES`, format `pssfp-acma-transit/2`) : 16 tables, et dans chacune les seules colonnes que la reprise, l'inventaire et le rapport des écarts lisent. Une colonne de la liste absente d'ACMA fait échouer l'extraction. Ne sortent jamais : la table `utilisateur` et les autres tables hors liste (dont `etablissement`, `categorie`, `filiere`, `niveau`, `phasepayement`), les coordonnées et la région des auditeurs, les identifiants du personnel d'ACMA (`du.username`, `du.stan`, `notes_hist.usercon`, `notes_hist.IDutilisateur`), le groupware, le journal.
+- **Liste blanche** (`ExtractionAcma::COLONNES`, format `pssfp-acma-transit/3` depuis le sous-lot 15i) : 16 tables ; toutes les colonnes de la fiche de l'auditeur (`etudiant`, coordonnées comprises : décision du 16/11/2026, [spec](../specs/module-4-lot15-reinscription-anciens.md) §4), `inscription_academic.parcours`, et dans les autres tables les seules colonnes que la reprise, l'inventaire et le rapport des écarts lisent. Une colonne de la liste absente d'ACMA fait échouer l'extraction. Ne sortent jamais : la table `utilisateur` et les autres tables hors liste (dont `etablissement`, `categorie`, `filiere`, `niveau`, `phasepayement`), les identifiants du personnel d'ACMA (`du.username`, `du.stan`, `notes.IDUtilisateur`, `notes_hist.usercon`, `notes_hist.IDutilisateur`), les copies de l'identité dans les autres tables, le groupware, le journal. Une archive `/2` est refusée au chargement : refaire l'extraction.
 - Le manifeste porte, par table, les colonnes, leur type MySQL, le nombre de lignes, l'empreinte SHA-256 du CSV et le nom des colonnes non extraites ; et, pour la source, le nom, l'empreinte et la date de l'export.
 
 ## 3. Transfert
@@ -144,3 +143,12 @@ php artisan acma:purger-transit --auteur=<e-mail admin>   # demande confirmation
   ```bash
   docker rm -f -v acma_transit && rm -rf ~/acma/secrets
   ```
+
+## 9. Rejeu de la reprise provisoire au format /3 (sous-lot 15i)
+
+Après le déploiement de 15i (migration `2026_12_10_100000_add_coordonnees_to_acma_archive`), l'archive provisoire n'a pas encore les coordonnées. Tant qu'elle n'est pas gelée :
+
+1. Poste de l'USI : §1 et §2 sur l'export du 15/11 (conservé chiffré), avec le code de 15i : l'archive produite est au format `/3`.
+2. Serveur : §3, §4 (`acma:charger`, puis `acma:inventaire`, qui ajoute la section « Coordonnées des fiches » : des comptes seulement), §5 à blanc puis `--appliquer`, et `acma:controler`.
+3. Attendu : tous les dossiers et toutes les inscriptions « modifiés » (l'empreinte de la source change) ; **aucun** lien remis à arbitrer (`liens_remis_a_arbitrer` = 0) ; arbitrages et compléments conservés ; contrôles bloquants verts.
+4. Les coordonnées se lisent dans la section « Coordonnées (ACMA) » de la fiche d'archive (`archives.consulter`). Elles ne vont ni au journal, ni aux classeurs, et ne servent à aucun envoi.

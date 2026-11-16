@@ -140,6 +140,9 @@ final class ChargementTransit
      */
     public static function verifierManifeste(array $manifeste): array
     {
+        if (in_array($manifeste['format'] ?? null, ['pssfp-acma-transit/1', 'pssfp-acma-transit/2'], true)) {
+            throw new ErreurAcma('Extraction ancienne (format '.$manifeste['format'].') : refaire acma:extraire au format '.ExtractionAcma::FORMAT.'.');
+        }
         if (($manifeste['format'] ?? null) !== ExtractionAcma::FORMAT || ! is_array($manifeste['tables'] ?? null)) {
             throw new ErreurAcma('Manifeste de format inconnu.');
         }
