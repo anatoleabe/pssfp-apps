@@ -310,7 +310,8 @@ describe('écran des reçus', function (): void {
         expect(RecuVersementResource::getNavigationBadgeTooltip())->toBe('Versements sans reçu (enregistrés depuis le 12/11/2026)')
             ->and(RecuVersementResource::getNavigationBadge())->toBeNull();
 
-        $this->actingAs($this->agent);
+        // Le responsable lit les reçus dans l'espace Finances (16/11/2026), sans la liste d'attente du service financier.
+        $this->actingAs($this->responsable);
         $this->get(RecuVersementResource::getUrl('index'))->assertOk()->assertDontSee('en attente de reçu');
     });
 });

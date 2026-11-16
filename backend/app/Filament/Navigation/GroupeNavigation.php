@@ -19,6 +19,9 @@ final class GroupeNavigation
 
     public const SCOLARITE = 'Scolarité';
 
+    /** Espace du service financier (spec module-4-scolarite-espace-financier, 16/11/2026). */
+    public const FINANCES = 'Finances';
+
     public const REFERENTIEL = 'Référentiel pédagogique';
 
     public const PLANIFICATION = 'Planification';
@@ -37,6 +40,7 @@ final class GroupeNavigation
     public const ORDRE = [
         self::ADMISSIONS,
         self::SCOLARITE,
+        self::FINANCES,
         self::REFERENTIEL,
         self::PLANIFICATION,
         self::EVALUATIONS,

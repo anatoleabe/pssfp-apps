@@ -260,8 +260,11 @@ it('réserve l\'émission au service financier dans la fiche de l\'auditeur et l
     expect(RecuVersement::query()->where('versement_id', $v->id)->value('numero'))->toBe('RCPT-2026-000001');
 
     $this->get(RecuVersementResource::getUrl('index'))->assertOk()->assertSee('RCPT-2026-000001')->assertSee('ABENA Essai');
-    $this->actingAs($this->agent);
+    // Espace Finances (16/11/2026) : le responsable lit les reçus sans leurs gestes ; l'agent de scolarité ne les liste plus.
+    $this->actingAs($this->responsable);
     $this->get(RecuVersementResource::getUrl('index'))->assertOk()->assertDontSee('Annuler le reçu');
+    $this->actingAs($this->agent);
+    $this->get(RecuVersementResource::getUrl('index'))->assertForbidden();
 });
 
 it('rend les reçus et leurs annulations immuables jusque dans la base', function (): void {

@@ -123,6 +123,7 @@ final class ModulePermissionMap
                 'sensitive_description' => 'À cocher explicitement : enregistrer un versement n\'emporte pas le droit de l\'annuler.',
                 'sensitive' => [
                     'scolarite.export' => 'Exporter la situation financière des auditeurs',
+                    'finances.consulter' => 'Consulter l\'espace Finances : listes des versements et des reçus (service financier, responsable de scolarité, administrateurs)',
                     'scolarite.versement_annuler' => 'Annuler un versement',
                     'scolarite.versement_confirmer' => 'Confirmer un versement sur présentation du reçu bancaire original (scolarité) : scan du bordereau et attestation, jamais un versement que l\'on a saisi',
                     'scolarite.recu_emettre' => 'Émettre les reçus des versements et passer leurs écritures d\'annulation (service financier)',
