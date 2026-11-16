@@ -38,7 +38,7 @@ beforeEach(function (): void {
 function auditeurAcma(string $matricule, string $nom, string $prenom, string $naissance): Auditeur
 {
     $auditeur = Auditeur::factory()->create();
-    $auditeur->candidature->forceFill(['matricule' => $matricule, 'nom' => $nom, 'prenom' => $prenom, 'epouse' => null, 'date_naissance' => $naissance])->save();
+    matriculeDeTest($auditeur->candidature, ['matricule' => $matricule, 'nom' => $nom, 'prenom' => $prenom, 'epouse' => null, 'date_naissance' => $naissance]);
 
     return $auditeur;
 }

@@ -46,7 +46,7 @@ function controle15c(array $resultat, string $code): ResultatControle
 function auditeurPromotion(string $matricule, int $promotion, string $niveau): InscriptionAnnuelle
 {
     $auditeur = Auditeur::factory()->create();
-    $auditeur->candidature->forceFill(['matricule' => $matricule, 'nom' => 'ESSAI', 'prenom' => 'Plateforme'])->save();
+    matriculeDeTest($auditeur->candidature, ['matricule' => $matricule, 'nom' => 'ESSAI', 'prenom' => 'Plateforme']);
     $auditeur->candidature->campagne->forceFill(['promotion_numero' => $promotion])->save();
     $bareme = BaremeScolarite::query()->firstOrCreate(['annee_academique' => '2026-2027', 'niveau' => $niveau], ['montant_inscription' => $niveau === 'M1' ? 185000 : 135000, 'montant_tranche1' => 500000, 'montant_tranche2' => 500000]);
 

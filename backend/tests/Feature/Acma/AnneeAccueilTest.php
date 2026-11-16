@@ -8,6 +8,7 @@ use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\Parcours;
+use App\Models\ReinscriptionAcma;
 use App\Models\User;
 use App\Services\Acma\ReinscriptionAncien;
 use App\Services\Acma\Reprise\RepriseAcma;
@@ -125,6 +126,7 @@ it('accueille le réinscrit sans récépissé, sans lettre d\'admission ni commu
     $ordinaire = Candidature::factory()->forCampagne($this->p14)->submitted()->create(['statut' => Candidature::STATUT_ACCEPTE]);
     $ordinaire->forceFill(['matricule' => '26EFP777'])->save();
 
+    expect(ReinscriptionAcma::query()->sole()->m1_admis_confirme)->toBeTrue();
     expect($c->fresh()->estReinscritAcma())->toBeTrue()
         ->and($c->fresh()->peutAvoirRecepisse())->toBeFalse()
         ->and(LettresAdmissionSignees::depotPossible($c->fresh()))->toBeFalse()

@@ -49,7 +49,7 @@ beforeEach(function (): void {
     $this->compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local', 'name' => 'Agent '.$role]), fn (User $u) => $u->assignRole($role));
     $plateforme = function (string $matricule, string $nom, string $prenom, string $naissance): Auditeur {
         $auditeur = Auditeur::factory()->create();
-        $auditeur->candidature->forceFill(['matricule' => $matricule, 'nom' => $nom, 'prenom' => $prenom, 'epouse' => null, 'date_naissance' => $naissance])->save();
+        matriculeDeTest($auditeur->candidature, ['matricule' => $matricule, 'nom' => $nom, 'prenom' => $prenom, 'epouse' => null, 'date_naissance' => $naissance]);
 
         return $auditeur;
     };

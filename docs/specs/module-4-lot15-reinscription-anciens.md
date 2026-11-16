@@ -562,9 +562,32 @@ Chaque sous-lot a sa branche, ses tests, sa PR, et se déploie seul.
 
 ### 15m — Q2 : le matricule ACMA fait foi
 
-1. **Déclencheur de matricule figé : non posé (écart au §8.3).** La fabrique d'auditeurs des tests donne un matricule fictif que treize tests remplacent ensuite ; un déclencheur sur `candidatures` les ferait tous échouer sans rien protéger de plus en production. La garde reste : un seul service écrit un changement de matricule (`ConversionMatriculeAcma`), sous verrou, après la trace en ajout seul (`reinscriptions_acma`, mode `conversion`, ancien matricule) et avec une entrée au journal. Le déclencheur pourra être posé avec une révision de la fabrique.
+1. **Déclencheur de matricule figé** : d'abord écarté, puis **posé** avec les suites des relectures du 16/11 (ci-dessous, migration `2026_12_11_100000`).
 2. **Année figée de la promotion** : un dossier qui a repris son matricule ACMA ne compte plus pour l'année des matricules ; si c'était le seul attribué, l'année se lit dans l'ancien matricule. L'ancien matricule n'est jamais réattribué : son rang reste pris, et l'attribution vérifie aussi `reinscriptions_acma.ancien_matricule`.
 3. **Connexion FOAD** : l'identifiant figé (`identifiant_ecampus`, ancien matricule en minuscules) et le nouveau matricule sont tous deux acceptés à la connexion par matricule ; le mot de passe ne change pas. L'identifiant n'est figé que si le compte eCampus existe déjà ; sinon, le compte se créera sous le matricule ACMA.
 4. **Variante sans conversion** : l'attribution des matricules refuse un retenu qui ressemble à un ancien de l'archive non lié (même date de naissance en vigueur, noms compatibles, aucun arbitrage « personnes différentes ») et renvoie au geste « Reprendre le matricule ACMA » de la fiche d'archive. Ce geste sert aux deux cas : matricule déjà attribué (conversion) ou pas encore (attribution, sans rang, puis ouverture de l'auditeur comme d'ordinaire).
 5. **Dossier converti** : il reste un dossier du portail (PV, récépissé, lettre d'admission inchangés) ; seuls les réinscrits du mode `creation` ont l'espace du §9.
 6. **Combien de cas** : non mesurable localement (la copie de la reprise n'a pas de candidatures). En production, ce sont les propositions R6 du classeur « à arbitrer » de la reprise provisoire.
+
+### Relectures du 16/11 (sécurité, base de données et métier)
+
+**En production avec 15m (commit `6645473`)** :
+
+1. Coordonnées : case obligatoire « téléphone et e-mail vérifiés auprès de l'auditeur » (`coordonnees_verifiees`, contrainte en mode `creation`, journal) ; un numéro de l'ancienne numérotation n'est jamais prérempli, seulement suggéré ; l'aide dit qu'un numéro proposé vient d'ACMA et peut être périmé.
+2. Unicité croisée : un matricule ACMA déjà pris comme ancien matricule converti ou comme identifiant eCampus figé est refusé.
+3. Conversion refusée tant que le compte eCampus du dossier est inconnu ou en échec, et sous le même verrou que la création du compte ; refusée aussi, geste masqué, pour une paire déjà cohérente.
+4. Export Moodle : identifiant eCampus figé.
+5. Reprise et inventaire : un transit qui n'est pas au format `/3` est refusé avec un message clair.
+
+**Suites (migration additive `2026_12_11_100000`, les migrations du 2026_12_10 étant en production)** :
+
+6. Forcer une identité non concordante exige la référence de la pièce (`identite_forcee`, `identite_piece`, contrainte) ; `signaux_confirmes` et `m1_admis_confirme` sont gardés dans la trace et le journal.
+7. La conversion prend le verrou de la promotion, le même que l'attribution des matricules.
+8. À qui n'a pas `archives.consulter`, l'attribution répond sans citer de matricule ACMA ni de dossier.
+9. Déclencheur « matricule figé » sur `candidatures` : un matricule attribué ne change plus, sauf dans la conversion, qui pose `app.conversion_matricule` le temps de sa transaction. Les quatre jeux d'essai qui remplacent le matricule fictif de la fabrique passent par l'aide de test `matriculeDeTest()`.
+10. Connexion par matricule : un seul compteur d'échecs par dossier (clé sur le matricule du dossier trouvé), que l'auditeur saisisse l'ancien identifiant ou le matricule ACMA ; le déblocage par « nouveau code » reste valable.
+11. Dérogation M2 : droit distinct `scolarite.derogation_m2` (super_admin, admin, scolarite_responsable), vérifié par le service ; l'interrupteur n'apparaît qu'à qui le détient.
+12. Motif de 10 à 500 caractères, avec l'avertissement de n'y écrire aucune donnée d'identité (trace en ajout seul).
+13. `ErreurAcma::resume` reconnaît les refus « Réinscriptions ACMA en ajout seul » et « Matricule attribué ».
+14. Chargement anticipé de la trace dans la liste des candidatures et la régénération groupée des récépissés.
+15. Un dossier supprimé, ou un matricule sans fiche d'auditeur, donne un message clair au lieu d'une erreur.

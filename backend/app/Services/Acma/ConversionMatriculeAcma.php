@@ -6,6 +6,7 @@ namespace App\Services\Acma;
 
 use App\Models\AcmaDossier;
 use App\Models\Auditeur;
+use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\ReinscriptionAcma;
 use App\Models\User;
@@ -41,16 +42,20 @@ final class ConversionMatriculeAcma
     public function __construct(private readonly OuvertureAuditeur $ouverture) {}
 
     /** @throws InvalidArgumentException message destiné à l'agent ; rien n'est écrit */
-    public function convertir(AcmaDossier $dossier, Candidature $dossierPlateforme, string $motif, User $auteur, bool $identiteConfirmee = false): Candidature
+    /**
+     * @param  string|null  $pieceIdentite  référence de la pièce vue ; exigée pour forcer une identité non concordante
+     */
+    public function convertir(AcmaDossier $dossier, Candidature $dossierPlateforme, string $motif, User $auteur, bool $identiteConfirmee = false, ?string $pieceIdentite = null): Candidature
     {
         abort_unless($auteur->can(ReinscriptionAncien::PERMISSION) && $auteur->can(ArchivesAcma::CONSULTER), 403);
-        $motif = trim($motif);
-        if (mb_strlen($motif) < ReinscriptionAncien::MOTIF_MINIMUM) {
-            throw new InvalidArgumentException('Indiquez le motif (au moins '.ReinscriptionAncien::MOTIF_MINIMUM.' caractères).');
+        $motif = ReinscriptionAncien::motif($motif);
+        $pieceIdentite = trim((string) $pieceIdentite);
+        if ($identiteConfirmee && ($pieceIdentite === '' || mb_strlen($pieceIdentite) > 100)) {
+            throw new InvalidArgumentException('Pour forcer une identité qui ne concorde pas, indiquez la référence de la pièce vue (100 caractères au plus).');
         }
 
         // Même verrou que la création du compte eCampus : jamais une conversion pendant une création de compte.
-        $resultat = Cache::lock('ecampus-compte:'.$dossierPlateforme->id, 60)->get(fn (): Candidature => $this->convertirSousVerrou($dossier, $dossierPlateforme, $motif, $auteur, $identiteConfirmee));
+        $resultat = Cache::lock('ecampus-compte:'.$dossierPlateforme->id, 60)->get(fn (): Candidature => $this->convertirSousVerrou($dossier, $dossierPlateforme, $motif, $auteur, $identiteConfirmee, $pieceIdentite));
         if ($resultat === false) {
             throw new InvalidArgumentException('Le compte eCampus de ce dossier est en cours de traitement : réessayez dans une minute.');
         }
@@ -58,27 +63,35 @@ final class ConversionMatriculeAcma
         return $resultat;
     }
 
-    private function convertirSousVerrou(AcmaDossier $dossier, Candidature $dossierPlateforme, string $motif, User $auteur, bool $identiteConfirmee): Candidature
+    private function convertirSousVerrou(AcmaDossier $dossier, Candidature $dossierPlateforme, string $motif, User $auteur, bool $identiteConfirmee, string $pieceIdentite): Candidature
     {
         try {
-            return DB::transaction(function () use ($dossier, $dossierPlateforme, $motif, $auteur, $identiteConfirmee): Candidature {
-                $c = Candidature::query()->whereKey($dossierPlateforme->id)->lockForUpdate()->firstOrFail();
+            return DB::transaction(function () use ($dossier, $dossierPlateforme, $motif, $auteur, $identiteConfirmee, $pieceIdentite): Candidature {
+                // Verrou de la promotion, le même que l'attribution des matricules : jamais deux numérotations croisées.
+                CampagneCandidature::query()->whereKey($dossierPlateforme->campagne_id)->lockForUpdate()->first();
+                $c = Candidature::query()->whereKey($dossierPlateforme->id)->lockForUpdate()->first()
+                    ?? throw new InvalidArgumentException('Ce dossier de la plateforme n\'existe plus (supprimé ?) : rechargez la page.');
                 $d = AcmaDossier::query()->whereKey($dossier->id)->lockForUpdate()->firstOrFail();
-                $this->prealables($d, $c, $identiteConfirmee);
+                $forcee = $this->prealables($d, $c, $identiteConfirmee);
 
                 $ancien = $c->matricule;
                 $mode = $ancien === null ? ReinscriptionAcma::ATTRIBUTION : ReinscriptionAcma::CONVERSION;
-                $auditeur = $mode === ReinscriptionAcma::ATTRIBUTION ? $this->attribuer($c, $d) : $c->auditeur()->firstOrFail();
+                $auditeur = $mode === ReinscriptionAcma::ATTRIBUTION ? $this->attribuer($c, $d) : ($c->auditeur()->first()
+                    ?? throw new InvalidArgumentException('Ce dossier a un matricule mais pas de fiche d\'auditeur : prévenez l\'USI.'));
                 $rapprochement = LienArchive::poser($d, $auditeur, 'Matricule ACMA repris par le dossier '.$c->numero_dossier.' : '.$motif, $auteur);
 
                 $trace = new ReinscriptionAcma;
                 $trace->forceFill([
                     'dossier_acma_id' => $d->id, 'candidature_id' => $c->id, 'auditeur_id' => $auditeur->id,
                     'inscription_annuelle_id' => $auditeur->inscriptionCourante()->value('id'), 'campagne_id' => $c->campagne_id,
-                    'rapprochement_id' => $rapprochement, 'mode' => $mode, 'ancien_matricule' => $ancien, 'motif' => $motif, 'auteur_id' => $auteur->id,
+                    'rapprochement_id' => $rapprochement, 'mode' => $mode, 'ancien_matricule' => $ancien,
+                    'identite_forcee' => $forcee, 'identite_piece' => $forcee ? $pieceIdentite : null,
+                    'motif' => $motif, 'auteur_id' => $auteur->id,
                 ])->save();
 
                 if ($mode === ReinscriptionAcma::CONVERSION) {
+                    // Seule exception au déclencheur « matricule figé », locale à cette transaction.
+                    DB::select("SELECT set_config('app.conversion_matricule', 'on', true)");
                     $c->forceFill([
                         'matricule' => $d->matricule,
                         // Compte eCampus déjà créé sous l'ancien matricule : son identifiant ne change pas.
@@ -87,7 +100,7 @@ final class ConversionMatriculeAcma
                 }
 
                 activity(Journaux::SCOLARITE)->causedBy($auteur)->performedOn($c)->event(self::EVENEMENT)
-                    ->withProperties(['mode' => $mode, 'ancien' => $ancien, 'nouveau' => $d->matricule, 'dossier' => $d->uuid, 'motif' => $motif])
+                    ->withProperties(['mode' => $mode, 'ancien' => $ancien, 'nouveau' => $d->matricule, 'dossier' => $d->uuid, 'identite_forcee' => $forcee, 'motif' => $motif])
                     ->log('Matricule ACMA repris (le dossier ACMA fait foi)');
                 activity(Journaux::ARCHIVES)->causedBy($auteur)->event('rapprochement_decide')
                     ->withProperties(['dossier' => $d->uuid, 'decision' => 'lie', 'origine' => 'matricule_acma'])
@@ -100,7 +113,8 @@ final class ConversionMatriculeAcma
         }
     }
 
-    private function prealables(AcmaDossier $d, Candidature $c, bool $identiteConfirmee): void
+    /** @return bool vrai si l'identité a dû être forcée (non concordante, confirmée sur pièce) */
+    private function prealables(AcmaDossier $d, Candidature $c, bool $identiteConfirmee): bool
     {
         if ($d->retire_de_la_source_at !== null || $d->statut_rapprochement === 'ecarte') {
             throw new InvalidArgumentException('Dossier d\'archive disparu de l\'export ou écarté : matricule non repris.');
@@ -128,9 +142,12 @@ final class ConversionMatriculeAcma
         }
         $naissance = ReinscriptionAncien::dateNaissanceArchive($d);
         $noms = ComparaisonIdentite::score(NormalisationAcma::jetons($d->nom_complet), NormalisationAcma::jetons($c->nom, $c->prenom, $c->epouse));
-        if (($naissance !== $c->date_naissance?->toDateString() || ! ComparaisonIdentite::compatibles($noms)) && ! $identiteConfirmee) {
-            throw new InvalidArgumentException('L\'identité de l\'archive et celle du dossier ne concordent pas (date de naissance ou noms) : vérifiez la pièce, puis confirmez.');
+        $concordante = $naissance === $c->date_naissance?->toDateString() && ComparaisonIdentite::compatibles($noms);
+        if (! $concordante && ! $identiteConfirmee) {
+            throw new InvalidArgumentException('L\'identité de l\'archive et celle du dossier ne concordent pas (date de naissance ou noms) : vérifiez la pièce, puis confirmez avec sa référence.');
         }
+
+        return ! $concordante;
     }
 
     /** Mode `attribution` : matricule ACMA sans rang, mot de passe FOAD, puis ouverture de l'auditeur comme à l'attribution. */

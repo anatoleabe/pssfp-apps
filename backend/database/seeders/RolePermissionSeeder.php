@@ -284,7 +284,7 @@ final class RolePermissionSeeder extends Seeder
         // Réinscription des anciens (lot 15j, 16/11/2026) : promotions antérieures, au responsable de scolarité et à
         // l'administrateur (super_admin les a toutes).
         foreach (['admin', 'scolarite_responsable'] as $name) {
-            $roles[$name]['sensitive'] = [...$roles[$name]['sensitive'], 'scolarite.promotion_anterieure', 'scolarite.inscrire_ancien'];
+            $roles[$name]['sensitive'] = [...$roles[$name]['sensitive'], 'scolarite.promotion_anterieure', 'scolarite.inscrire_ancien', 'scolarite.derogation_m2'];
         }
 
         foreach ($roles as $name => $definition) {
