@@ -88,6 +88,7 @@ it('importe tous les auditeurs, inscrit seulement les admis, et signale les manq
         ->and($admise->diplome_requis)->toBe('licence-bachelor')
         ->and($admise->statut_actuel)->toBe('Fonctionnaire')
         ->and($admise->campagne->promotion_numero)->toBe(13)
+        ->and($admise->campagne->compte_scolarite)->toBe('710170')
         ->and($admise->campagne->status)->toBe('closed')
         ->and($admise->auditeur->inscriptionCourante->niveau)->toBe('M2')
         ->and($admise->auditeur->inscriptionCourante->montant_inscription)->toBe(135000)

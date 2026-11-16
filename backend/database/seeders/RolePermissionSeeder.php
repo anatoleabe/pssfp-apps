@@ -93,6 +93,7 @@ final class RolePermissionSeeder extends Seeder
                     'candidature.espace_candidat',
                     'scolarite.export',
                     'finances.consulter',
+                    'finances.rubriques_gerer',
                     'scolarite.versement_annuler',
                     'scolarite.versement_confirmer',
                     'scolarite.remise',

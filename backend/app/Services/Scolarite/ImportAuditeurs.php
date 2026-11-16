@@ -254,6 +254,8 @@ final class ImportAuditeurs
                 'slug' => "p{$promotion}-{$an}",
                 'nom' => ['fr' => "Année académique {$an}-".($an + 1)],
                 'promotion_numero' => $promotion,
+                // Compte de scolarité de la promotion (plan comptable de la RAF) : code de la pension sur les reçus.
+                'compte_scolarite' => RubriquesFrais::comptePromotion($promotion),
                 'prefix_numero' => sprintf('P%02d%03d-', $promotion, $an % 1000),
                 'status' => 'closed',
                 'opens_at' => CarbonImmutable::create($an, 6, 1),

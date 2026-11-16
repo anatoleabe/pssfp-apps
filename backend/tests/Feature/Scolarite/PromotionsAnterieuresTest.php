@@ -54,6 +54,7 @@ it('crée une promotion antérieure close, invisible sur le portail, et la journ
         ->and($p12->status)->toBe('closed')
         ->and($p12->promotion_numero)->toBe(12)
         ->and($p12->prefix_numero)->toBe('P12024-')
+        ->and($p12->compte_scolarite)->toBe('710160')
         ->and($p12->communique_resultats_path)->toBeNull()
         ->and(AnneeEnCours::promotionDeLAnnee('2024-2025')?->is($p12))->toBeTrue();
     $portail = app(CandidatureService::class);

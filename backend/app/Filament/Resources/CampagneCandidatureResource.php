@@ -11,6 +11,7 @@ use App\Filament\Resources\CampagneCandidatureResource\Pages;
 use App\Filament\Resources\CampagneCandidatureResource\ResultatsSelectionActions;
 use App\Filament\Tables\TranslatedColumn;
 use App\Models\CampagneCandidature;
+use App\Services\Scolarite\RubriquesFrais;
 use App\Support\BelongsToModule;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -58,6 +59,12 @@ class CampagneCandidatureResource extends Resource
                     ->maxLength(100)
                     ->helperText('Affiché en titre sur la version anglaise du portail. Sans valeur, le français est servi.'),
                 Forms\Components\TextInput::make('promotion_numero')->required()->numeric()->minValue(1),
+                // Compte de scolarité de la promotion (plan comptable de la RAF) : code de la pension sur les reçus (reçu A4, R2).
+                Forms\Components\TextInput::make('compte_scolarite')->label('Compte de scolarité (pension)')->regex('/^\d{6}$/')
+                    ->notIn([RubriquesFrais::COMPTE_INTERDIT])->placeholder('À préciser')
+                    ->helperText('Plan comptable de la RAF, un compte par promotion. Modifiable par l\'administrateur (rubriques des reçus).')
+                    ->disabled(fn (): bool => ! RubriquesFrais::peutGerer(auth()->user()))
+                    ->dehydrated(fn (): bool => RubriquesFrais::peutGerer(auth()->user())),
                 Forms\Components\TextInput::make('prefix_numero')->required()->maxLength(20)
                     ->helperText('Ex : P14026- pour Promotion 14, année 2026.'),
                 Forms\Components\Select::make('status')->required()->options([
