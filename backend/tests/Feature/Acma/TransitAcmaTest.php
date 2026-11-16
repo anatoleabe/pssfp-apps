@@ -208,6 +208,19 @@ it('crée les fichiers chiffrés et déchiffrés pour le seul propriétaire, et 
     expect(is_dir($reste))->toBeFalse();
 });
 
+it('crée le dossier des rapports ouvert au groupe du serveur web, le temporaire restant au seul propriétaire', function (): void {
+    // Le chargement crée le dossier en premier (console, utilisateur pssfp) : PHP-FPM (www-data,
+    // même groupe) doit pouvoir lister ensuite les classeurs, sinon l'écran des archives tombe en 500.
+    File::deleteDirectory(storage_path('app/private/acma'));
+    $archive = extraireJeu($this->dossier);
+
+    $this->artisan('acma:charger', ['archive' => $archive, '--auteur' => $this->usi->email])->assertSuccessful();
+
+    // Lecture et traversée pour le groupe (le masque du processus peut retirer l'écriture).
+    expect(fileperms(storage_path('app/private/acma')) & 0050)->toBe(0050)
+        ->and(fileperms(storage_path('app/private/acma')) & 0007)->toBe(0);
+});
+
 it('remplace le transit au second chargement', function (): void {
     TransitAcma::construire();
     $lignes = JeuAcmaFictif::lignes();
