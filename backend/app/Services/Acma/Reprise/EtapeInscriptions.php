@@ -26,7 +26,7 @@ final class EtapeInscriptions implements Etape
         $dossiers = DB::table('acma_dossiers')->whereNull('retire_de_la_source_at')->pluck('id', 'matricule')->all();
         $ignorees = ['sans_annee_ni_niveau' => 0, 'annee_invalide' => 0, 'annee_non_reprise' => 0, 'dossier_exclu' => 0];
         $groupes = [];
-        foreach (LectureTransit::lignes('inscription_academic', ['id_inscription', 'matricule', 'anneeacademic', 'niveau', 'moydunivo', 'admis', 'redouble', 'Fraiscolarite', 'NbreDette', 'Totalcredit']) as $i) {
+        foreach (LectureTransit::lignes('inscription_academic', ['id_inscription', 'matricule', 'anneeacademic', 'niveau', 'moydunivo', 'admis', 'redouble', 'Fraiscolarite', 'NbreDette', 'Totalcredit', 'parcours']) as $i) {
             $niveauAcma = trim((string) $i->niveau);
             if (trim((string) $i->anneeacademic) === '' || $niveauAcma === '') {
                 $ignorees['sans_annee_ni_niveau']++;
@@ -86,6 +86,8 @@ final class EtapeInscriptions implements Etape
                 'frais_scolarite_acma' => LectureTransit::nombre($r->Fraiscolarite),
                 'redoublant_acma' => self::booleen($r->redouble),
                 'deux_niveaux_meme_annee' => $niveauxParAnnee["{$matricule}|{$annee}"] > 1,
+                // Parcours tel qu'ACMA le note sur l'inscription (spec de la réinscription des anciens, §4.1).
+                'parcours_source' => ($p = NormalisationAcma::texte($r->parcours)) === null ? null : mb_substr($p, 0, 100),
             ]);
         }
 

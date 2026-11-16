@@ -48,6 +48,7 @@ final class InventaireAcma
             'Anomalies de paiement' => $paiements['anomalies'],
             'Barèmes (montantAregler)' => $this->baremes(),
             'Identités et matricules' => $etudiants,
+            'Coordonnées des fiches' => $this->coordonnees(),
             'Soutenances et documents' => $this->documents(),
             '2026-2027' => array_merge($inscriptions['en_cours'], $paiements['en_cours'], $notes['en_cours']),
         ];
@@ -58,6 +59,40 @@ final class InventaireAcma
     public static function tabulaire(string $section): bool
     {
         return in_array($section, self::SECTIONS_TABULAIRES, true);
+    }
+
+    /**
+     * Comptes de remplissage des coordonnées (spec de la réinscription des anciens, §4.3) : jamais une valeur.
+     *
+     * @return list<list<int|string>>
+     */
+    private function coordonnees(): array
+    {
+        $comptes = ['fiches' => 0, 'telephone' => 0, 'mobile' => 0, 'telephone_reconnu' => 0, 'ancien_format' => 0, 'email_valide' => 0, 'adresse' => 0, 'region' => 0, 'suspendu' => 0];
+        foreach (LectureTransit::lignes('etudiant', ['telephone', 'mobile', 'email', 'EmailB', 'adresse', 'region', 'Suspendu']) as $e) {
+            $comptes['fiches']++;
+            $comptes['telephone'] += (int) (NormalisationAcma::texte($e->telephone) !== null);
+            $comptes['mobile'] += (int) (NormalisationAcma::texte($e->mobile) !== null);
+            $numeros = array_merge(CoordonneesAcma::telephones($e->mobile), CoordonneesAcma::telephones($e->telephone));
+            $comptes['telephone_reconnu'] += (int) ($numeros !== []);
+            $comptes['ancien_format'] += (int) ($numeros !== [] && $numeros[0]['ancien_format']);
+            $comptes['email_valide'] += (int) ((CoordonneesAcma::email($e->email) ?? CoordonneesAcma::email($e->EmailB)) !== null);
+            $comptes['adresse'] += (int) (NormalisationAcma::texte($e->adresse) !== null);
+            $comptes['region'] += (int) (NormalisationAcma::texte($e->region) !== null);
+            $comptes['suspendu'] += (int) (trim((string) $e->Suspendu) === '1');
+        }
+
+        return [
+            ['Fiches', $comptes['fiches']],
+            ['Avec téléphone (champ telephone)', $comptes['telephone']],
+            ['Avec mobile (champ mobile)', $comptes['mobile']],
+            ['Au moins un numéro reconnu (E.164 proposé)', $comptes['telephone_reconnu']],
+            ['Dont premier numéro à l\'ancien format à 8 chiffres', $comptes['ancien_format']],
+            ['Avec un e-mail de forme valide', $comptes['email_valide']],
+            ['Avec adresse', $comptes['adresse']],
+            ['Avec région', $comptes['region']],
+            ['Suspendues dans ACMA', $comptes['suspendu']],
+        ];
     }
 
     /** @return list<list<int|string>> */

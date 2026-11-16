@@ -15,6 +15,7 @@ use App\Models\AcmaInscription;
 use App\Models\AcmaRapprochement;
 use App\Models\AcmaSoutenance;
 use App\Services\Acma\ArchivesAcma;
+use App\Services\Acma\CoordonneesAcma;
 use App\Services\Scolarite\LibelleSituation;
 use App\Support\BelongsToModule;
 use Carbon\CarbonImmutable;
@@ -210,6 +211,49 @@ class ArchiveAcmaResource extends Resource
         ]);
     }
 
+    /**
+     * Coordonnées reprises d'ACMA (spec de la réinscription des anciens, §4.4) : brutes, avec la proposition E.164 ou
+     * l'e-mail de forme valide ; réservées à `archives.consulter`. Aucun envoi ne lit ces valeurs.
+     */
+    private static function coordonnees(): Infolists\Components\Section
+    {
+        $brut = fn (string $colonne, string $libelle): Infolists\Components\TextEntry => Infolists\Components\TextEntry::make($colonne)->label($libelle)->placeholder('—');
+        $telephone = fn (string $colonne, string $libelle): Infolists\Components\TextEntry => Infolists\Components\TextEntry::make($colonne)->label($libelle)->placeholder('—')
+            ->formatStateUsing(fn (?string $state): string => self::telephoneLu($state));
+        $email = fn (string $colonne, string $libelle): Infolists\Components\TextEntry => Infolists\Components\TextEntry::make($colonne)->label($libelle)->placeholder('—')
+            ->formatStateUsing(fn (?string $state): string => CoordonneesAcma::email($state) === null ? $state.' (forme invalide)' : (string) $state);
+
+        return Infolists\Components\Section::make('Coordonnées (ACMA)')->columns(3)->collapsible()
+            ->description('Telles qu\'ACMA les tenait, peut-être anciennes. Elles ne servent à aucun envoi : à vérifier avant toute réinscription.')
+            ->visible(fn (): bool => (bool) auth()->user()?->can(ArchivesAcma::CONSULTER))
+            ->schema([
+                $telephone('mobile_source', 'Mobile'),
+                $telephone('telephone_source', 'Téléphone'),
+                $email('email_source', 'E-mail'),
+                $email('email2_source', 'Second e-mail'),
+                $brut('adresse_source', 'Adresse')->columnSpan(2),
+                $brut('region_source', 'Région'),
+                $brut('region_bis_source', 'Région (second champ)'),
+                $brut('departement_source', 'Département'),
+                $brut('numcni_source', 'Région d\'origine (champ « numcni » d\'ACMA)'),
+                Infolists\Components\TextEntry::make('suspendu_source')->label('Suspendu dans ACMA')
+                    ->formatStateUsing(fn (?string $state): string => $state === '1' ? 'Oui' : 'Non')->placeholder('—'),
+                $brut('expression_source', 'Autre champ ACMA « expression »'),
+                $brut('idcampus_source', 'Autre champ ACMA « idcampus »'),
+            ]);
+    }
+
+    /** « 6 99 00 00 01 → +237699000001 », avec la mention de l'ancien format à 8 chiffres. */
+    private static function telephoneLu(?string $brut): string
+    {
+        $propositions = CoordonneesAcma::telephones($brut);
+        if ($propositions === []) {
+            return (string) $brut.' (non reconnu)';
+        }
+
+        return $brut.' → '.implode(', ', array_map(fn (array $p): string => $p['e164'].($p['ancien_format'] ? ' (ancien format à vérifier)' : ''), $propositions));
+    }
+
     /** @return list<Component> */
     private static function identite(): array
     {
@@ -241,6 +285,7 @@ class ArchiveAcmaResource extends Resource
                         $record->retire_de_la_source_at !== null ? ['Disparu de l\'export ACMA du '.$record->retire_de_la_source_at->format('d/m/Y')] : [],
                     ))),
             ]),
+            self::coordonnees(),
             Infolists\Components\Section::make('Compléments')->collapsible()
                 ->description('Ajouts de la scolarité d\'après une pièce : l\'archive ne se modifie jamais. Le dernier complément d\'un champ l\'emporte.')
                 ->schema([

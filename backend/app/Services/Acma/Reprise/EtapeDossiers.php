@@ -22,7 +22,7 @@ final class EtapeDossiers implements Etape
     {
         $ecriture = new EcritureArchive('acma_dossiers', 'matricule', $contexte->maintenant, avecUuid: true);
         $exclusions = array_fill_keys(array_keys(FichesAcma::MOTIFS), 0);
-        $fusions = $parasites = $divergentes = $fiches = 0;
+        $fusions = $parasites = $divergentes = $coordonneesDivergentes = $fiches = 0;
         $formes = [];
 
         foreach (FichesAcma::grouper() as $groupe) {
@@ -53,6 +53,11 @@ final class EtapeDossiers implements Etape
                 $signalements[] = 'identites_divergentes';
                 $divergentes++;
             }
+            $coordonnees = array_unique(array_map(fn (object $f): string => implode('|', array_map(fn (string $c): string => (string) NormalisationAcma::texte($f->{$c}), array_values(self::COORDONNEES))), $groupe['fiches']));
+            if (count($coordonnees) > 1) {
+                $signalements[] = 'coordonnees_divergentes';
+                $coordonneesDivergentes++;
+            }
             if ($groupe['annees'] === []) {
                 $signalements[] = 'sans_inscription_datee';
             }
@@ -80,7 +85,7 @@ final class EtapeDossiers implements Etape
                 'derniere_annee' => $groupe['annees'] === [] ? null : $groupe['annees'][count($groupe['annees']) - 1],
                 'fiches_fusionnees' => count($sources) > 1 ? json_encode($sources, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE) : null,
                 'signalements' => $signalements === [] ? null : json_encode($signalements, JSON_THROW_ON_ERROR),
-            ]);
+            ] + array_map(fn (string $c): ?string => self::court($reference->{$c}, 255), self::COORDONNEES));
         }
 
         $collisions = array_filter($formes, fn (array $g): bool => count($g) > 1);
@@ -96,10 +101,21 @@ final class EtapeDossiers implements Etape
             'exclusions' => $exclusions,
             'fusions' => $fusions,
             'identites_divergentes' => $divergentes,
+            'coordonnees_divergentes' => $coordonneesDivergentes,
             'caractere_parasite' => $parasites,
             'collisions_sans_zeros' => count($collisions),
         ];
     }
+
+    /**
+     * Colonne de l'archive → colonne ACMA (`etudiant`), reprises brutes (spec de la réinscription des anciens, §4.2).
+     * Les fiches fusionnées gardent celles de la fiche de référence ; une divergence est signalée.
+     */
+    public const COORDONNEES = [
+        'telephone_source' => 'telephone', 'mobile_source' => 'mobile', 'email_source' => 'email', 'email2_source' => 'EmailB',
+        'adresse_source' => 'adresse', 'region_source' => 'region', 'region_bis_source' => 'RegionBis', 'departement_source' => 'departement',
+        'numcni_source' => 'numcni', 'expression_source' => 'expression', 'suspendu_source' => 'Suspendu', 'idcampus_source' => 'idcampus',
+    ];
 
     private static function court(?string $v, int $max): ?string
     {

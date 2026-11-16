@@ -522,3 +522,12 @@ Chaque sous-lot a sa branche, ses tests, sa PR, et se déploie seul.
 | **Q12** | Arriérés d'un ancien réinscrit (15f) | a) même circuit que la P13, ligne par ligne, avec un avertissement « réinscrit : l'arriéré passera avant l'année en cours » ; b) exclus par défaut, sur décision expresse seulement ; c) jamais | **a)** : cohérent avec la décision 3 du lot 15 et la décision 10 du lot D ; l'aperçu chiffré montre l'effet sur l'accès avant l'approbation. |
 | **Q13** | Acquis d'un ancien redoublant d'une année antérieure à 2024-2025 (15g) | a) correspondances étendues à son programme d'origine, à la demande, validées ligne par ligne ; b) aucun acquis : il refait l'année ; c) acquis décidés par le jury sans correspondance | **a)**, au cas par cas : même règle que Q13 du lot 15, sans nouvelle règle LMD. |
 | **Q14** | Un P13 déjà sur la plateforme, sans inscription 2026-2027 (non admis en M1) : par ce geste ou par D3 ? | a) D3 (réinscription en groupe) ; b) un geste unitaire « Inscrire en 2026-2027 » sur la fiche de l'auditeur, réutilisant `InscriptionAnneeEnCours` ; c) ce geste depuis l'archive | **b)** si D3 tarde : le service existe déjà avec 15k, et le geste reste soumis aux mêmes règles (année en cours, barème, aucun envoi, chemin normal vers l'accès). Sinon a). Jamais c) : la personne a déjà un auditeur. |
+
+## 15. Points tranchés en réalisation
+
+### 15i — Coordonnées
+
+1. **Numéros à huit chiffres.** ACMA garde des numéros de l'ancienne numérotation camerounaise. `CoordonneesAcma` les propose avec le chiffre ajouté en 2014 (6 devant un mobile commençant par 5, 7, 8 ou 9 ; 2 devant un fixe commençant par 2 ou 3), marqués « ancien format à vérifier ». Plusieurs numéros dans un champ (séparés par `/`, `,`, `;`, `|` ou « et ») donnent plusieurs propositions.
+2. **Fiches fusionnées.** Les coordonnées sont celles de la fiche de référence ; une divergence entre fiches est signalée sur le dossier (`coordonnees_divergentes`) et comptée par l'étape `dossiers`.
+3. **Formats refusés.** Une archive `/1` ou `/2` est refusée au chargement avec le message « refaire acma:extraire ».
+4. **Répétition locale** (copie de transit du 15/11, archive provisoire non gelée, comptes seulement) : dossiers et inscriptions tous « modifiés » au premier rejeu, aucun lien remis à arbitrer, contrôles bloquants verts, second rejeu sans aucune écriture. **Aucune fiche n'a d'e-mail de forme valide** (constat du §3.7 du lot 15 confirmé) : à la réinscription, l'e-mail se saisit (§7.3).

@@ -37,6 +37,7 @@ class AcmaDossier extends Model
     public const SIGNALEMENTS = [
         'caractere_parasite' => 'Matricule avec un caractère parasite',
         'identites_divergentes' => 'Fiches fusionnées aux identités divergentes',
+        'coordonnees_divergentes' => 'Fiches fusionnées aux coordonnées divergentes (celles de la fiche de référence sont gardées)',
         'sans_inscription_datee' => 'Aucune inscription datée (dossier gardé pour un document)',
     ];
 
