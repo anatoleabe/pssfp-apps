@@ -8,10 +8,15 @@ use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\RecuActions;
 use App\Filament\Resources\RecuVersementResource\Pages;
+use App\Models\InscriptionAnnuelle;
 use App\Models\RecuVersement;
 use App\Models\User;
+use App\Models\Versement;
+use App\Services\Scolarite\EspaceFinances;
 use App\Services\Scolarite\RecusVersements;
 use App\Support\BelongsToModule;
+use Carbon\CarbonImmutable;
+use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -19,7 +24,11 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-/** Registre des reçus des versements (Scolarité lot 4) : consultation, téléchargement, écriture d'annulation. */
+/**
+ * Registre des reçus des versements (Scolarité lot 4) : consultation, téléchargement, écriture d'annulation. Dans l'espace
+ * Finances depuis le 16/11/2026 (spec module-4-scolarite-espace-financier §6.3) : ouvert à `finances.consulter`, les
+ * gestes restent au service financier (`scolarite.recu_emettre`).
+ */
 #[BelongsToModule('scolarite')]
 class RecuVersementResource extends Resource
 {
@@ -37,11 +46,16 @@ class RecuVersementResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-receipt-percent';
 
-    protected static ?string $navigationGroup = GroupeNavigation::SCOLARITE;
+    protected static ?string $navigationGroup = GroupeNavigation::FINANCES;
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $slug = 'recus-versements';
+
+    public static function canViewAny(): bool
+    {
+        return EspaceFinances::peutConsulter(auth()->user());
+    }
 
     /** Versements qui attendent leur reçu de la part de cet agent. */
     public static function getNavigationBadge(): ?string
@@ -89,6 +103,18 @@ class RecuVersementResource extends Resource
                     ->queries(true: fn (Builder $q): Builder => $q->whereHas('annulation'), false: fn (Builder $q): Builder => $q->whereDoesntHave('annulation')),
                 Tables\Filters\SelectFilter::make('emis_par')->label('Émis par')
                     ->options(fn (): array => User::query()->whereIn('id', RecuVersement::query()->select('emis_par'))->orderBy('name')->pluck('name', 'id')->all()),
+                Tables\Filters\SelectFilter::make('mode')->label('Mode')->options(Versement::MODES),
+                Tables\Filters\Filter::make('emission')->label('Période d\'émission')
+                    ->form([
+                        Forms\Components\DatePicker::make('du')->label('Émis du')->native(false)->displayFormat('d/m/Y'),
+                        Forms\Components\DatePicker::make('au')->label('Au')->native(false)->displayFormat('d/m/Y'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $jour = fn (string $d): CarbonImmutable => CarbonImmutable::parse($d, InscriptionAnnuelle::FUSEAU)->startOfDay();
+
+                        return $query->when(filled($data['du'] ?? null), fn (Builder $b) => $b->where('emis_at', '>=', $jour((string) $data['du'])))
+                            ->when(filled($data['au'] ?? null), fn (Builder $b) => $b->where('emis_at', '<', $jour((string) $data['au'])->addDay()));
+                    }),
             ])
             ->actions([Tables\Actions\ActionGroup::make([
                 Tables\Actions\Action::make('telecharger')->label('Reçu (PDF)')->icon('heroicon-o-arrow-down-tray')

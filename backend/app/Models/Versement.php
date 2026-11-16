@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -42,6 +43,22 @@ class Versement extends Model
     ];
 
     public const PAYEUR_EMPLOYEUR = 'employeur';
+
+    /*
+     * Statut d'un versement (espace Finances, spec §6.2) : déduit des tables, jamais stocké.
+     * Enregistré : valide, pas encore confirmé par la scolarité ; confirmé ; annulé.
+     */
+    public const STATUT_ENREGISTRE = 'enregistre';
+
+    public const STATUT_CONFIRME = 'confirme';
+
+    public const STATUT_ANNULE = 'annule';
+
+    public const STATUTS = [
+        self::STATUT_ENREGISTRE => 'Enregistré',
+        self::STATUT_CONFIRME => 'Confirmé',
+        self::STATUT_ANNULE => 'Annulé',
+    ];
 
     /**
      * Payeurs dont l'excédent reste réservé à l'inscription désignée (décisions 2 et 7) ;
@@ -180,6 +197,49 @@ class Versement extends Model
     public function estAnnule(): bool
     {
         return $this->annule_at !== null;
+    }
+
+    public function statut(): string
+    {
+        return match (true) {
+            $this->estAnnule() => self::STATUT_ANNULE,
+            $this->confirmation()->exists() => self::STATUT_CONFIRME,
+            default => self::STATUT_ENREGISTRE,
+        };
+    }
+
+    /**
+     * Versements d'un ou plusieurs statuts (équivalent en base de statut()).
+     *
+     * @param  string|list<string>  $statuts
+     */
+    public function scopeStatut(Builder $query, string|array $statuts): Builder
+    {
+        return self::filtrerStatut($query, $statuts);
+    }
+
+    /**
+     * Même filtre que le scope, pour une requête dont le modèle n'est pas porté (filtre de table imbriqué).
+     *
+     * @param  string|list<string>  $statuts
+     */
+    public static function filtrerStatut(Builder $query, string|array $statuts): Builder
+    {
+        $statuts = array_values(array_intersect(array_keys(self::STATUTS), (array) $statuts));
+
+        if ($statuts === []) {
+            return $query->whereIn('versements.id', []);
+        }
+
+        return $query->where(function (Builder $q) use ($statuts): void {
+            foreach ($statuts as $statut) {
+                $q->orWhere(fn (Builder $s): Builder => match ($statut) {
+                    self::STATUT_ANNULE => $s->whereNotNull('annule_at'),
+                    self::STATUT_CONFIRME => $s->whereNull('annule_at')->whereHas('confirmation'),
+                    self::STATUT_ENREGISTRE => $s->whereNull('annule_at')->whereDoesntHave('confirmation'),
+                });
+            }
+        });
     }
 
     /** Confirmation par la scolarité (15/11/2026) : seul l'argent confirmé rend l'auditeur « à jour ». */

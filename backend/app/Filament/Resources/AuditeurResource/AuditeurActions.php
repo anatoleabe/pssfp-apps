@@ -84,39 +84,57 @@ final class AuditeurActions
                 .'. Le versement compte aussitôt ; seul le responsable de scolarité peut l\'annuler.'
                 .(self::encaisseAvecRecu() ? ' Le reçu numéroté est émis à votre nom et l\'auditeur en est prévenu par SMS et par e-mail.' : ''))
             ->modalSubmitActionLabel(fn (): string => self::encaisseAvecRecu() ? 'Enregistrer et émettre le reçu' : 'Enregistrer')
-            ->form(fn (Auditeur $record): array => MessagesValidation::appliquer([
-                Forms\Components\TextInput::make('montant')->label('Montant (FCFA)')->required()->integer()->minValue(1)->maxValue(RegistreVersements::MONTANT_MAX)->live(onBlur: true),
-                Forms\Components\DatePicker::make('date_versement')->label('Date du versement')->required()->native(false)
-                    ->displayFormat('d/m/Y')->default(InscriptionAnnuelle::aujourdhui()->toDateString())
-                    // Fin de journée : le sélecteur du navigateur renvoie une heure, et une
-                    // borne à minuit refusait la date du jour (constaté au navigateur).
-                    ->maxDate(InscriptionAnnuelle::aujourdhui()->endOfDay()->toDateTimeString()),
-                Forms\Components\Select::make('mode')->label('Mode de paiement')->required()->options(Versement::MODES)->default('cremincam_agence')->native(false),
-                Forms\Components\TextInput::make('reference')->label('Référence du bordereau')->required()->maxLength(100),
-                Forms\Components\Select::make('payeur')->label('Payé par')->required()->options(Versement::PAYEURS)->default('auditeur')->native(false)->live(),
-                self::champJustificatif(),
-                Forms\Components\Checkbox::make('confirmer_avance')
-                    ->label(fn (Forms\Get $get): string => self::libelleAvance($record, (int) $get('montant'), (string) $get('payeur')))
-                    ->visible(fn (Forms\Get $get): bool => self::avanceAnnoncee($record, (int) $get('montant'), (string) $get('payeur')) > 0)
-                    ->accepted(),
-            ]))
+            ->form(fn (Auditeur $record): array => MessagesValidation::appliquer(self::champsVersement(fn (): ?Auditeur => $record)))
             ->action(function (Auditeur $record, array $data, Action $action): void {
-                try {
-                    self::exigerScanDepose($data['justificatif_path'] ?? null);
-                    $registre = app(RegistreVersements::class);
-                    $resultat = self::encaisseAvecRecu()
-                        ? $registre->encaisser($record->inscriptionCourante, $data, auth()->user())
-                        : $registre->enregistrer($record->inscriptionCourante, $data, auth()->user());
-                } catch (InvalidArgumentException $e) {
-                    self::supprimerScanOrphelin($data['justificatif_path'] ?? null);
-                    Notification::make()->danger()->title('Versement non enregistré')->body($e->getMessage())->send();
-                    $action->halt();
-
-                    return;
-                }
-                $record->refresh();
-                self::notifier($resultat->recu === null ? 'Versement enregistré' : 'Versement enregistré, reçu '.$resultat->recu->numero.' émis', $resultat);
+                self::encaisserPour($record, $data, $action);
             });
+    }
+
+    /**
+     * Champs de la saisie d'un versement (fiche de l'auditeur, liste des versements de l'espace Finances).
+     * `$auditeur` donne l'auditeur visé, d'après le formulaire : il annonce l'avance que le montant créerait.
+     *
+     * @param  \Closure(Forms\Get): ?Auditeur  $auditeur
+     * @return list<Forms\Components\Component>
+     */
+    public static function champsVersement(\Closure $auditeur): array
+    {
+        return [
+            Forms\Components\TextInput::make('montant')->label('Montant (FCFA)')->required()->integer()->minValue(1)->maxValue(RegistreVersements::MONTANT_MAX)->live(onBlur: true),
+            Forms\Components\DatePicker::make('date_versement')->label('Date du versement')->required()->native(false)
+                ->displayFormat('d/m/Y')->default(InscriptionAnnuelle::aujourdhui()->toDateString())
+                // Fin de journée : le sélecteur du navigateur renvoie une heure, et une
+                // borne à minuit refusait la date du jour (constaté au navigateur).
+                ->maxDate(InscriptionAnnuelle::aujourdhui()->endOfDay()->toDateTimeString()),
+            Forms\Components\Select::make('mode')->label('Mode de paiement')->required()->options(Versement::MODES)->default('cremincam_agence')->native(false),
+            Forms\Components\TextInput::make('reference')->label('Référence du bordereau')->required()->maxLength(100),
+            Forms\Components\Select::make('payeur')->label('Payé par')->required()->options(Versement::PAYEURS)->default('auditeur')->native(false)->live(),
+            self::champJustificatif(),
+            Forms\Components\Checkbox::make('confirmer_avance')
+                ->label(fn (Forms\Get $get): string => ($a = $auditeur($get)) === null ? '' : self::libelleAvance($a, (int) $get('montant'), (string) $get('payeur')))
+                ->visible(fn (Forms\Get $get): bool => ($a = $auditeur($get)) !== null && self::avanceAnnoncee($a, (int) $get('montant'), (string) $get('payeur')) > 0)
+                ->accepted(),
+        ];
+    }
+
+    /** Enregistre le versement (et, pour le service financier, son reçu) sur l'inscription courante de l'auditeur. */
+    public static function encaisserPour(Auditeur $record, array $data, Action $action): void
+    {
+        try {
+            self::exigerScanDepose($data['justificatif_path'] ?? null);
+            $registre = app(RegistreVersements::class);
+            $resultat = self::encaisseAvecRecu()
+                ? $registre->encaisser($record->inscriptionCourante, $data, auth()->user())
+                : $registre->enregistrer($record->inscriptionCourante, $data, auth()->user());
+        } catch (InvalidArgumentException $e) {
+            self::supprimerScanOrphelin($data['justificatif_path'] ?? null);
+            Notification::make()->danger()->title('Versement non enregistré')->body($e->getMessage())->send();
+            $action->halt();
+
+            return;
+        }
+        $record->refresh();
+        self::notifier($resultat->recu === null ? 'Versement enregistré' : 'Versement enregistré, reçu '.$resultat->recu->numero.' émis', $resultat);
     }
 
     /** Part du montant qui dépasse ce que le versement règle et ira en avance (R2) : tout le parcours, ou l'année désignée pour un employeur. */

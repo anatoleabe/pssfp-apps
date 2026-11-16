@@ -6,12 +6,43 @@ namespace App\Filament\Resources\RecuVersementResource\Pages;
 
 use App\Filament\Resources\AuditeurResource\RecuActions;
 use App\Filament\Resources\RecuVersementResource;
+use App\Services\Scolarite\EspaceFinances;
 use App\Services\Scolarite\RecusVersements;
+use App\Services\Scolarite\VersementsExcel;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ListRecusVersements extends ListRecords
 {
     protected static string $resource = RecuVersementResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('exporterRegistre')
+                ->label('Registre des reçus (Excel)')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->visible(fn (): bool => EspaceFinances::peutExporter(auth()->user()))
+                ->action(function (): StreamedResponse {
+                    abort_unless(EspaceFinances::peutExporter(auth()->user()), 403);
+                    // Mêmes filtres que la liste, triés par numéro : le registre se lit dans l'ordre d'émission.
+                    $recus = $this->getFilteredTableQuery()->reorder()->orderBy('annee_numero')->orderBy('sequence')->get();
+                    EspaceFinances::journaliserExport(auth()->user(), 'recus', [
+                        'filtres' => collect($this->tableFilters ?? [])->filter(fn ($v): bool => filled(array_filter((array) $v, fn ($x): bool => filled($x))))->all(),
+                        'recherche' => filled($this->tableSearch),
+                    ], $recus->count());
+                    $contenu = app(VersementsExcel::class)->registre($recus);
+
+                    return response()->streamDownload(function () use ($contenu): void {
+                        echo $contenu;
+                    }, 'registre-recus-'.now('Africa/Douala')->format('Y-m-d').'.xlsx', [
+                        'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    ]);
+                }),
+        ];
+    }
 
     public function getSubheading(): ?string
     {
