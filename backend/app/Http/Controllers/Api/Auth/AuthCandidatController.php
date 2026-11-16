@@ -182,7 +182,9 @@ final class AuthCandidatController extends Controller
             ], $bloque['kind'] === 'phone_locked' ? 423 : 429, ['Retry-After' => (string) $bloque['retry_after']]);
         }
 
-        $candidature = Candidature::query()->with('user.roles')->where('matricule', $matricule)->first();
+        // L'identifiant FOAD d'un dossier qui a repris son matricule ACMA (15m) reste l'ancien : les deux sont acceptés.
+        $candidature = Candidature::query()->with('user.roles')->where('matricule', $matricule)->first()
+            ?? Candidature::query()->with('user.roles')->where('identifiant_ecampus', mb_strtolower($matricule))->first();
         try {
             $compte = $candidature !== null && IdentifiantsMoodle::disponibles($candidature)
                 ? NouveauCodeCandidat::compteCandidat($candidature)

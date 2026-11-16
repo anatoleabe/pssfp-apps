@@ -172,7 +172,7 @@ final class ExportsRetenusExcel
     private function ligneMoodle(Candidature $c, string $cohorte): array
     {
         return [
-            mb_strtolower((string) $c->matricule),
+            IdentifiantsMoodle::identifiant($c),
             TexteImprimable::majuscules($c->nom),
             TexteImprimable::nettoyer($c->prenom),
             (string) $c->moodle_password,

@@ -20,7 +20,7 @@ final class InventaireAcma
     /** @return array<string, list<list<int|string>>> */
     public function calculer(): array
     {
-        $chargement = LectureTransit::chargement();
+        $chargement = LectureTransit::chargement(formatCourant: true);
         $etudiants = $this->etudiants();
         $inscriptions = $this->inscriptions();
         $paiements = $this->paiements($inscriptions['triplets']);

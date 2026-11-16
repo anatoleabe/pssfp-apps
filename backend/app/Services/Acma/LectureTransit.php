@@ -25,16 +25,24 @@ final class LectureTransit
         return self::table($table)->select(array_merge(['_ligne'], $colonnes))->lazyById($lot, '_ligne');
     }
 
-    /** @return array{manifeste: array<string, mixed>, manifeste_sha256: string, charge_le: string} */
-    public static function chargement(): array
+    /**
+     * @param  bool  $formatCourant  exiger un transit au format d'extraction en vigueur (reprise, inventaire)
+     * @return array{manifeste: array<string, mixed>, manifeste_sha256: string, charge_le: string}
+     */
+    public static function chargement(bool $formatCourant = false): array
     {
         if (! ChargementTransit::charge()) {
             throw new ErreurAcma('Transit ACMA absent : lancer d\'abord acma:charger.');
         }
         $c = self::table('_chargement')->orderByDesc('charge_le')->first();
 
+        $manifeste = json_decode((string) $c->manifeste, true, 64, JSON_THROW_ON_ERROR);
+        if ($formatCourant && ($manifeste['format'] ?? null) !== ExtractionAcma::FORMAT) {
+            throw new ErreurAcma('Transit au format '.($manifeste['format'] ?? 'inconnu').' : rechargez une archive au format '.ExtractionAcma::FORMAT.' (acma:extraire, puis acma:charger).');
+        }
+
         return [
-            'manifeste' => json_decode((string) $c->manifeste, true, 64, JSON_THROW_ON_ERROR),
+            'manifeste' => $manifeste,
             'manifeste_sha256' => (string) $c->manifeste_sha256,
             'charge_le' => (string) $c->charge_le,
         ];

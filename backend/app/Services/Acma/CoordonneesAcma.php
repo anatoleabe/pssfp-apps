@@ -63,22 +63,23 @@ final class CoordonneesAcma
     }
 
     /**
-     * Propositions pour un dossier : mobile d'abord, puis téléphone ; premier e-mail valide.
+     * Propositions pour un dossier : mobile d'abord, puis téléphone ; premier e-mail valide. Un numéro de l'ancienne
+     * numérotation (huit chiffres, chiffre ajouté deviné) n'est jamais proposé d'office : il va dans `a_verifier`.
      *
      * @param  array<string, mixed>|object  $dossier  colonnes `*_source` de `acma_dossiers`
-     * @return array{telephone: ?string, telephone2: ?string, email: ?string}
+     * @return array{telephone: ?string, telephone2: ?string, email: ?string, a_verifier: list<string>}
      */
     public static function propositions(array|object $dossier): array
     {
         $d = (array) ($dossier instanceof Model ? $dossier->getAttributes() : $dossier);
-        $numeros = array_values(array_unique(array_column(array_merge(
-            self::telephones($d['mobile_source'] ?? null),
-            self::telephones($d['telephone_source'] ?? null),
-        ), 'e164')));
+        $tous = array_merge(self::telephones($d['mobile_source'] ?? null), self::telephones($d['telephone_source'] ?? null));
+        $numeros = array_values(array_unique(array_column(array_filter($tous, fn (array $p): bool => ! $p['ancien_format']), 'e164')));
+        $devines = array_values(array_unique(array_column(array_filter($tous, fn (array $p): bool => $p['ancien_format']), 'e164')));
 
         return [
             'telephone' => $numeros[0] ?? null,
             'telephone2' => $numeros[1] ?? null,
+            'a_verifier' => array_values(array_diff($devines, $numeros)),
             'email' => self::email($d['email_source'] ?? null) ?? self::email($d['email2_source'] ?? null),
         ];
     }

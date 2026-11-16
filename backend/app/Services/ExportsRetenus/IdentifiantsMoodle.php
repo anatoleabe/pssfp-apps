@@ -61,9 +61,13 @@ final class IdentifiantsMoodle
         return self::disponibles($c) && FraisInscription::payes($c);
     }
 
+    /**
+     * Identifiant eCampus : le matricule en minuscules, sauf pour un dossier qui a repris son matricule ACMA après la
+     * création de son compte (15m) : l'identifiant figé reste celui du compte, que l'on ne modifie jamais.
+     */
     public static function identifiant(Candidature $c): string
     {
-        return mb_strtolower((string) $c->matricule);
+        return filled($c->identifiant_ecampus) ? (string) $c->identifiant_ecampus : mb_strtolower((string) $c->matricule);
     }
 
     public static function texteEmail(Candidature $c): string

@@ -151,7 +151,10 @@ class AuditeurResource extends Resource
     {
         return $infolist->schema([
             Infolists\Components\Section::make('Identité')->columns(3)->schema([
-                Infolists\Components\TextEntry::make('candidature.matricule')->label('Matricule')->fontFamily('mono')->copyable(),
+                Infolists\Components\TextEntry::make('candidature.matricule')->label('Matricule')->fontFamily('mono')->copyable()
+                    // Q2 (16/11/2026) : après la reprise du matricule ACMA, l'ancien reste lisible (reçus déjà émis, identifiant eCampus).
+                    ->helperText(fn (Auditeur $record): ?string => ($ancien = $record->candidature?->reinscriptionAcma?->ancien_matricule) !== null
+                        ? 'Ancien matricule : '.$ancien.' (reçus émis avant la reprise ; identifiant eCampus inchangé)' : null),
                 Infolists\Components\TextEntry::make('nom')->label('Nom et prénom')
                     ->getStateUsing(fn (Auditeur $record): string => trim(mb_strtoupper((string) $record->candidature?->nom).' '.$record->candidature?->prenom)),
                 Infolists\Components\TextEntry::make('candidature.phone_e164')->label('Téléphone'),
