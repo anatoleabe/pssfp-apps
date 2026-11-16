@@ -332,7 +332,7 @@ final class RecusVersements
             (int) $designee->remise_montant, 0, InscriptionAnnuelle::aujourdhui())->duTotal;
 
         $partDesignee = $parts->get($designee->id, 0);
-        $ventilation = VentilationRecu::parPalier($designee, $this->imputeAvant($designee, $v), $partDesignee,
+        $ventilation = VentilationRecu::pour($designee, $this->imputeAvant($designee, $v), $partDesignee,
             (int) $parts->sum() - $partDesignee, $avance);
 
         return ['objet' => mb_substr($objet, 0, self::OBJET_MAX), 'total_verse' => $total, 'reste' => max(0, $du - $total), 'ventilation' => $ventilation];

@@ -51,6 +51,8 @@ class CampagneCandidature extends Model
         'signature_lettres_path',
         // Affichage des semestres de la promotion (App\Services\Lmd\NumerotationSemestres).
         'numerotation_semestres',
+        // Compte de scolarité de la promotion (plan comptable de la RAF) : code de la pension sur les reçus.
+        'compte_scolarite',
     ];
 
     protected $casts = [

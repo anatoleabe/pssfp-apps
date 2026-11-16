@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Scolarite;
 
 use App\Models\InscriptionAnnuelle;
+use App\Models\RubriqueFrais;
 
 /**
  * Ventilation d'un versement sur son reçu (reçu A4, R1), figée à l'émission dans `recus_versements.ventilation`. Calcul pur,
@@ -45,6 +46,57 @@ final class VentilationRecu
             $cumulApres = max(0, min($p->du, $apres - $borne));
             $lignes[] = self::ligne(self::LIBELLES_PALIERS[$p->cle], null, $p->du, $cumulApres - $cumulAvant, $cumulApres);
             $borne += $p->du;
+        }
+
+        return [...$lignes, ...self::horsAnnee($autresAnnees, $avance)];
+    }
+
+    /**
+     * Ventilation du reçu (R2) : par rubriques de frais de l'année et du niveau de l'inscription désignée quand elles sont
+     * utilisables (actives, somme égale au barème), sinon par palier.
+     *
+     * @return list<array{libelle: string, code: ?string, du: ?int, ce_versement: int, total_verse: ?int, reste: ?int}>
+     */
+    public static function pour(InscriptionAnnuelle $designee, int $avant, int $part, int $autresAnnees, int $avance): array
+    {
+        $brut = (int) $designee->montant_inscription + (int) $designee->montant_tranche1 + (int) $designee->montant_tranche2;
+        $rubriques = RubriquesFrais::utilisables((string) $designee->annee_academique, (string) $designee->niveau, $brut);
+
+        return $rubriques === null
+            ? self::parPalier($designee, $avant, $part, $autresAnnees, $avance)
+            : self::parRubriques($rubriques->map(fn (RubriqueFrais $r): array => [
+                'libelle' => $r->libelle, 'montant' => $r->montant,
+                // Pension : compte de la promotion du dossier de l'auditeur (plan comptable de la RAF) ; « à préciser » sans compte.
+                'code' => $r->compte_selon_promotion ? $designee->auditeur?->candidature?->campagne?->compte_scolarite : $r->code_imputation,
+            ])->values()->all(), (int) $designee->remise_montant, $avant, $part, $autresAnnees, $avance);
+    }
+
+    /**
+     * Ventilation par rubriques, comme le reçu ACMA : le cumul imputé sur l'inscription remplit chaque rubrique avant la
+     * suivante (frais fixes, puis pension). La remise réduit la dernière rubrique (la pension), puis les précédentes si elle
+     * la dépasse ; elle est écrite dans le libellé. Ce versement = part du cumul après lui moins part du cumul avant lui.
+     *
+     * @param  list<array{libelle: string, montant: int, code: ?string}>  $rubriques  dans l'ordre de répartition
+     * @return list<array{libelle: string, code: ?string, du: ?int, ce_versement: int, total_verse: ?int, reste: ?int}>
+     */
+    public static function parRubriques(array $rubriques, int $remise, int $avant, int $part, int $autresAnnees, int $avance): array
+    {
+        $restant = max(0, $remise);
+        $deductions = array_fill(0, count($rubriques), 0);
+        for ($k = count($rubriques) - 1; $k >= 0 && $restant > 0; $k--) {
+            $deductions[$k] = min($restant, $rubriques[$k]['montant']);
+            $restant -= $deductions[$k];
+        }
+        $apres = $avant + $part;
+        $lignes = [];
+        $borne = 0;
+        foreach ($rubriques as $k => $r) {
+            $du = $r['montant'] - $deductions[$k];
+            $cumulAvant = max(0, min($du, $avant - $borne));
+            $cumulApres = max(0, min($du, $apres - $borne));
+            $libelle = $deductions[$k] > 0 ? $r['libelle'].' (remise de '.RecusVersements::fcfa($deductions[$k]).' déduite)' : $r['libelle'];
+            $lignes[] = self::ligne($libelle, $r['code'], $du, $cumulApres - $cumulAvant, $cumulApres);
+            $borne += $du;
         }
 
         return [...$lignes, ...self::horsAnnee($autresAnnees, $avance)];

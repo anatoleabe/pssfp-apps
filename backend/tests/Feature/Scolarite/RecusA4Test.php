@@ -6,6 +6,7 @@ use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\RecuVersement;
+use App\Models\RubriqueFrais;
 use App\Models\User;
 use App\Models\Versement;
 use App\Services\Ecampus\ComptesEcampus;
@@ -37,6 +38,8 @@ beforeEach(function (): void {
     $this->financier = ($this->compte)('service_financier');
     $this->travelTo(now('Africa/Douala')->setDate(2026, 11, 10)->setTime(9, 0));
     AppSettings::set(RecusVersements::CLE_DEPUIS, now()->subDay()->toIso8601String());
+    // Ventilation par palier : sans rubriques de frais (R2), le reçu retombe sur les paliers.
+    RubriqueFrais::query()->delete();
     $campagne = CampagneCandidature::factory()->closed()->create(['nom' => ['fr' => 'Année académique 2026-2027'], 'promotion_numero' => 14]);
     BaremeScolarite::factory()->create(['annee_academique' => '2026-2027', 'niveau' => 'M1']);
     Candidature::factory()->forCampagne($campagne)->submitted()->create(['nom' => 'Essai', 'prenom' => 'Auditeur Fictif', 'statut' => Candidature::STATUT_ACCEPTE,
