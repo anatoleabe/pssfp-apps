@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Console\Commands\Concerns\CommandeAcma;
+use App\Services\Acma\ErreurAcma;
 use App\Services\Acma\Reprise\GelArchive;
 use Illuminate\Console\Command;
-use RuntimeException;
+use Throwable;
 
 /** Lot 15c (spec du lot 15, §7.3) : gel définitif de l'archive ACMA, après confirmation. */
 final class AcmaGeler extends Command
@@ -33,8 +34,9 @@ final class AcmaGeler extends Command
                 return self::FAILURE;
             }
             $uuid = $gel->geler($auteur);
-        } catch (RuntimeException $e) {
-            $this->error($e->getMessage());
+        } catch (Throwable $e) {
+            // Aucune donnée à la console : message de la reprise, ou SQLSTATE, table et contrainte seulement.
+            $this->error(ErreurAcma::sansDonnees($e, 'du gel')->getMessage());
 
             return self::FAILURE;
         }

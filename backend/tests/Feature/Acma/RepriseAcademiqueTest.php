@@ -6,9 +6,11 @@ use App\Models\Auditeur;
 use App\Models\User;
 use App\Services\Acma\Reprise\ContexteReprise;
 use App\Services\Acma\Reprise\Etape;
+use App\Services\Acma\Reprise\EtapeDocuments;
 use App\Services\Acma\Reprise\EtapeVersionsNotes;
 use App\Services\Acma\Reprise\RepriseAcma;
 use App\Services\Acma\Reprise\ResultatControle;
+use App\Services\Acma\VerrouAcma;
 use App\Support\Journaux;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -189,7 +191,7 @@ it('lie R1 et R2, laisse R3, R4 et R6 à arbitrer, liste R5 et produit le classe
     $r1 = auditeurAcma('90EFP001', 'ALPHA', 'Béta', '1985-03-12');
     $r2 = auditeurAcma('90EFP002', 'ESSAI', 'Gamma', '1990-05-05');
     $r4 = auditeurAcma('90EFP011', 'ESSAI', 'Epsilon', '1983-03-03');
-    $r3 = auditeurAcma('90EFP012', 'MBARGA', 'Paul', '1984-04-04');
+    $r3 = auditeurAcma('90EFP012', 'ESSAI', 'Autre Personne', '1984-04-04');
     $r6 = auditeurAcma('26EFP913', 'ESSAI', 'Theta Eta', '1986-06-06');
     auditeurAcma('26EFP914', 'ESSAI', 'Absent', '1991-01-01');
 
@@ -267,11 +269,18 @@ it('garde l\'archive en lecture seule hors de la reprise, et refuse toute écrit
     refusee(fn () => DB::table('acma_rapprochements')->where('id', $rapprochement)->update(['motif' => 'Autre motif réécrit']), 'ajout seul');
     refusee(fn () => DB::table('acma_rapprochements')->where('id', $rapprochement)->delete(), 'ajout seul');
 
-    // Le lien d'un dossier se modifie hors reprise (arbitrage), mais rien d'autre.
-    DB::transaction(fn () => DB::table('acma_dossiers')->where('matricule', '90EFP012')->update(['auditeur_id' => $auditeur->id, 'statut_rapprochement' => 'lie_arbitre', 'updated_at' => now()]));
-    expect(dossierAcma('90EFP012')->auditeur_id)->toBe($auditeur->id);
+    // Le lien d'un dossier se modifie hors reprise, mais seulement d'après une décision signée qui lui correspond.
+    $dossier = dossierAcma('90EFP012');
+    $lier = fn (?int $auditeurId, string $statut) => DB::table('acma_dossiers')->where('id', $dossier->id)->update(['auditeur_id' => $auditeurId, 'statut_rapprochement' => $statut, 'updated_at' => now()]);
+    $decider = fn (string $decision, ?int $auditeurId) => DB::table('acma_rapprochements')->insert(['dossier_id' => $dossier->id, 'auditeur_id' => $auditeurId, 'cas' => 'R1', 'decision' => $decision, 'motif' => 'Arbitrage d\'essai, pièce vue', 'decide_par' => $this->usi->id, 'created_at' => now()]);
+    refusee(fn () => $lier($auditeur->id, 'lie_arbitre'), 'arbitrage enregistré exigé');
+    $decider('lie', $auditeur->id);
+    refusee(fn () => $lier(null, 'sans_auditeur'), 'arbitrage enregistré exigé');
+    DB::transaction(fn () => $lier($auditeur->id, 'lie_arbitre'));
+    expect(dossierAcma('90EFP012'))->auditeur_id->toBe($auditeur->id)->statut_rapprochement->toBe('lie_arbitre');
 
-    // Gel (posé ici à la main ; acma:geler arrive avec 15c).
+    // Une reprise à blanc laisse sa trace ; puis gel (posé ici à la main, comme le fait acma:geler).
+    reprendre($this->usi, false);
     DB::transaction(function (): void {
         RepriseAcma::mode(true);
         DB::table('acma_reprises')->where('statut', 'appliquee')->update(['statut' => 'gelee', 'gelee_at' => now()]);
@@ -283,12 +292,58 @@ it('garde l\'archive en lecture seule hors de la reprise, et refuse toute écrit
     }, 'gelée');
     refusee(function (): void {
         RepriseAcma::mode(true);
-        DB::table('acma_reprises')->update(['statut' => 'appliquee', 'gelee_at' => null]);
+        DB::table('acma_reprises')->where('statut', 'gelee')->update(['statut' => 'appliquee', 'gelee_at' => null]);
+    }, 'gelée');
+    // Plus aucune reprise ne change une fois l'archive gelée, même une autre que celle du gel.
+    refusee(function (): void {
+        RepriseAcma::mode(true);
+        DB::table('acma_reprises')->where('statut', 'a_blanc')->update(['controles_ok' => true]);
     }, 'gelée');
     $this->artisan('acma:reprendre', ['--auteur' => $this->usi->email, '--appliquer' => true])->expectsOutputToContain('Archive gelée le')->assertFailed();
-    // Le lien reste modifiable après le gel.
-    DB::transaction(fn () => DB::table('acma_dossiers')->where('matricule', '90EFP012')->update(['auditeur_id' => null, 'statut_rapprochement' => 'sans_auditeur']));
+    // Le lien reste modifiable après le gel, par une nouvelle décision.
+    $decider('non_lie', $auditeur->id);
+    DB::transaction(fn () => $lier(null, 'sans_auditeur'));
     expect(dossierAcma('90EFP012')->statut_rapprochement)->toBe('sans_auditeur');
+});
+
+it('prend le verrou commun de la reprise, et ne cite aucune donnée quand une étape échoue', function (): void {
+    TransitAcma::construire();
+    reprendre($this->usi);
+    // Verrou consultatif de la transaction (libéré avec elle) : tenu jusqu'à la fin de la transaction du test.
+    expect(DB::table('pg_locks')->where('locktype', 'advisory')->where('objid', VerrouAcma::CLE % (2 ** 32))->exists())->toBeTrue();
+
+    // Une étape qui heurte une contrainte de la base avec une valeur personnelle : la console ne la montre pas.
+    app()->bind(EtapeDocuments::class, fn () => new class implements Etape
+    {
+        public function nom(): string
+        {
+            return 'documents';
+        }
+
+        public function executer(ContexteReprise $contexte): array
+        {
+            DB::table('users')->insert(['name' => 'NOM PERSONNEL FICTIF', 'email' => User::query()->value('email'), 'password' => 'x']);
+
+            return [];
+        }
+    });
+    $this->artisan('acma:reprendre', ['--auteur' => $this->usi->email, '--appliquer' => true])
+        ->expectsOutputToContain('Échec de l\'étape documents : erreur de base de données (SQLSTATE 23505), table users')
+        ->doesntExpectOutputToContain('NOM PERSONNEL FICTIF')
+        ->doesntExpectOutputToContain('@')
+        ->assertFailed();
+});
+
+it('garde la première de deux versions de note en double, sans arrêter la reprise', function (): void {
+    TransitAcma::construireAvec(function (array &$l): void {
+        $l['notes_hist'][] = $l['notes_hist'][0];
+    });
+
+    $r = reprendre($this->usi);
+
+    expect($r['statut'])->toBe('appliquee')
+        ->and($r['comptes']['versions_notes']['versions'])->toMatchArray(['doublons' => 1, 'inserees' => 7])
+        ->and(collect($r['controles'])->firstWhere('code', 'C12')->details)->toContain('Versions de notes en double dans l\'export (première gardée) : 1');
 });
 
 it('ne touche pas au modèle vivant, n\'envoie rien, et annule tout si un contrôle bloquant échoue', function (): void {
@@ -339,15 +394,18 @@ it('refuse sans transit, avec une étape inconnue ou un code de niveau inconnu, 
 });
 
 it('se défait et se refait, mais refuse d\'être défaite une fois l\'archive gelée', function (): void {
-    $academique = require database_path('migrations/2026_12_04_100000_create_acma_archive_academique_tables.php');
-    $financiere = require database_path('migrations/2026_12_05_100000_create_acma_archive_financiere_tables.php');
+    $academique = require database_path('migrations/2026_12_07_100000_create_acma_archive_academique_tables.php');
+    $financiere = require database_path('migrations/2026_12_07_100100_create_acma_archive_financiere_tables.php');
+    $complements = require database_path('migrations/2026_12_07_100200_create_acma_complements_table.php');
 
+    $complements->down();
     $financiere->down();
     expect(Schema::hasTable('acma_paiements'))->toBeFalse()->and(Schema::hasTable('acma_dossiers'))->toBeTrue();
     $academique->down();
     expect(Schema::hasTable('acma_dossiers'))->toBeFalse()->and(Schema::hasTable('acma_reprises'))->toBeFalse();
     $academique->up();
     $financiere->up();
+    $complements->up();
     expect(Schema::hasTable('acma_versions_notes'))->toBeTrue()->and(Schema::hasTable('acma_documents'))->toBeTrue();
 
     TransitAcma::construire();

@@ -272,6 +272,15 @@ final class RolePermissionSeeder extends Seeder
             ],
         ];
 
+        // Archives ACMA (lot 15d, spec du lot 15, §7.10) : consultation pour l'administration et la scolarité ;
+        // compléments et arbitrages pour l'administrateur et le responsable de scolarité (super_admin les a tous).
+        foreach (['super_admin', 'admin', 'scolarite_agent', 'scolarite_responsable'] as $name) {
+            $roles[$name]['modules']['archives'] = $read;
+        }
+        foreach (['admin', 'scolarite_responsable'] as $name) {
+            $roles[$name]['sensitive'] = [...$roles[$name]['sensitive'], 'archives.completer', 'archives.rapprocher'];
+        }
+
         foreach ($roles as $name => $definition) {
             $role = Role::findOrCreate($name, 'web');
             $role->forceFill([

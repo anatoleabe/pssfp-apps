@@ -155,7 +155,7 @@ final class NormalisationAcma
             return (int) $t;
         }
         if (! is_numeric($t) || fmod((float) $t, 1.0) !== 0.0 || abs((float) $t) > 2 ** 53) {
-            throw new \RuntimeException("Montant non entier dans ACMA ({$contexte}) : étape bloquée.");
+            throw new ErreurAcma("Montant non entier dans ACMA ({$contexte}) : étape bloquée.");
         }
 
         return (int) $t;

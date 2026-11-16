@@ -374,6 +374,7 @@ final class EcartsAcma2026
         }
         $chemin = RapportsReprise::DOSSIER.'/ecarts-2026-2027-'.now()->format('Ymd').'.xlsx';
         Storage::disk(RapportsReprise::DISQUE)->put($chemin, $contenu, 'private');
+        RapportsReprise::garderLeDernier('ecarts-2026-2027-', $chemin);
 
         return $chemin;
     }

@@ -38,21 +38,23 @@ final class ChargementTransit
     public function charger(string $archive, string $phrase, User $auteur): array
     {
         if (! is_file($archive)) {
-            throw new RuntimeException('Archive introuvable.');
+            throw new ErreurAcma('Archive introuvable.');
         }
+        // Restes en clair d'un chargement interrompu (processus tué) : purgés avant tout.
+        File::deleteDirectory(storage_path('app/private/acma/tmp'));
         $temporaire = storage_path('app/private/acma/tmp/'.Str::uuid()->toString());
         try {
             $this->chiffrement->dechiffrer($archive, $temporaire, $phrase);
             $brut = @file_get_contents($temporaire.'/manifeste.json');
             if ($brut === false) {
-                throw new RuntimeException('Manifeste absent de l\'archive.');
+                throw new ErreurAcma('Manifeste absent de l\'archive.');
             }
             $manifeste = json_decode($brut, true, 64, JSON_THROW_ON_ERROR);
             $definitions = self::verifierManifeste($manifeste);
             foreach ($definitions as $table => $definition) {
                 $fichier = $temporaire.'/'.$definition['fichier'];
                 if (! is_file($fichier) || ! hash_equals($definition['sha256'], (string) hash_file('sha256', $fichier))) {
-                    throw new RuntimeException("Empreinte du fichier de la table {$table} différente du manifeste : chargement refusé.");
+                    throw new ErreurAcma("Empreinte du fichier de la table {$table} différente du manifeste : chargement refusé.");
                 }
             }
 
@@ -64,6 +66,8 @@ final class ChargementTransit
                 basename($archive),
                 (int) $auteur->getKey(),
             );
+        } catch (Throwable $e) {
+            throw ErreurAcma::sansDonnees($e, 'du chargement');
         } finally {
             File::deleteDirectory($temporaire);
         }
@@ -86,6 +90,8 @@ final class ChargementTransit
     public function remplacerSchema(array $definitions, callable $lignesDe, array $manifeste, string $empreinte, ?string $archive, ?int $auteurId): int
     {
         return DB::transaction(function () use ($definitions, $lignesDe, $manifeste, $empreinte, $archive, $auteurId): int {
+            // Jamais pendant une reprise, un gel ou une purge (verrou commun).
+            VerrouAcma::prendre();
             DB::statement('DROP SCHEMA IF EXISTS '.self::SCHEMA.' CASCADE');
             DB::statement('CREATE SCHEMA '.self::SCHEMA);
             $total = 0;
@@ -94,7 +100,7 @@ final class ChargementTransit
                 DB::statement('CREATE TABLE '.self::SCHEMA.'.'.self::identifiant($table).' (_ligne bigint PRIMARY KEY, '.implode(', ', $colonnes).')');
                 $n = $this->copier($table, $definition['colonnes'], $lignesDe($table, $definition));
                 if ($n !== $definition['lignes']) {
-                    throw new RuntimeException("Table {$table} : {$n} lignes lues, {$definition['lignes']} annoncées par le manifeste. Chargement refusé.");
+                    throw new ErreurAcma("Table {$table} : {$n} lignes lues, {$definition['lignes']} annoncées par le manifeste. Chargement refusé.");
                 }
                 $total += $n;
             }
@@ -130,29 +136,30 @@ final class ChargementTransit
     public static function verifierManifeste(array $manifeste): array
     {
         if (($manifeste['format'] ?? null) !== ExtractionAcma::FORMAT || ! is_array($manifeste['tables'] ?? null)) {
-            throw new RuntimeException('Manifeste de format inconnu.');
+            throw new ErreurAcma('Manifeste de format inconnu.');
         }
         $definitions = [];
         foreach ($manifeste['tables'] as $table => $t) {
             if (! in_array($table, ExtractionAcma::TABLES, true)) {
-                throw new RuntimeException("Table {$table} hors de la liste des tables utiles : chargement refusé.");
+                throw new ErreurAcma("Table {$table} hors de la liste des tables utiles : chargement refusé.");
             }
             $colonnes = array_map(fn (array $c): string => (string) $c['nom'], (array) ($t['colonnes'] ?? []));
-            $interdites = array_intersect($colonnes, ExtractionAcma::COLONNES_EXCLUES[$table] ?? []);
-            if ($interdites !== [] || $colonnes === []) {
-                throw new RuntimeException("Colonnes refusées dans la table {$table} : chargement refusé.");
+            // Liste blanche : exactement les colonnes lues par la reprise, aucune en trop, aucune en moins.
+            $attendues = ExtractionAcma::COLONNES[$table];
+            if (array_diff($colonnes, $attendues) !== [] || array_diff($attendues, $colonnes) !== [] || count($colonnes) !== count(array_unique($colonnes))) {
+                throw new ErreurAcma("Colonnes refusées dans la table {$table} (hors de la liste blanche) : chargement refusé.");
             }
             foreach ($colonnes as $colonne) {
                 self::identifiant($colonne);
             }
             if (! is_string($t['sha256'] ?? null) || ! is_int($t['lignes'] ?? null) || ($t['fichier'] ?? null) !== $table.'.csv') {
-                throw new RuntimeException("Manifeste incomplet pour la table {$table}.");
+                throw new ErreurAcma("Manifeste incomplet pour la table {$table}.");
             }
             $definitions[$table] = ['fichier' => $t['fichier'], 'colonnes' => $colonnes, 'lignes' => $t['lignes'], 'sha256' => $t['sha256']];
         }
         $manquantes = array_diff(ExtractionAcma::TABLES, array_keys($definitions));
         if ($manquantes !== []) {
-            throw new RuntimeException('Tables absentes du manifeste : '.implode(', ', $manquantes));
+            throw new ErreurAcma('Tables absentes du manifeste : '.implode(', ', $manquantes));
         }
 
         return $definitions;
@@ -161,8 +168,8 @@ final class ChargementTransit
     /** Identifiant SQL entre guillemets ; seuls lettres, chiffres, espace et soulignement sont admis. */
     public static function identifiant(string $nom): string
     {
-        if (preg_match('/^[A-Za-z0-9_][A-Za-z0-9_ ]{0,62}$/', $nom) !== 1) {
-            throw new RuntimeException('Identifiant refusé dans le manifeste.');
+        if (preg_match('/^[A-Za-z0-9_][A-Za-z0-9_ ]{0,62}\z/', $nom) !== 1) {
+            throw new ErreurAcma('Identifiant refusé dans le manifeste.');
         }
 
         return '"'.$nom.'"';
@@ -178,7 +185,7 @@ final class ChargementTransit
         foreach (CsvAcma::lire($fichier) as $ligne) {
             if ($premier) {
                 if ($ligne !== $colonnes) {
-                    throw new RuntimeException('En-tête du CSV '.basename($fichier).' différent du manifeste.');
+                    throw new ErreurAcma('En-tête du CSV '.basename($fichier).' différent du manifeste.');
                 }
                 $premier = false;
 
@@ -204,7 +211,7 @@ final class ChargementTransit
             foreach ($lignes as $ligne) {
                 $rang++;
                 if (count($ligne) !== $nombre) {
-                    throw new RuntimeException("Table {$table}, ligne {$rang} : nombre de colonnes inattendu.");
+                    throw new ErreurAcma("Table {$table}, ligne {$rang} : nombre de colonnes inattendu.");
                 }
                 $lot[] = $rang."\t".implode("\t", array_map(self::texteCopy(...), $ligne));
                 if (count($lot) >= self::LOT_COPY) {
@@ -217,7 +224,7 @@ final class ChargementTransit
             }
         } catch (Throwable $e) {
             // Le message du serveur peut citer une valeur : il ne va pas à la console.
-            throw $e instanceof RuntimeException ? $e : new RuntimeException("Chargement de la table {$table} impossible (ligne {$rang} environ).", 0, $e);
+            throw $e instanceof RuntimeException ? $e : new ErreurAcma("Chargement de la table {$table} impossible (ligne {$rang} environ).", 0, $e);
         }
 
         return $rang;

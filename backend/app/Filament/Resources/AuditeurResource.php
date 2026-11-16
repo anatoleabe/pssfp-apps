@@ -13,11 +13,14 @@ use App\Filament\Resources\AuditeurResource\RelationManagers\VersementsRelationM
 use App\Filament\Resources\CandidatureResource\ComptesEcampusActions;
 use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
 use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
+use App\Models\AcmaDossier;
+use App\Models\AcmaInscription;
 use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
 use App\Models\DocumentDelivre;
 use App\Models\ResultatAnnuel;
+use App\Services\Acma\ArchivesAcma;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
 use App\Services\Lmd\PermissionsLmd;
 use App\Services\Scolarite\AccesEcampus;
@@ -197,6 +200,25 @@ class AuditeurResource extends Resource
                             ->map(fn (DocumentDelivre $d): string => sprintf('%s — %s, délivré le %s%s', $d->numero, DocumentDelivre::TYPES[$d->type],
                                 $d->created_at?->timezone('Africa/Douala')->format('d/m/Y'),
                                 $d->estRevoque() ? ' · révoqué le '.$d->revoque_at->timezone('Africa/Douala')->format('d/m/Y').' ('.$d->revoque_motif.')' : ''))->all()),
+                ]),
+            // Lot 15d : années reprises d'ACMA quand un dossier d'archive est lié à cet auditeur (lecture seule).
+            Infolists\Components\Section::make('Historique ACMA')->collapsible()
+                ->description('Années reprises de l\'ancien logiciel ACMA, en lecture seule. Les décisions sont celles d\'ACMA ou transcrites d\'un PV signé.')
+                ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(ArchivesAcma::CONSULTER)
+                    && AcmaDossier::query()->where('auditeur_id', $record->id)->whereNull('retire_de_la_source_at')->exists())
+                ->schema([
+                    Infolists\Components\RepeatableEntry::make('dossiers_acma')->hiddenLabel()->columns(4)
+                        ->getStateUsing(fn (Auditeur $record) => AcmaDossier::query()->where('auditeur_id', $record->id)->whereNull('retire_de_la_source_at')
+                            ->with(['inscriptions' => fn ($q) => $q->whereNull('retire_de_la_source_at'), 'complements.auteur:id,name'])->get())
+                        ->schema([
+                            Infolists\Components\TextEntry::make('matricule')->label('Dossier d\'archive')->fontFamily('mono')
+                                ->url(fn (AcmaDossier $record): ?string => ArchiveAcmaResource::canAccess() ? ArchiveAcmaResource::getUrl('view', ['record' => $record]) : null),
+                            Infolists\Components\TextEntry::make('annees_acma')->label('Années')->columnSpan(3)->listWithLineBreaks()
+                                ->getStateUsing(fn (AcmaDossier $record): array => $record->inscriptions->sortBy(['annee', 'niveau_acma'])
+                                    ->map(fn (AcmaInscription $i): string => $i->annee.' · '.$i->niveau.' ('.$i->niveau_acma.') : '.ArchivesAcma::decision($i, $record->complements)['libelle']
+                                        .($i->credits_acquis === null ? '' : ', crédits '.$i->credits_acquis.' / '.($i->credits_programme ?? '?')))
+                                    ->values()->all()),
+                        ]),
                 ]),
             Infolists\Components\Section::make('Notes de l\'année')->collapsible()
                 ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER) && $record->inscriptionCourante?->parcours_id !== null)

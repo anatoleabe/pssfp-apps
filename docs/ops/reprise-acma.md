@@ -1,44 +1,85 @@
 # Reprise d'ACMA : procédure d'exploitation
 
-Lot 15 du module 4. Spec : [`docs/specs/module-4-lot15-reprise-acma.md`](../specs/module-4-lot15-reprise-acma.md) (§10). Décision : [ADR-0014](../adr/0014-reprise-acma-archive-lecture-seule.md).
+Lot 15 du module 4. Spec : [`docs/specs/module-4-lot15-reprise-acma.md`](../specs/module-4-lot15-reprise-acma.md) (§10, §17). Décision : [ADR-0014](../adr/0014-reprise-acma-archive-lecture-seule.md).
 
-L'export d'ACMA contient des données personnelles réelles. Rien n'en entre dans le dépôt, dans un ticket, dans une PR ou dans un courriel : ni l'export, ni les CSV, ni les classeurs. La console n'affiche que des comptes.
+L'export d'ACMA contient des données personnelles réelles. Rien n'en entre dans le dépôt, dans un ticket, dans une PR ou dans un courriel : ni l'export, ni les CSV, ni les classeurs. La console n'affiche que des comptes ; une erreur n'affiche que l'étape, le SQLSTATE, la table et la contrainte, jamais une valeur.
 
-## 1. Poste de l'USI : conteneur jetable
+Trois règles pour les secrets :
 
-1. Dossier privé, hors du dépôt :
+- le mot de passe root du MariaDB jetable n'apparaît jamais sur une ligne de commande (ni `-p…`, ni `-e MARIADB_ROOT_PASSWORD=…`) : il vit dans un fichier, lu par `MARIADB_ROOT_PASSWORD_FILE` et par un fichier d'options du client ;
+- la phrase de passe de l'archive (12 caractères au moins, tenue par l'USI hors du dépôt) se saisit par `read -rs`, puis passe par la variable `ACMA_PHRASE`, effacée après usage ; jamais en option, jamais dans un fichier versionné ;
+- une variable transmise à un conteneur l'est par son nom seul (`-e ACMA_PHRASE`), jamais `-e ACMA_PHRASE=…`.
+
+## 0. Calendrier
+
+| Moment | Où | Étapes |
+|---|---|---|
+| Mise en ligne de 15a à 15d | serveur | déploiement : migrations (archive, compléments, permissions `archives.*`) |
+| Reprise provisoire | poste de l'USI, puis serveur | export du 15/11 : §1 à §6. L'archive n'est **pas gelée** : elle est consultable tout de suite, les arbitrages et compléments commencent |
+| Entre les deux | serveur | consultation, arbitrage, compléments (date de naissance, décision transcrite). **Pas de « note retenue »** sur une note en conflit avant le gel (§17 de la spec) |
+| J0 | poste de l'USI, puis serveur | export final : §1 à §6 rejoués (un rejeu sur une archive vivante est le cas normal), puis §7 gel et purge |
+
+Un rejeu sur un export plus récent insère les lignes nouvelles, met à jour les lignes modifiées et marque « retirées de la source » les lignes disparues, sans jamais les supprimer. Une ligne retirée n'est plus montrée ni comptée (fiche, notes, paiements, totaux, Historique ACMA de l'auditeur) ; un dossier retiré se retrouve par le filtre « Disparus de la source » de l'écran. Les arbitrages et les compléments restent.
+
+## 1. Poste de l'USI : conteneur jetable, sans réseau
+
+1. Dossier privé, hors du dépôt, et mot de passe root dans un fichier :
 
    ```bash
-   mkdir -p ~/acma/{source,extraction} && chmod 700 ~/acma ~/acma/*
+   umask 077
+   mkdir -p ~/acma/{source,extraction,secrets} && chmod 700 ~/acma ~/acma/*
+   openssl rand -hex 16 > ~/acma/secrets/mdp
+   chmod 644 ~/acma/secrets/mdp   # lu par l'utilisateur mysql du conteneur ; ~/acma/secrets reste en 700
+   printf '[client]\nuser=root\npassword=%s\n' "$(cat ~/acma/secrets/mdp)" > ~/acma/secrets/client.cnf
    ```
 
-2. MariaDB jetable, sans réseau sortant, à l'écoute de la seule boucle locale :
+   (`printf` est une commande interne du shell : le mot de passe n'apparaît pas dans la liste des processus.)
+
+2. MariaDB jetable **sans aucun réseau** (`--network none`) : ni port publié, ni accès sortant.
 
    ```bash
-   docker run -d --name acma_transit -p 127.0.0.1:33061:3306 \
-     -e MARIADB_ROOT_PASSWORD="$(openssl rand -hex 16 | tee ~/acma/.mdp)" mariadb:11
-   docker exec -i acma_transit mariadb -uroot -p"$(cat ~/acma/.mdp)" -e 'CREATE DATABASE gestionacademic'
-   docker exec -i acma_transit mariadb -uroot -p"$(cat ~/acma/.mdp)" gestionacademic < ~/acma/source/acma-AAAA-MM-JJ.sql
+   docker run -d --name acma_transit --network none \
+     -v ~/acma/secrets:/run/secrets:ro \
+     -e MARIADB_ROOT_PASSWORD_FILE=/run/secrets/mdp mariadb:11.8
+   until docker exec acma_transit healthcheck.sh --connect --innodb_initialized; do sleep 2; done
+   docker exec acma_transit mariadb --defaults-extra-file=/run/secrets/client.cnf -e 'CREATE DATABASE gestionacademic'
+   docker exec -i acma_transit mariadb --defaults-extra-file=/run/secrets/client.cnf gestionacademic < ~/acma/source/acma-AAAA-MM-JJ.sql
    ```
 
-3. Connexion `acma_source`, définie sur ce poste seulement (variables du processus, jamais dans un fichier versionné) :
+   Attendre le contrôle de santé : le serveur d'initialisation annonce aussi « ready for connections » avant que le mot de passe soit posé.
+
+## 2. Extraction chiffrée (poste de l'USI)
+
+Le conteneur n'ayant pas de réseau, l'extraction tourne dans un conteneur PHP qui partage son espace réseau (`--network container:acma_transit` : la seule boucle locale du MariaDB).
+
+1. Image PHP, construite une fois (avec réseau, sans aucune donnée) :
 
    ```bash
-   export ACMA_DB_HOST=127.0.0.1 ACMA_DB_PORT=33061 ACMA_DB_USERNAME=root ACMA_DB_PASSWORD="$(cat ~/acma/.mdp)"
+   docker build -t pssfp-acma-php - <<'EOF'
+   FROM php:8.3-cli
+   RUN apt-get update && apt-get install -y --no-install-recommends libzip-dev libicu-dev \
+    && docker-php-ext-install pdo_mysql zip intl && rm -rf /var/lib/apt/lists/*
+   EOF
    ```
 
-## 2. Extraction chiffrée
+2. Extraction (dépôt à jour, `composer install` fait dans `backend/`) :
 
-La phrase de passe (12 caractères au moins) est tenue par l'USI hors du dépôt. Elle se donne par la variable `ACMA_PHRASE` ou se saisit à l'invite, jamais en option de la ligne de commande.
+   ```bash
+   read -rs ACMA_PHRASE && export ACMA_PHRASE
+   export ACMA_DB_PASSWORD="$(cat ~/acma/secrets/mdp)"
+   docker run --rm --network container:acma_transit -u "$(id -u):$(id -g)" \
+     -v "$PWD/backend":/app -v ~/acma:/acma -w /app \
+     -e ACMA_DB_HOST=127.0.0.1 -e ACMA_DB_PORT=3306 -e ACMA_DB_USERNAME=root -e ACMA_DB_PASSWORD -e ACMA_PHRASE \
+     pssfp-acma-php php -d memory_limit=512M artisan acma:extraire --sortie=/acma/extraction \
+       --export=/acma/source/acma-AAAA-MM-JJ.sql --date-export=AAAA-MM-JJ
+   unset ACMA_PHRASE ACMA_DB_PASSWORD
+   ```
 
-```bash
-php artisan acma:extraire --sortie=$HOME/acma/extraction \
-  --export=$HOME/acma/source/acma-AAAA-MM-JJ.sql --date-export=AAAA-MM-JJ
-```
+   Sur un poste **Linux**, on peut aussi partager la socket du MariaDB (`-v ~/acma/socket:/run/mysqld` au `docker run` du §1) et lancer `php artisan acma:extraire` sur l'hôte avec `ACMA_DB_SOCKET=$HOME/acma/socket/mysqld.sock` (chemin de moins de 104 caractères). Sous macOS (Docker Desktop), une socket partagée n'est pas joignable depuis l'hôte (« Connection refused », constaté le 15/11/2026) : utiliser le conteneur PHP.
 
-- Sortie : `acma-transit-AAAAMMJJ-HHMMSS.chiffre`, un zip des CSV et du manifeste, chiffré en AES-256-GCM (clé dérivée par PBKDF2-SHA256, 600 000 itérations). Le dossier en clair est supprimé, même après un échec.
-- Ne sortent jamais d'ACMA : la table `utilisateur`, les colonnes FTP et la clé de la plateforme d'`etablissement`, les coordonnées et la région des auditeurs (`etudiant`), le groupware (`gpw*`), le journal (`tachesutili`) et les tables hors du §3.1. La liste est figée dans `ExtractionAcma`.
-- Le manifeste porte, par table, les colonnes, leur type MySQL, le nombre de lignes et l'empreinte SHA-256 du CSV ; et, pour la source, le nom, l'empreinte et la date de l'export.
+- Sortie : `acma-transit-AAAAMMJJ-HHMMSS.chiffre` (0600), un zip des CSV et du manifeste, chiffré en AES-256-GCM (clé dérivée par PBKDF2-SHA256, 600 000 itérations). Le dossier en clair et le zip intermédiaire (0600) sont supprimés, même après un échec.
+- **Liste blanche** (`ExtractionAcma::COLONNES`, format `pssfp-acma-transit/2`) : 16 tables, et dans chacune les seules colonnes que la reprise, l'inventaire et le rapport des écarts lisent. Une colonne de la liste absente d'ACMA fait échouer l'extraction. Ne sortent jamais : la table `utilisateur` et les autres tables hors liste (dont `etablissement`, `categorie`, `filiere`, `niveau`, `phasepayement`), les coordonnées et la région des auditeurs, les identifiants du personnel d'ACMA (`du.username`, `du.stan`, `notes_hist.usercon`, `notes_hist.IDutilisateur`), le groupware, le journal.
+- Le manifeste porte, par table, les colonnes, leur type MySQL, le nombre de lignes, l'empreinte SHA-256 du CSV et le nom des colonnes non extraites ; et, pour la source, le nom, l'empreinte et la date de l'export.
 
 ## 3. Transfert
 
@@ -51,18 +92,18 @@ ssh pssfp@<serveur> 'chmod 700 /home/pssfp/acma && chmod 600 /home/pssfp/acma/*.
 
 ```bash
 cd /var/www/pssfp/app/backend
-ACMA_PHRASE='…' php artisan acma:charger /home/pssfp/acma/acma-transit-….chiffre --auteur=<e-mail admin>
+read -rs ACMA_PHRASE && export ACMA_PHRASE
+php artisan acma:charger /home/pssfp/acma/acma-transit-….chiffre --auteur=<e-mail admin>
+unset ACMA_PHRASE
 php artisan acma:inventaire
 ```
 
-- Le déchiffrement se fait dans `storage/app/private/acma/tmp/`, supprimé dans tous les cas.
-- Une empreinte, un nombre de lignes ou une colonne exclue qui ne concorde pas avec le manifeste : chargement refusé, le transit précédent reste intact.
+- Le déchiffrement se fait dans `storage/app/private/acma/tmp/` (fichiers en 0600), vidé au démarrage de chaque chargement (reste d'un chargement interrompu) et supprimé à la fin dans tous les cas. Une archive dont l'en-tête annonce plus de 5 000 000 d'itérations est refusée.
+- Le manifeste doit porter exactement la liste blanche : une colonne en trop ou en moins, une empreinte ou un nombre de lignes qui ne concorde pas fait refuser le chargement ; le transit précédent reste intact.
 - Le schéma `acma_transit` est remplacé en entier (toutes les colonnes en `text`, plus `_ligne`, le rang de la ligne). Le chargement est journalisé (`archives`, `transit_charge`) avec l'empreinte du manifeste, sans aucune donnée.
 - `acma:inventaire` reproduit les comptes du §3 de la spec, pour tout export.
 
-Préférer `read -s ACMA_PHRASE && export ACMA_PHRASE` à une phrase écrite sur la ligne de commande, puis `unset ACMA_PHRASE`.
-
-## 5. Reprise dans l'archive et contrôles (15b)
+## 5. Reprise dans l'archive et contrôles
 
 ```bash
 php artisan acma:reprendre --auteur=<e-mail admin>               # à blanc : tout est fait puis annulé
@@ -70,22 +111,21 @@ php artisan acma:reprendre --auteur=<e-mail admin> --appliquer   # validée si a
 php artisan acma:controler                                        # contrôles sur l'archive en place, lecture seule
 ```
 
-- Une étape seule : `--etapes=resultats` (les précédentes doivent être en place). Ordre : `referentiels`, `dossiers`, `rapprochement`, `inscriptions`, `resultats`, `versions_notes`.
-- Rejouée sur le même export, la reprise n'écrit rien. Sur un export plus récent : lignes nouvelles insérées, lignes modifiées mises à jour, lignes disparues marquées « retirées », jamais supprimées ; les arbitrages restent.
-- Sorties dans le stockage privé (`storage/app/private/acma/`) : `controles-AAAAMMJJ.md` (comptes seulement, à joindre à la décision de gel) et `rapprochement-AAAAMMJJ.xlsx` (**nominatif** : cas à arbitrer, absents, exclusions, fusions, collisions, actifs 2026-2027 hors plateforme).
-- Durée mesurée sur l'export du 15/11/2026, sur un poste de développement : environ 45 s pour la première application, 15 s pour un rejeu.
+- Étapes, dans l'ordre : `referentiels`, `dossiers`, `rapprochement`, `inscriptions`, `resultats`, `versions_notes`, `baremes`, `paiements`, `soutenances`, `documents`. Une étape seule : `--etapes=resultats` (les précédentes doivent être en place). Une décimale dans un montant bloque l'étape et annule tout.
+- **Exclusion mutuelle** : `acma:charger`, `acma:reprendre`, `acma:geler` et `acma:purger-transit` prennent le même verrou consultatif PostgreSQL. Une commande lancée pendant une autre attend qu'elle se termine, puis revérifie l'état (gel, transit).
+- Rejouée sur le même export, la reprise n'écrit rien (C09). Sur un export plus récent : voir §0. C09 et C10 comptent les lignes réellement écrites par la reprise (statistiques PostgreSQL de la transaction).
+- Sorties dans le stockage privé (`storage/app/private/acma/`) : `controles-AAAAMMJJ.md` (comptes seulement, à joindre à la décision de gel) et `rapprochement-AAAAMMJJ.xlsx` (**nominatif** : cas à arbitrer, absents, exclusions, fusions, collisions, actifs 2026-2027 hors plateforme). Seul le classeur le plus récent de chaque type est gardé.
+- Durée mesurée sur l'export du 15/11/2026, sur un poste de développement : moins d'une minute pour la première application, un quart de minute pour un rejeu.
 
-- Étapes financières et documentaires (15c), dans le même passage : `baremes`, `paiements`, `soutenances`, `documents`. Une décimale dans un montant bloque l'étape et annule tout.
-
-## 6. Rapport des écarts 2026-2027 (15c)
+## 6. Rapport des écarts 2026-2027
 
 ```bash
 php artisan acma:ecarts-2026 --auteur=<e-mail admin>   # stockage privé : acma/ecarts-2026-2027-AAAAMMJJ.xlsx
 ```
 
-Lecture seule sur le transit et la plateforme. Le classeur est **nominatif** : il se remet par le stockage privé, jamais en pièce jointe d'un courriel. La console n'affiche que la synthèse par promotion et le nombre de lignes de chaque feuille.
+Lecture seule sur le transit et la plateforme. Le classeur est **nominatif** : il se télécharge depuis l'écran « Archives ACMA » (permission `scolarite.export`, téléchargement journalisé), jamais en pièce jointe d'un courriel. Seul le plus récent est gardé. La console n'affiche que la synthèse par promotion et le nombre de lignes de chaque feuille.
 
-## 7. Gel, puis purge du transit (15c)
+## 7. Gel, puis purge du transit (J0 seulement)
 
 ```bash
 php artisan acma:geler --auteur=<e-mail admin>            # demande confirmation ; irréversible par l'application
@@ -93,14 +133,13 @@ php artisan acma:purger-transit --auteur=<e-mail admin>   # demande confirmation
 ```
 
 - Le gel exige la dernière reprise appliquée sans contrôle bloquant en échec, et rejoue les contrôles : il se fait donc avant la purge, transit en place.
-- Après le gel, plus aucune reprise ; seul le lien d'un dossier vers un auditeur reste modifiable (arbitrage, 15d). Défaire un gel demande une migration motivée.
+- Après le gel, plus aucune reprise ; seul le lien d'un dossier vers un auditeur reste modifiable, et seulement par un arbitrage enregistré (15d). Défaire un gel demande une migration motivée.
+- Avant le gel, la reprise provisoire laisse le transit en base jusqu'au J0 (la purge est refusée tant que l'archive n'est pas gelée) : il entre dans les sauvegardes quotidiennes. Garder cette fenêtre courte.
 
-## 8. Purge et conservation
+## 8. Conservation et nettoyage du poste
 
-- Le transit entre dans les sauvegardes quotidiennes tant qu'il existe : la fenêtre entre chargement et purge reste courte.
-- Après le gel de l'archive : `acma:purger-transit`.
-- L'archive chiffrée et son manifeste sont conservés hors ligne par l'USI (Q14). Supprimer de l'hôte les copies en clair, le conteneur jetable et son volume :
+- L'archive chiffrée et son manifeste sont conservés hors ligne par l'USI (Q14). Supprimer de l'hôte les copies en clair, le conteneur jetable, son volume et les secrets :
 
   ```bash
-  docker rm -f -v acma_transit && rm -f ~/acma/.mdp
+  docker rm -f -v acma_transit && rm -rf ~/acma/secrets
   ```

@@ -28,8 +28,9 @@ final class EtapeVersionsNotes implements Etape
         $ignorees = ['dossier_exclu' => 0, 'annee_non_reprise' => 0];
         $sansProgramme = $dateInvalide = 0;
 
-        $ecriture = new EcritureArchive('acma_versions_notes', 'cle_source', $contexte->maintenant);
-        foreach (LectureTransit::lignes('notes_hist', ['idnotes', 'changedon', 'idprog', 'codue', 'matricule', 'cc', 'tp', 'exem', 'Rattra', 'ok', 'validation', 'IDutilisateur'], 5000) as $h) {
+        // Une version en double dans l'export (même note, même seconde) garde la première et se compte (C12).
+        $ecriture = new EcritureArchive('acma_versions_notes', 'cle_source', $contexte->maintenant, ignorerDoublons: true);
+        foreach (LectureTransit::lignes('notes_hist', ['idnotes', 'changedon', 'idprog', 'codue', 'matricule', 'cc', 'tp', 'exem', 'Rattra', 'ok', 'validation'], 5000) as $h) {
             $dossier = $dossiers[(string) NormalisationAcma::matricule($h->matricule)] ?? null;
             if ($dossier === null) {
                 $ignorees['dossier_exclu']++;
@@ -61,10 +62,12 @@ final class EtapeVersionsNotes implements Etape
                 'rattrapage' => LectureTransit::nombre($h->Rattra),
                 'ok_acma' => is_numeric((string) $h->ok) ? (int) $h->ok : null,
                 'validation_acma' => is_numeric((string) $h->validation) ? (int) $h->validation : null,
-                'auteur_acma' => is_numeric((string) $h->IDutilisateur) ? (int) $h->IDutilisateur : null,
             ]);
         }
 
-        return ['versions' => $ecriture->terminer(), 'ignorees' => $ignorees, 'programme_disparu' => $sansProgramme, 'horodatage_invalide' => $dateInvalide];
+        $versions = $ecriture->terminer();
+        $contexte->infos['doublons_versions'] = $versions['doublons'] ?? 0;
+
+        return ['versions' => $versions, 'ignorees' => $ignorees, 'programme_disparu' => $sansProgramme, 'horodatage_invalide' => $dateInvalide];
     }
 }

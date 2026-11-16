@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Console\Commands\Concerns\CommandeAcma;
+use App\Services\Acma\ErreurAcma;
 use App\Services\Acma\ExtractionAcma;
 use App\Services\Acma\SourceAcma;
 use App\Services\Acma\SourceAcmaMysql;
 use Illuminate\Console\Command;
-use RuntimeException;
+use Throwable;
 
 /**
  * Lot 15a (spec du lot 15, §10.1, étape 2) : sur le poste de l'USI, CSV des tables utiles d'ACMA, manifeste, puis
@@ -28,8 +29,8 @@ final class AcmaExtraire extends Command
 
     public function handle(ExtractionAcma $extraction): int
     {
-        if (config('database.connections.acma_source.host') === null && ! app()->bound(SourceAcma::class)) {
-            $this->error('Connexion acma_source non définie (ACMA_DB_HOST) : cette commande ne s\'exécute que sur le poste de l\'USI.');
+        if (blank(config('database.connections.acma_source.host')) && blank(config('database.connections.acma_source.unix_socket')) && ! app()->bound(SourceAcma::class)) {
+            $this->error('Connexion acma_source non définie (ACMA_DB_SOCKET ou ACMA_DB_HOST) : cette commande ne s\'exécute que sur le poste de l\'USI.');
 
             return self::FAILURE;
         }
@@ -57,8 +58,9 @@ final class AcmaExtraire extends Command
                 'sha256' => $export !== '' ? (string) hash_file('sha256', $export) : null,
                 'date' => $this->option('date-export') ?: null,
             ], $phrase);
-        } catch (RuntimeException $e) {
-            $this->error($e->getMessage());
+        } catch (Throwable $e) {
+            // Aucune donnée à la console : message de la reprise, ou SQLSTATE, table et contrainte seulement.
+            $this->error(ErreurAcma::sansDonnees($e, 'de l\'extraction')->getMessage());
 
             return self::FAILURE;
         }
@@ -69,7 +71,7 @@ final class AcmaExtraire extends Command
         }
         $this->table(['Table', 'Colonnes', 'Lignes', 'Valeurs UTF-8 corrigées'], $rows);
         $this->info('Archive chiffrée : '.$resultat['archive']);
-        $this->line('Tables non extraites : '.count($resultat['manifeste']['exclusions']['tables']).'. Le dossier en clair a été supprimé.');
+        $this->line('Tables non extraites : '.count($resultat['manifeste']['non_extraites']['tables']).'. Le dossier en clair a été supprimé.');
 
         return self::SUCCESS;
     }

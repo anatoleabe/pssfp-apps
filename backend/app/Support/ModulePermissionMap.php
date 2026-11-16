@@ -233,6 +233,20 @@ final class ModulePermissionMap
                 // Le contrôle interne s'ouvre sans autre droit d'administration (responsable de scolarité).
                 'standalone' => ['supervision.consulter', 'supervision.traiter'],
             ],
+            // Lot 15d (spec du lot 15, §7.10 ; ADR-0014) : archive d'ACMA, consultée par l'administration seule.
+            'archives' => [
+                'label' => 'Archives ACMA',
+                'description' => 'Menu « Scolarité > Archives ACMA » : dossiers des anciens auditeurs repris d\'ACMA (identité, années, notes, paiements, soutenances), en lecture seule.',
+                'read' => [
+                    'archives.consulter',
+                ],
+                'manage' => [],
+                'sensitive_description' => 'L\'archive ne se modifie jamais : on la complète d\'après une pièce (dossier papier, PV signé), et on arbitre son lien avec un auditeur de la plateforme.',
+                'sensitive' => [
+                    'archives.completer' => 'Compléter un dossier d\'archive : date de naissance d\'après le dossier papier, décision transcrite d\'un PV signé, note retenue en cas de conflit',
+                    'archives.rapprocher' => 'Arbitrer le rapprochement d\'un dossier d\'archive avec un auditeur de la plateforme (lier, ne pas lier, écarter) et télécharger la liste des cas à arbitrer',
+                ],
+            ],
         ];
     }
 
@@ -356,7 +370,8 @@ final class ModulePermissionMap
 
         foreach (self::modules() as $key => $module) {
             $hasRead = self::containsAll($permissions, $module['read']);
-            $hasManage = $hasRead && self::containsAll($permissions, $module['manage']);
+            // Un module sans permission de gestion (archives ACMA, en lecture seule) ne s'affiche jamais « Gestion ».
+            $hasManage = $hasRead && $module['manage'] !== [] && self::containsAll($permissions, $module['manage']);
 
             // Toute permission de lecture ou de gestion ouvre le module
             // (ModuleAccess) : l'écran ne doit jamais l'afficher « Aucun

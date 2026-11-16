@@ -101,7 +101,18 @@ final class RapportsReprise
 
         $chemin = self::DOSSIER.'/rapprochement-'.$quand->format('Ymd').'.xlsx';
         Storage::disk(self::DISQUE)->put($chemin, $contenu, 'private');
+        self::garderLeDernier('rapprochement-', $chemin);
 
         return $chemin;
+    }
+
+    /** Classeurs nominatifs : seul le plus récent de chaque type reste dans le stockage privé (minimisation). */
+    public static function garderLeDernier(string $prefixe, string $garde): void
+    {
+        foreach (Storage::disk(self::DISQUE)->files(self::DOSSIER) as $fichier) {
+            if ($fichier !== $garde && str_starts_with(basename($fichier), $prefixe) && str_ends_with($fichier, '.xlsx')) {
+                Storage::disk(self::DISQUE)->delete($fichier);
+            }
+        }
     }
 }

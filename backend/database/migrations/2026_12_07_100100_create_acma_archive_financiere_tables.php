@@ -18,6 +18,8 @@ return new class extends Migration
 
     public function up(): void
     {
+        // Ne jamais attendre indéfiniment un verrou en production.
+        DB::statement("SET LOCAL lock_timeout = '5s'");
         Schema::create('acma_baremes', function (Blueprint $table): void {
             $table->id();
             $table->string('cle_source', 30)->unique();
@@ -58,7 +60,6 @@ return new class extends Migration
             $table->string('date_recu_source', 30)->nullable();
             $table->string('numero_recu', 45)->nullable();
             $table->string('banque', 45)->nullable();
-            $table->string('saisi_par_acma', 40)->nullable();
             $table->boolean('negatif')->default(false);
             $table->unsignedBigInteger('contrepartie_id_acma')->nullable();
             $table->boolean('total_nul')->default(false);
@@ -149,6 +150,7 @@ return new class extends Migration
 
     public function down(): void
     {
+        DB::statement("SET LOCAL lock_timeout = '5s'");
         if (Schema::hasTable('acma_reprises') && DB::table('acma_reprises')->where('statut', 'gelee')->exists()) {
             throw new RuntimeException('Archive ACMA gelée : défaire ce lot demande une migration motivée (spec du lot 15, §7.3).');
         }

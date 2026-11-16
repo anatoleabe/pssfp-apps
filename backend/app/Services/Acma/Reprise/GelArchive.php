@@ -6,9 +6,10 @@ namespace App\Services\Acma\Reprise;
 
 use App\Models\User;
 use App\Services\Acma\ChargementTransit;
+use App\Services\Acma\ErreurAcma;
+use App\Services\Acma\VerrouAcma;
 use App\Support\Journaux;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
 
 /**
  * Gel de l'archive et purge du transit (spec du lot 15, §7.3, §10.6). Le gel est irréversible par l'application : il
@@ -25,11 +26,11 @@ final class GelArchive
         RepriseAcma::refuserSiGelee();
         $reprise = DB::table('acma_reprises')->where('statut', 'appliquee')->orderByDesc('id')->first();
         if ($reprise === null || ! $reprise->controles_ok) {
-            throw new RuntimeException('Aucune reprise appliquée sans contrôle bloquant en échec : gel refusé.');
+            throw new ErreurAcma('Aucune reprise appliquée sans contrôle bloquant en échec : gel refusé.');
         }
         $echecs = array_filter($this->controles->executer(null), fn (ResultatControle $c): bool => $c->enEchec());
         if ($echecs !== []) {
-            throw new RuntimeException('Contrôles bloquants en échec ('.implode(', ', array_map(fn (ResultatControle $c): string => $c->code, $echecs)).') : gel refusé.');
+            throw new ErreurAcma('Contrôles bloquants en échec ('.implode(', ', array_map(fn (ResultatControle $c): string => $c->code, $echecs)).') : gel refusé.');
         }
 
         return $reprise;
@@ -37,34 +38,47 @@ final class GelArchive
 
     public function geler(User $auteur): string
     {
-        $reprise = $this->verifier();
-        DB::transaction(function () use ($reprise, $auteur): void {
-            RepriseAcma::mode(true);
-            DB::table('acma_reprises')->where('id', $reprise->id)->update(['statut' => 'gelee', 'gelee_at' => now(), 'gelee_par' => $auteur->getKey(), 'updated_at' => now()]);
-            RepriseAcma::mode(false);
-        });
-        activity(Journaux::ARCHIVES)->causedBy($auteur)->event('archive_gelee')
-            ->withProperties(['reprise' => $reprise->uuid, 'manifeste_sha256' => $reprise->manifeste_sha256])->log('Archive ACMA gelée');
+        try {
+            return DB::transaction(function () use ($auteur): string {
+                // Sous le verrou commun : aucune reprise ni chargement en cours ; l'état se revérifie ici.
+                VerrouAcma::prendre();
+                $reprise = $this->verifier();
+                RepriseAcma::mode(true);
+                DB::table('acma_reprises')->where('id', $reprise->id)->update(['statut' => 'gelee', 'gelee_at' => now(), 'gelee_par' => $auteur->getKey(), 'updated_at' => now()]);
+                RepriseAcma::mode(false);
+                activity(Journaux::ARCHIVES)->causedBy($auteur)->event('archive_gelee')
+                    ->withProperties(['reprise' => $reprise->uuid, 'manifeste_sha256' => $reprise->manifeste_sha256])->log('Archive ACMA gelée');
 
-        return (string) $reprise->uuid;
+                return (string) $reprise->uuid;
+            });
+        } catch (\Throwable $e) {
+            throw ErreurAcma::sansDonnees($e, 'du gel');
+        }
     }
 
     public function verifierPurge(): void
     {
         if (! DB::table('acma_reprises')->where('statut', 'gelee')->exists()) {
-            throw new RuntimeException('Archive non gelée : le transit ne se purge qu\'après le gel.');
+            throw new ErreurAcma('Archive non gelée : le transit ne se purge qu\'après le gel.');
         }
         if (! ChargementTransit::charge()) {
-            throw new RuntimeException('Transit ACMA absent : rien à purger.');
+            throw new ErreurAcma('Transit ACMA absent : rien à purger.');
         }
     }
 
     public function purgerTransit(User $auteur): void
     {
-        $this->verifierPurge();
-        $empreinte = DB::table(ChargementTransit::SCHEMA.'._chargement')->value('manifeste_sha256');
-        ChargementTransit::purger();
-        activity(Journaux::ARCHIVES)->causedBy($auteur)->event('transit_purge')
-            ->withProperties(['manifeste_sha256' => $empreinte])->log('Transit ACMA purgé');
+        try {
+            DB::transaction(function () use ($auteur): void {
+                VerrouAcma::prendre();
+                $this->verifierPurge();
+                $empreinte = DB::table(ChargementTransit::SCHEMA.'._chargement')->value('manifeste_sha256');
+                ChargementTransit::purger();
+                activity(Journaux::ARCHIVES)->causedBy($auteur)->event('transit_purge')
+                    ->withProperties(['manifeste_sha256' => $empreinte])->log('Transit ACMA purgé');
+            });
+        } catch (\Throwable $e) {
+            throw ErreurAcma::sansDonnees($e, 'de la purge du transit');
+        }
     }
 }

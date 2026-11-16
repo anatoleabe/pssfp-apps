@@ -6,14 +6,15 @@ namespace App\Services\Acma\Reprise;
 
 use App\Models\User;
 use App\Services\Acma\CorrespondancesAcma;
+use App\Services\Acma\ErreurAcma;
 use App\Services\Acma\LectureTransit;
+use App\Services\Acma\VerrouAcma;
 use App\Support\Journaux;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Events\RequestSending;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
-use RuntimeException;
 use Throwable;
 
 /**
@@ -56,27 +57,34 @@ final class RepriseAcma
      */
     public function executer(User $auteur, ?array $etapes, bool $appliquer): array
     {
-        $chargement = LectureTransit::chargement();
+        LectureTransit::chargement();
         self::refuserSiGelee();
         $etapes = self::etapes($etapes);
-        $this->verifierNiveaux();
         $this->ecouterHttp();
 
         $maintenant = CarbonImmutable::now();
         $uuid = (string) Str::uuid();
-        $ligne = [
-            'uuid' => $uuid,
-            'export_fichier' => $chargement['manifeste']['source']['fichier'] ?? null,
-            'export_date' => $chargement['manifeste']['source']['date_export'] ?? null,
-            'manifeste_sha256' => $chargement['manifeste_sha256'],
-            'etapes' => json_encode($etapes, JSON_THROW_ON_ERROR),
-            'mode' => $appliquer ? 'appliquee' : 'essai',
-            'lance_par' => $auteur->getKey(),
-            'debut_at' => $maintenant,
-        ];
+        $etape = 'des préalables';
+        $ouverte = false;
 
-        DB::beginTransaction();
         try {
+            DB::beginTransaction();
+            $ouverte = true;
+            // Exclusion mutuelle avec charger, geler et purger ; l'état se revérifie sous le verrou.
+            VerrouAcma::prendre();
+            self::refuserSiGelee();
+            $chargement = LectureTransit::chargement();
+            $this->verifierNiveaux();
+            $ligne = [
+                'uuid' => $uuid,
+                'export_fichier' => $chargement['manifeste']['source']['fichier'] ?? null,
+                'export_date' => $chargement['manifeste']['source']['date_export'] ?? null,
+                'manifeste_sha256' => $chargement['manifeste_sha256'],
+                'etapes' => json_encode($etapes, JSON_THROW_ON_ERROR),
+                'mode' => $appliquer ? 'appliquee' : 'essai',
+                'lance_par' => $auteur->getKey(),
+                'debut_at' => $maintenant,
+            ];
             self::mode(true);
             $repriseId = (int) DB::table('acma_reprises')->insertGetId($ligne + ['statut' => 'a_blanc', 'comptes' => '{}', 'controles' => '[]', 'controles_ok' => false, 'created_at' => $maintenant, 'updated_at' => $maintenant]);
             $contexte = new ContexteReprise($maintenant, $auteur, $repriseId);
@@ -85,8 +93,10 @@ final class RepriseAcma
 
             $comptes = [];
             foreach ($etapes as $nom) {
+                $etape = "de l'étape {$nom}";
                 $comptes[$nom] = app(self::ETAPES[$nom])->executer($contexte);
             }
+            $etape = 'des contrôles';
             $controles = $this->controles->executer($contexte);
             $ok = array_filter($controles, fn (ResultatControle $c): bool => $c->enEchec()) === [];
             $statut = $appliquer ? ($ok ? 'appliquee' : 'refusee') : 'a_blanc';
@@ -100,23 +110,32 @@ final class RepriseAcma
             ];
 
             if ($statut === 'appliquee') {
+                $etape = 'de la validation';
                 DB::table('acma_reprises')->where('id', $repriseId)->update($trace);
                 self::mode(false);
                 DB::commit();
+                $ouverte = false;
             } else {
                 self::mode(false);
                 DB::rollBack();
+                $ouverte = false;
+                $etape = 'de la trace de l\'essai';
                 DB::transaction(function () use ($ligne, $trace, $maintenant): void {
+                    VerrouAcma::prendre();
+                    if (DB::table('acma_reprises')->where('statut', 'gelee')->exists()) {
+                        return;
+                    }
                     self::mode(true);
                     DB::table('acma_reprises')->insert($ligne + $trace + ['created_at' => $maintenant]);
                     self::mode(false);
                 });
             }
         } catch (Throwable $e) {
-            if (DB::transactionLevel() > 0) {
+            if ($ouverte) {
                 DB::rollBack();
             }
-            throw $e;
+            // Aucune donnée dans le message : SQLSTATE, table, étape (ErreurAcma).
+            throw ErreurAcma::sansDonnees($e, $etape);
         } finally {
             self::$enCours = null;
         }
@@ -153,7 +172,7 @@ final class RepriseAcma
     {
         $gel = DB::table('acma_reprises')->where('statut', 'gelee')->value('gelee_at');
         if ($gel !== null) {
-            throw new RuntimeException('Archive gelée le '.CarbonImmutable::parse($gel)->format('d/m/Y à H:i').' : aucune reprise possible.');
+            throw new ErreurAcma('Archive gelée le '.CarbonImmutable::parse($gel)->format('d/m/Y à H:i').' : aucune reprise possible.');
         }
     }
 
@@ -168,7 +187,7 @@ final class RepriseAcma
         }
         $inconnues = array_diff($demandees, array_keys(self::ETAPES));
         if ($inconnues !== []) {
-            throw new RuntimeException('Étapes inconnues : '.implode(', ', $inconnues).'. Étapes : '.implode(', ', array_keys(self::ETAPES)).'.');
+            throw new ErreurAcma('Étapes inconnues : '.implode(', ', $inconnues).'. Étapes : '.implode(', ', array_keys(self::ETAPES)).'.');
         }
 
         return array_values(array_intersect(array_keys(self::ETAPES), $demandees));
@@ -186,7 +205,7 @@ final class RepriseAcma
             }
         }
         if ($codes !== []) {
-            throw new RuntimeException('Codes de niveau ACMA inconnus : '.implode(', ', array_keys($codes)).'. Reprise bloquée.');
+            throw new ErreurAcma('Codes de niveau ACMA inconnus : '.implode(', ', array_keys($codes)).'. Reprise bloquée.');
         }
     }
 

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Acma;
 
-use RuntimeException;
-
 /** Correspondances figées entre ACMA et la plateforme (spec du lot 15, §5). */
 final class CorrespondancesAcma
 {
@@ -49,7 +47,7 @@ final class CorrespondancesAcma
     /** @return array{niveau: string, parcours: string} */
     public static function niveau(string $codeAcma): array
     {
-        return self::NIVEAUX[$codeAcma] ?? throw new RuntimeException("Code de niveau ACMA inconnu : {$codeAcma}. Étape bloquée.");
+        return self::NIVEAUX[$codeAcma] ?? throw new ErreurAcma("Code de niveau ACMA inconnu : {$codeAcma}. Étape bloquée.");
     }
 
     public static function niveauConnu(?string $codeAcma): bool

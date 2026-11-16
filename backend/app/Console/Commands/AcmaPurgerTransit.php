@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Console\Commands\Concerns\CommandeAcma;
+use App\Services\Acma\ErreurAcma;
 use App\Services\Acma\Reprise\GelArchive;
 use Illuminate\Console\Command;
-use RuntimeException;
+use Throwable;
 
 /** Lot 15c (spec du lot 15, §10.6) : suppression du schéma de transit, après le gel et après confirmation. */
 final class AcmaPurgerTransit extends Command
@@ -32,8 +33,9 @@ final class AcmaPurgerTransit extends Command
                 return self::FAILURE;
             }
             $gel->purgerTransit($auteur);
-        } catch (RuntimeException $e) {
-            $this->error($e->getMessage());
+        } catch (Throwable $e) {
+            // Aucune donnée à la console : message de la reprise, ou SQLSTATE, table et contrainte seulement.
+            $this->error(ErreurAcma::sansDonnees($e, 'de la purge du transit')->getMessage());
 
             return self::FAILURE;
         }

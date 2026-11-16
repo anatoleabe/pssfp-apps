@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Console\Commands\Concerns\CommandeAcma;
+use App\Services\Acma\ErreurAcma;
 use App\Services\Acma\Reprise\RepriseAcma;
 use App\Services\Acma\Reprise\ResultatControle;
 use Illuminate\Console\Command;
-use RuntimeException;
+use Throwable;
 
 /**
  * Lot 15b (spec du lot 15, §10.2 à §10.5) : reprise du transit dans l'archive `acma_*`. À blanc par défaut ; avec
@@ -35,8 +36,9 @@ final class AcmaReprendre extends Command
         $etapes = filled($this->option('etapes')) ? array_map('trim', explode(',', (string) $this->option('etapes'))) : null;
         try {
             $r = $reprise->executer($auteur, $etapes, (bool) $this->option('appliquer'));
-        } catch (RuntimeException $e) {
-            $this->error($e->getMessage());
+        } catch (Throwable $e) {
+            // Aucune donnée à la console : message de la reprise, ou SQLSTATE, table et contrainte seulement.
+            $this->error(ErreurAcma::sansDonnees($e, 'de la reprise')->getMessage());
 
             return self::FAILURE;
         }
