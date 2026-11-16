@@ -11,6 +11,7 @@ use App\Services\Supervision\Controles\DebEchus;
 use App\Services\Supervision\Controles\DemAttente;
 use App\Services\Supervision\Controles\PaieEtatsBloques;
 use App\Services\Supervision\Controles\PaiRapprochement;
+use App\Services\Supervision\Controles\RcptContinuite;
 use App\Services\Supervision\Controles\ReqNonCotees;
 use App\Services\Supervision\Controles\ReqRetard;
 use App\Services\Supervision\Controles\SecComptes;
@@ -19,6 +20,7 @@ use App\Services\Supervision\Controles\SecJournal;
 use App\Services\Supervision\Controles\SecSeparation;
 use App\Services\Supervision\Controles\SysControles;
 use App\Services\Supervision\Controles\SysDestinataires;
+use App\Services\Supervision\Controles\VerCorrections;
 use App\Services\Supervision\Controles\VerNonConfirmes;
 use App\Support\Journaux;
 use Carbon\CarbonImmutable;
@@ -44,6 +46,7 @@ final class Supervision
     /** Catalogue, dans l'ordre d'exécution ; SYS_CONTROLES en dernier (il lit les erreurs des autres). */
     public const CATALOGUE = [
         PaiRapprochement::class, PaieEtatsBloques::class, ReqRetard::class, ReqNonCotees::class, DemAttente::class, DebEchus::class, VerNonConfirmes::class,
+        VerCorrections::class, RcptContinuite::class,
         CptCoherence::class, SecSeparation::class, SecComptes::class, SecConnexions::class, SecJournal::class, SysDestinataires::class, SysControles::class,
     ];
 

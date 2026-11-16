@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Scolarite;
 
+use App\Models\CorrectionVersement;
 use App\Models\RecuVersement;
 use App\Models\Versement;
 use Illuminate\Database\Eloquent\Builder;
@@ -125,6 +126,42 @@ final class VersementsExcel
         foreach ($source as $element) {
             yield $ligne($element);
         }
+    }
+
+    public const ENTETES_CORRECTIONS = ['Pièce', 'Date', 'Nature', 'Catégorie', 'Matricule', 'Versement annulé', 'Montant annulé', 'Écriture d\'annulation',
+        'Matricule du remplaçant', 'Remplaçant', 'Montant du remplaçant', 'Nouveau reçu', 'Changements', 'Demandée par', 'Décidée par', 'Demande',
+        'Confirmation', 'Motif'];
+
+    public const RELATIONS_CORRECTIONS = ['versementAnnule.auditeur.candidature:id,matricule', 'versementRemplacant.auditeur.candidature:id,matricule',
+        'annulationRecu:id,numero', 'recuRemplacant:id,numero', 'demande:id,numero', 'demandeePar:id,name', 'executeePar:id,name'];
+
+    /** @param  iterable<CorrectionVersement>  $corrections  lecture par morceaux */
+    public function corrections(iterable $corrections): string
+    {
+        return $this->classeur('Corrections', self::ENTETES_CORRECTIONS, ['Montant annulé', 'Montant du remplaçant'], self::transformer($corrections, fn (CorrectionVersement $c): array => [
+            $c->numero,
+            $c->created_at?->setTimezone(self::FUSEAU)->format('d/m/Y H:i'),
+            CorrectionVersement::NATURES[$c->nature] ?? $c->nature,
+            CorrectionVersement::CATEGORIES[$c->categorie] ?? $c->categorie,
+            $c->versementAnnule?->auditeur?->candidature?->matricule,
+            $c->versementAnnule?->reference,
+            $c->versementAnnule === null ? null : (int) $c->versementAnnule->montant,
+            $c->annulationRecu?->numero,
+            $c->versementRemplacant?->auditeur?->candidature?->matricule,
+            $c->versementRemplacant?->reference,
+            $c->versementRemplacant === null ? null : (int) $c->versementRemplacant->montant,
+            $c->recuRemplacant?->numero,
+            implode(' ; ', array_slice(CorrectionsVersements::precisions(['nature' => $c->nature, 'categorie' => $c->categorie, 'champs' => $c->champs ?? []]), 2)),
+            $c->demandeePar?->name,
+            $c->executeePar?->name,
+            $c->demande?->numero,
+            match ($c->confirmation_reportee) {
+                CorrectionVersement::REPORT_OFFICE => 'Reportée d\'office',
+                CorrectionVersement::REPORT_ATTESTE => 'Attestée par le décideur',
+                default => null,
+            },
+            $c->motif,
+        ]));
     }
 
     public static function origine(Versement $v): string

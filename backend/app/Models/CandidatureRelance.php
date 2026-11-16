@@ -32,8 +32,11 @@ class CandidatureRelance extends Model
     /** Relance d'un versement non confirmé par la scolarité après 7 jours (15/11/2026) : réaffichée dans l'espace de l'auditeur. */
     public const CAUSE_CONFIRMATION = 'confirmation';
 
+    /** Avis d'une correction de versement (ADR-0015, R-C10) : reçu remplacé, ou versement annulé ; réaffiché dans l'espace. */
+    public const CAUSE_CORRECTION = 'correction';
+
     /** Messages réaffichés dans l'espace du candidat ou de l'auditeur. */
-    public const CAUSES_AFFICHEES = [self::CAUSE_MANUELLE, self::CAUSE_DEBLOCAGE, self::CAUSE_RECU, self::CAUSE_CONFIRMATION];
+    public const CAUSES_AFFICHEES = [self::CAUSE_MANUELLE, self::CAUSE_DEBLOCAGE, self::CAUSE_RECU, self::CAUSE_CONFIRMATION, self::CAUSE_CORRECTION];
 
     public const CANAL_SMS = 'sms';
 

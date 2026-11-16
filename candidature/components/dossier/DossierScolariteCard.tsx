@@ -162,6 +162,19 @@ export function DossierScolariteCard({ scolarite }: DossierScolariteCardProps): 
                       ) : (
                         <span className="text-[#5C5C5C]">{t('recuEnAttente')}</span>
                       )}
+                      {v.remplace ? (
+                        <p className="mt-1 text-xs text-[#5C5C5C]" data-testid="recu-remplace">
+                          {v.remplace.annule_le
+                            ? t('remplaceRecu', { numero: v.remplace.numero, date: formatDateLong(v.remplace.annule_le, locale) })
+                            : t('remplaceRecuSansDate', { numero: v.remplace.numero })}{' '}
+                          <a
+                            href={`/dossier/recus/${v.remplace.uuid}`}
+                            className="inline-flex min-h-11 items-center font-semibold text-[#4A2E67] underline underline-offset-2 hover:text-[#3A2452] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2E67] focus-visible:ring-offset-2"
+                          >
+                            {t('recuAnnuleTelecharger')}
+                          </a>
+                        </p>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
