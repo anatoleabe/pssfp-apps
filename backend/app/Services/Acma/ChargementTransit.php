@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Acma;
 
 use App\Models\User;
+use App\Services\Acma\Reprise\RapportsReprise;
 use App\Support\Journaux;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
@@ -40,6 +42,9 @@ final class ChargementTransit
         if (! is_file($archive)) {
             throw new ErreurAcma('Archive introuvable.');
         }
+        // Le dossier des rapports est créé par le disque (droits du groupe partagé avec PHP-FPM)
+        // avant le temporaire en 0700 : créé par mkdir récursif, il serait fermé à l'écran des archives.
+        Storage::disk(RapportsReprise::DISQUE)->makeDirectory(RapportsReprise::DOSSIER);
         // Restes en clair d'un chargement interrompu (processus tué) : purgés avant tout.
         File::deleteDirectory(storage_path('app/private/acma/tmp'));
         $temporaire = storage_path('app/private/acma/tmp/'.Str::uuid()->toString());
