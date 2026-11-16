@@ -165,7 +165,7 @@ it('annonce dans la fenêtre d\'annulation qu\'un versement imputé sur deux ann
     $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
         ->mountTableAction('annuler', $v)
         ->assertSee('Ce versement est imputé sur plusieurs années (2026-2027, 2027-2028)', false)
-        ->setTableActionData(['motif' => 'Virement rejeté par la banque'])
+        ->setTableActionData(['categorie' => 'rejet_banque', 'motif' => 'Virement rejeté par la banque'])
         ->callMountedTableAction()
         ->assertNotified('Annulation impossible');
 
@@ -215,9 +215,11 @@ it('réserve l\'annulation et la remise au responsable', function (): void {
     $this->actingAs(($this->compte)('scolarite_responsable'));
     $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
         ->assertCanSeeTableRecords([$v])
-        ->callTableAction('annuler', $v, data: ['motif' => 'Doublon'])
+        ->callTableAction('annuler', $v, data: ['categorie' => 'doublon', 'motif' => 'Doublon de saisie', 'fermeture' => true])
         ->assertHasNoTableActionErrors();
-    expect($v->fresh()->annule_motif)->toBe('Doublon');
+    // Annulation directe avec sa pièce de correction (décision Q11 du 16/11/2026).
+    expect($v->fresh()->annule_motif)->toEndWith('Doublon de saisie')
+        ->and($v->fresh()->correction?->categorie)->toBe('doublon');
 
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
         ->callAction('accorderRemise', data: ['montant' => 200000, 'motif' => 'Bourse'])

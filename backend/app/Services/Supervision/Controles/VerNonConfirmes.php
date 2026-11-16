@@ -49,7 +49,8 @@ final class VerNonConfirmes implements Controle
     public function cas(): array
     {
         $cas = [];
-        $versements = Versement::query()->whereNull('annule_at')->whereDoesntHave('confirmation')
+        // Un versement visé par une demande de correction en cours attend la décision, pas la scolarité (R-C9).
+        $versements = Versement::query()->whereNull('annule_at')->whereDoesntHave('confirmation')->sansCorrectionEnCours()
             ->where('created_at', '<', RelancesConfirmations::seuil())
             ->with('auditeur.candidature:id,matricule')
             ->orderBy('id')->get(['id', 'auditeur_id', 'montant', 'reference', 'date_versement', 'created_at']);

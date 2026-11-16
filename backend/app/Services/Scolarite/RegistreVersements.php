@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Scolarite;
 
+use App\Models\AnnulationRecu;
 use App\Models\InscriptionAnnuelle;
 use App\Models\ReglementOrganisme;
 use App\Models\User;
@@ -229,7 +230,9 @@ final class RegistreVersements
                 .' : annulez le règlement entier depuis l\'écran « Prises en charge ».');
         }
 
-        return $this->annulerVersement($versement, $motif, $auteur, false);
+        $this->annulerVersement($versement, $motif, $auteur, false);
+
+        return new ResultatOperation($versement->refresh(), null);
     }
 
     /**
@@ -247,15 +250,62 @@ final class RegistreVersements
         $this->annulerVersement($versement, $motif, $auteur, true);
     }
 
+    /**
+     * Correction d'un versement (ADR-0015, R-C6) : annule le versement erroné et son reçu, **sans** imputer l'avance
+     * aussitôt (le remplaçant couvre le reste rouvert ; R3 vient une fois, après lui). Réservé à CorrectionsVersements,
+     * qui vérifie les droits du demandeur et du décideur et appelle ce geste sous le verrou de l'auditeur.
+     *
+     * @return AnnulationRecu|null l'écriture d'annulation du reçu en vigueur, s'il y en avait un
+     *
+     * @throws InvalidArgumentException
+     */
+    public function annulerPourCorrection(Versement $versement, string $motif, User $auteur): ?AnnulationRecu
+    {
+        if ($versement->reglement_organisme_id !== null) {
+            throw new InvalidArgumentException('Ce versement fait partie d\'un règlement d\'organisme : il se corrige avec le règlement entier.');
+        }
+
+        return $this->annulerVersement($versement, $motif, $auteur, false, false);
+    }
+
+    /**
+     * Versement remplaçant d'une correction (ADR-0015) : mêmes contrôles que toute saisie, saisi au nom du demandeur.
+     * Réservé à CorrectionsVersements, sous le verrou de l'auditeur ; rien n'est envoyé ici.
+     *
+     * @param  array{montant: mixed, date_versement: mixed, mode: mixed, reference: mixed, payeur: mixed, justificatif_path?: ?string}  $saisie
+     *
+     * @throws InvalidArgumentException
+     */
+    public function enregistrerRemplacant(InscriptionAnnuelle $inscription, array $saisie, User $auteur): Versement
+    {
+        [$montant, $date, $mode, $reference, $payeur, $justificatif] = $this->validerSaisie($inscription, $saisie);
+
+        return $this->ecrireVersement($inscription, $montant, $date, $mode, $reference, $payeur, $justificatif, $auteur, null);
+    }
+
+    /** R3 après une correction : l'avance comble les restes rouverts, une seule fois, après le remplaçant. */
+    public function imputerAvanceApresCorrection(int $auditeurId, User $auteur): void
+    {
+        $this->ecrire($auditeurId, fn (ImputationsCompte $compte) => $compte->imputerAvance($auditeurId, 'annulation', $auteur));
+    }
+
+    /** Après la validation d'une correction : régularisation de l'accès anticipé et notification, comme après un versement. */
+    public function apresCorrection(InscriptionAnnuelle $inscription, User $auteur): ?bool
+    {
+        $this->auteurCourant = $auteur;
+
+        return $this->notifier($inscription);
+    }
+
     /** @throws InvalidArgumentException */
-    private function annulerVersement(Versement $versement, string $motif, User $auteur, bool $partReglement): ResultatOperation
+    private function annulerVersement(Versement $versement, string $motif, User $auteur, bool $partReglement, bool $imputerAvance = true): ?AnnulationRecu
     {
         $motif = trim($motif);
         if ($motif === '') {
             throw new InvalidArgumentException('Indiquez le motif de l\'annulation.');
         }
 
-        $this->ecrire((int) $versement->auditeur_id, function (ImputationsCompte $compte) use ($versement, $motif, $auteur, $partReglement): void {
+        return $this->ecrire((int) $versement->auditeur_id, function (ImputationsCompte $compte) use ($versement, $motif, $auteur, $partReglement, $imputerAvance): ?AnnulationRecu {
             $courant = Versement::query()->whereKey($versement->id)->firstOrFail();
             if ($courant->estAnnule()) {
                 throw new InvalidArgumentException('Ce versement est déjà annulé.');
@@ -276,20 +326,22 @@ final class RegistreVersements
             if ($modifies === 0) {
                 throw new InvalidArgumentException('Ce versement est déjà annulé.');
             }
-            // L'avance des autres versements comble les restes rouverts.
-            $compte->imputerAvance((int) $versement->auditeur_id, 'annulation', $auteur);
+            // L'avance des autres versements comble les restes rouverts (sauf pour une correction : après le remplaçant).
+            if ($imputerAvance) {
+                $compte->imputerAvance((int) $versement->auditeur_id, 'annulation', $auteur);
+            }
 
             // Le reçu en vigueur reçoit une écriture d'annulation (Scolarité lot 4) ; il n'est pas modifié.
-            $this->recus->annulerPourVersement($versement, $motif, $auteur);
+            $annulationRecu = $this->recus->annulerPourVersement($versement, $motif, $auteur);
 
             activity('scolarite')->causedBy($auteur)->performedOn($versement)
                 ->event('versement_annule')
                 ->withProperties(['montant' => $versement->montant, 'reference' => $versement->reference, 'motif' => $motif,
                     'imputations_annulees' => self::decrireAnnulees($plan)])
                 ->log('Versement annulé');
-        });
 
-        return new ResultatOperation($versement->refresh(), null);
+            return $annulationRecu;
+        });
     }
 
     /**

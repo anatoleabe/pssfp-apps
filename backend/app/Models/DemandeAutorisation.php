@@ -34,6 +34,9 @@ class DemandeAutorisation extends Model
     /** En attente d'une décision. */
     public const EN_ATTENTE = [self::SOUMISE, self::VISA_ATTENDU];
 
+    /** Type du circuit pour la correction d'un versement (ADR-0015) ; repris par TypesDemande::CORRIGER_VERSEMENT. */
+    public const TYPE_CORRIGER_VERSEMENT = 'corriger_versement';
+
     public const MOTIF_MIN = 10;
 
     public $timestamps = false;

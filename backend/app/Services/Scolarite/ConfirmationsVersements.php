@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Scolarite;
 
 use App\Models\ConfirmationVersement;
+use App\Models\CorrectionVersement;
 use App\Models\InscriptionAnnuelle;
 use App\Models\User;
 use App\Models\Versement;
@@ -53,6 +54,10 @@ final class ConfirmationsVersements
         }
         if (ConfirmationVersement::query()->where('versement_id', $v->id)->exists()) {
             return 'Ce versement est déjà confirmé.';
+        }
+        // Une correction demandée suspend la confirmation (spec de l'espace Finances, R-C9).
+        if (($demande = $v->correctionDemandee()) !== null) {
+            return 'Une correction de ce versement est demandée ('.$demande->numero.') : attendez sa décision.';
         }
 
         return null;
@@ -116,6 +121,37 @@ final class ConfirmationsVersements
             'versement_id' => $versement->id, 'confirme_par' => $par, 'confirme_at' => $le, 'reprise' => true,
         ]);
         $c->save();
+
+        return $c;
+    }
+
+    /**
+     * Report de la confirmation d'un versement corrigé sur son remplaçant (ADR-0015, R-C8), dans la transaction de la
+     * correction. D'office (`$attestant` nul) : même agent, même date, même attestation que la confirmation d'origine,
+     * dont le scan reste la pièce. Attesté : le décideur, à la date du jour, sur ce même scan. Jamais de scan propre :
+     * une pièce ne sert qu'une fois.
+     */
+    public static function reporter(Versement $remplacant, ConfirmationVersement $origine, CorrectionVersement $correction, ?User $attestant): ConfirmationVersement
+    {
+        $c = (new ConfirmationVersement)->forceFill($attestant === null ? [
+            'versement_id' => $remplacant->id,
+            'confirme_par' => $origine->confirme_par,
+            'confirme_at' => $origine->confirme_at,
+            'attestation' => $origine->attestation,
+            'reprise' => $origine->reprise,
+            'correction_id' => $correction->id,
+        ] : [
+            'versement_id' => $remplacant->id,
+            'confirme_par' => $attestant->id,
+            'confirme_at' => now(),
+            'attestation' => true,
+            'reprise' => false,
+            'correction_id' => $correction->id,
+        ]);
+        $c->save();
+        activity('scolarite')->causedBy($attestant)->performedOn($remplacant)->event('confirmation_reportee')
+            ->withProperties(['correction' => $correction->numero, 'origine' => $attestant === null ? CorrectionVersement::REPORT_OFFICE : CorrectionVersement::REPORT_ATTESTE])
+            ->log('Confirmation reportée sur le versement remplaçant');
 
         return $c;
     }

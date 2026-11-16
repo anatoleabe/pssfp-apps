@@ -6,6 +6,7 @@ namespace App\Services\Scolarite;
 
 use App\Models\AnnulationRecu;
 use App\Models\ConfirmationVersement;
+use App\Models\CorrectionVersement;
 use App\Models\ImputationVersement;
 use App\Models\InscriptionAnnuelle;
 use App\Models\RecuVersement;
@@ -98,14 +99,18 @@ final class RecusVersements
             ->whereDoesntHave('auditeur.candidature', fn (Builder $q) => $q->whereNotNull('withdrawn_at'));
     }
 
-    public function emettre(Versement $versement, User $auteur): RecuVersement
+    /**
+     * `$remplace` : le reçu annulé du versement corrigé (ADR-0015). Sans lui, un reçu réémis pour un versement dont le
+     * reçu a été annulé remplace le dernier de ces reçus annulés (spec de l'espace Finances, §7.6).
+     */
+    public function emettre(Versement $versement, User $auteur, ?RecuVersement $remplace = null): RecuVersement
     {
         abort_unless($auteur->can(self::PERMISSION_EMETTRE), 403);
 
         // Verrou de l'auditeur (ADR-0013, R8) : il garantit l'invariant « un seul reçu en vigueur par versement », que la
         // base ne peut pas exprimer (l'annulation vit dans une autre table), et fige les imputations lues. Toute création
         // de reçu passe par ici.
-        return $this->imputations->sousVerrou((int) $versement->auditeur_id, function () use ($versement, $auteur): RecuVersement {
+        return $this->imputations->sousVerrou((int) $versement->auditeur_id, function () use ($versement, $auteur, $remplace): RecuVersement {
             $v = Versement::query()->with('auditeur.candidature')->whereKey($versement->id)->firstOrFail();
             $raison = $this->raisonRefus($v, $auteur);
             if ($raison !== null) {
@@ -118,6 +123,7 @@ final class RecusVersements
             $dossier = $v->auditeur?->candidature;
             // Vérification par la scolarité, figée sur le reçu si elle précède l'émission (réémission après annulation).
             $verification = ConfirmationVersement::query()->with('confirmePar:id,name')->where('versement_id', $v->id)->first();
+            $remplace ??= RecuVersement::query()->where('versement_id', $v->id)->whereHas('annulation')->whereDoesntHave('remplacant')->latest('id')->first();
             $recu = (new RecuVersement)->forceFill([
                 'numero' => sprintf('RCPT-%d-%06d', $annee, $sequence),
                 'annee_numero' => $annee,
@@ -141,10 +147,11 @@ final class RecusVersements
                 'emis_at' => now(),
                 'verifie_par_nom' => $verification?->confirmePar?->name,
                 'verifie_le' => $verification?->confirme_at?->setTimezone(InscriptionAnnuelle::FUSEAU)->toDateString(),
+                'remplace_recu_id' => $remplace?->id,
             ]);
             $recu->save();
             activity('scolarite')->causedBy($auteur)->performedOn($v)->event('recu_emis')
-                ->withProperties(['numero' => $recu->numero, 'montant' => $recu->montant])->log('Reçu émis');
+                ->withProperties(['numero' => $recu->numero, 'montant' => $recu->montant] + ($remplace === null ? [] : ['remplace' => $remplace->numero]))->log('Reçu émis');
             if ($dossier !== null) {
                 // Après la validation de la transaction : jamais d'avis pour un reçu défait (spec §5).
                 $this->avis->apresEmission($recu, $dossier, $auteur);
@@ -228,16 +235,26 @@ final class RecusVersements
 
     public function pdf(RecuVersement $recu): string
     {
-        $recu->loadMissing('annulation');
+        return Pdf::loadView('pdf.recu-versement', $this->donneesPdf($recu))->setPaper('a5', 'landscape')->output();
+    }
 
-        return Pdf::loadView('pdf.recu-versement', ['recu' => $recu, 'lettres' => $this->enLettres($recu->montant)])->setPaper('a5', 'landscape')->output();
+    /** Données du PDF d'un reçu (sa vue se rend aussi telle quelle dans les tests). @return array<string, mixed> */
+    public function donneesPdf(RecuVersement $recu): array
+    {
+        $recu->loadMissing(['annulation', 'versement:id,auditeur_id', 'remplace.annulation', 'remplace.versement:id,auditeur_id', 'remplacant.versement:id,auditeur_id']);
+        // Pièce qui relie ce reçu au reçu qu'il remplace, ou au reçu qui le remplace.
+        $correction = CorrectionVersement::query()->whereIn('recu_remplacant_id', array_filter([$recu->id, $recu->remplacant?->id]))->first();
+
+        return ['recu' => $recu, 'correction' => $correction, 'lettres' => $this->enLettres($recu->montant)];
     }
 
     public function pdfAnnulation(AnnulationRecu $a): string
     {
-        $a->loadMissing('recu');
+        $a->loadMissing(['recu.versement:id,auditeur_id', 'recu.remplacant.versement:id,auditeur_id']);
 
-        return Pdf::loadView('pdf.annulation-recu', ['annulation' => $a, 'recu' => $a->recu, 'lettres' => $this->enLettres($a->recu->montant)])->setPaper('a5', 'landscape')->output();
+        $correction = $a->recu->remplacant === null ? null : CorrectionVersement::query()->where('recu_remplacant_id', $a->recu->remplacant->id)->first();
+
+        return Pdf::loadView('pdf.annulation-recu', ['annulation' => $a, 'recu' => $a->recu, 'correction' => $correction, 'lettres' => $this->enLettres($a->recu->montant)])->setPaper('a5', 'landscape')->output();
     }
 
     /** Montant en toutes lettres : « cent quatre-vingt-cinq mille francs CFA ». */

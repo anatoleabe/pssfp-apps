@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Messagerie;
 
 use App\Models\DeblocageAcces;
+use App\Models\DemandeAutorisation;
 use App\Models\DocumentDelivre;
 use App\Models\EtapeSaisie;
 use App\Models\EtatPaie;
@@ -13,6 +14,7 @@ use App\Models\Maquette;
 use App\Models\PointageEnseignant;
 use App\Models\QuotaHoraire;
 use App\Models\User;
+use App\Models\Versement;
 use App\Services\Audit\VerrouillageComptes;
 use App\Services\Lmd\DocumentsOfficiels;
 use App\Services\Lmd\EtatsPaie;
@@ -21,8 +23,11 @@ use App\Services\Lmd\PointagesEnseignant;
 use App\Services\Lmd\Programmations;
 use App\Services\Lmd\SaisieNotes;
 use App\Services\Lmd\ValidationMaquette;
+use App\Services\Scolarite\ConfirmationsVersements;
+use App\Services\Scolarite\CorrectionsVersements;
 use App\Services\Scolarite\DeblocagesAcces;
 use App\Services\Scolarite\DemandeMoratoire;
+use App\Services\Scolarite\LibelleSituation;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
@@ -54,6 +59,9 @@ final class TypesDemande
     /** Lot A3 (scolarité) : l'agent demande au responsable un moratoire sur les droits d'inscription. */
     public const ACCORDER_MORATOIRE = 'accorder_moratoire';
 
+    /** Espace Finances (ADR-0015) : le service financier demande la correction ou l'annulation d'un versement. */
+    public const CORRIGER_VERSEMENT = DemandeAutorisation::TYPE_CORRIGER_VERSEMENT;
+
     public const LEVEE_VERROU = 'levee_verrou';
 
     public const VALIDATION = 'validation';
@@ -73,6 +81,8 @@ final class TypesDemande
         self::REJETER_ETAT_PAIE => ['libelle' => 'Rejet d\'un état de paie vérifié, visé ou transmis', 'famille' => self::ANNULATION, 'permission' => PermissionsLmd::PAIE_VERIFIER, 'visa' => true, 'heures' => 48],
         self::DEVERROUILLER_COMPTE => ['libelle' => 'Déverrouillage d\'un compte', 'famille' => self::LEVEE_VERROU, 'permission' => VerrouillageComptes::PERMISSION_DEVERROUILLER, 'visa' => false, 'heures' => 8],
         self::ACCORDER_MORATOIRE => ['libelle' => 'Accord d\'un moratoire sur les droits d\'inscription', 'famille' => self::LEVEE_VERROU, 'permission' => DeblocagesAcces::PERMISSION_EXCEPTIONNEL, 'visa' => false, 'heures' => 48],
+        // Second regard du responsable ou d'un administrateur, sans visa du contrôle interne (décision Q1 du 16/11/2026).
+        self::CORRIGER_VERSEMENT => ['libelle' => 'Correction ou annulation d\'un versement', 'famille' => self::ANNULATION, 'permission' => CorrectionsVersements::PERMISSION_DECIDER, 'visa' => false, 'heures' => 24],
     ];
 
     /**
@@ -93,6 +103,8 @@ final class TypesDemande
         self::DEVERROUILLER_COMPTE => [],
         // L'agent de scolarité, qui accorde un virement annoncé mais pas un moratoire.
         self::ACCORDER_MORATOIRE => [DeblocagesAcces::PERMISSION],
+        // Le service financier, qui encaisse mais n'annule pas.
+        self::CORRIGER_VERSEMENT => [CorrectionsVersements::PERMISSION],
     ];
 
     /** @var array<string, class-string<Model>> */
@@ -100,10 +112,11 @@ final class TypesDemande
         self::ROUVRIR_ETAPE => EtapeSaisie::class, self::VALIDER_QUOTA => QuotaHoraire::class, self::VALIDER_MAQUETTE => Maquette::class,
         self::ANNULER_POINTAGE => PointageEnseignant::class, self::REVOQUER_DOCUMENT => DocumentDelivre::class, self::REJETER_ETAT_PAIE => EtatPaie::class,
         self::DEVERROUILLER_COMPTE => User::class, self::ACCORDER_MORATOIRE => InscriptionAnnuelle::class,
+        self::CORRIGER_VERSEMENT => Versement::class,
     ];
 
     /** Types soumis depuis l'écran de leur objet, qui saisit leurs paramètres : absents de l'écran général « Nouvelle demande ». */
-    public const DEPUIS_LEUR_ECRAN = [self::ACCORDER_MORATOIRE];
+    public const DEPUIS_LEUR_ECRAN = [self::ACCORDER_MORATOIRE, self::CORRIGER_VERSEMENT];
 
     public const ETATS_PAIE_REJETABLES = [EtatPaie::VERIFIE, EtatPaie::VISE, EtatPaie::TRANSMIS];
 
@@ -149,6 +162,9 @@ final class TypesDemande
         if ($code === self::ACCORDER_MORATOIRE) {
             return DemandeMoratoire::parametres(InscriptionAnnuelle::query()->findOrFail($entiteId), $saisie);
         }
+        if ($code === self::CORRIGER_VERSEMENT) {
+            return CorrectionsVersements::parametres(Versement::query()->findOrFail($entiteId), $saisie);
+        }
         if (array_filter($saisie, fn (mixed $v): bool => filled($v)) !== []) {
             throw new InvalidArgumentException('Ce type de demande ne prend pas de paramètres.');
         }
@@ -164,15 +180,28 @@ final class TypesDemande
      */
     public static function precisions(string $code, ?array $parametres): array
     {
-        return $code === self::ACCORDER_MORATOIRE ? DemandeMoratoire::precisions($parametres) : [];
+        return match ($code) {
+            self::ACCORDER_MORATOIRE => DemandeMoratoire::precisions($parametres),
+            self::CORRIGER_VERSEMENT => CorrectionsVersements::precisions($parametres),
+            default => [],
+        };
     }
 
     /** Pièce jointe à la demande, seulement si son chemin est bien celui d'un justificatif (jamais un chemin forgé). */
     public static function piece(string $code, ?array $parametres): ?string
     {
-        $chemin = $code === self::ACCORDER_MORATOIRE ? ($parametres['justificatif_path'] ?? null) : null;
+        $chemin = in_array($code, [self::ACCORDER_MORATOIRE, self::CORRIGER_VERSEMENT], true) ? ($parametres['justificatif_path'] ?? null) : null;
+        if (! is_string($chemin)) {
+            return null;
+        }
 
-        return is_string($chemin) && DeblocageAcces::cheminPieceValide($chemin) ? $chemin : null;
+        return ($code === self::CORRIGER_VERSEMENT ? Versement::cheminJustificatifValide($chemin) : DeblocageAcces::cheminPieceValide($chemin)) ? $chemin : null;
+    }
+
+    /** Types qu'on soumet même en détenant le droit : la correction attestée exige toujours une seconde personne (ADR-0015). */
+    public static function toujoursParDemande(string $code): bool
+    {
+        return $code === self::CORRIGER_VERSEMENT;
     }
 
     public static function aUnObjet(string $code): bool
@@ -243,6 +272,13 @@ final class TypesDemande
         if ($m === null) {
             return null;
         }
+        // Versement : la ligne, sa confirmation et son reçu en vigueur (R-C9) ; tout changement fait échouer l'exécution.
+        if ($m instanceof Versement) {
+            return hash('sha256', (string) json_encode(Arr::except($m->getAttributes(), ['updated_at']) + [
+                'confirmation' => $m->confirmation()->value('id'),
+                'recu' => $m->recus()->whereDoesntHave('annulation')->value('id'),
+            ]));
+        }
         $sans = fn (Model $x): array => Arr::except($x->getAttributes(), ['updated_at']);
         // Un compte change sans cesse (connexions, échecs comptés pendant le verrouillage) : seul son verrouillage compte ici.
         $donnees = $m instanceof User ? ['id' => $m->id, 'verrouille_le' => $m->getAttributes()['verrouille_le'] ?? null] : $sans($m);
@@ -259,7 +295,7 @@ final class TypesDemande
      *
      * @param  array<string, mixed>  $parametres
      */
-    public function executer(string $code, ?int $id, User $auteur, string $motif, array $parametres = []): string
+    public function executer(string $code, ?int $id, User $auteur, string $motif, array $parametres = [], ?DemandeAutorisation $demande = null, array $options = []): string
     {
         $objet = fn (string $classe): Model => $classe::query()->findOrFail($id);
 
@@ -279,8 +315,55 @@ final class TypesDemande
             self::REJETER_ETAT_PAIE => $this->faire(fn () => app(EtatsPaie::class)->rejeter($objet(EtatPaie::class), $motif, $auteur), 'État de paie rejeté ; émargements libérés'),
             self::DEVERROUILLER_COMPTE => $this->faire(fn () => app(VerrouillageComptes::class)->deverrouiller($objet(User::class), $auteur, $motif), 'Compte déverrouillé'),
             self::ACCORDER_MORATOIRE => DemandeMoratoire::executer($objet(InscriptionAnnuelle::class), $parametres, $auteur, $motif),
+            self::CORRIGER_VERSEMENT => $this->corriger($objet(Versement::class), $parametres, $auteur, $demande, $options),
             default => throw new InvalidArgumentException('Type de demande inconnu.'),
         };
+    }
+
+    /**
+     * Correction approuvée (ADR-0015) : l'annulation au nom du décideur, le remplaçant et son reçu au nom du demandeur.
+     *
+     * @param  array<string, mixed>  $parametres
+     * @param  array<string, mixed>  $options
+     */
+    private function corriger(Model $versement, array $parametres, User $decideur, ?DemandeAutorisation $demande, array $options): string
+    {
+        if ($demande === null || ! $versement instanceof Versement) {
+            throw new InvalidArgumentException('Une correction s\'exécute depuis sa demande.');
+        }
+        $correction = app(CorrectionsVersements::class)->executer($versement, $parametres, $demande->motif,
+            User::query()->findOrFail($demande->demandeur_id), $decideur, $options, $demande);
+
+        return 'Correction '.$correction->numero.' exécutée'.($correction->recuRemplacant !== null ? ' : reçu '.$correction->recuRemplacant->numero.' émis' : '');
+    }
+
+    /**
+     * Avant d'enregistrer l'approbation d'une correction : les attestations exigées par la décision (R-C7, R-C8). Un oubli
+     * refuse la décision au lieu de faire échouer l'exécution.
+     *
+     * @param  array<string, mixed>  $options
+     *
+     * @throws InvalidArgumentException
+     */
+    public function verifierApprobation(DemandeAutorisation $d, array $options, ?User $decideur = null): void
+    {
+        if ($d->type !== self::CORRIGER_VERSEMENT || $d->entite_id === null) {
+            return;
+        }
+        $versement = Versement::query()->find($d->entite_id);
+        if ($versement === null || CorrectionsVersements::raisonRefus($versement) !== null) {
+            return;
+        }
+        $exigences = app(CorrectionsVersements::class)->exigences($versement, $d->parametres ?? []);
+        if ($exigences[CorrectionsVersements::OPTION_ATTESTATION] && ! ConfirmationsVersements::peutConfirmer($decideur)) {
+            throw new InvalidArgumentException(CorrectionsVersements::REFUS_ATTESTANT);
+        }
+        if ($exigences[CorrectionsVersements::OPTION_ATTESTATION] && ! ($options[CorrectionsVersements::OPTION_ATTESTATION] ?? false)) {
+            throw new InvalidArgumentException('Cochez « '.CorrectionsVersements::ATTESTATION.' » pour approuver.');
+        }
+        if ($exigences[CorrectionsVersements::OPTION_FERMETURE] && ! ($options[CorrectionsVersements::OPTION_FERMETURE] ?? false)) {
+            throw new InvalidArgumentException('Cochez « '.CorrectionsVersements::FERMETURE.' » pour approuver.');
+        }
     }
 
     private function faire(callable $operation, string $resultat): string
@@ -302,6 +385,7 @@ final class TypesDemande
             self::REJETER_ETAT_PAIE => EtatPaie::query()->whereIn('statut', self::ETATS_PAIE_REJETABLES),
             self::DEVERROUILLER_COMPTE => VerrouillageComptes::verrouilles(),
             self::ACCORDER_MORATOIRE => InscriptionAnnuelle::query()->whereHas('auditeur.candidature')->with('auditeur.candidature'),
+            self::CORRIGER_VERSEMENT => Versement::query()->whereNull('annule_at')->whereNull('reglement_organisme_id')->with('auditeur.candidature:id,matricule'),
             default => throw new InvalidArgumentException('Ce type de demande ne vise pas d\'objet.'),
         };
     }
@@ -319,6 +403,8 @@ final class TypesDemande
             self::REJETER_ETAT_PAIE => $m->numero.' — '.(EtatPaie::STATUTS[$m->statut] ?? $m->statut),
             self::DEVERROUILLER_COMPTE => $m->name.' — verrouillé le '.$m->verrouille_le?->setTimezone('Africa/Douala')->format('d/m/Y à H:i'),
             self::ACCORDER_MORATOIRE => DemandeMoratoire::libelle($m),
+            self::CORRIGER_VERSEMENT => 'Versement '.$m->reference.' de '.LibelleSituation::fcfa((int) $m->montant).' du '.$m->date_versement->format('d/m/Y')
+                .' — '.($m->auditeur?->candidature?->matricule ?? 'sans matricule'),
             default => (string) $m->getKey(),
         }, 290);
     }

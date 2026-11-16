@@ -78,7 +78,7 @@ class RecuVersementResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('annulation'))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['annulation', 'remplacant:id,numero,remplace_recu_id', 'remplace:id,numero']))
             ->defaultSort('id', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('numero')->label('Numéro')->fontFamily('mono')->searchable()
@@ -90,9 +90,16 @@ class RecuVersementResource extends Resource
                 Tables\Columns\TextColumn::make('objet')->label('Objet')->wrap()->limit(80),
                 Tables\Columns\TextColumn::make('emetteur_nom')->label('Émis par'),
                 Tables\Columns\TextColumn::make('etat')->label('État')->badge()
-                    ->getStateUsing(fn (RecuVersement $r): string => $r->annulation === null ? 'En vigueur' : 'Annulé')
+                    ->getStateUsing(fn (RecuVersement $r): string => match (true) {
+                        $r->annulation === null => 'En vigueur',
+                        $r->remplacant !== null => 'Annulé et remplacé',
+                        default => 'Annulé',
+                    })
                     ->color(fn (string $state): string => $state === 'En vigueur' ? 'success' : 'gray')
-                    ->description(fn (RecuVersement $r): ?string => $r->annulation === null ? null : $r->annulation->numero.' : '.$r->annulation->motif),
+                    ->description(fn (RecuVersement $r): ?string => match (true) {
+                        $r->annulation === null => $r->remplace === null ? null : 'Remplace '.$r->remplace->numero,
+                        default => $r->annulation->numero.' : '.$r->annulation->motif.($r->remplacant !== null ? ' — remplacé par '.$r->remplacant->numero : ''),
+                    }),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('annee_numero')->label('Année d\'émission')

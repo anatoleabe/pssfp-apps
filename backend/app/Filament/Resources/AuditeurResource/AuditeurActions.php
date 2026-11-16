@@ -11,7 +11,6 @@ use App\Models\Versement;
 use App\Services\DocumentsAuditeurs\DocumentsAuditeurs;
 use App\Services\NotificationCandidatsService;
 use App\Services\Scolarite\AccesEcampus;
-use App\Services\Scolarite\AnnulationMultiAnnees;
 use App\Services\Scolarite\CompteAuditeur;
 use App\Services\Scolarite\ConfirmationsVersements;
 use App\Services\Scolarite\LibelleSituation;
@@ -351,37 +350,6 @@ final class AuditeurActions
                         .($rapport['sms_echecs'] + $rapport['emails_echecs'] > 0 ? ', '.($rapport['sms_echecs'] + $rapport['emails_echecs']).' échec(s)' : '')
                         .($rapport['ignores'] > 0 ? ', '.$rapport['ignores'].' écarté(s) ou sans coordonnée' : '').'.')
                     ->send();
-            });
-    }
-
-    public static function annulerVersement(): TableAction
-    {
-        return TableAction::make('annuler')
-            ->label('Annuler')
-            ->icon('heroicon-o-x-circle')
-            ->color('danger')
-            // Un versement issu d'un règlement d'organisme ne s'annule qu'avec lui (lot A2, §9.7).
-            ->visible(fn (Versement $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_ANNULER) && ! $record->estAnnule()
-                && $record->reglement_organisme_id === null)
-            ->modalHeading('Annuler ce versement')
-            ->modalDescription(fn (Versement $record): string => 'Le versement de '.LibelleSituation::fcfa($record->montant).' reste visible, barré, avec votre motif. Sa référence pourra être ressaisie.'
-                .($record->recus()->whereDoesntHave('annulation')->exists() ? ' Son reçu reçoit une écriture d\'annulation.' : '')
-                .(RegistreVersements::annulationRebloque($record) ? ' Attention : l\'inscription ne serait plus soldée ; le code disparaîtrait de l\'espace de l\'auditeur, mais resterait valable sur eCampus.' : '')
-                // Refus R4.1 de D1, annoncé avant la saisie du motif.
-                .(count($annees = RegistreVersements::anneesTouchees($record)) > 1 ? ' '.(new AnnulationMultiAnnees($annees))->getMessage() : ''))
-            ->form(MessagesValidation::appliquer([
-                Forms\Components\Textarea::make('motif')->label('Motif de l\'annulation')->required()->maxLength(500)->rows(3),
-            ]))
-            ->action(function (Versement $record, array $data, TableAction $action): void {
-                try {
-                    app(RegistreVersements::class)->annuler($record, (string) $data['motif'], auth()->user());
-                } catch (InvalidArgumentException $e) {
-                    Notification::make()->danger()->title('Annulation impossible')->body($e->getMessage())->send();
-                    $action->halt();
-
-                    return;
-                }
-                Notification::make()->success()->title('Versement annulé')->send();
             });
     }
 

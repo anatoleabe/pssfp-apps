@@ -60,7 +60,8 @@ final class RelancesConfirmations
         $bilan = ['relances' => 0, 'ignores' => 0, 'echecs' => 0];
         $seuil = self::seuil();
         // Les parts d'un règlement d'organisme (lot A2) n'ont pas de reçu de l'auditeur : le contrôle interne les suit.
-        $aConfirmer = fn ($q) => $q->whereNull('annule_at')->whereNull('reglement_organisme_id')->whereDoesntHave('confirmation');
+        // Une demande de correction en cours suspend la relance (spec de l'espace Finances, R-C9).
+        $aConfirmer = fn ($q) => $q->whereNull('annule_at')->whereNull('reglement_organisme_id')->whereDoesntHave('confirmation')->sansCorrectionEnCours();
 
         $auditeurs = Auditeur::query()
             ->whereHas('versements', fn ($q) => $aConfirmer($q)->where('created_at', '<', $seuil))
