@@ -97,6 +97,7 @@ class VersementsRelationManager extends RelationManager
                     ConfirmationActions::confirmer(),
                     AuditeurActions::voirJustificatif(),
                     AuditeurActions::ajouterJustificatif(),
+                    CorrectionActions::rectifier(),
                     CorrectionActions::corriger(),
                     CorrectionActions::annuler(),
                     RecuActions::emettre(),
