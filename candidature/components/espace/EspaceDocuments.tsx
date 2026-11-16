@@ -35,7 +35,8 @@ interface EspaceDocumentsProps {
 
 export function EspaceDocuments({ candidature, scolarite, consultation }: EspaceDocumentsProps): JSX.Element {
   const t = useTranslations('espace.documents');
-  const resultats = candidature.campagne?.communique_resultats_url ?? null;
+  // Un ancien réinscrit n'a pas candidaté : le communiqué des résultats ne le concerne pas.
+  const resultats = candidature.reinscrit_acma ? null : (candidature.campagne?.communique_resultats_url ?? null);
   // Mêmes conditions que dans « Mes accès » : la lettre contient le mot de passe.
   const lettreAcces = scolarite.acces.lettre_disponible === true && !consultation;
 

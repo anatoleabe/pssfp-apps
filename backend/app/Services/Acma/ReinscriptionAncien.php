@@ -97,9 +97,8 @@ final class ReinscriptionAncien
     }
 
     /**
-     * Compte eCampus, après la transaction, comme à l'attribution des matricules. Seulement si le dossier est rattaché à
-     * sa promotion d'accueil : ailleurs, la cohorte eCampus de la promotion serait fausse tant que 15l ne la lit pas
-     * dans l'inscription. Un compte déjà présent sous ce matricule n'est jamais modifié, et le mot de passe généré, qui
+     * Compte eCampus, après la transaction, comme à l'attribution des matricules, dans la cohorte de la promotion
+     * d'accueil (15l). Un compte déjà présent sous ce matricule n'est jamais modifié, et le mot de passe généré, qui
      * n'est pas le sien, est effacé : l'espace n'affiche jamais un mot de passe faux. Aucun envoi : l'accès est fermé
      * tant que rien n'est payé ni débloqué.
      *
@@ -108,9 +107,7 @@ final class ReinscriptionAncien
     public function ouvrirEcampus(Candidature $candidature, User $auteur): ?string
     {
         $candidature->loadMissing(['campagne', 'auditeur.inscriptionCourante']);
-        $inscription = $candidature->auditeur?->inscriptionCourante;
-        $accueil = $inscription === null ? null : AnneeEnCours::promotionAccueil($inscription->annee_academique, $inscription->niveau);
-        if (! ComptesEcampus::actif() || ! $auteur->can(IdentifiantsMoodle::PERMISSION) || $accueil === null || ! $accueil->is($candidature->campagne)) {
+        if (! ComptesEcampus::actif() || ! $auteur->can(IdentifiantsMoodle::PERMISSION)) {
             return null;
         }
         try {

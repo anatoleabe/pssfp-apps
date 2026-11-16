@@ -49,7 +49,8 @@ final class LettresAdmissionSignees
     /** Retenu non retiré et numéroté : seul dossier qui peut recevoir une lettre. */
     public static function depotPossible(Candidature $c): bool
     {
-        return $c->statut === Candidature::STATUT_ACCEPTE && $c->withdrawn_at === null && $c->matricule !== null;
+        // Un ancien réinscrit depuis l'archive n'a pas été admis par un jury de la plateforme : pas de lettre d'admission.
+        return $c->statut === Candidature::STATUT_ACCEPTE && $c->withdrawn_at === null && $c->matricule !== null && ! $c->estReinscritAcma();
     }
 
     /**

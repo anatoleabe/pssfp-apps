@@ -8,10 +8,10 @@ use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\User;
 use App\Services\ExportsRetenus\AttributionMatricules;
-use App\Services\ExportsRetenus\ExportsRetenus;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\NotificationAcces;
+use App\Services\Scolarite\PromotionAccueil;
 use App\Support\TexteImprimable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -219,7 +219,12 @@ final class ComptesEcampus
             }
 
             $etape = self::COHORTE_A_FINIR;
-            $this->moodle->ajouterACohorte($this->cohorte($c), $identifiant);
+            $cohorte = $this->cohorte($c);
+            if ($cohorte === null) {
+                // M2 hors de sa promotion (spec de la réinscription des anciens, Q10) : compte créé, cohorte à poser à la main.
+                return ['statut' => $this->journaliser($c, self::COHORTE_A_FINIR, 'Compte créé ; cohorte d\'option M2 à poser à la main sur eCampus.', $auteur), 'general' => false];
+            }
+            $this->moodle->ajouterACohorte($cohorte, $identifiant);
 
             return ['statut' => $this->journaliser($c, self::CREE, null, $auteur), 'general' => false];
         } catch (EchecEcampus $e) {
@@ -260,9 +265,10 @@ final class ComptesEcampus
         ], fn (string $valeur): bool => $valeur !== ''));
     }
 
-    private function cohorte(Candidature $c): string
+    /** Cohorte de la promotion d'accueil (15l) ; null en M2 hors de sa promotion. */
+    private function cohorte(Candidature $c): ?string
     {
-        return ExportsRetenus::cohorteParDefaut($c->campagne);
+        return PromotionAccueil::cohorte($c);
     }
 
     private function telephone(?string $numero): string

@@ -551,3 +551,11 @@ Chaque sous-lot a sa branche, ses tests, sa PR, et se déploie seul.
 6. **Garde de l'attribution P14** : un retenu à la même date de naissance et aux noms compatibles qu'un ancien réinscrit (mode `creation`) fait refuser l'attribution des matricules, avec le dossier en cause.
 7. **Non livrés dans 15k** : le second téléphone dans le formulaire et le filtre « Réinscrit depuis ACMA » de la liste des auditeurs (la trace et le journal suffisent pour l'instant).
 8. **Journal** : les événements de la réinscription ne portent ni téléphone, ni e-mail, ni adresse, ni matricule (uuid du dossier d'archive seulement). Le journal des comptes garde, comme pour tout compte, le téléphone du compte créé.
+
+### 15l — Année d'accueil
+
+1. **Cohorte eCampus** (`PromotionAccueil::cohorte`) : si la promotion d'accueil de l'inscription courante est celle du dossier, rien ne change (cohorte de la promotion, comme avant). Sinon, en M1, la cohorte de la promotion d'accueil ; en M2, aucune cohorte posée d'office (Q10) : le compte est créé et reste « cohorte à finir », avec le détail « cohorte d'option M2 à poser à la main ».
+2. **Lettre d'accès** : seuls les anciens réinscrits (mode `creation`) lisent les paramètres de leur promotion d'accueil (lien, PDF, disponibilité dans l'espace) ; tout autre dossier garde ceux de sa promotion.
+3. **La limite de 15k sur le compte eCampus est levée** : il se crée quelle que soit la promotion de rattachement.
+4. **Espace** : `reinscrit_acma` dans la réponse de la candidature ; la carte d'accueil dit « Bon retour au PSSFP ! » et donne la marche à suivre (droits, reçu, confirmation, lien) ; pas de récépissé (`peutAvoirRecepisse` faux), pas de dépôt de lettre d'admission, pas de communiqué des résultats. Textes dans `messages/fr.json` et `messages/en.json`.
+5. **Requêtes** : `estReinscritAcma()` ne lit la trace que pour un dossier hors portail (ajouté par un agent et jamais soumis) ; les autres dossiers ne coûtent aucune requête.

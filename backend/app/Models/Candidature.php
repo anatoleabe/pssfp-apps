@@ -233,7 +233,25 @@ class Candidature extends Model
      */
     public function peutAvoirRecepisse(): bool
     {
-        return $this->submitted_at !== null || $this->ajoute_par !== null;
+        // Un ancien réinscrit depuis l'archive ACMA n'a pas candidaté : pas de récépissé (spec de la réinscription, §9).
+        return ($this->submitted_at !== null || $this->ajoute_par !== null) && ! $this->estReinscritAcma();
+    }
+
+    /** Trace de la réinscription depuis l'archive ACMA, si ce dossier en vient (ou y a pris son matricule, 15m). */
+    public function reinscriptionAcma(): HasOne
+    {
+        return $this->hasOne(ReinscriptionAcma::class);
+    }
+
+    /** Dossier créé par la réinscription d'un ancien depuis l'archive (mode `creation`), pas par une candidature. */
+    public function estReinscritAcma(): bool
+    {
+        // Un réinscrit naît toujours hors portail (ajouté par un agent, jamais soumis) : sans requête pour les autres.
+        if (! $this->exists || $this->submitted_at !== null || $this->ajoute_par === null) {
+            return false;
+        }
+
+        return $this->reinscriptionAcma?->mode === ReinscriptionAcma::CREATION;
     }
 
     /** Fiche d'auditeur, créée à l'attribution du matricule (ADR-0010). */
