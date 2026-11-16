@@ -434,7 +434,9 @@ it('se défait et se refait, mais refuse d\'être défaite une fois l\'archive g
     $financiere = require database_path('migrations/2026_12_07_100100_create_acma_archive_financiere_tables.php');
     $complements = require database_path('migrations/2026_12_07_100200_create_acma_complements_table.php');
     $coordonnees = require database_path('migrations/2026_12_10_100000_add_coordonnees_to_acma_archive.php');
+    $reinscriptions = require database_path('migrations/2026_12_10_100200_create_reinscriptions_acma_table.php');
 
+    $reinscriptions->down();
     $coordonnees->down();
     expect(Schema::hasColumn('acma_dossiers', 'mobile_source'))->toBeFalse()->and(Schema::hasColumn('acma_inscriptions', 'parcours_source'))->toBeFalse();
     $complements->down();
@@ -446,6 +448,7 @@ it('se défait et se refait, mais refuse d\'être défaite une fois l\'archive g
     $financiere->up();
     $complements->up();
     $coordonnees->up();
+    $reinscriptions->up();
     expect(Schema::hasTable('acma_versions_notes'))->toBeTrue()->and(Schema::hasTable('acma_documents'))->toBeTrue()
         ->and(Schema::hasColumn('acma_dossiers', 'mobile_source'))->toBeTrue();
 
