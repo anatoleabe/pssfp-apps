@@ -257,6 +257,7 @@ final class ActionsGroupees
                     $refaits = [];
                     $ignores = [];
                     $echecs = [];
+                    $records->loadMissing('reinscriptionAcma');
 
                     foreach ($records as $r) {
                         if (! $r->peutAvoirRecepisse()) {

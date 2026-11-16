@@ -140,6 +140,16 @@ it('exige des coordonnées vérifiées auprès de l\'auditeur, et la trace le ga
     expect(ReinscriptionAcma::query()->sole()->coordonnees_verifiees)->toBeTrue();
 });
 
+it('réserve la dérogation M2 au droit dédié', function (): void {
+    $sansDerogation = User::factory()->create();
+    $sansDerogation->givePermissionTo(['scolarite.inscrire_ancien', 'archives.consulter', 'archives.completer']);
+    $saisie02 = ['nom' => 'ESSAI', 'prenom' => 'Gamma', 'date_naissance' => '1990-05-05', 'genre' => 'F', 'phone_e164' => '+237699000002', 'email' => null,
+        'derogation_m2' => true, 'derogation_piece' => 'Décision 1/2026', 'date_naissance_piece' => 'Acte de naissance'];
+
+    expect(fn () => ($this->reinscrire)('90EFP002', $saisie02, $sansDerogation))->toThrow(InvalidArgumentException::class, 'dérogation M2');
+    expect(($this->reinscrire)('90EFP002', $saisie02)->matricule)->toBe('90EFP002');
+});
+
 it('refuse un matricule déjà pris comme identifiant eCampus figé ou ancien matricule d\'un autre dossier', function (): void {
     Candidature::factory()->forCampagne($this->p14)->create()->forceFill(['identifiant_ecampus' => '90efp012'])->save();
 
@@ -168,7 +178,7 @@ it('refuse un dossier déjà réinscrit, un matricule déjà pris, un M2 sans M1
 
 it('refuse de créer un second dossier pour une personne déjà sur la plateforme, et signale un téléphone d\'un autre dossier', function (): void {
     $auditeur = Auditeur::factory()->create();
-    $auditeur->candidature->forceFill(['campagne_id' => $this->p14->id, 'matricule' => '26EFP900', 'nom' => 'ESSAI', 'prenom' => 'Alpha Béta', 'epouse' => null, 'date_naissance' => '1985-03-12'])->save();
+    matriculeDeTest($auditeur->candidature, ['campagne_id' => $this->p14->id, 'matricule' => '26EFP900', 'nom' => 'ESSAI', 'prenom' => 'Alpha Béta', 'epouse' => null, 'date_naissance' => '1985-03-12']);
     expect(fn () => ($this->reinscrire)('90EFP001'))->toThrow(InvalidArgumentException::class, 'déjà auditeur');
     $auditeur->candidature->forceFill(['date_naissance' => '1960-01-01'])->save();
 
@@ -234,9 +244,14 @@ it('réserve le geste au responsable : l\'agent ne le voit ni ne l\'exécute', f
 
 it('se défait tant qu\'aucun ancien n\'est réinscrit, et refuse ensuite', function (): void {
     $migration = require database_path('migrations/2026_12_10_100200_create_reinscriptions_acma_table.php');
+    $suites = require database_path('migrations/2026_12_11_100000_add_suites_relectures_reinscription_acma.php');
+    $suites->down();
+    expect(Schema::hasColumn('reinscriptions_acma', 'identite_forcee'))->toBeFalse();
     $migration->down();
     expect(Schema::hasTable('reinscriptions_acma'))->toBeFalse();
     $migration->up();
-    ($this->reinscrire)('90EFP001');
-    expect(fn () => $migration->down())->toThrow(RuntimeException::class, 'réinscrits');
+    $suites->up();
+    ($this->reinscrire)('90EFP001', ['confirmer_signaux' => true]);
+    expect(fn () => $migration->down())->toThrow(RuntimeException::class, 'réinscrits')
+        ->and(fn () => $suites->down())->toThrow(RuntimeException::class, 'Confirmations');
 });

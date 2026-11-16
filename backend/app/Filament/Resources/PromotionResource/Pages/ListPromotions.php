@@ -33,7 +33,8 @@ class ListPromotions extends ListRecords
                         ->afterStateUpdated(fn (Forms\Set $set, $state) => filled($state) ? $set('annee', PromotionsAnterieures::anneeProposee((int) $state)) : null),
                     Forms\Components\TextInput::make('annee')->label('Année académique d\'entrée')->required()->regex('/^\d{4}-\d{4}$/')
                         ->helperText('Proposée : 2012 + numéro (P13 = 2025-2026). Modifiable.'),
-                    Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(PromotionsAnterieures::MOTIF_MINIMUM)->maxLength(500)->rows(2),
+                    Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(PromotionsAnterieures::MOTIF_MINIMUM)->maxLength(500)->rows(2)
+                        ->helperText('Gardé au journal : n\'y écrivez aucune donnée d\'identité.'),
                 ])
                 ->action(function (array $data, Actions\Action $action): void {
                     try {

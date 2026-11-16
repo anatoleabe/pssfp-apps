@@ -170,7 +170,11 @@ final class AuthCandidatController extends Controller
         $matricule = mb_strtoupper((string) $request->input('identifiant'));
         $motDePasse = (string) $request->input('mot_de_passe');
         $ip = (string) $request->ip();
-        $cle = 'matricule:'.$matricule;
+        // L'identifiant FOAD d'un dossier qui a repris son matricule ACMA (15m) reste l'ancien : les deux sont acceptés,
+        // et partagent le même compteur d'échecs (celui du dossier trouvé).
+        $candidature = Candidature::query()->with('user.roles')->where('matricule', $matricule)->first()
+            ?? Candidature::query()->with('user.roles')->where('identifiant_ecampus', mb_strtolower($matricule))->first();
+        $cle = 'matricule:'.($candidature !== null ? mb_strtoupper((string) $candidature->matricule) : $matricule);
 
         if (($bloque = $this->throttle->checkLogin($cle, $ip)) !== null) {
             return response()->json([
@@ -182,9 +186,6 @@ final class AuthCandidatController extends Controller
             ], $bloque['kind'] === 'phone_locked' ? 423 : 429, ['Retry-After' => (string) $bloque['retry_after']]);
         }
 
-        // L'identifiant FOAD d'un dossier qui a repris son matricule ACMA (15m) reste l'ancien : les deux sont acceptés.
-        $candidature = Candidature::query()->with('user.roles')->where('matricule', $matricule)->first()
-            ?? Candidature::query()->with('user.roles')->where('identifiant_ecampus', mb_strtolower($matricule))->first();
         try {
             $compte = $candidature !== null && IdentifiantsMoodle::disponibles($candidature)
                 ? NouveauCodeCandidat::compteCandidat($candidature)

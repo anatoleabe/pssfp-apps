@@ -11,12 +11,14 @@ use App\Models\RecuVersement;
 use App\Models\ReinscriptionAcma;
 use App\Models\User;
 use App\Services\Acma\ConversionMatriculeAcma;
+use App\Services\Acma\ErreurAcma;
 use App\Services\Acma\Reprise\RepriseAcma;
 use App\Services\Ecampus\ComptesEcampus;
 use App\Services\ExportsRetenus\AttributionMatricules;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Sms\SmsServiceInterface;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -124,10 +126,38 @@ it('refuse sans identité concordante confirmée, une seconde fois, un dossier l
     expect(fn () => $conversion->convertir(($this->dossier)('90EFP012'), $c, 'Motif suffisamment long', $this->responsable))->toThrow(InvalidArgumentException::class, 'ne concordent pas');
     expect(fn () => $conversion->convertir(($this->dossier)('90EFP012'), $c, 'Motif suffisamment long', ($this->compte)('scolarite_agent')))->toThrow(HttpException::class);
 
-    $conversion->convertir(($this->dossier)('90EFP012'), $c, 'Identité vérifiée sur la pièce', $this->responsable, true);
+    expect(fn () => $conversion->convertir(($this->dossier)('90EFP012'), $c, 'Identité vérifiée sur la pièce', $this->responsable, true))->toThrow(InvalidArgumentException::class, 'référence de la pièce');
+    $conversion->convertir(($this->dossier)('90EFP012'), $c, 'Identité vérifiée sur la pièce', $this->responsable, true, 'CNI fictive n° 0');
+    expect(ReinscriptionAcma::query()->sole())->identite_forcee->toBeTrue()->identite_piece->toBe('CNI fictive n° 0');
+    expect(DB::table('activity_log')->where('event', ConversionMatriculeAcma::EVENEMENT)->value('properties'))->toContain('"identite_forcee":true');
     $autre = ($this->retenu)(['nom' => 'ESSAI', 'prenom' => 'Zeta', 'date_naissance' => '1984-04-04']);
-    expect(fn () => $conversion->convertir(($this->dossier)('90EFP012'), $autre, 'Motif suffisamment long', $this->responsable, true))->toThrow(InvalidArgumentException::class, 'déjà repris');
-    expect(fn () => $conversion->convertir(($this->dossier)('90EFP013'), $c->fresh(), 'Motif suffisamment long', $this->responsable, true))->toThrow(InvalidArgumentException::class, 'déjà repris');
+    expect(fn () => $conversion->convertir(($this->dossier)('90EFP012'), $autre, 'Motif suffisamment long', $this->responsable, true, 'CNI fictive n° 0'))->toThrow(InvalidArgumentException::class, 'déjà repris');
+    expect(fn () => $conversion->convertir(($this->dossier)('90EFP013'), $c->fresh(), 'Motif suffisamment long', $this->responsable, true, 'CNI fictive n° 0'))->toThrow(InvalidArgumentException::class, 'déjà repris');
+});
+
+it('fige le matricule attribué en base, hors de la reprise du matricule ACMA', function (): void {
+    $c = ($this->retenu)(['nom' => 'NOUVEAU', 'prenom' => 'Retenu', 'date_naissance' => '1995-05-05']);
+    app(AttributionMatricules::class)->attribuer($this->p14, '26', $this->admin);
+
+    try {
+        DB::transaction(fn () => $c->fresh()->forceFill(['matricule' => '26EFP998'])->save());
+        $this->fail('Matricule changé hors de la reprise');
+    } catch (QueryException $e) {
+        expect($e->getMessage())->toContain('Matricule attribué')
+            ->and(ErreurAcma::resume($e))->toContain('Matricule attribué');
+    }
+});
+
+it('donne un message sans donnée d\'archive à qui n\'a pas accès aux archives', function (): void {
+    ($this->retenu)(['nom' => 'ESSAI', 'prenom' => 'Eta Theta', 'date_naissance' => '1986-06-06']);
+    $sansArchives = User::factory()->create();
+
+    try {
+        app(AttributionMatricules::class)->attribuer($this->p14, '26', $sansArchives);
+        $this->fail('Attribution acceptée');
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->toContain('peut-être un ancien auditeur')->not->toContain('90EFP013');
+    }
 });
 
 it('refuse sans compte eCampus rapproché, pour une paire déjà cohérente, et pendant une création de compte', function (): void {

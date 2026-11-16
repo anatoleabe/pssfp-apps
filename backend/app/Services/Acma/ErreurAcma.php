@@ -45,7 +45,7 @@ final class ErreurAcma extends RuntimeException
         if (is_string($premiere) && preg_match('/constraint "([a-z0-9_]+)"/', $premiere, $m) === 1) {
             $parties[] = 'contrainte '.$m[1];
         }
-        if (is_string($premiere) && preg_match('/(Archive ACMA [^.\n]*|Reprises ACMA [^.\n]*|Compléments ACMA [^.\n]*|Rapprochements ACMA [^.\n]*|Lien d\'un dossier ACMA [^.\n]*)/u', $premiere, $m) === 1) {
+        if (is_string($premiere) && preg_match('/(Archive ACMA [^.\n]*|Reprises ACMA [^.\n]*|Compléments ACMA [^.\n]*|Rapprochements ACMA [^.\n]*|Lien d\'un dossier ACMA [^.\n]*|Réinscriptions ACMA [^.\n]*|Matricule attribué [^.\n]*)/u', $premiere, $m) === 1) {
             $parties[] = $m[1];
         }
 

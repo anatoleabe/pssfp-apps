@@ -39,8 +39,8 @@ final class PromotionsAnterieures
     {
         abort_unless($auteur->can(self::PERMISSION), 403);
         $motif = trim($motif);
-        if (mb_strlen($motif) < self::MOTIF_MINIMUM) {
-            throw new InvalidArgumentException('Indiquez le motif (au moins '.self::MOTIF_MINIMUM.' caractères).');
+        if (mb_strlen($motif) < self::MOTIF_MINIMUM || mb_strlen($motif) > 500) {
+            throw new InvalidArgumentException('Le motif compte de '.self::MOTIF_MINIMUM.' à 500 caractères.');
         }
         if (! AnneeEnCours::valide($annee)) {
             throw new InvalidArgumentException('L\'année académique s\'écrit AAAA-AAAA, deux années qui se suivent.');

@@ -45,6 +45,21 @@ final class ReinscriptionAncien
 
     public const MOTIF_MINIMUM = 10;
 
+    public const MOTIF_MAXIMUM = 500;
+
+    public const PERMISSION_DEROGATION = 'scolarite.derogation_m2';
+
+    /** Motif d'un geste de la réinscription : 10 à 500 caractères (la trace est en ajout seul). */
+    public static function motif(string $motif): string
+    {
+        $motif = trim($motif);
+        if (mb_strlen($motif) < self::MOTIF_MINIMUM || mb_strlen($motif) > self::MOTIF_MAXIMUM) {
+            throw new InvalidArgumentException('Le motif compte de '.self::MOTIF_MINIMUM.' à '.self::MOTIF_MAXIMUM.' caractères.');
+        }
+
+        return $motif;
+    }
+
     public function __construct(
         private readonly CandidatUserService $comptes,
         private readonly InscriptionAnneeEnCours $inscriptions,
@@ -66,7 +81,8 @@ final class ReinscriptionAncien
             return DB::transaction(function () use ($dossier, $s, $auteur): Candidature {
                 $campagne = CampagneCandidature::query()->whereKey($s['campagne_id'])->lockForUpdate()->first()
                     ?? throw new InvalidArgumentException('Promotion de rattachement introuvable.');
-                $d = AcmaDossier::query()->whereKey($dossier->id)->lockForUpdate()->firstOrFail();
+                $d = AcmaDossier::query()->whereKey($dossier->id)->lockForUpdate()->first()
+                    ?? throw new InvalidArgumentException('Dossier d\'archive introuvable : rechargez la page.');
                 $this->prealables($d);
                 $this->doublons->refuser($d, $s);
                 $niveau = $this->controlerNiveau($d, $s, $auteur);
@@ -85,6 +101,7 @@ final class ReinscriptionAncien
                     'mode' => ReinscriptionAcma::CREATION, 'niveau' => $niveau, 'parcours' => $parcours->code,
                     'derogation_m2' => (bool) $s['derogation_m2'], 'derogation_piece' => $s['derogation_m2'] ? $s['derogation_piece'] : null,
                     'coordonnees_modifiees' => $this->coordonneesModifiees($d, $s), 'coordonnees_verifiees' => true,
+                    'signaux_confirmes' => (bool) ($s['confirmer_signaux'] ?? false), 'm1_admis_confirme' => (bool) ($s['confirmer_m1_admis'] ?? false),
                     'motif' => $s['motif'], 'auteur_id' => $auteur->id,
                 ])->save();
 
@@ -131,10 +148,7 @@ final class ReinscriptionAncien
      */
     private function valider(array $saisie): array
     {
-        $motif = trim((string) ($saisie['motif'] ?? ''));
-        if (mb_strlen($motif) < self::MOTIF_MINIMUM) {
-            throw new InvalidArgumentException('Indiquez le motif (au moins '.self::MOTIF_MINIMUM.' caractères).');
-        }
+        $motif = self::motif((string) ($saisie['motif'] ?? ''));
         foreach (['nom' => 'le nom', 'prenom' => 'le ou les prénoms', 'date_naissance' => 'la date de naissance', 'genre' => 'le genre', 'niveau' => 'le niveau', 'parcours' => 'le parcours'] as $champ => $libelle) {
             if (trim((string) ($saisie[$champ] ?? '')) === '') {
                 throw new InvalidArgumentException("Indiquez {$libelle}.");
@@ -215,7 +229,10 @@ final class ReinscriptionAncien
         if ($niveau === BaremeScolarite::NIVEAU_M2 && ! $m1Admis && ! $s['derogation_m2']) {
             throw new InvalidArgumentException('Aucun M1 admis dans l\'archive (décision enregistrée ou transcrite d\'un PV) : transcrivez d\'abord la décision, ou accordez une dérogation motivée avec sa pièce.');
         }
-        if ($s['derogation_m2'] && ($niveau !== BaremeScolarite::NIVEAU_M2 || $s['derogation_piece'] === '')) {
+        if ($s['derogation_m2'] && ! $auteur->can(self::PERMISSION_DEROGATION)) {
+            throw new InvalidArgumentException('La dérogation au M1 admis demande le droit « dérogation M2 » (responsable de la scolarité).');
+        }
+        if ($s['derogation_m2'] && ($niveau !== BaremeScolarite::NIVEAU_M2 || $s['derogation_piece'] === '' || mb_strlen($s['derogation_piece']) > 100)) {
             throw new InvalidArgumentException('Une dérogation ne vaut que pour le M2, avec la référence de sa pièce.');
         }
         if ($niveau === BaremeScolarite::NIVEAU_M1 && $m1Admis && ! ($s['confirmer_m1_admis'] ?? false)) {
@@ -326,7 +343,8 @@ final class ReinscriptionAncien
             ->withProperties([
                 'dossier' => $d->uuid, 'promotion' => $campagne->promotion_numero,
                 'niveau' => $trace->niveau, 'parcours' => $trace->parcours, 'derogation_m2' => $trace->derogation_m2,
-                'champs_modifies' => $trace->coordonnees_modifiees ?? [], 'coordonnees_verifiees' => true, 'motif' => $trace->motif,
+                'champs_modifies' => $trace->coordonnees_modifiees ?? [], 'coordonnees_verifiees' => true,
+                'signaux_confirmes' => $trace->signaux_confirmes, 'm1_admis_confirme' => $trace->m1_admis_confirme, 'motif' => $trace->motif,
             ])
             ->log('Ancien auditeur réinscrit depuis l\'archive ACMA');
         activity(Journaux::CANDIDATURES)->causedBy($auteur)->performedOn($candidature)->event('retenu_reinscrit_acma')

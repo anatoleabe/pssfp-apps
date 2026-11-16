@@ -14,6 +14,7 @@ use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\ResultatConfirmation;
 use App\Services\Scolarite\ResultatOperation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -170,4 +171,19 @@ function etatAvecToutLArgent(Candidature $dossier): string
     }
 
     return AccesEcampus::compteExiste($c) && filled($c->matricule) ? AccesEcampus::DISPONIBLE : AccesEcampus::EN_PREPARATION;
+}
+
+/**
+ * Jeux d'essai seulement : remplace le matricule fictif d'un dossier (la fabrique d'auditeurs en donne un au hasard).
+ * Le déclencheur « matricule figé » ne laisse changer un matricule attribué que dans la reprise du matricule ACMA ;
+ * ce test-ci se place, le temps de son écriture, dans la même exception.
+ *
+ * @param  array<string, mixed>  $champs
+ */
+function matriculeDeTest(Candidature $c, array $champs): void
+{
+    DB::transaction(function () use ($c, $champs): void {
+        DB::select("SELECT set_config('app.conversion_matricule', 'on', true)");
+        $c->forceFill($champs)->save();
+    });
 }

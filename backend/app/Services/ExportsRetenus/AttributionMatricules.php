@@ -8,6 +8,7 @@ use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\ReinscriptionAcma;
 use App\Models\User;
+use App\Services\Acma\ArchivesAcma;
 use App\Services\Acma\DoublonsAncien;
 use App\Services\Scolarite\AnneeEnCours;
 use App\Services\Scolarite\OuvertureAuditeur;
@@ -89,7 +90,7 @@ final class AttributionMatricules
             throw new InvalidArgumentException("Les matricules de cette promotion commencent déjà par « {$figee} » : l'année ne peut plus changer.");
         }
 
-        $resultat = $this->db->transaction(function () use ($campagne, $annee, $seulement): array {
+        $resultat = $this->db->transaction(function () use ($campagne, $annee, $seulement, $auteur): array {
             // Verrou sur la campagne : deux clics simultanés ne doivent pas
             // distribuer deux fois le même rang.
             CampagneCandidature::query()->whereKey($campagne->id)->lockForUpdate()->first();
@@ -109,11 +110,17 @@ final class AttributionMatricules
             foreach ($nouveaux as $candidature) {
                 // Un ancien déjà réinscrit depuis l'archive garde son matricule ACMA : pas de second dossier (16/11/2026).
                 $reinscrit = DoublonsAncien::reinscritPour($candidature);
+                if ($reinscrit !== null && ! $auteur->can(ArchivesAcma::CONSULTER)) {
+                    throw new RuntimeException("Le retenu {$candidature->numero_dossier} est peut-être déjà auditeur : la scolarité doit vérifier ce dossier avant l'attribution.");
+                }
                 if ($reinscrit !== null) {
                     throw new RuntimeException("Le retenu {$candidature->numero_dossier} est déjà auditeur depuis l'archive ACMA (dossier {$reinscrit->numero_dossier}, matricule {$reinscrit->matricule}) : retirez sa candidature, puis attribuez les matricules.");
                 }
                 // Probable ancien auditeur : le dossier ACMA fait foi (Q2), son matricule se reprend depuis l'archive.
                 $archive = DoublonsAncien::dossierArchivePour($candidature);
+                if ($archive !== null && ! $auteur->can(ArchivesAcma::CONSULTER)) {
+                    throw new RuntimeException("Le retenu {$candidature->numero_dossier} est peut-être un ancien auditeur : la scolarité doit vérifier ce dossier avant l'attribution.");
+                }
                 if ($archive !== null) {
                     throw new RuntimeException("Le retenu {$candidature->numero_dossier} semble être l'ancien auditeur {$archive->matricule} : reprenez son matricule ACMA depuis sa fiche d'archive (ou arbitrez « personnes différentes »), puis attribuez les autres.");
                 }

@@ -132,6 +132,7 @@ final class ModulePermissionMap
                     'scolarite.bareme' => 'Modifier les barèmes',
                     'scolarite.promotion' => 'Modifier les réglages d\'une promotion (lettres, rentrée, consignes)',
                     'scolarite.promotion_anterieure' => 'Créer une promotion antérieure (rattachement d\'un ancien auditeur réinscrit depuis l\'archive ACMA)',
+                    'scolarite.derogation_m2' => 'Accorder, à la réinscription d\'un ancien, une dérogation au M1 admis pour l\'inscrire en M2 (avec sa pièce)',
                     'scolarite.inscrire_ancien' => 'Réinscrire un ancien auditeur depuis son dossier d\'archive ACMA dans l\'année en cours (matricule ACMA conservé), dérogation M2 comprise',
                     'scolarite.statut' => 'Changer le statut d\'un auditeur (suspendu, abandon, exclu, diplômé)',
                     'scolarite.messages' => 'Envoyer un message aux auditeurs (relance des impayés)',

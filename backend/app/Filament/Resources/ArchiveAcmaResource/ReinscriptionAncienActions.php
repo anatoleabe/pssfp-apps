@@ -26,6 +26,9 @@ use Filament\Notifications\Notification;
  */
 final class ReinscriptionAncienActions
 {
+    /** La trace est en ajout seul : rien d'identifiant n'y entre par le motif. */
+    public const AIDE_MOTIF = 'Gardé sans modification possible : n\'y écrivez ni nom, ni téléphone, ni date de naissance, ni numéro de pièce d\'identité.';
+
     public static function reinscrire(): Action
     {
         return Action::make('reinscrire')
@@ -87,14 +90,17 @@ final class ReinscriptionAncienActions
             ->form([
                 Forms\Components\Select::make('candidature')->label('Dossier de la plateforme (matricule, nom ou n° de dossier)')->required()->searchable()
                     ->getSearchResultsUsing(fn (string $recherche): array => self::retenus($recherche)),
-                Forms\Components\Checkbox::make('identite_confirmee')->label('L\'identité ne concorde pas exactement (date ou noms) : je l\'ai vérifiée sur pièce'),
-                Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(ReinscriptionAncien::MOTIF_MINIMUM)->maxLength(500)->rows(2),
+                Forms\Components\Checkbox::make('identite_confirmee')->label('L\'identité ne concorde pas exactement (date ou noms) : je l\'ai vérifiée sur pièce')->live(),
+                Forms\Components\TextInput::make('identite_piece')->label('Référence de la pièce vue')->maxLength(100)
+                    ->visible(fn (Forms\Get $get): bool => (bool) $get('identite_confirmee'))->required(fn (Forms\Get $get): bool => (bool) $get('identite_confirmee')),
+                Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(ReinscriptionAncien::MOTIF_MINIMUM)->maxLength(ReinscriptionAncien::MOTIF_MAXIMUM)->rows(2)
+                    ->helperText(self::AIDE_MOTIF),
             ])
             ->action(function (AcmaDossier $record, array $data, Action $action): void {
                 $c = Candidature::query()->where('uuid', (string) $data['candidature'])->first();
                 ArchiveAcmaActions::executer($action, fn () => $c === null
                     ? throw new \InvalidArgumentException('Dossier introuvable.')
-                    : app(ConversionMatriculeAcma::class)->convertir($record, $c, (string) $data['motif'], auth()->user(), (bool) ($data['identite_confirmee'] ?? false)),
+                    : app(ConversionMatriculeAcma::class)->convertir($record, $c, (string) $data['motif'], auth()->user(), (bool) ($data['identite_confirmee'] ?? false), $data['identite_piece'] ?? null),
                     'Matricule ACMA repris');
             });
     }
@@ -197,13 +203,13 @@ final class ReinscriptionAncienActions
                 Forms\Components\Checkbox::make('confirmer_m1_admis')->label('Déjà admis en M1 dans l\'archive : je confirme la réinscription en M1')
                     ->visible(fn (Forms\Get $get): bool => $get('niveau') === 'M1'),
                 Forms\Components\Toggle::make('derogation_m2')->label('Dérogation : M2 sans M1 admis dans l\'archive')->live()
-                    ->visible(fn (Forms\Get $get): bool => $get('niveau') === 'M2'),
+                    ->visible(fn (Forms\Get $get): bool => $get('niveau') === 'M2' && (bool) auth()->user()?->can(ReinscriptionAncien::PERMISSION_DEROGATION)),
                 Forms\Components\TextInput::make('derogation_piece')->label('Pièce de la dérogation')->maxLength(100)
                     ->visible(fn (Forms\Get $get): bool => $get('niveau') === 'M2' && (bool) $get('derogation_m2'))
                     ->required(fn (Forms\Get $get): bool => (bool) $get('derogation_m2')),
             ]),
-            Forms\Components\Textarea::make('motif')->label('Motif (par exemple la demande écrite de l\'auditeur)')->required()
-                ->minLength(ReinscriptionAncien::MOTIF_MINIMUM)->maxLength(500)->rows(2),
+            Forms\Components\Textarea::make('motif')->label('Motif (par exemple la référence de la demande écrite de l\'auditeur)')->required()
+                ->minLength(ReinscriptionAncien::MOTIF_MINIMUM)->maxLength(ReinscriptionAncien::MOTIF_MAXIMUM)->rows(2)->helperText(self::AIDE_MOTIF),
         ];
     }
 }
