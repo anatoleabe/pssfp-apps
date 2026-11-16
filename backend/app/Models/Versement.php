@@ -46,7 +46,8 @@ class Versement extends Model
 
     /*
      * Statut d'un versement (espace Finances, spec §6.2) : déduit des tables, jamais stocké.
-     * Enregistré : valide, pas encore confirmé par la scolarité ; confirmé ; annulé.
+     * Enregistré : valide, pas encore confirmé par la scolarité ; confirmé ; annulé ; remplacé (annulé par une pièce de
+     * correction qui désigne un remplaçant, ADR-0015).
      */
     public const STATUT_ENREGISTRE = 'enregistre';
 
@@ -54,10 +55,13 @@ class Versement extends Model
 
     public const STATUT_ANNULE = 'annule';
 
+    public const STATUT_REMPLACE = 'remplace';
+
     public const STATUTS = [
         self::STATUT_ENREGISTRE => 'Enregistré',
         self::STATUT_CONFIRME => 'Confirmé',
         self::STATUT_ANNULE => 'Annulé',
+        self::STATUT_REMPLACE => 'Remplacé',
     ];
 
     /**
@@ -202,7 +206,7 @@ class Versement extends Model
     public function statut(): string
     {
         return match (true) {
-            $this->estAnnule() => self::STATUT_ANNULE,
+            $this->estAnnule() => $this->correction()->whereNotNull('versement_remplacant_id')->exists() ? self::STATUT_REMPLACE : self::STATUT_ANNULE,
             $this->confirmation()->exists() => self::STATUT_CONFIRME,
             default => self::STATUT_ENREGISTRE,
         };
@@ -234,12 +238,41 @@ class Versement extends Model
         return $query->where(function (Builder $q) use ($statuts): void {
             foreach ($statuts as $statut) {
                 $q->orWhere(fn (Builder $s): Builder => match ($statut) {
-                    self::STATUT_ANNULE => $s->whereNotNull('annule_at'),
+                    self::STATUT_ANNULE => $s->whereNotNull('annule_at')->whereDoesntHave('correction', fn (Builder $c) => $c->whereNotNull('versement_remplacant_id')),
+                    self::STATUT_REMPLACE => $s->whereNotNull('annule_at')->whereHas('correction', fn (Builder $c) => $c->whereNotNull('versement_remplacant_id')),
                     self::STATUT_CONFIRME => $s->whereNull('annule_at')->whereHas('confirmation'),
                     self::STATUT_ENREGISTRE => $s->whereNull('annule_at')->whereDoesntHave('confirmation'),
                 });
             }
         });
+    }
+
+    /** Pièce de correction qui a annulé ce versement (ADR-0015). */
+    public function correction(): HasOne
+    {
+        return $this->hasOne(CorrectionVersement::class, 'versement_annule_id');
+    }
+
+    /** Pièce de correction dont ce versement est le remplaçant. */
+    public function correctionOrigine(): HasOne
+    {
+        return $this->hasOne(CorrectionVersement::class, 'versement_remplacant_id');
+    }
+
+    /** Demande de correction en cours (circuit du lot 14c) : elle suspend la confirmation et la relance (R-C9). */
+    public function correctionDemandee(): ?DemandeAutorisation
+    {
+        return DemandeAutorisation::query()->where('type', DemandeAutorisation::TYPE_CORRIGER_VERSEMENT)
+            ->where('entite_id', $this->id)->whereIn('statut', DemandeAutorisation::EN_ATTENTE)->first();
+    }
+
+    /** Versements sans demande de correction en cours. */
+    public function scopeSansCorrectionEnCours(Builder $query): Builder
+    {
+        return $query->whereNotExists(fn ($q) => $q->select('id')->from('demandes_autorisation')
+            ->where('type', DemandeAutorisation::TYPE_CORRIGER_VERSEMENT)
+            ->whereColumn('demandes_autorisation.entite_id', 'versements.id')
+            ->whereIn('statut', DemandeAutorisation::EN_ATTENTE));
     }
 
     /** Confirmation par la scolarité (15/11/2026) : seul l'argent confirmé rend l'auditeur « à jour ». */

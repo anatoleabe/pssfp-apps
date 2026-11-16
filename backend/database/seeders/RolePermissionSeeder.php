@@ -233,7 +233,7 @@ final class RolePermissionSeeder extends Seeder
                 'label' => 'Service administratif et financier',
                 'description' => 'Encaissement des versements de scolarité et émission de leurs reçus ; dossiers de paie des enseignants : NIU, banque et compte de virement.',
                 'modules' => ['scolarite' => $manage],
-                'sensitive' => ['lmd.dossier_paie', 'scolarite.recu_emettre', 'lmd.paie_payer', 'lmd.controle_gestion', 'finances.consulter', 'scolarite.export'],
+                'sensitive' => ['lmd.dossier_paie', 'scolarite.recu_emettre', 'lmd.paie_payer', 'lmd.controle_gestion', 'finances.consulter', 'scolarite.export', 'scolarite.versement_corriger'],
             ],
             'chef_structure' => [
                 'label' => 'Chef de la structure',

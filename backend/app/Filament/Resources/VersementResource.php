@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\AuditeurActions;
+use App\Filament\Resources\AuditeurResource\CorrectionActions;
 use App\Filament\Resources\AuditeurResource\RecuActions;
 use App\Filament\Resources\VersementResource\Pages;
 use App\Models\InscriptionAnnuelle;
@@ -72,7 +73,7 @@ class VersementResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
                 'auditeur.candidature:id,nom,prenom,matricule', 'inscription:id,annee_academique,niveau', 'saisiPar:id,name',
-                'recus.annulation', 'confirmation.confirmePar:id,name',
+                'recus.annulation', 'confirmation.confirmePar:id,name', 'correction.versementRemplacant:id,reference', 'correctionOrigine.versementAnnule:id,reference',
             ]))
             ->defaultSort('created_at', 'desc')
             ->columns([
@@ -99,14 +100,15 @@ class VersementResource extends Resource
                     ->getStateUsing(fn (Versement $v): string => Versement::STATUTS[VersementsExcel::statut($v)])
                     ->color(fn (Versement $v): string => match (VersementsExcel::statut($v)) {
                         Versement::STATUT_CONFIRME => 'success',
-                        Versement::STATUT_ANNULE => 'gray',
+                        Versement::STATUT_ANNULE, Versement::STATUT_REMPLACE => 'gray',
                         default => 'warning',
                     })
                     ->description(fn (Versement $v): ?string => match (VersementsExcel::statut($v)) {
                         Versement::STATUT_CONFIRME => 'Le '.$v->confirmation->confirme_at->setTimezone('Africa/Douala')->format('d/m/Y'),
                         Versement::STATUT_ANNULE => 'Le '.$v->annule_at->setTimezone('Africa/Douala')->format('d/m/Y').' : '.$v->annule_motif,
+                        Versement::STATUT_REMPLACE => 'Le '.$v->annule_at->setTimezone('Africa/Douala')->format('d/m/Y').', par '.$v->correction->versementRemplacant?->reference.' ('.$v->correction->numero.')',
                         default => 'À confirmer par la scolarité',
-                    }),
+                    }.($v->correctionOrigine !== null ? ' — remplace '.$v->correctionOrigine->versementAnnule?->reference.' ('.$v->correctionOrigine->numero.')' : '')),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('statut')->label('Statut')->multiple()
@@ -158,6 +160,8 @@ class VersementResource extends Resource
                     ->visible(fn (Versement $v): bool => $v->recuEnVigueur() !== null)
                     ->action(fn (Versement $v): StreamedResponse => RecuActions::reponse($v->recuEnVigueur())),
                 AuditeurActions::voirJustificatif(),
+                CorrectionActions::corriger(),
+                CorrectionActions::annuler(),
             ])->label('Actions')->icon('heroicon-o-ellipsis-vertical')])
             ->bulkActions([])
             ->emptyStateHeading('Aucun versement')

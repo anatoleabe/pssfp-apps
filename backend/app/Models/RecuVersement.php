@@ -61,6 +61,18 @@ class RecuVersement extends Model
         return $this->hasOne(AnnulationRecu::class, 'recu_id');
     }
 
+    /** Reçu annulé que celui-ci remplace (correction du versement, ou réémission pour le même versement ; ADR-0015). */
+    public function remplace(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'remplace_recu_id');
+    }
+
+    /** Reçu émis à la place de celui-ci, une fois annulé. */
+    public function remplacant(): HasOne
+    {
+        return $this->hasOne(self::class, 'remplace_recu_id');
+    }
+
     public function estAnnule(): bool
     {
         return $this->annulation !== null;

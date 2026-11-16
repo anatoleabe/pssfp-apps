@@ -7,6 +7,7 @@ namespace App\Filament\Resources\AuditeurResource\RelationManagers;
 use App\Filament\Concerns\ChecksModuleAccess;
 use App\Filament\Resources\AuditeurResource\AuditeurActions;
 use App\Filament\Resources\AuditeurResource\ConfirmationActions;
+use App\Filament\Resources\AuditeurResource\CorrectionActions;
 use App\Filament\Resources\AuditeurResource\RecuActions;
 use App\Models\Auditeur;
 use App\Models\Versement;
@@ -53,7 +54,7 @@ class VersementsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['saisiPar', 'annulePar', 'inscription', 'recus.annulation', 'confirmation.confirmePar']))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['saisiPar', 'annulePar', 'inscription', 'recus.annulation', 'confirmation.confirmePar', 'correction', 'correctionOrigine']))
             ->defaultSort('date_versement', 'desc')
             ->recordTitleAttribute('reference')
             ->columns([
@@ -80,7 +81,11 @@ class VersementsRelationManager extends RelationManager
                     })
                     ->description(fn (Versement $record): ?string => $record->confirmation?->confirmePar?->name),
                 Tables\Columns\TextColumn::make('etat')->label('État')->badge()
-                    ->getStateUsing(fn (Versement $record): string => $record->estAnnule() ? 'Annulé' : 'Valide')
+                    ->getStateUsing(fn (Versement $record): string => match (true) {
+                        ! $record->estAnnule() => $record->correctionOrigine !== null ? 'Valide (remplaçant)' : 'Valide',
+                        $record->correction?->versement_remplacant_id !== null => 'Remplacé',
+                        default => 'Annulé',
+                    })
                     ->color(fn (Versement $record): string => $record->estAnnule() ? 'gray' : 'success')
                     ->tooltip(fn (Versement $record): ?string => $record->estAnnule()
                         ? 'Annulé le '.$record->annule_at->timezone('Africa/Douala')->format('d/m/Y').' par '.($record->annulePar?->name ?? '—').' : '.$record->annule_motif
@@ -92,7 +97,8 @@ class VersementsRelationManager extends RelationManager
                     ConfirmationActions::confirmer(),
                     AuditeurActions::voirJustificatif(),
                     AuditeurActions::ajouterJustificatif(),
-                    AuditeurActions::annulerVersement(),
+                    CorrectionActions::corriger(),
+                    CorrectionActions::annuler(),
                     RecuActions::emettre(),
                     RecuActions::telechargerDepuisVersement(),
                     RecuActions::annulerDepuisVersement(),

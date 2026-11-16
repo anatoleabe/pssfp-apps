@@ -28,6 +28,7 @@ class ConfirmationVersement extends Model
         'confirme_at' => 'datetime',
         'attestation' => 'boolean',
         'reprise' => 'boolean',
+        'correction_id' => 'integer',
     ];
 
     /** Le chemin privé du scan ne sort jamais du back-office. */
@@ -42,6 +43,26 @@ class ConfirmationVersement extends Model
     public function versement(): BelongsTo
     {
         return $this->belongsTo(Versement::class);
+    }
+
+    /** Pièce de correction qui a reporté cette confirmation depuis le versement corrigé (ADR-0015). */
+    public function correction(): BelongsTo
+    {
+        return $this->belongsTo(CorrectionVersement::class, 'correction_id');
+    }
+
+    /**
+     * Scan qui justifie la confirmation : le sien, ou, pour une confirmation reportée par une correction, celui de la
+     * confirmation d'origine (une pièce ne sert qu'une fois).
+     */
+    public function scan(): ?string
+    {
+        if ($this->justificatif_path !== null) {
+            return $this->justificatif_path;
+        }
+        $origine = $this->correction?->versement_annule_id;
+
+        return $origine === null ? null : self::query()->where('versement_id', $origine)->first()?->scan();
     }
 
     public function confirmePar(): BelongsTo

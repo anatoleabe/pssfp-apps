@@ -22,7 +22,10 @@
   </tr></table>
 
   @if ($recu->annulation !== null)
-    <div class="annule">ANNULÉ — écriture {{ $recu->annulation->numero }} du {{ $recu->annulation->annule_at->setTimezone($tz)->format('d/m/Y') }}</div>
+    <div class="annule">ANNULÉ — écriture {{ $recu->annulation->numero }} du {{ $recu->annulation->annule_at->setTimezone($tz)->format('d/m/Y') }}@if ($recu->remplacant !== null) — remplacé par {{ $recu->remplacant->numero }}@endif</div>
+  @endif
+  @if ($recu->remplace !== null)
+    <p class="pied">Remplace le reçu {{ $recu->remplace->numero }}@if ($recu->remplace->annulation !== null), annulé le {{ $recu->remplace->annulation->annule_at->setTimezone($tz)->format('d/m/Y') }}@endif{{ ($correction ?? null) !== null ? ' (correction '.$correction->numero.')' : '' }}.</p>
   @endif
 
   <table class="ident">

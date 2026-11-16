@@ -163,13 +163,16 @@ final class Demandes
      * Approuve ou rejette. `$statutVu` : le statut affiché quand l'utilisateur a cliqué ; s'il a changé, la décision est refusée.
      * Renvoie le résultat lisible (exécution, visa attendu, rejet, échec).
      */
-    public function decider(User $decideur, DemandeAutorisation $demande, bool $approuve, ?string $commentaire = null, ?string $statutVu = null): string
+    /**
+     * @param  array<string, mixed>  $options  ce que la décision atteste en plus (correction d'un versement : attestation, fermeture d'accès)
+     */
+    public function decider(User $decideur, DemandeAutorisation $demande, bool $approuve, ?string $commentaire = null, ?string $statutVu = null, array $options = []): string
     {
         $commentaire = trim((string) $commentaire);
         if (! $approuve && mb_strlen($commentaire) < self::COMMENTAIRE_MIN) {
             throw new InvalidArgumentException('Un rejet se motive (10 caractères au moins).');
         }
-        [$d, $resultat, $suite] = DB::transaction(function () use ($decideur, $demande, $approuve, $commentaire, $statutVu): array {
+        [$d, $resultat, $suite] = DB::transaction(function () use ($decideur, $demande, $approuve, $commentaire, $statutVu, $options): array {
             $d = DemandeAutorisation::query()->lockForUpdate()->findOrFail($demande->id);
             if (! $d->enAttente()) {
                 throw new InvalidArgumentException('Demande déjà traitée ('.(DemandeAutorisation::STATUTS[$d->statut] ?? $d->statut).').');
@@ -186,6 +189,9 @@ final class Demandes
                     : 'Vous n\'avez pas le droit requis pour décider cette demande.');
             }
             $qualite = $d->statut === DemandeAutorisation::VISA_ATTENDU ? DecisionDemande::CONTROLE_INTERNE : DecisionDemande::RESPONSABLE;
+            if ($approuve) {
+                $this->types->verifierApprobation($d, $options);
+            }
             DecisionDemande::query()->create([
                 'demande_id' => $d->id, 'decideur_id' => $decideur->id, 'qualite' => $qualite,
                 'decision' => $approuve ? DecisionDemande::APPROUVE : DecisionDemande::REJETE,
@@ -205,7 +211,7 @@ final class Demandes
                 return [$d, 'Approuvée par le responsable ; visa du contrôle interne attendu', 'visa'];
             }
 
-            return [$d, $this->executer($d), null];
+            return [$d, $this->executer($d, $options), null];
         });
 
         $this->prevenir($decideur, [$d->demandeur_id], $d, 'Demande '.$d->numero.' — '.$resultat,
@@ -239,17 +245,18 @@ final class Demandes
      * Exécution dans un point de sauvegarde, sous l'identité du responsable qui a approuvé, sur l'objet tel qu'il était à la
      * soumission (empreinte). Un échec garde les décisions et passe la demande en « échec d'exécution ».
      */
-    private function executer(DemandeAutorisation $d): string
+    /** @param  array<string, mixed>  $options */
+    private function executer(DemandeAutorisation $d, array $options = []): string
     {
         $responsable = User::query()->findOrFail($d->decisions()->where('qualite', DecisionDemande::RESPONSABLE)->value('decideur_id'));
         $motif = 'Demande '.$d->numero.' : '.$d->motif;
         try {
-            $resultat = DB::transaction(function () use ($d, $responsable, $motif): string {
+            $resultat = DB::transaction(function () use ($d, $responsable, $motif, $options): string {
                 if ($d->empreinte !== null && $this->types->empreinte($d->type, $d->entite_id) !== $d->empreinte) {
                     throw new InvalidArgumentException('l\'objet a été modifié depuis la demande ; soumettez-en une nouvelle sur sa version actuelle.');
                 }
 
-                return $this->types->executer($d->type, $d->entite_id, $responsable, $motif, $d->parametres ?? []);
+                return $this->types->executer($d->type, $d->entite_id, $responsable, $motif, $d->parametres ?? [], $d, $options);
             });
             $d->forceFill(['statut' => DemandeAutorisation::EXECUTEE, 'traitee_le' => now(), 'resultat' => mb_substr($resultat, 0, 1000)])->save();
             $this->journal($responsable, $d, 'demande_executee', 'Demande exécutée', ['resultat' => $resultat]);

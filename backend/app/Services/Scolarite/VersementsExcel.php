@@ -34,7 +34,7 @@ final class VersementsExcel
     /** Lecture par morceaux : la mémoire ne dépend pas du nombre de lignes. */
     public const MORCEAU = 500;
 
-    public const RELATIONS_VERSEMENTS = ['auditeur.candidature:id,nom,prenom,matricule', 'inscription:id,annee_academique,niveau', 'saisiPar:id,name', 'recus.annulation', 'confirmation'];
+    public const RELATIONS_VERSEMENTS = ['auditeur.candidature:id,nom,prenom,matricule', 'inscription:id,annee_academique,niveau', 'saisiPar:id,name', 'recus.annulation', 'confirmation', 'correction'];
 
     /**
      * Versements d'une requête, lus par morceaux, ou null si elle dépasse EXPORT_MAX.
@@ -140,7 +140,7 @@ final class VersementsExcel
     public static function statut(Versement $v): string
     {
         return match (true) {
-            $v->estAnnule() => Versement::STATUT_ANNULE,
+            $v->estAnnule() => $v->correction?->versement_remplacant_id !== null ? Versement::STATUT_REMPLACE : Versement::STATUT_ANNULE,
             $v->confirmation !== null => Versement::STATUT_CONFIRME,
             default => Versement::STATUT_ENREGISTRE,
         };
