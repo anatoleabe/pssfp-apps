@@ -35,7 +35,7 @@ use Spatie\Activitylog\Models\Activity;
  */
 final class ImputationsCompte
 {
-    public const DECLENCHEURS = ['ouverture', 'remise', 'annulation'];
+    public const DECLENCHEURS = ['ouverture', 'remise', 'annulation', 'reinscription_acma'];
 
     public const COMPTE_INCOHERENT = 'Le compte de l\'auditeur n\'a pas pu être mis à jour : rien n\'a été enregistré. Prévenez l\'USI.';
 

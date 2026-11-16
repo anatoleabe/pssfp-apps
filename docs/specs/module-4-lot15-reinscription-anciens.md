@@ -540,3 +540,14 @@ Chaque sous-lot a sa branche, ses tests, sa PR, et se déploie seul.
 4. **Liste des promotions** : une campagne close sans aucun dossier s'y montre (c'est une promotion antérieure tout juste créée). Le filtre « Antérieures » n'est pas livré : la colonne « Retenus » à 0 suffit.
 5. **`scolarite:importer-auditeurs`** garde sa signature et échoue avec un message qui renvoie à l'archive. Le service `ImportAuditeurs` reste, pour ses tests et ses règles de lecture.
 6. **Création** : verrou sur la promotion courante ; refus d'un numéro pris, d'un numéro ≥ celui de la promotion courante, d'une année déjà portée par une autre promotion ou non antérieure.
+
+### 15k — Réinscription d'un ancien
+
+1. **Trace prête pour 15m.** `reinscriptions_acma` porte dès 15k ses colonnes `mode` (`creation`, `conversion`, `attribution`) et `ancien_matricule`, sous `CHECK` : 15m n'aura pas à la modifier. `down()` est refusé dès qu'un ancien est réinscrit.
+2. **Règles du téléphone et du compte** partagées avec « Ajouter un retenu » (`CompteRetenu`) : format E.164, téléphone déjà pris dans la promotion, compte du personnel refusé, compte d'une autre date de naissance refusé.
+3. **Doublons (§8.2)** : une candidature de toute promotion à la même date de naissance et aux noms compatibles (noms de l'archive ou noms saisis) bloque si c'est un auditeur, un retenu sans matricule ou une candidature non décidée ; une candidature refusée ne bloque pas. Un téléphone ou un e-mail d'un autre dossier, sans identité commune, exige la case « je l'ai vérifié ».
+4. **Date de naissance** : si la date saisie diffère de celle de l'archive (ou si l'archive n'en a pas d'exploitable), la référence d'une pièce est exigée, et un complément `date_naissance` est écrit dans l'archive par le service des compléments (droit `archives.completer`, que détiennent les mêmes rôles).
+5. **Compte eCampus** : créé après la transaction, seulement si la promotion de rattachement est la promotion d'accueil (P14 en M1, P13 en M2 pour 2026-2027) ; ailleurs, la cohorte serait fausse tant que 15l ne la lit pas dans l'inscription. Le compte reste alors à créer depuis la fiche de l'auditeur.
+6. **Garde de l'attribution P14** : un retenu à la même date de naissance et aux noms compatibles qu'un ancien réinscrit (mode `creation`) fait refuser l'attribution des matricules, avec le dossier en cause.
+7. **Non livrés dans 15k** : le second téléphone dans le formulaire et le filtre « Réinscrit depuis ACMA » de la liste des auditeurs (la trace et le journal suffisent pour l'instant).
+8. **Journal** : les événements de la réinscription ne portent ni téléphone, ni e-mail, ni adresse, ni matricule (uuid du dossier d'archive seulement). Le journal des comptes garde, comme pour tout compte, le téléphone du compte créé.

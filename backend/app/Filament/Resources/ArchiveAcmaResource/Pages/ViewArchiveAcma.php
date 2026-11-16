@@ -6,6 +6,7 @@ namespace App\Filament\Resources\ArchiveAcmaResource\Pages;
 
 use App\Filament\Resources\ArchiveAcmaResource;
 use App\Filament\Resources\ArchiveAcmaResource\ArchiveAcmaActions;
+use App\Filament\Resources\ArchiveAcmaResource\ReinscriptionAncienActions;
 use App\Models\AcmaDossier;
 use App\Support\Journaux;
 use Filament\Actions\ActionGroup;
@@ -44,6 +45,7 @@ class ViewArchiveAcma extends ViewRecord
     {
         return [
             ArchiveAcmaActions::ficheAuditeur(),
+            ReinscriptionAncienActions::reinscrire(),
             ArchiveAcmaActions::arbitrer(),
             ActionGroup::make([
                 ArchiveAcmaActions::transcrireDecision(),

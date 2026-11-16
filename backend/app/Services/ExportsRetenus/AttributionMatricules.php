@@ -7,6 +7,7 @@ namespace App\Services\ExportsRetenus;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\User;
+use App\Services\Acma\DoublonsAncien;
 use App\Services\Scolarite\AnneeEnCours;
 use App\Services\Scolarite\OuvertureAuditeur;
 use Illuminate\Database\ConnectionInterface;
@@ -98,6 +99,11 @@ final class AttributionMatricules
             }
             $nouveaux = $this->parOrdreAlphabetique($aNumeroter->get());
             foreach ($nouveaux as $candidature) {
+                // Un ancien déjà réinscrit depuis l'archive garde son matricule ACMA : pas de second dossier (16/11/2026).
+                $reinscrit = DoublonsAncien::reinscritPour($candidature);
+                if ($reinscrit !== null) {
+                    throw new RuntimeException("Le retenu {$candidature->numero_dossier} est déjà auditeur depuis l'archive ACMA (dossier {$reinscrit->numero_dossier}, matricule {$reinscrit->matricule}) : retirez sa candidature, puis attribuez les matricules.");
+                }
                 $rang++;
                 $matricule = $annee.$candidature->categorie_matricule.str_pad((string) $rang, 3, '0', STR_PAD_LEFT);
                 // Unicité sur toute la table : une autre campagne de la même

@@ -6,7 +6,6 @@ namespace App\Services\AjoutRetenu;
 
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
-use App\Models\Pays;
 use App\Models\User;
 use App\Services\CandidatUserService;
 use App\Services\ResultatsSelection\DetecteurDoublons;
@@ -64,7 +63,7 @@ final class AjoutRetenu
     {
         abort_unless($auteur->can(self::PERMISSION), 403);
 
-        $telephone = $this->telephone((string) ($donnees['phone_e164'] ?? ''));
+        $telephone = CompteRetenu::telephone((string) ($donnees['phone_e164'] ?? ''));
         $motif = trim((string) ($donnees['motif'] ?? ''));
         if ($motif === '') {
             throw new InvalidArgumentException('Indiquez le motif de l\'ajout.');
@@ -88,11 +87,11 @@ final class AjoutRetenu
                 // Verrou sur la campagne : un double clic ne crée pas deux dossiers.
                 CampagneCandidature::query()->whereKey($campagne->id)->lockForUpdate()->first();
 
-                $this->refuserTelephonePris($campagne, $telephone);
-                $compte = $this->compteExistant($campagne, $telephone, $naissance);
+                CompteRetenu::refuserTelephonePris($campagne, $telephone);
+                $compte = CompteRetenu::compteExistant($campagne, $telephone, $naissance);
                 $this->refuserMemePersonne($campagne, $champs);
 
-                $pays = $this->paysDuTelephone($telephone, $champs['nationalite'] ?? null);
+                $pays = CompteRetenu::paysDuTelephone($telephone, $champs['nationalite'] ?? null);
                 $compte ??= $this->comptes->createCandidat($telephone, Str::random(40), [
                     'prenom' => $champs['prenom'],
                     'nom' => $champs['nom'],
@@ -138,7 +137,7 @@ final class AjoutRetenu
         if ($dossier->ajoute_par === null) {
             throw new InvalidArgumentException('Ce dossier a été déposé sur le portail : son téléphone appartient au candidat.');
         }
-        $telephone = $this->telephone($nouveau);
+        $telephone = CompteRetenu::telephone($nouveau);
         if ($telephone === $dossier->phone_e164) {
             throw new InvalidArgumentException('Ce téléphone est déjà celui du dossier.');
         }
@@ -151,10 +150,10 @@ final class AjoutRetenu
             return $this->db->transaction(function () use ($dossier, $telephone, $motif, $auteur): Candidature {
                 $campagne = CampagneCandidature::query()->whereKey($dossier->campagne_id)->lockForUpdate()->firstOrFail();
 
-                $this->refuserTelephonePris($campagne, $telephone);
+                CompteRetenu::refuserTelephonePris($campagne, $telephone);
                 $naissance = (string) $dossier->date_naissance?->toDateString();
-                $cible = $this->compteExistant($campagne, $telephone, $naissance);
-                $pays = $this->paysDuTelephone($telephone, $dossier->nationalite);
+                $cible = CompteRetenu::compteExistant($campagne, $telephone, $naissance);
+                $pays = CompteRetenu::paysDuTelephone($telephone, $dossier->nationalite);
                 $ancien = $dossier->user()->with('roles')->first();
                 // Ce compte n'existe que pour ce dossier : son titulaire n'a rien d'autre à y perdre.
                 $dedie = $ancien !== null
@@ -208,49 +207,6 @@ final class AjoutRetenu
             ->exists();
     }
 
-    private function telephone(string $saisie): string
-    {
-        $telephone = (string) preg_replace('/[\s.\-()]/', '', $saisie);
-        if (preg_match('/^\+[1-9]\d{6,14}$/', $telephone) !== 1) {
-            throw new InvalidArgumentException('Le téléphone doit être au format international, par exemple +237699000000.');
-        }
-
-        return $telephone;
-    }
-
-    private function refuserTelephonePris(CampagneCandidature $campagne, string $telephone): void
-    {
-        // withTrashed : l'index unique (campagne, téléphone) couvre aussi les dossiers supprimés.
-        $existant = Candidature::withTrashed()->forCampagne($campagne->id)->where('phone_e164', $telephone)->first();
-        if ($existant !== null) {
-            throw new InvalidArgumentException(
-                "Ce téléphone figure déjà sur le dossier {$existant->numero_dossier}".($existant->trashed() ? ' (supprimé)' : '').' de cette campagne.'
-            );
-        }
-    }
-
-    private function compteExistant(CampagneCandidature $campagne, string $telephone, string $naissance): ?User
-    {
-        $compte = User::query()->with('roles')->where('phone_e164', $telephone)->first();
-        if ($compte === null) {
-            return null;
-        }
-        // Même règle que NouveauCodeCandidat::compteCandidat : un agent ne devient jamais auditeur.
-        if ($compte->roles->pluck('name')->all() !== ['candidat']) {
-            throw new InvalidArgumentException('Ce téléphone appartient à un compte du personnel : il ne peut pas servir à un auditeur.');
-        }
-        // Rattacher le dossier à la mauvaise personne lui ouvrirait un espace qui n'est pas le sien.
-        if ($compte->date_naissance?->toDateString() !== $naissance) {
-            throw new InvalidArgumentException('Ce téléphone appartient à un compte candidat dont la date de naissance diffère ou manque : vérifiez le numéro.');
-        }
-        $dossier = Candidature::withTrashed()->forCampagne($campagne->id)->where('user_id', $compte->id)->first();
-        if ($dossier !== null) {
-            throw new InvalidArgumentException("Le compte de ce téléphone porte déjà le dossier {$dossier->numero_dossier} de cette campagne.");
-        }
-
-        return $compte;
-    }
-
     /** @param  array<string, mixed>  $champs */
     private function refuserMemePersonne(CampagneCandidature $campagne, array $champs): void
     {
@@ -271,19 +227,5 @@ final class AjoutRetenu
         if ($existant !== null) {
             throw new InvalidArgumentException("Cette personne a déjà le dossier {$existant->numero_dossier} dans cette campagne (même nom, même date de naissance).");
         }
-    }
-
-    /**
-     * Pays de l'indicatif. Plusieurs pays partagent parfois un indicatif (+1) :
-     * la nationalité départage, sinon le préfixe le plus long l'emporte.
-     */
-    private function paysDuTelephone(string $telephone, ?string $nationalite): string
-    {
-        $candidats = Pays::query()->whereNotNull('indicatif')->get(['code_iso', 'indicatif'])
-            ->filter(fn (Pays $p): bool => str_starts_with($telephone, (string) $p->indicatif));
-
-        return ($candidats->firstWhere('code_iso', $nationalite)
-            ?? $candidats->sortByDesc(fn (Pays $p): int => strlen((string) $p->indicatif))->first())?->code_iso
-            ?? 'CM';
     }
 }
