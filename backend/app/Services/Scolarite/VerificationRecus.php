@@ -7,6 +7,8 @@ namespace App\Services\Scolarite;
 use App\Models\CorrectionVersement;
 use App\Models\InscriptionAnnuelle;
 use App\Models\RecuVersement;
+use BaconQrCode\Common\ErrorCorrectionLevel;
+use BaconQrCode\Encoder\Encoder;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
@@ -19,8 +21,11 @@ use BaconQrCode\Writer;
  */
 final class VerificationRecus
 {
-    /** Taille du QR code dans le PDF, en points SVG (rendu à 22 mm). */
-    private const TAILLE = 160;
+    /** Taille du QR code, en points SVG (affiché à 20 mm dans le PDF). */
+    private const TAILLE = 200;
+
+    /** Marge blanche autour du code, en modules : la norme en demande 4 pour une lecture fiable. */
+    private const MARGE = 4;
 
     public static function url(RecuVersement $recu): string
     {
@@ -30,7 +35,9 @@ final class VerificationRecus
     /** QR code SVG en data URI : DomPDF l'affiche sans imagick. */
     public static function qrCode(RecuVersement $recu): string
     {
-        $svg = (new Writer(new ImageRenderer(new RendererStyle(self::TAILLE, 1), new SvgImageBackEnd)))->writeString(self::url($recu));
+        // Correction d'erreur de niveau M (15 %) : un exemplaire froissé ou tamponné se lit encore.
+        $svg = (new Writer(new ImageRenderer(new RendererStyle(self::TAILLE, self::MARGE), new SvgImageBackEnd)))
+            ->writeString(self::url($recu), Encoder::DEFAULT_BYTE_MODE_ECODING, ErrorCorrectionLevel::M());
 
         return 'data:image/svg+xml;base64,'.base64_encode($svg);
     }

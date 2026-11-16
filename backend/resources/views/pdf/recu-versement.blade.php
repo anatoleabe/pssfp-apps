@@ -46,7 +46,7 @@
     @foreach ($lignes as $l)
     <tr class="{{ ($l['du'] ?? null) === 0 ? 'nul' : '' }}">
       <td>{{ $l['libelle'] }}</td>
-      <td class="code">@if (! empty($l['code']))<span>{{ $l['code'] }}</span>@else<i>à préciser</i>@endif</td>
+      <td class="code">@if (! empty($l['code']))<span>{{ $l['code'] }}</span>@elseif (($l['du'] ?? null) === null && $recu->ventilation !== null)—@else<i>à préciser</i>@endif</td>
       <td class="n">{{ ($l['du'] ?? null) === null ? '—' : $fcfa($l['du']) }}</td>
       <td class="n ce">{{ $l['ce_versement'] > 0 ? $fcfa($l['ce_versement']) : '—' }}</td>
       <td class="n">{{ ($l['total_verse'] ?? null) === null ? '—' : $fcfa($l['total_verse']) }}</td>

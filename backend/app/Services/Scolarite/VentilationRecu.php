@@ -22,7 +22,7 @@ final class VentilationRecu
         Palier::TRANCHE2 => '2e tranche',
     ];
 
-    public const LIBELLE_AUTRES_ANNEES = 'Autres années (arriérés)';
+    public const LIBELLE_AUTRES_ANNEES = 'Autres années';
 
     public const LIBELLE_AVANCE = 'Avance sur la scolarité à venir';
 

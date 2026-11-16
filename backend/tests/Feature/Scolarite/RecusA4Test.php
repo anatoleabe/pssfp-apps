@@ -127,6 +127,11 @@ describe('rendu A4', function (): void {
             ->and($nouveau)->toContain('Remplace le reçu '.$recu->numero)->toContain($c->numero)
             ->and(view('pdf.annulation-recu', $recus->donneesPdfAnnulation($annulation))->render())->toContain('ANNULATION DE REÇU')->toContain('EXEMPLAIRE DE L&#039;ADMINISTRATION')
             ->and($recus->pdfAnnulation($annulation))->toStartWith('%PDF')->toContain('595.28');
+
+        // Un exemplaire par demi-page : chaque pièce tient sur une seule page A4, même annulée et remplacée.
+        foreach ([$recus->pdf($recu->fresh()), $recus->pdf($c->recuRemplacant), $recus->pdfAnnulation($annulation)] as $pdf) {
+            expect($pdf)->toContain('/Count 1')->not->toContain('/Count 2');
+        }
     });
 });
 
@@ -157,6 +162,18 @@ describe('page publique de vérification', function (): void {
             $this->get('/recus/verifier/'.Str::uuid());
         }
         $this->get('/recus/verifier/'.Str::uuid())->assertStatus(429);
+    });
+
+    it('n\'ouvre aucune session : ni cookie de session ni jeton CSRF', function (): void {
+        $recu = ($this->encaisser)($this->droits, 'BOR-SANS-SESSION');
+
+        $reponse = $this->get('/recus/verifier/'.$recu->uuid)->assertOk();
+        $cookies = array_map(fn ($c): string => $c->getName(), $reponse->headers->getCookies());
+        expect($cookies)->not->toContain(config('session.cookie'))->not->toContain('XSRF-TOKEN');
+
+        // Témoin : une page web ordinaire, elle, ouvre une session.
+        $ordinaire = array_map(fn ($c): string => $c->getName(), $this->get('/')->headers->getCookies());
+        expect($ordinaire)->toContain(config('session.cookie'));
     });
 
     it('masque comme convenu', function (): void {
