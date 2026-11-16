@@ -61,6 +61,7 @@ final class CorrectionsVersements
         private readonly ConnectionInterface $db,
         private readonly RegistreVersements $registre,
         private readonly RecusVersements $recus,
+        private readonly AvisRecus $avis,
     ) {}
 
     public static function peutDemander(?User $u): bool
@@ -403,7 +404,17 @@ final class CorrectionsVersements
     {
         $ids = array_filter([$correction->versement_annule_id, $correction->versement_remplacant_id]);
         $inscriptions = Versement::query()->whereKey($ids)->pluck('inscription_annuelle_id')->unique();
-        DB::afterCommit(function () use ($inscriptions, $auteur): void {
+        $annule = Versement::query()->with(['inscription', 'auditeur.candidature'])->findOrFail($correction->versement_annule_id);
+        $remplacant = $correction->versement_remplacant_id === null ? null : Versement::query()->find($correction->versement_remplacant_id);
+        // R-C10 : l'auditeur qui perd le versement (annulation seule, ou erreur d'auditeur) en est averti ; un remplacement
+        // pour le même auditeur est annoncé par l'avis du nouveau reçu.
+        $avertir = $remplacant === null || (int) $remplacant->auditeur_id !== (int) $annule->auditeur_id;
+        $recuAnnule = $correction->annulationRecu?->recu;
+        DB::afterCommit(function () use ($inscriptions, $auteur, $avertir, $annule, $recuAnnule): void {
+            $dossier = $annule->auditeur?->candidature;
+            if ($avertir && $dossier !== null) {
+                $this->avis->prevenirAnnulation($annule, $recuAnnule, $dossier, $auteur);
+            }
             foreach (InscriptionAnnuelle::query()->whereKey($inscriptions)->get() as $inscription) {
                 try {
                     $this->registre->apresCorrection($inscription, $auteur);

@@ -354,6 +354,8 @@ export interface ScolariteVersement {
   reference: string;
   /** Reçu en vigueur émis par le service financier, ou null. */
   recu: { uuid: string; numero: string } | null;
+  /** Reçu annulé que le reçu en vigueur remplace (correction d'un versement), téléchargeable. Absent d'une API antérieure. */
+  remplace?: { uuid: string; numero: string; annule_le: string | null } | null;
   /** Jour de la vérification par la scolarité (AAAA-MM-JJ) ; null : reçu bancaire à présenter. Absent d'une API antérieure. */
   confirme_le?: string | null;
   /** `reglement` : part d'un règlement d'organisme, sans reçu à présenter par l'auditeur. Absent d'une API antérieure. */

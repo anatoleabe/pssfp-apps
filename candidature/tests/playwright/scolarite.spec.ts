@@ -117,3 +117,28 @@ test.describe('Avance du compte', () => {
     expect(carte).toContain('data-testid="scolarite-avance"');
   });
 });
+
+/*
+ * Correction d'un versement (ADR-0015, décisions Q4 et Q5 du 16/11/2026) : le nouveau reçu dit quel reçu il remplace,
+ * et le reçu annulé reste téléchargeable ; la carte tient sans la clé `remplace` face à une API antérieure.
+ */
+test.describe('Reçu remplacé', () => {
+  test('les deux langues annoncent le reçu remplacé et son téléchargement', () => {
+    const fr = messages('fr').dossier.scolarite;
+    const en = messages('en').dossier.scolarite;
+
+    for (const cle of ['remplaceRecu', 'remplaceRecuSansDate', 'recuAnnuleTelecharger']) {
+      expect(fr[cle], cle).toBeTruthy();
+      expect(en[cle], cle).toBeTruthy();
+    }
+    expect(fr.remplaceRecu).toBe('Remplace le reçu {numero}, annulé le {date}');
+  });
+
+  test('la carte lit `remplace`, absent d\'une API antérieure, et lie le reçu annulé', () => {
+    const carte = readFileSync(join(__dirname, '..', '..', 'components', 'dossier', 'DossierScolariteCard.tsx'), 'utf8');
+
+    expect(carte).toContain('v.remplace ?');
+    expect(carte).toContain('data-testid="recu-remplace"');
+    expect(carte).toContain('/dossier/recus/${v.remplace.uuid}');
+  });
+});

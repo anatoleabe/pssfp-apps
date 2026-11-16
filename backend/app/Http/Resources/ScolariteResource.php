@@ -93,10 +93,10 @@ final class ScolariteResource extends JsonResource
             ->whereNull('reglement_organisme_id')->whereDoesntHave('confirmation')->exists();
     }
 
-    /** @return list<array{date: string, montant: int, mode: string, reference: string, recu: ?array{uuid: string, numero: string}, origine: string, confirme_le: ?string}> */
+    /** @return list<array{date: string, montant: int, mode: string, reference: string, recu: ?array{uuid: string, numero: string}, remplace: ?array{uuid: string, numero: string, annule_le: ?string}, origine: string, confirme_le: ?string}> */
     private static function versements(InscriptionAnnuelle $inscription): array
     {
-        return $inscription->versementsValides()->with(['recus.annulation', 'confirmation'])->orderByDesc('date_versement')->orderByDesc('id')->get()
+        return $inscription->versementsValides()->with(['recus.annulation', 'recus.versement:id,auditeur_id', 'recus.remplace.annulation', 'recus.remplace.versement:id,auditeur_id', 'confirmation'])->orderByDesc('date_versement')->orderByDesc('id')->get()
             ->map(fn (Versement $v): array => [
                 'date' => $v->date_versement->toDateString(),
                 'montant' => $v->montant,
@@ -104,6 +104,11 @@ final class ScolariteResource extends JsonResource
                 'reference' => $v->reference,
                 // Reçu en vigueur (Scolarité lot 4) : uuid public, jamais l'id interne.
                 'recu' => ($r = $v->recuEnVigueur()) === null ? null : ['uuid' => $r->uuid, 'numero' => $r->numero],
+                // Reçu annulé que ce reçu remplace (correction, ADR-0015 ; décision Q4) : téléchargeable, jamais celui d'un autre auditeur.
+                'remplace' => $r === null || ! $r->memeAuditeur($r->remplace) ? null : [
+                    'uuid' => $r->remplace->uuid, 'numero' => $r->remplace->numero,
+                    'annule_le' => $r->remplace->annulation?->annule_at?->setTimezone(InscriptionAnnuelle::FUSEAU)->toDateString(),
+                ],
                 // Part d'un règlement d'organisme (lot A2) : l'espace dit « confirmation en cours », sans reçu à présenter.
                 'origine' => $v->reglement_organisme_id === null ? 'auditeur' : 'reglement',
                 // Vérifié par la scolarité (jour, heure de Yaoundé) ; null : à présenter à la scolarité. Jamais le nom de l'agent.

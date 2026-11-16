@@ -22,6 +22,8 @@ final class SecSeparation implements Controle
         'Préparer et signer le calendrier' => ['lmd.calendrier_preparer', 'lmd.calendrier_signer'],
         // Décision du 15/11/2026 : le service financier encaisse, la scolarité contrôle.
         'Enregistrer et confirmer un versement' => ['scolarite.versement_saisir', 'scolarite.versement_confirmer'],
+        // Espace Finances (ADR-0015) : qui demande une correction ne la décide pas.
+        'Demander et décider une correction de versement' => ['scolarite.versement_corriger', 'scolarite.versement_annuler'],
     ];
 
     public function code(): string
