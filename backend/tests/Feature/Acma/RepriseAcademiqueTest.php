@@ -339,12 +339,16 @@ it('refuse sans transit, avec une étape inconnue ou un code de niveau inconnu, 
 });
 
 it('se défait et se refait, mais refuse d\'être défaite une fois l\'archive gelée', function (): void {
-    $migration = require database_path('migrations/2026_12_04_100000_create_acma_archive_academique_tables.php');
+    $academique = require database_path('migrations/2026_12_04_100000_create_acma_archive_academique_tables.php');
+    $financiere = require database_path('migrations/2026_12_05_100000_create_acma_archive_financiere_tables.php');
 
-    $migration->down();
+    $financiere->down();
+    expect(Schema::hasTable('acma_paiements'))->toBeFalse()->and(Schema::hasTable('acma_dossiers'))->toBeTrue();
+    $academique->down();
     expect(Schema::hasTable('acma_dossiers'))->toBeFalse()->and(Schema::hasTable('acma_reprises'))->toBeFalse();
-    $migration->up();
-    expect(Schema::hasTable('acma_versions_notes'))->toBeTrue();
+    $academique->up();
+    $financiere->up();
+    expect(Schema::hasTable('acma_versions_notes'))->toBeTrue()->and(Schema::hasTable('acma_documents'))->toBeTrue();
 
     TransitAcma::construire();
     reprendre($this->usi);
@@ -353,5 +357,6 @@ it('se défait et se refait, mais refuse d\'être défaite une fois l\'archive g
         DB::table('acma_reprises')->update(['statut' => 'gelee', 'gelee_at' => now()]);
         RepriseAcma::mode(false);
     });
-    expect(fn () => $migration->down())->toThrow(RuntimeException::class, 'Archive ACMA gelée');
+    expect(fn () => $financiere->down())->toThrow(RuntimeException::class, 'Archive ACMA gelée')
+        ->and(fn () => $academique->down())->toThrow(RuntimeException::class, 'Archive ACMA gelée');
 });

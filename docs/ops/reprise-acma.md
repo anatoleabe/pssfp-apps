@@ -75,10 +75,30 @@ php artisan acma:controler                                        # contrôles s
 - Sorties dans le stockage privé (`storage/app/private/acma/`) : `controles-AAAAMMJJ.md` (comptes seulement, à joindre à la décision de gel) et `rapprochement-AAAAMMJJ.xlsx` (**nominatif** : cas à arbitrer, absents, exclusions, fusions, collisions, actifs 2026-2027 hors plateforme).
 - Durée mesurée sur l'export du 15/11/2026, sur un poste de développement : environ 45 s pour la première application, 15 s pour un rejeu.
 
-## 6. Purge et conservation
+- Étapes financières et documentaires (15c), dans le même passage : `baremes`, `paiements`, `soutenances`, `documents`. Une décimale dans un montant bloque l'étape et annule tout.
+
+## 6. Rapport des écarts 2026-2027 (15c)
+
+```bash
+php artisan acma:ecarts-2026 --auteur=<e-mail admin>   # stockage privé : acma/ecarts-2026-2027-AAAAMMJJ.xlsx
+```
+
+Lecture seule sur le transit et la plateforme. Le classeur est **nominatif** : il se remet par le stockage privé, jamais en pièce jointe d'un courriel. La console n'affiche que la synthèse par promotion et le nombre de lignes de chaque feuille.
+
+## 7. Gel, puis purge du transit (15c)
+
+```bash
+php artisan acma:geler --auteur=<e-mail admin>            # demande confirmation ; irréversible par l'application
+php artisan acma:purger-transit --auteur=<e-mail admin>   # demande confirmation ; refusé avant le gel
+```
+
+- Le gel exige la dernière reprise appliquée sans contrôle bloquant en échec, et rejoue les contrôles : il se fait donc avant la purge, transit en place.
+- Après le gel, plus aucune reprise ; seul le lien d'un dossier vers un auditeur reste modifiable (arbitrage, 15d). Défaire un gel demande une migration motivée.
+
+## 8. Purge et conservation
 
 - Le transit entre dans les sauvegardes quotidiennes tant qu'il existe : la fenêtre entre chargement et purge reste courte.
-- Après le gel de l'archive : `acma:purger-transit` (sous-lot 15c).
+- Après le gel de l'archive : `acma:purger-transit`.
 - L'archive chiffrée et son manifeste sont conservés hors ligne par l'USI (Q14). Supprimer de l'hôte les copies en clair, le conteneur jetable et son volume :
 
   ```bash

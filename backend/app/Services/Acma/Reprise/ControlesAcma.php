@@ -31,12 +31,85 @@ final class ControlesAcma
     {
         $this->retenus = null;
         $resultats = [
-            $this->c01(), $this->c02(), $this->c03(), ...$this->c04(), $this->c05(), $this->c08($contexte),
-            $this->c09($contexte), $this->c10($contexte), $this->c11(),
+            $this->c01(), $this->c02(), $this->c03(), ...$this->c04(), $this->c05(), $this->c06(), $this->c07(), $this->c08($contexte),
+            $this->c09($contexte), $this->c10($contexte), $this->c11(), $this->c12(),
         ];
         usort($resultats, fn (ResultatControle $a, ResultatControle $b): int => strcmp($a->code, $b->code));
 
         return $resultats;
+    }
+
+    /** C06 : paiements par année, au franc près (lignes, colonne scolarité, total des cinq colonnes). */
+    private function c06(): ResultatControle
+    {
+        $attendu = $obtenu = [];
+        foreach (LectureTransit::lignes('du', ['matricule', 'anneacademic', 'Montant', 'inscriptions', 'bibliotheque', 'fraisperiscol', 'tenuesport']) as $d) {
+            if (! CorrespondancesAcma::anneeReprise($d->anneacademic) || ! $this->retenu($d->matricule)) {
+                continue;
+            }
+            $a = trim((string) $d->anneacademic);
+            $montant = (int) round((float) LectureTransit::nombre($d->Montant));
+            $total = 0;
+            foreach ([$d->Montant, $d->inscriptions, $d->bibliotheque, $d->fraisperiscol, $d->tenuesport] as $v) {
+                $total += (int) round((float) LectureTransit::nombre($v));
+            }
+            $attendu["{$a} lignes"] = ($attendu["{$a} lignes"] ?? 0) + 1;
+            $attendu["{$a} scolarité"] = ($attendu["{$a} scolarité"] ?? 0) + $montant;
+            $attendu["{$a} total"] = ($attendu["{$a} total"] ?? 0) + $total;
+        }
+        foreach (DB::table('acma_paiements')->whereNull('retire_de_la_source_at')->groupBy('annee')
+            ->selectRaw('annee, count(*) AS n, sum(montant_scolarite) AS scolarite, sum(total) AS total')->get() as $p) {
+            $obtenu["{$p->annee} lignes"] = (int) $p->n;
+            $obtenu["{$p->annee} scolarité"] = (int) $p->scolarite;
+            $obtenu["{$p->annee} total"] = (int) $p->total;
+        }
+        $somme = fn (array $x, string $suffixe): int => array_sum(array_filter($x, fn (string $k): bool => str_ends_with($k, $suffixe), ARRAY_FILTER_USE_KEY));
+        $resultat = $this->comparaison('C06', 'Paiements par année : lignes, colonne scolarité, total des 5 colonnes', true, $attendu, $obtenu);
+
+        return new ResultatControle('C06', $resultat->libelle, true, $resultat->ok,
+            $this->nombre($somme($attendu, ' lignes')).' ; '.$this->nombre($somme($attendu, ' scolarité')).' ; '.$this->nombre($somme($attendu, ' total')),
+            $this->nombre($somme($obtenu, ' lignes')).' ; '.$this->nombre($somme($obtenu, ' scolarité')).' ; '.$this->nombre($somme($obtenu, ' total')),
+            $resultat->details);
+    }
+
+    /** C07 : soutenances et documents d'ACMA. */
+    private function c07(): ResultatControle
+    {
+        $types = ['pvsoutenance' => ['soutenances', 'matricule'], 'certificat' => ['certificat', 'Matricule'], 'attestationr' => ['attestation_reussite', 'Matricule'],
+            'misedispos' => ['mise_a_disposition', 'Matricule'], 'nonperceptionb' => ['non_perception_bourse', 'Matricule'], 'prisecours' => ['lettre_stage', 'Matricule']];
+        $attendu = $obtenu = [];
+        foreach ($types as $table => [$type, $colonne]) {
+            $attendu[$type] = LectureTransit::table($table)->pluck($colonne)->filter(fn ($m): bool => $this->retenu($m))->count();
+            $obtenu[$type] = $type === 'soutenances'
+                ? DB::table('acma_soutenances')->whereNull('retire_de_la_source_at')->count()
+                : DB::table('acma_documents')->whereNull('retire_de_la_source_at')->where('type', $type)->count();
+        }
+
+        return $this->comparaison('C07', 'Soutenances et documents d\'ACMA', true, $attendu, $obtenu);
+    }
+
+    /** C12 : anomalies par catégorie (informatif). */
+    private function c12(): ResultatControle
+    {
+        $p = DB::table('acma_paiements')->whereNull('retire_de_la_source_at')->selectRaw(
+            'count(*) FILTER (WHERE negatif) AS negatifs, count(*) FILTER (WHERE negatif AND contrepartie_id_acma IS NOT NULL) AS apparies, '
+            .'count(*) FILTER (WHERE total_nul) AS total_nul, count(*) FILTER (WHERE date_aberrante) AS date_aberrante, '
+            .'count(*) FILTER (WHERE hors_annee) AS hors_annee, count(*) FILTER (WHERE doublon_exact) AS doublons, '
+            .'count(*) FILTER (WHERE niveau_sans_inscription) AS niveau_sans_inscription'
+        )->first();
+        $d = DB::table('acma_dossiers')->whereNull('retire_de_la_source_at')->selectRaw(
+            'count(*) FILTER (WHERE date_naissance_a_verifier) AS dates, count(*) FILTER (WHERE fiches_fusionnees IS NOT NULL) AS fusions'
+        )->first();
+        $details = [
+            "Paiements négatifs : {$p->negatifs}, dont {$p->apparies} appariés à leur contrepartie",
+            "Paiements au total nul : {$p->total_nul} ; dates de reçu aberrantes : {$p->date_aberrante} ; hors de l'année à un an près : {$p->hors_annee}",
+            "Paiements en doublon exact : {$p->doublons} ; sur un niveau sans inscription : {$p->niveau_sans_inscription}",
+            "Dates de naissance à vérifier : {$d->dates} ; dossiers fusionnés : {$d->fusions}",
+            'Résultats en conflit : '.DB::table('acma_resultats_ue')->whereNull('retire_de_la_source_at')->where('en_conflit', true)->count()
+                .' ; notes hors de 0 à 20 : '.DB::table('acma_resultats_ue')->whereNull('retire_de_la_source_at')->where('hors_bornes', true)->count(),
+        ];
+
+        return new ResultatControle('C12', 'Anomalies par catégorie', false, null, 'comptes du §3', count($details).' catégories', $details);
     }
 
     /** @return array<string, int> */
