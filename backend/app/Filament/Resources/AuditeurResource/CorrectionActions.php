@@ -14,6 +14,7 @@ use App\Services\Messagerie\Demandes;
 use App\Services\Messagerie\TypesDemande;
 use App\Services\Scolarite\CorrectionsVersements;
 use App\Services\Scolarite\LibelleSituation;
+use App\Services\Scolarite\RecusVersements;
 use App\Services\Scolarite\RegistreVersements;
 use Filament\Forms;
 use Filament\Notifications\Actions\Action;
@@ -107,6 +108,58 @@ final class CorrectionActions
                     ->body('Le responsable de scolarité ou un administrateur la décide. Le versement reste en l\'état d\'ici là ; sa confirmation est suspendue.')
                     ->actions([Action::make('voir')->label('Voir la demande')->url(DemandeAutorisationResource::getUrl('view', ['record' => $d]))])
                     ->send();
+            });
+    }
+
+    /**
+     * Rectification immédiate par le service financier seul (décision Q2, sous-lot F5) : référence, date, mode ou payeur,
+     * sur un versement non confirmé enregistré depuis moins de 48 heures. Le reste passe par « Corriger ce versement ».
+     */
+    public static function rectifier(): TableAction
+    {
+        return TableAction::make('rectifier')
+            ->label('Rectifier (moins de 48 h)')
+            ->icon('heroicon-o-pencil')
+            ->color('gray')
+            // Tests bon marché seulement ; confirmation et demande en cours se vérifient à l'ouverture.
+            ->visible(fn (Versement $record): bool => CorrectionsVersements::peutDemander(auth()->user())
+                && (bool) auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR) && (bool) auth()->user()?->can(RecusVersements::PERMISSION_EMETTRE)
+                && ! $record->estAnnule() && $record->reglement_organisme_id === null
+                && $record->created_at?->greaterThanOrEqualTo(now()->subHours(CorrectionsVersements::fenetreRectification())))
+            ->modalHeading('Rectifier ce versement')
+            ->modalDescription('Pour une faute de frappe sur la référence, la date, le mode ou le payeur, tant que la scolarité n\'a pas confirmé le versement. '
+                .'Le versement est annulé avec son reçu et remplacé à l\'identique, sauf le champ corrigé ; l\'auditeur reçoit le nouveau reçu. '
+                .'Un changement de montant ou d\'auditeur passe par « Corriger ce versement ».')
+            ->modalSubmitActionLabel('Rectifier')
+            ->mountUsing(function (Versement $record, Forms\Form $form, TableAction $action): void {
+                if (($refus = CorrectionsVersements::raisonRefusRectification($record)) !== null) {
+                    Notification::make()->danger()->title('Rectification impossible')->body($refus)->send();
+                    $action->cancel();
+                }
+                $form->fill(CorrectionsVersements::valeurs($record));
+            })
+            ->form(MessagesValidation::appliquer([
+                Forms\Components\Select::make('categorie')->label('Catégorie de l\'erreur')->required()->native(false)
+                    ->options(array_intersect_key(CorrectionVersement::CATEGORIES, array_flip(['reference', 'date', 'mode', 'payeur']))),
+                Forms\Components\DatePicker::make('date_versement')->label('Date du versement')->required()->native(false)->displayFormat('d/m/Y')
+                    ->maxDate(InscriptionAnnuelle::aujourdhui()->endOfDay()->toDateTimeString()),
+                Forms\Components\Select::make('mode')->label('Mode de paiement')->required()->options(Versement::MODES)->native(false),
+                Forms\Components\TextInput::make('reference')->label('Référence du bordereau')->required()->maxLength(100),
+                Forms\Components\Select::make('payeur')->label('Payé par')->required()->options(Versement::PAYEURS)->native(false),
+                Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(10)->maxLength(2000)->rows(2),
+            ]))
+            ->action(function (Versement $record, array $data, TableAction $action): void {
+                try {
+                    $c = app(CorrectionsVersements::class)->rectifier($record,
+                        array_intersect_key($data, array_flip(['categorie', ...CorrectionsVersements::CHAMPS_RECTIFIABLES])), (string) $data['motif'], auth()->user());
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title('Rectification impossible')->body($e->getMessage())->send();
+                    $action->halt();
+
+                    return;
+                }
+                Notification::make()->success()->title('Rectification '.$c->numero.' passée')
+                    ->body($c->recuRemplacant !== null ? 'Nouveau reçu : '.$c->recuRemplacant->numero.'.' : null)->send();
             });
     }
 

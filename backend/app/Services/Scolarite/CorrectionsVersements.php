@@ -11,6 +11,7 @@ use App\Models\DemandeAutorisation;
 use App\Models\InscriptionAnnuelle;
 use App\Models\User;
 use App\Models\Versement;
+use App\Support\AppSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,20 @@ final class CorrectionsVersements
 
     /** Champs qu'un remplacement peut changer (R-C4) ; l'inscription désignée ne change pas, sauf avec l'auditeur. */
     public const CHAMPS = ['montant', 'date_versement', 'mode', 'reference', 'payeur', 'auditeur_id'];
+
+    /** Champs qu'une rectification immédiate peut changer (décision Q2) : jamais le montant ni l'auditeur. */
+    public const CHAMPS_RECTIFIABLES = ['date_versement', 'mode', 'reference', 'payeur'];
+
+    /** Catégories d'erreur qu'une rectification immédiate corrige (contrôlées côté serveur). */
+    public const CHAMPS_CATEGORIES_RECTIFIABLES = ['reference', 'date', 'mode', 'payeur'];
+
+    /** Garde-fou sur la longueur d'une chaîne de corrections remontée pour la fenêtre. */
+    private const MAILLONS_MAX = 50;
+
+    /** Réglage de la fenêtre de rectification immédiate, en heures. */
+    public const CLE_FENETRE = 'finances.fenetre_rectification_heures';
+
+    public const FENETRE_DEFAUT = 48;
 
     public const LIBELLES_CHAMPS = [
         'montant' => 'Montant', 'date_versement' => 'Date du versement', 'mode' => 'Mode', 'reference' => 'Référence',
@@ -245,6 +260,90 @@ final class CorrectionsVersements
      *
      * @throws InvalidArgumentException
      */
+    /**
+     * Rectification immédiate par le service financier seul (décision Q2 du 16/11/2026, sous-lot F5) : une erreur
+     * descriptive (référence, date, mode, payeur), à montant et auditeur égaux, sur un versement non confirmé, enregistré
+     * depuis moins de `finances.fenetre_rectification_heures` heures (48 par défaut). Même pièce que le circuit, marquée
+     * « rectification immédiate », sans demande ; l'agent passe lui-même l'annulation. Tout le reste passe par une demande.
+     *
+     * @param  array<string, mixed>  $saisie
+     *
+     * @throws InvalidArgumentException
+     */
+    public function rectifier(Versement $v, array $saisie, string $motif, User $agent): CorrectionVersement
+    {
+        abort_unless(self::peutDemander($agent) && $agent->can(RegistreVersements::PERMISSION_SAISIR)
+            && $agent->can(RecusVersements::PERMISSION_EMETTRE), 403);
+        if (! in_array($saisie['categorie'] ?? null, self::CHAMPS_CATEGORIES_RECTIFIABLES, true)) {
+            throw new InvalidArgumentException('La rectification immédiate corrige une erreur de référence, de date, de mode ou de payeur : '
+                .'toute autre erreur passe par une demande.');
+        }
+        if (($raison = self::raisonRefusRectification($v)) !== null) {
+            throw new InvalidArgumentException($raison);
+        }
+        $parametres = self::parametres($v, ['nature' => CorrectionVersement::REMPLACEMENT] + $saisie);
+        $horsChamp = array_diff(array_keys($parametres['champs']), self::CHAMPS_RECTIFIABLES);
+        if ($horsChamp !== []) {
+            throw new InvalidArgumentException('La rectification immédiate ne change que la référence, la date, le mode ou le payeur : '
+                .'un changement de montant ou d\'auditeur passe par une demande.');
+        }
+        $correction = $this->appliquer($v, $parametres, $motif, $agent, $agent, null, null, false, true);
+        $this->apres($correction, $agent);
+
+        return $correction;
+    }
+
+    /** Le versement peut-il être rectifié sur-le-champ (hors champs) ? null si oui, sinon la raison. */
+    public static function raisonRefusRectification(Versement $v): ?string
+    {
+        if (($raison = self::raisonRefus($v)) !== null) {
+            return $raison;
+        }
+        if ($v->confirmation()->exists()) {
+            return 'Ce versement est confirmé par la scolarité : sa correction passe par une demande.';
+        }
+        $debut = self::debutChaine($v);
+        if ($debut === null || $debut->lessThan(now()->subHours(self::fenetreRectification()))) {
+            return 'Ce versement a été enregistré il y a plus de '.self::fenetreRectification().' heures (en comptant depuis le versement '
+                .'d\'origine, avant ses corrections) : sa correction passe par une demande.';
+        }
+        if (($d = $v->correctionDemandee()) !== null) {
+            return 'Une correction de ce versement est déjà demandée ('.$d->numero.').';
+        }
+
+        return null;
+    }
+
+    /**
+     * Enregistrement du plus ancien maillon de la chaîne de corrections dont ce versement est le dernier remplaçant : une
+     * rectification en chaîne ne remet jamais la fenêtre à zéro.
+     */
+    public static function debutChaine(Versement $v): ?CarbonImmutable
+    {
+        $debut = $v->created_at === null ? null : CarbonImmutable::instance($v->created_at);
+        $courant = $v;
+        for ($maillons = 0; $maillons < self::MAILLONS_MAX; $maillons++) {
+            $origine = CorrectionVersement::query()->where('versement_remplacant_id', $courant->id)->value('versement_annule_id');
+            $precedent = $origine === null ? null : Versement::query()->find($origine, ['id', 'created_at']);
+            if ($precedent === null) {
+                break;
+            }
+            $courant = $precedent;
+            if ($precedent->created_at !== null && ($debut === null || $precedent->created_at->lessThan($debut))) {
+                $debut = CarbonImmutable::instance($precedent->created_at);
+            }
+        }
+
+        return $debut;
+    }
+
+    public static function fenetreRectification(): int
+    {
+        $v = AppSettings::get(self::CLE_FENETRE);
+
+        return is_numeric($v) && (int) $v > 0 ? (int) $v : self::FENETRE_DEFAUT;
+    }
+
     public function annulerDirectement(Versement $v, string $categorie, string $motif, User $responsable, array $options = []): CorrectionVersement
     {
         abort_unless(self::peutDecider($responsable), 403);
@@ -316,19 +415,24 @@ final class CorrectionsVersements
      * @throws InvalidArgumentException
      */
     private function appliquer(Versement $versement, array $parametres, string $motif, User $demandeur, User $executant, ?User $attestant,
-        ?DemandeAutorisation $demande, bool $simulation): CorrectionVersement
+        ?DemandeAutorisation $demande, bool $simulation, bool $rectification = false): CorrectionVersement
     {
         $motif = trim($motif);
         if (mb_strlen($motif) < 10) {
             throw new InvalidArgumentException('Le motif de la correction compte au moins 10 caractères.');
         }
 
-        return $this->db->transaction(function () use ($versement, $parametres, $motif, $demandeur, $executant, $attestant, $demande, $simulation): CorrectionVersement {
+        return $this->db->transaction(function () use ($versement, $parametres, $motif, $demandeur, $executant, $attestant, $demande, $simulation, $rectification): CorrectionVersement {
             $auditeurs = self::auditeursTouches($versement, $parametres);
             // Verrous des auditeurs par id croissant (R8, ordre prévu pour D4) : deux corrections croisées ne s'interbloquent pas.
             Auditeur::query()->whereKey($auditeurs)->orderBy('id')->lockForUpdate()->get(['id']);
             $v = Versement::query()->with('confirmation')->whereKey($versement->id)->lockForUpdate()->firstOrFail();
             if (($raison = self::raisonRefus($v)) !== null) {
+                throw new InvalidArgumentException($raison);
+            }
+            // Rectification : une confirmation ou une demande arrivée entre-temps la refuse, avec un message (jamais une
+            // erreur de la base). La confirmation verrouille la même ligne : ici, elle est sérialisée.
+            if ($rectification && ($raison = self::raisonRefusRectification($v)) !== null) {
                 throw new InvalidArgumentException($raison);
             }
             $remplacement = ($parametres['nature'] ?? null) === CorrectionVersement::REMPLACEMENT;
@@ -375,7 +479,7 @@ final class CorrectionsVersements
                 'annulation_recu_id' => $annulation?->id, 'recu_remplacant_id' => $recu?->id,
                 'champs' => (object) ($parametres['champs'] ?? []), 'motif' => mb_substr($motif, 0, 2000),
                 'demande_id' => $demande?->id, 'demandee_par' => $demandeur->id, 'executee_par' => $executant->id,
-                'rectification_immediate' => false, 'confirmation_reportee' => $report,
+                'rectification_immediate' => $rectification, 'confirmation_reportee' => $report,
             ]);
             $correction->save();
             if ($report !== null) {
