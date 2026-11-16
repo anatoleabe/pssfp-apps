@@ -6,6 +6,7 @@ namespace App\Services\ExportsRetenus;
 
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
+use App\Models\ReinscriptionAcma;
 use App\Models\User;
 use App\Services\Acma\DoublonsAncien;
 use App\Services\Scolarite\AnneeEnCours;
@@ -51,9 +52,16 @@ final class AttributionMatricules
      */
     public static function anneeFigee(CampagneCandidature $campagne): ?string
     {
-        // Seuls les matricules attribués ici (avec un rang) : un matricule repris d'ACMA ne fige pas l'année.
+        // Seuls les matricules attribués ici : un matricule repris d'ACMA (sans rang, ou à la place d'un matricule
+        // dont le rang reste pris, 15m) ne fige pas l'année.
         $matricule = Candidature::withTrashed()->forCampagne($campagne->id)
-            ->whereNotNull('matricule')->whereNotNull('rang_retenu')->orderBy('rang_retenu')->value('matricule');
+            ->whereNotNull('matricule')->whereNotNull('rang_retenu')
+            ->whereNotIn('id', ReinscriptionAcma::query()->select('candidature_id'))
+            ->orderBy('rang_retenu')->value('matricule');
+        if ($matricule === null) {
+            // Promotion dont le seul matricule attribué a été repris : l'année vient de l'ancien matricule.
+            $matricule = ReinscriptionAcma::query()->where('campagne_id', $campagne->id)->whereNotNull('ancien_matricule')->orderBy('id')->value('ancien_matricule');
+        }
 
         return $matricule === null ? null : substr((string) $matricule, 0, 2);
     }
@@ -104,11 +112,16 @@ final class AttributionMatricules
                 if ($reinscrit !== null) {
                     throw new RuntimeException("Le retenu {$candidature->numero_dossier} est déjà auditeur depuis l'archive ACMA (dossier {$reinscrit->numero_dossier}, matricule {$reinscrit->matricule}) : retirez sa candidature, puis attribuez les matricules.");
                 }
+                // Probable ancien auditeur : le dossier ACMA fait foi (Q2), son matricule se reprend depuis l'archive.
+                $archive = DoublonsAncien::dossierArchivePour($candidature);
+                if ($archive !== null) {
+                    throw new RuntimeException("Le retenu {$candidature->numero_dossier} semble être l'ancien auditeur {$archive->matricule} : reprenez son matricule ACMA depuis sa fiche d'archive (ou arbitrez « personnes différentes »), puis attribuez les autres.");
+                }
                 $rang++;
                 $matricule = $annee.$candidature->categorie_matricule.str_pad((string) $rang, 3, '0', STR_PAD_LEFT);
                 // Unicité sur toute la table : une autre campagne de la même
                 // année aurait déjà pu le distribuer.
-                if (Candidature::withTrashed()->where('matricule', $matricule)->exists()) {
+                if (Candidature::withTrashed()->where('matricule', $matricule)->exists() || ReinscriptionAcma::query()->where('ancien_matricule', $matricule)->exists()) {
                     throw new RuntimeException("Le matricule {$matricule} existe déjà dans une autre campagne : vérifiez l'année saisie.");
                 }
                 $candidature->forceFill([

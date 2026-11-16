@@ -235,7 +235,8 @@ final class ComptesEcampus
     /** @param  array<string, mixed>  $compte */
     private function porteLaMarque(Candidature $c, array $compte): bool
     {
-        return strcasecmp((string) ($compte['idnumber'] ?? ''), (string) $c->matricule) === 0;
+        // Après la reprise d'un matricule ACMA (15m), la marque reste l'ancien matricule, porté par l'identifiant figé.
+        return strcasecmp((string) ($compte['idnumber'] ?? ''), filled($c->identifiant_ecampus) ? (string) $c->identifiant_ecampus : (string) $c->matricule) === 0;
     }
 
     private function creer(Candidature $c, string $identifiant): void

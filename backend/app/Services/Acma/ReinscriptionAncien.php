@@ -76,7 +76,7 @@ final class ReinscriptionAncien
                 $candidature = $this->candidature($d, $campagne, $s, $naissance, $parcours, $auteur);
                 $auditeur = Auditeur::query()->create(['candidature_id' => $candidature->id]);
                 $inscription = $this->inscriptions->inscrire($auditeur, $niveau, $parcours, $auteur);
-                $rapprochement = $this->lier($d, $auditeur, (string) $s['motif'], $auteur);
+                $rapprochement = LienArchive::poser($d, $auditeur, 'Réinscription depuis l\'archive : '.$s['motif'], $auteur);
 
                 $trace = new ReinscriptionAcma;
                 $trace->forceFill([
@@ -283,20 +283,6 @@ final class ReinscriptionAncien
         ])->save();
 
         return $candidature;
-    }
-
-    /** Décision d'abord : la décision signée, puis le lien, que le déclencheur de l'archive accepte avant comme après le gel. */
-    private function lier(AcmaDossier $d, Auditeur $auditeur, string $motif, User $auteur): int
-    {
-        $proposition = $d->rapprochements()->whereNull('decide_par')->latest('id')->first();
-        $id = DB::table('acma_rapprochements')->insertGetId([
-            'dossier_id' => $d->id, 'auditeur_id' => $auditeur->id, 'cas' => $proposition?->cas, 'score' => $proposition?->score,
-            'decision' => 'lie', 'motif' => mb_substr('Réinscription depuis l\'archive : '.$motif, 0, 500),
-            'decide_par' => $auteur->id, 'reprise_id' => null, 'created_at' => now(),
-        ]);
-        DB::table('acma_dossiers')->where('id', $d->id)->update(['auditeur_id' => $auditeur->id, 'statut_rapprochement' => 'lie_arbitre', 'updated_at' => now()]);
-
-        return (int) $id;
     }
 
     /**

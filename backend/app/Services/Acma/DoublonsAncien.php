@@ -7,6 +7,7 @@ namespace App\Services\Acma;
 use App\Models\AcmaDossier;
 use App\Models\Candidature;
 use App\Models\ReinscriptionAcma;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -64,6 +65,30 @@ final class DoublonsAncien
             ->first(fn (Candidature $c): bool => ComparaisonIdentite::compatibles(ComparaisonIdentite::score($jetons, NormalisationAcma::jetons($c->nom, $c->prenom, $c->epouse))));
     }
 
+    /**
+     * Dossier d'archive non lié (ni écarté, ni retiré, ni réinscrit, ni arbitré « personnes différentes ») à la même
+     * date de naissance et aux noms compatibles qu'un retenu sans matricule : probablement un ancien auditeur, dont le
+     * matricule ACMA fait foi (Q2).
+     */
+    public static function dossierArchivePour(Candidature $retenu): ?AcmaDossier
+    {
+        if ($retenu->date_naissance === null) {
+            return null;
+        }
+        $date = $retenu->date_naissance->toDateString();
+        $jetons = NormalisationAcma::jetons($retenu->nom, $retenu->prenom, $retenu->epouse);
+
+        return AcmaDossier::query()
+            ->whereIn('statut_rapprochement', ['sans_auditeur', 'a_arbitrer'])
+            ->whereNull('retire_de_la_source_at')
+            ->whereNotIn('id', ReinscriptionAcma::query()->select('dossier_acma_id'))
+            ->whereNotIn('id', DB::table('acma_rapprochements')->where('decision', 'non_lie')->whereNotNull('decide_par')->select('dossier_id'))
+            ->where(fn ($q) => $q->whereDate('date_naissance', $date)
+                ->orWhereIn('id', DB::table('acma_complements')->where('champ', 'date_naissance')->where('valeur', $date)->select('dossier_id')))
+            ->get(['id', 'uuid', 'matricule', 'nom_complet'])
+            ->first(fn (AcmaDossier $d): bool => ComparaisonIdentite::compatibles(ComparaisonIdentite::score(NormalisationAcma::jetons($d->nom_complet), $jetons)));
+    }
+
     private function refuserMemePersonne(Candidature $c): void
     {
         if ($c->withdrawn_at !== null || $c->trashed()) {
@@ -73,7 +98,7 @@ final class DoublonsAncien
             throw new InvalidArgumentException("Cette personne est déjà auditeur de la plateforme (dossier {$c->numero_dossier}, matricule {$c->matricule}) : le dossier ACMA fait foi, reprenez le matricule ACMA sur ce dossier au lieu d'en créer un second.");
         }
         if ($c->statut === Candidature::STATUT_ACCEPTE) {
-            throw new InvalidArgumentException("Cette personne est retenue sur le dossier {$c->numero_dossier}, sans matricule encore : son matricule ACMA lui sera donné à l'attribution, sans second dossier.");
+            throw new InvalidArgumentException("Cette personne est retenue sur le dossier {$c->numero_dossier}, sans matricule encore : reprenez son matricule ACMA sur ce dossier (« Reprendre le matricule ACMA »), sans second dossier.");
         }
         if ($c->statut !== Candidature::STATUT_REFUSE && $c->submitted_at !== null) {
             throw new InvalidArgumentException("Cette personne a une candidature en cours (dossier {$c->numero_dossier}) : attendez la décision du jury.");

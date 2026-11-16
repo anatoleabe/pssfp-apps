@@ -46,6 +46,7 @@ class ViewArchiveAcma extends ViewRecord
         return [
             ArchiveAcmaActions::ficheAuditeur(),
             ReinscriptionAncienActions::reinscrire(),
+            ReinscriptionAncienActions::reprendreMatricule(),
             ArchiveAcmaActions::arbitrer(),
             ActionGroup::make([
                 ArchiveAcmaActions::transcrireDecision(),

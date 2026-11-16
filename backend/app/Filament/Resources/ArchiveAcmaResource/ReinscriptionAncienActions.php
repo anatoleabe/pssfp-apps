@@ -11,6 +11,7 @@ use App\Models\Candidature;
 use App\Models\Parcours;
 use App\Models\Pays;
 use App\Models\ReinscriptionAcma;
+use App\Services\Acma\ConversionMatriculeAcma;
 use App\Services\Acma\CoordonneesAcma;
 use App\Services\Acma\ReinscriptionAncien;
 use App\Services\Ecampus\ComptesEcampus;
@@ -52,6 +53,47 @@ final class ReinscriptionAncienActions
                         })->send();
                 }
             });
+    }
+
+    /**
+     * Q2 (16/11/2026, le dossier ACMA fait foi) : un ancien revenu par la candidature de la promotion en cours reprend
+     * son matricule ACMA sur son dossier, sans second dossier (spec de la réinscription des anciens, §8.3).
+     */
+    public static function reprendreMatricule(): Action
+    {
+        return Action::make('reprendreMatricule')
+            ->label('Reprendre le matricule ACMA')
+            ->icon('heroicon-o-arrows-right-left')
+            ->color('gray')
+            ->visible(fn (AcmaDossier $record): bool => (bool) auth()->user()?->can(ReinscriptionAncien::PERMISSION)
+                && $record->retire_de_la_source_at === null && $record->statut_rapprochement !== 'ecarte'
+                && ! ReinscriptionAcma::query()->where('dossier_acma_id', $record->id)->exists())
+            ->modalHeading(fn (AcmaDossier $record): string => 'Donner le matricule '.$record->matricule.' à un dossier de la plateforme')
+            ->modalDescription('Pour un ancien auditeur revenu par la candidature : son dossier prend le matricule ACMA, qui fait foi. Versements, reçus, inscription, accès et compte eCampus restent tels quels ; l\'identifiant eCampus ne change pas. Aucun message ne part.')
+            ->form([
+                Forms\Components\Select::make('candidature')->label('Dossier de la plateforme (matricule, nom ou n° de dossier)')->required()->searchable()
+                    ->getSearchResultsUsing(fn (string $recherche): array => self::retenus($recherche)),
+                Forms\Components\Checkbox::make('identite_confirmee')->label('L\'identité ne concorde pas exactement (date ou noms) : je l\'ai vérifiée sur pièce'),
+                Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(ReinscriptionAncien::MOTIF_MINIMUM)->maxLength(500)->rows(2),
+            ])
+            ->action(function (AcmaDossier $record, array $data, Action $action): void {
+                $c = Candidature::query()->where('uuid', (string) $data['candidature'])->first();
+                ArchiveAcmaActions::executer($action, fn () => $c === null
+                    ? throw new \InvalidArgumentException('Dossier introuvable.')
+                    : app(ConversionMatriculeAcma::class)->convertir($record, $c, (string) $data['motif'], auth()->user(), (bool) ($data['identite_confirmee'] ?? false)),
+                    'Matricule ACMA repris');
+            });
+    }
+
+    /** @return array<string, string> uuid → libellé : retenus non retirés */
+    private static function retenus(string $recherche): array
+    {
+        $terme = '%'.addcslashes(trim($recherche), '%_\\').'%';
+
+        return Candidature::query()->where('statut', Candidature::STATUT_ACCEPTE)->whereNull('withdrawn_at')
+            ->where(fn ($q) => $q->where('matricule', 'ilike', $terme)->orWhere('nom', 'ilike', $terme)->orWhere('numero_dossier', 'ilike', $terme))
+            ->limit(20)->get(['uuid', 'matricule', 'numero_dossier', 'nom', 'prenom'])
+            ->mapWithKeys(fn (Candidature $c): array => [$c->uuid => trim(($c->matricule ?? 'sans matricule').' — '.$c->numero_dossier.' — '.mb_strtoupper((string) $c->nom).' '.$c->prenom)])->all();
     }
 
     private static function possible(AcmaDossier $d): bool
