@@ -79,7 +79,7 @@ it('n\'extrait aucune table ni colonne exclue, chiffre l\'archive et supprime le
         ->and(array_column($manifeste['tables']['etudiant']['colonnes'], 'nom'))->not->toContain('telephone')->not->toContain('adresse')
         ->and($manifeste['exclusions']['tables'])->toContain('utilisateur')->toContain('tachesutili')
         ->and($manifeste['tables']['du']['lignes'])->toBe(18)
-        ->and($manifeste['tables']['notes_hist']['lignes'])->toBe(8)
+        ->and($manifeste['tables']['notes_hist']['lignes'])->toBe(9)
         ->and($manifeste['source'])->toMatchArray(['fichier' => 'acma-fictif.sql', 'date_export' => '2026-11-15', 'version_serveur' => '11.8.9-MariaDB-factice'])
         ->and($manifeste['tables']['du']['sha256'])->toBe(hash_file('sha256', $this->dossier.'/ouvert/du.csv'));
 
@@ -206,8 +206,8 @@ it('inventorie le transit avec des comptes seulement, sans nom ni matricule', fu
         ->and($valeur('Dates hors de l\'année académique à un an près'))->toBe('3')
         ->and($valeur('Groupes de doublons exacts'))->toBe('1')
         ->and($valeur('Lignes sur un niveau sans inscription'))->toBe('2')
-        ->and($valeur('Couples (programme, auditeur) seulement dans l\'historique'))->toBe('2')
-        ->and($valeur('… dont le programme existe (reconstituables)'))->toBe('1')
+        ->and($valeur('Couples (programme, auditeur) seulement dans l\'historique'))->toBe('3')
+        ->and($valeur('… dont le programme existe (reconstituables)'))->toBe('2')
         ->and($valeur('Notes hors de 0 à 20'))->toBe('1')
         ->and($valeur('Rattrapages saisis non appliqués (ok = 0, rattrapage > 0)'))->toBe('1')
         ->and($valeur('Matricules préfixés zz'))->toBe('1')
