@@ -25,6 +25,7 @@ Règle d'or : si une décision n'est pas dans un ADR, elle peut être renégoci�
 | [0012](0012-travail-hors-ligne.md) | Travail hors ligne : périmètre, architecture et conventions à appliquer dès maintenant | Proposé | 2026-11-10 |
 | [0013](0013-compte-de-l-auditeur.md) | Compte de l'auditeur : versements rattachés à l'auditeur et imputations enregistrées | Proposé | 2026-11-15 |
 | [0014](0014-reprise-acma-archive-lecture-seule.md) | Reprise d'ACMA : copie de transit, archive en lecture seule et dossier d'ancien auditeur sans candidature | Accepté | 2026-11-15 |
+| [0015](0015-correction-des-versements-par-contre-passation.md) | Correction des versements par contre-passation liée, jamais par modification ni suppression | Proposé | 2026-11-16 |
 
 ## Workflow ADR
 
