@@ -123,3 +123,31 @@ it('compte les rectifications dans le seuil du contrôle VER_CORRECTIONS', funct
 
     expect(app(VerCorrections::class)->cas())->toHaveKey('compte:'.$this->financier->id);
 });
+
+it('revérifie sous le verrou : une confirmation arrivée entre-temps refuse avec un message, jamais une erreur de base', function (): void {
+    confirmerVersement($this->v);
+    $appliquer = new ReflectionMethod(CorrectionsVersements::class, 'appliquer');
+    $parametres = CorrectionsVersements::parametres($this->v, ['nature' => 'remplacement', 'categorie' => 'reference', 'reference' => 'BOR-COURSE']);
+
+    expect(fn () => $appliquer->invoke(app(CorrectionsVersements::class), $this->v, $parametres, 'Faute de frappe sur la référence du bordereau',
+        $this->financier, $this->financier, null, null, false, true))->toThrow(InvalidArgumentException::class, 'confirmé');
+    expect(CorrectionVersement::query()->count())->toBe(0)
+        ->and($this->v->refresh()->estAnnule())->toBeFalse();
+});
+
+it('compte la fenêtre depuis le versement d\'origine : une rectification en chaîne ne la remet pas à zéro', function (): void {
+    $premier = ($this->rectifier)(['categorie' => 'reference', 'reference' => 'BOR-UN']);
+    $this->travel(30)->hours();
+    $second = ($this->rectifier)(['categorie' => 'reference', 'reference' => 'BOR-DEUX'], $premier->versementRemplacant);
+    $this->travel(20)->hours();
+
+    // Le dernier maillon a 20 heures, la chaîne en a 50.
+    expect(CorrectionsVersements::debutChaine($second->versementRemplacant)->equalTo($this->v->created_at))->toBeTrue()
+        ->and(fn () => ($this->rectifier)(['categorie' => 'reference', 'reference' => 'BOR-TROIS'], $second->versementRemplacant))
+        ->toThrow(InvalidArgumentException::class, 'versement d\'origine');
+});
+
+it('impose côté serveur une catégorie descriptive', function (): void {
+    expect(fn () => ($this->rectifier)(['categorie' => 'montant', 'reference' => 'BOR-CAT']))->toThrow(InvalidArgumentException::class, 'toute autre erreur')
+        ->and(fn () => ($this->rectifier)(['reference' => 'BOR-CAT']))->toThrow(InvalidArgumentException::class, 'toute autre erreur');
+});
