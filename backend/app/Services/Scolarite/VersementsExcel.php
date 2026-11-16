@@ -29,34 +29,43 @@ final class VersementsExcel
 
     private const FUSEAU = 'Africa/Douala';
 
-    /** Lignes exportées au plus en une fois (plusieurs années de versements) : au-delà, l'agent affine ses filtres. */
-    public const EXPORT_MAX = 20_000;
+    /**
+     * Lignes exportées au plus en une fois (décision du 16/11/2026) : au-delà, l'agent affine ses filtres. Le classeur
+     * garde toutes ses cellules en mémoire (environ 10 Ko par ligne, mesuré), sous la limite de 128 Mo de PHP-FPM.
+     * Réglable par `scolarite.export_max`.
+     */
+    public const EXPORT_MAX = 1_000;
 
-    /** Lecture par morceaux : la mémoire ne dépend pas du nombre de lignes. */
+    /** Lecture par morceaux : évite de charger tous les modèles à la fois (le classeur, lui, grossit avec les lignes). */
     public const MORCEAU = 500;
+
+    public static function plafond(): int
+    {
+        return max(1, (int) config('scolarite.export_max', self::EXPORT_MAX));
+    }
 
     public const RELATIONS_VERSEMENTS = ['auditeur.candidature:id,nom,prenom,matricule', 'inscription:id,annee_academique,niveau', 'saisiPar:id,name', 'recus.annulation', 'confirmation', 'correction'];
 
     /**
-     * Versements d'une requête, lus par morceaux, ou null si elle dépasse EXPORT_MAX.
+     * Versements d'une requête, lus par morceaux, ou null si elle dépasse le plafond.
      *
      * @param  Builder<Versement>  $requete
      * @return iterable<Versement>|null
      */
     public static function lireVersements(Builder $requete): ?iterable
     {
-        return (clone $requete)->count() > self::EXPORT_MAX ? null : $requete->with(self::RELATIONS_VERSEMENTS)->lazy(self::MORCEAU);
+        return (clone $requete)->count() > self::plafond() ? null : $requete->with(self::RELATIONS_VERSEMENTS)->lazy(self::MORCEAU);
     }
 
     /**
-     * Reçus d'une requête, lus par morceaux dans l'ordre des numéros, ou null si elle dépasse EXPORT_MAX.
+     * Reçus d'une requête, lus par morceaux dans l'ordre des numéros, ou null si elle dépasse le plafond.
      *
      * @param  Builder<RecuVersement>  $requete
      * @return iterable<RecuVersement>|null
      */
     public static function lireRecus(Builder $requete): ?iterable
     {
-        return (clone $requete)->count() > self::EXPORT_MAX ? null
+        return (clone $requete)->count() > self::plafond() ? null
             : $requete->reorder()->orderBy('annee_numero')->orderBy('sequence')->with('annulation')->lazy(self::MORCEAU);
     }
 

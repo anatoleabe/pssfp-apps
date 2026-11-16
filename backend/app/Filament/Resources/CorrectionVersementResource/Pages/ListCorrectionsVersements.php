@@ -32,7 +32,7 @@ class ListCorrectionsVersements extends ListRecords
                 ->action(function (): ?StreamedResponse {
                     abort_unless(EspaceFinances::peutExporter(auth()->user()), 403);
                     $requete = $this->getFilteredSortedTableQuery();
-                    if ((clone $requete)->count() > VersementsExcel::EXPORT_MAX) {
+                    if ((clone $requete)->count() > VersementsExcel::plafond()) {
                         Notification::make()->warning()->title('Export trop volumineux')->body('Affinez les filtres (période).')->send();
 
                         return null;

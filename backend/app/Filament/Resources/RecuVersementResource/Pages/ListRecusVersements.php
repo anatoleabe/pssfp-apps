@@ -33,7 +33,7 @@ class ListRecusVersements extends ListRecords
                     $recus = VersementsExcel::lireRecus($requete);
                     if ($recus === null) {
                         Notification::make()->warning()->title('Export trop volumineux')
-                            ->body('Plus de '.number_format(VersementsExcel::EXPORT_MAX, 0, ',', ' ').' reçus : filtrez l\'année d\'émission.')->send();
+                            ->body('Plus de '.number_format(VersementsExcel::plafond(), 0, ',', ' ').' reçus : filtrez l\'année d\'émission.')->send();
 
                         return null;
                     }

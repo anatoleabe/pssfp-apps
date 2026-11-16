@@ -45,7 +45,7 @@ class ListVersements extends ListRecords
                     $versements = VersementsExcel::lireVersements($requete);
                     if ($versements === null) {
                         Notification::make()->warning()->title('Export trop volumineux')
-                            ->body('Plus de '.number_format(VersementsExcel::EXPORT_MAX, 0, ',', ' ').' versements : affinez les filtres (période, année).')->send();
+                            ->body('Plus de '.number_format(VersementsExcel::plafond(), 0, ',', ' ').' versements : affinez les filtres (période, année).')->send();
 
                         return null;
                     }
