@@ -1,8 +1,8 @@
 # Module 4 — Scolarité : espace « Finances » du service financier et correction des versements
 
-**Date** : 2026-11-16. **Statut** : proposition, à valider par le Chef USI (questions ouvertes au §12).
+**Date** : 2026-11-16. **Statut** : validée par le Chef USI le 16/11/2026 (toutes les recommandations du §12 retenues).
 **Demandeur** : Chef USI, pour le service financier.
-**ADR** : [ADR-0015](../adr/0015-correction-des-versements-par-contre-passation.md) (proposé), qui précise l'[ADR-0013](../adr/0013-compte-de-l-auditeur.md) sur un point : comment corriger un versement.
+**ADR** : [ADR-0015](../adr/0015-correction-des-versements-par-contre-passation.md) (accepté le 16/11/2026), qui précise l'[ADR-0013](../adr/0013-compte-de-l-auditeur.md) sur un point : comment corriger un versement.
 **Specs liées** : [lot 4, reçus](module-4-scolarite-lot4-recus.md), [encaissement et confirmation](module-4-scolarite-encaissement-confirmation.md), [compte de l'auditeur, D1](module-4-scolarite-comptes-d1.md), [lot 14c, demandes d'autorisation](module-4-lmd-lot14c-demandes-autorisation.md), [lot 14a, contrôle interne](module-4-lmd-lot14a-controle-interne.md), [lot 13c-2, contrôle de gestion](module-4-lmd-lot13c2-controle-gestion.md).
 
 Aucune donnée réelle dans ce document : les montants cités sont des exemples de format.
@@ -452,7 +452,7 @@ Le geste existant reste, avec trois ajouts :
 
 - une catégorie de motif obligatoire (R-C3) ;
 - une pièce de correction de nature `annulation`, sans demande (`demande_id` nul, `executee_par` = le responsable) ;
-- l'avis R-C10, si Q5 le retient.
+- l'avis R-C10 (Q5 retenue le 16/11/2026).
 
 ### 7.8 Écran « Corrections »
 
@@ -589,24 +589,24 @@ La table ne touche pas la table d'argent ; elle suit le précédent de `confirma
 | 8 | Versement imputé sur plusieurs années | Refus R-C5, comme R4.1. À lever avec D4, qui doit précéder D3. |
 | 9 | Un décideur atteste sans vérifier | L'attestation est nominative, journalisée et soumise au contrôle `VER_CORRECTIONS` ; le scan d'origine est affiché à côté de la case |
 
-## 12. Questions ouvertes
+## 12. Questions tranchées le 16/11/2026
 
-Chaque question donne deux ou trois options. **En gras**, l'option recommandée.
+Le Chef USI a retenu, le 16/11/2026, toutes les recommandations. La dernière colonne donne la réponse retenue ; les options écartées restent pour mémoire. **En gras**, l'option retenue.
 
-| # | Question | Options | Recommandation |
+| # | Question | Options | Retenu le 16/11/2026 |
 |---|---|---|---|
-| Q1 | Qui donne le second regard sur une correction ? | (a) le responsable de scolarité seul ; **(b) tout titulaire de `versement_annuler` : responsable, `admin`, `super_admin`** ; (c) (b) plus le visa du contrôle interne, comme les autres annulations du lot 14c | **(b)**. Deux personnes suffisent : le contrôle `VER_CORRECTIONS` relit après coup les cas sensibles. Un troisième regard ralentirait un geste fréquent pour deux comptes de service financier. |
-| Q2 | Le service financier peut-il rectifier seul ? | (a) jamais ; **(b) seulement une erreur descriptive (référence, date, mode, payeur), à montant et auditeur égaux, sur un versement non confirmé, dans les 48 h** ; (c) tout champ tant que le versement n'est pas confirmé | **(b)**. Les fautes de frappe se corrigent sans attendre, et l'argent reste sous deux regards. Fenêtre de 48 h réglable. |
-| Q3 | Que devient la confirmation d'un versement confirmé qu'on corrige ? | (a) toujours reconfirmer au guichet ; **(b) report d'office à montant et auditeur égaux, attestation du décideur sur le scan sinon** ; (c) report d'office dans tous les cas | **(b)**. On ne fait jamais revenir l'auditeur pour une faute de saisie qui n'est pas la sienne, et un changement de montant ou d'auditeur est attesté par quelqu'un de la scolarité ou de l'administration. |
-| Q4 | Que voit l'auditeur ? | (a) seulement le nouveau versement, sans mention ; **(b) le nouveau versement avec « Remplace le reçu … (annulé) », le reçu annulé téléchargeable ; une annulation seule n'est pas listée** ; (c) toutes les lignes annulées, barrées | **(b)**. Il garde un reçu papier ou PDF qu'il doit pouvoir rapprocher, sans être noyé sous les lignes annulées. |
-| Q5 | Faut-il prévenir l'auditeur d'une correction ? | (a) non : seul l'avis normal du nouveau reçu part (règle du lot 4 : pas d'avis à l'annulation) ; **(b) l'avis du nouveau reçu cite le reçu remplacé, et une annulation seule a son propre avis** ; (c) avis à chaque étape (demande, décision, exécution) | **(b)**. L'avis à l'annulation est aussi une parade contre la fraude (risque 3). Cela revient sur la règle du lot 4 §5.1 B.6 pour l'annulation de versement seulement, pas pour l'annulation d'un reçu seul (C5). |
-| Q6 | Comment corriger la part d'un règlement d'organisme ? | **(a) pas dans cette livraison : annuler le règlement entier et le ressaisir (geste existant du responsable)** ; (b) corriger une part isolée ; (c) une correction de règlement entier, sur le même modèle (pièce, liens) | **(a)** maintenant, puis (c) dans un sous-lot ultérieur si les cas se présentent. Les parts se confirment et s'annulent avec leur règlement : une part isolée casserait cette règle. |
-| Q7 | Qui voit le menu Finances ? | (a) le service financier, `admin` et `super_admin` ; **(b) les mêmes, plus le responsable de scolarité** ; (c) (b) plus les agents de scolarité, en lecture | **(b)**. Le responsable décide les corrections et accorde les remises : il a besoin des chiffres. Les agents ont déjà « Listes et états ». |
-| Q8 | Sur quel argent bâtir les montants du tableau de bord ? | **(a) tout l'argent enregistré, avec « dont à confirmer »** ; (b) l'argent confirmé seulement ; (c) un interrupteur entre les deux | **(a)**. C'est la règle de la fiche, de D1 et des listes (§3, point 2). Le taux confirmé (A9) et l'effectif E7 donnent la vue confirmée sans créer un second jeu de chiffres. |
-| Q9 | Quelle date pour l'évolution mensuelle ? | **(a) la date du versement (date de valeur)** ; (b) la date d'enregistrement ; (c) les deux | **(a)** pour la courbe. Le tableau donne aussi l'« Enregistré » et l'« Annulé » du mois (vue journal), ce qui couvre (b) sans second graphique. |
-| Q10 | Quand les droits d'inscription sont-ils exigibles (ancienneté) ? | **(a) à la création de l'inscription annuelle** ; (b) à la date de rentrée de la promotion ; (c) à une nouvelle date d'échéance du barème | **(a)**. Pas de nouvelle donnée à saisir, et c'est cohérent avec la règle « droits payés avant l'accès ». (c) pourra suivre si la scolarité fixe une date. |
-| Q11 | Que devient l'annulation directe par le responsable ? | (a) inchangée ; **(b) gardée, avec une catégorie de motif et une pièce de correction de nature « annulation »** ; (c) supprimée au profit du seul circuit de demande | **(b)**. La scolarité constate aussi des erreurs (doublon au guichet), et toute annulation figure dans la liste des corrections. |
-| Q12 | Faut-il numéroter les pièces de correction ? | **(a) oui, `COR-AAAA-NNNNN`, continu sur l'année civile** ; (b) non : le numéro de demande `DM-` et l'écriture `-A` du reçu suffisent | **(a)**. Une rectification immédiate ou une annulation directe n'a pas de demande, et le service financier cite une pièce dans ses échanges avec la comptabilité. |
+| Q1 | Qui donne le second regard sur une correction ? | (a) le responsable de scolarité seul ; **(b) tout titulaire de `versement_annuler` : responsable, `admin`, `super_admin`** ; (c) (b) plus le visa du contrôle interne, comme les autres annulations du lot 14c | Retenu : **(b)**. Deux personnes suffisent : le contrôle `VER_CORRECTIONS` relit après coup les cas sensibles. Un troisième regard ralentirait un geste fréquent pour deux comptes de service financier. |
+| Q2 | Le service financier peut-il rectifier seul ? | (a) jamais ; **(b) seulement une erreur descriptive (référence, date, mode, payeur), à montant et auditeur égaux, sur un versement non confirmé, dans les 48 h** ; (c) tout champ tant que le versement n'est pas confirmé | Retenu : **(b)**. Les fautes de frappe se corrigent sans attendre, et l'argent reste sous deux regards. Fenêtre de 48 h réglable. |
+| Q3 | Que devient la confirmation d'un versement confirmé qu'on corrige ? | (a) toujours reconfirmer au guichet ; **(b) report d'office à montant et auditeur égaux, attestation du décideur sur le scan sinon** ; (c) report d'office dans tous les cas | Retenu : **(b)**. On ne fait jamais revenir l'auditeur pour une faute de saisie qui n'est pas la sienne, et un changement de montant ou d'auditeur est attesté par quelqu'un de la scolarité ou de l'administration. |
+| Q4 | Que voit l'auditeur ? | (a) seulement le nouveau versement, sans mention ; **(b) le nouveau versement avec « Remplace le reçu … (annulé) », le reçu annulé téléchargeable ; une annulation seule n'est pas listée** ; (c) toutes les lignes annulées, barrées | Retenu : **(b)**. Il garde un reçu papier ou PDF qu'il doit pouvoir rapprocher, sans être noyé sous les lignes annulées. |
+| Q5 | Faut-il prévenir l'auditeur d'une correction ? | (a) non : seul l'avis normal du nouveau reçu part (règle du lot 4 : pas d'avis à l'annulation) ; **(b) l'avis du nouveau reçu cite le reçu remplacé, et une annulation seule a son propre avis** ; (c) avis à chaque étape (demande, décision, exécution) | Retenu : **(b)**. L'avis à l'annulation est aussi une parade contre la fraude (risque 3). Cela revient sur la règle du lot 4 §5.1 B.6 pour l'annulation de versement seulement, pas pour l'annulation d'un reçu seul (C5). |
+| Q6 | Comment corriger la part d'un règlement d'organisme ? | Retenu : **(a) pas dans cette livraison : annuler le règlement entier et le ressaisir (geste existant du responsable)** ; (b) corriger une part isolée ; (c) une correction de règlement entier, sur le même modèle (pièce, liens) | **(a)** maintenant, puis (c) dans un sous-lot ultérieur si les cas se présentent. Les parts se confirment et s'annulent avec leur règlement : une part isolée casserait cette règle. |
+| Q7 | Qui voit le menu Finances ? | (a) le service financier, `admin` et `super_admin` ; **(b) les mêmes, plus le responsable de scolarité** ; (c) (b) plus les agents de scolarité, en lecture | Retenu : **(b)**. Le responsable décide les corrections et accorde les remises : il a besoin des chiffres. Les agents ont déjà « Listes et états ». |
+| Q8 | Sur quel argent bâtir les montants du tableau de bord ? | Retenu : **(a) tout l'argent enregistré, avec « dont à confirmer »** ; (b) l'argent confirmé seulement ; (c) un interrupteur entre les deux | **(a)**. C'est la règle de la fiche, de D1 et des listes (§3, point 2). Le taux confirmé (A9) et l'effectif E7 donnent la vue confirmée sans créer un second jeu de chiffres. |
+| Q9 | Quelle date pour l'évolution mensuelle ? | Retenu : **(a) la date du versement (date de valeur)** ; (b) la date d'enregistrement ; (c) les deux | **(a)** pour la courbe. Le tableau donne aussi l'« Enregistré » et l'« Annulé » du mois (vue journal), ce qui couvre (b) sans second graphique. |
+| Q10 | Quand les droits d'inscription sont-ils exigibles (ancienneté) ? | Retenu : **(a) à la création de l'inscription annuelle** ; (b) à la date de rentrée de la promotion ; (c) à une nouvelle date d'échéance du barème | **(a)**. Pas de nouvelle donnée à saisir, et c'est cohérent avec la règle « droits payés avant l'accès ». (c) pourra suivre si la scolarité fixe une date. |
+| Q11 | Que devient l'annulation directe par le responsable ? | (a) inchangée ; **(b) gardée, avec une catégorie de motif et une pièce de correction de nature « annulation »** ; (c) supprimée au profit du seul circuit de demande | Retenu : **(b)**. La scolarité constate aussi des erreurs (doublon au guichet), et toute annulation figure dans la liste des corrections. |
+| Q12 | Faut-il numéroter les pièces de correction ? | Retenu : **(a) oui, `COR-AAAA-NNNNN`, continu sur l'année civile** ; (b) non : le numéro de demande `DM-` et l'écriture `-A` du reçu suffisent | **(a)**. Une rectification immédiate ou une annulation directe n'a pas de demande, et le service financier cite une pièce dans ses échanges avec la comptabilité. |
 
 ## 13. Découpage en sous-lots
 
@@ -661,7 +661,7 @@ Chaque sous-lot se livre seul, avec ses migrations et ses tests, et compte huit 
 4. Export Excel en trois feuilles, montants en nombres ; journal des critères.
 5. Tests Pest : regroupements, total, export (contenu des cellules), refus sans `scolarite.export`.
 
-### F5 — Rectification immédiate (si Q2 = b ou c)
+### F5 — Rectification immédiate (Q2 retenue le 16/11/2026)
 
 1. Réglage de la fenêtre (`finances.fenetre_rectification_heures`, 48 par défaut).
 2. Action « Rectifier » (service financier), dans les conditions de Q2.

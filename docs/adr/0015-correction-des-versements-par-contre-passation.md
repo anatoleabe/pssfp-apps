@@ -1,8 +1,8 @@
 # ADR-0015 — Correction des versements par contre-passation liée, jamais par modification ni suppression
 
-**Statut** : Proposé
+**Statut** : Accepté (16/11/2026)
 **Date** : 2026-11-16
-**Décideur** : Chef USI (chef de projet), sur demande du service financier
+**Décideur** : Chef USI (chef de projet), sur demande du service financier ; décisions du 16/11/2026 (spec, §12, Q1 à Q12)
 **Référence** : [spec de l'espace Finances](../specs/module-4-scolarite-espace-financier.md), §7 et §8 ; [ADR-0013](0013-compte-de-l-auditeur.md), qu'elle précise ; [ADR-0011](0011-lmd-pssfp-systeme-dans-la-plateforme.md) (SQL brut sur les tables d'argent) ; lot 14c (demandes d'autorisation)
 
 ## Contexte
@@ -36,7 +36,7 @@ Contraintes constatées dans le code :
    - l'annulation, au nom du décideur ;
    - la nouvelle saisie et le reçu, au nom du demandeur.
 
-   Une rectification descriptive immédiate par le service financier seul reste possible si le chef de projet la retient (spec, question Q2). Elle produit la même pièce.
+   Une rectification descriptive immédiate par le service financier seul est retenue (spec, Q2 tranchée le 16/11/2026) : référence, date, mode ou payeur, à montant et auditeur égaux, sur un versement non confirmé, dans les 48 h. Elle produit la même pièce.
 4. **La confirmation se reporte, elle ne se modifie pas.** Une nouvelle ligne de `confirmations_versements` est liée à la pièce (colonne `correction_id`, contrainte `CHECK` élargie) :
    - elle est reportée d'office à montant et auditeur égaux ;
    - sinon, elle est attestée par le décideur, qui détient `scolarite.versement_confirmer`.
