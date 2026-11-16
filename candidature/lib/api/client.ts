@@ -304,6 +304,8 @@ export interface MyCandidature extends CandidatureProfile {
   date_paiement: string | null;
   recipisse_available: boolean;
   lettre_admission_available: boolean;
+  /** Ancien auditeur réinscrit depuis l'archive ACMA : pas d'annonce d'admission ni de communiqué. */
+  reinscrit_acma?: boolean;
   has_photo: boolean;
   photo_url: string | null;
   documents: CandidatureDocumentItem[];

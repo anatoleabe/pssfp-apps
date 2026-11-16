@@ -90,6 +90,8 @@ final class CandidatureResource extends JsonResource
                 : null,
             'recipisse_available' => $this->recipisse_pdf_path !== null,
             'lettre_admission_available' => LettresAdmissionSignees::disponible($this->resource),
+            // Ancien réinscrit depuis l'archive ACMA : l'espace l'accueille sans annonce d'admission (§9).
+            'reinscrit_acma' => $this->resource->estReinscritAcma(),
             // Pièces justificatives optionnelles (cf. migration
             // candidature_documents) — non-bloquantes, dépôt physique
             // alternatif possible au bureau de la scolarité.

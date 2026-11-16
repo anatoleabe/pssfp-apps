@@ -12,6 +12,7 @@ use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\CompteAuditeur;
 use App\Services\Scolarite\Palier;
+use App\Services\Scolarite\PromotionAccueil;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -73,8 +74,8 @@ final class ScolariteResource extends JsonResource
                 'foad_url' => $etat === AccesEcampus::DISPONIBLE ? (string) config('pssfp.foad_url') : null,
                 'mot_de_passe_connu' => $motDePasseConnu,
                 // Le bouton de la lettre PDF n'apparaît qu'une fois la date des lettres saisie sur la promotion.
-                'lettre_disponible' => $motDePasseConnu === true && $c->campagne !== null
-                    ? ParametresLettres::pour($c->campagne, avecBareme: false)->manquants(ParametresLettres::DOCUMENT_ACCES) === []
+                'lettre_disponible' => $motDePasseConnu === true && ($promotionLettre = PromotionAccueil::lettreAcces($c)) !== null
+                    ? ParametresLettres::pour($promotionLettre, avecBareme: false)->manquants(ParametresLettres::DOCUMENT_ACCES) === []
                     : null,
                 'reste_inscription' => $etat === AccesEcampus::BLOQUE && ! $enAttente ? ($s?->resteInscription()) : null,
                 'confirmation_en_attente' => $enAttente ? true : null,

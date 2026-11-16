@@ -59,7 +59,8 @@ function Retenu({ candidature }: { candidature: MyCandidature }): JSX.Element {
   const t = useTranslations('dossier.decision');
   const locale = useLocale();
   const decision = candidature.decision?.resultat === 'retenu' ? candidature.decision : null;
-  const consignes = decision?.consignes?.trim() || t('nextStepsDefault');
+  const reinscrit = candidature.reinscrit_acma === true;
+  const consignes = reinscrit ? t('reinscritNextSteps') : decision?.consignes?.trim() || t('nextStepsDefault');
 
   return (
     <section
@@ -84,9 +85,9 @@ function Retenu({ candidature }: { candidature: MyCandidature }): JSX.Element {
             id="decision-heading"
             className="mt-3 font-heading text-3xl font-bold leading-tight text-[#4A2E67] md:text-[2.6rem]"
           >
-            {t('retenuTitle')}
+            {reinscrit ? t('reinscritTitle') : t('retenuTitle')}
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-[#3C3C3C] md:text-lg">{t('retenuLead')}</p>
+          <p className="mt-4 text-base leading-relaxed text-[#3C3C3C] md:text-lg">{reinscrit ? t('reinscritLead') : t('retenuLead')}</p>
         </div>
         <span
           aria-hidden="true"

@@ -7,6 +7,7 @@ namespace App\Services\DocumentsAuditeurs;
 use App\Models\Candidature;
 use App\Services\DocumentsAuditeurs\GabaritLettre as G;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
+use App\Services\Scolarite\PromotionAccueil;
 use Barryvdh\DomPDF\Facade\Pdf;
 use finfo;
 use Illuminate\Support\Facades\Log;
@@ -36,7 +37,8 @@ final class LettreAccesFoadPdf
     public function html(Candidature $c): string
     {
         $c->loadMissing('campagne');
-        $parametres = ParametresLettres::pour($c->campagne);
+        // Ancien réinscrit : la lettre de sa promotion d'accueil (spec de la réinscription des anciens, §10).
+        $parametres = ParametresLettres::pour(PromotionAccueil::lettreAcces($c) ?? $c->campagne);
         if (($manquants = $parametres->manquants(ParametresLettres::DOCUMENT_ACCES)) !== []) {
             throw new DocumentsIncomplets($manquants);
         }

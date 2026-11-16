@@ -57,9 +57,10 @@ final class LiensLettreAcces
             return false;
         }
         $c->loadMissing('campagne');
+        $promotion = PromotionAccueil::lettreAcces($c);
 
-        return $c->campagne !== null
-            && ParametresLettres::pour($c->campagne)->manquants(ParametresLettres::DOCUMENT_ACCES) === [];
+        return $promotion !== null
+            && ParametresLettres::pour($promotion)->manquants(ParametresLettres::DOCUMENT_ACCES) === [];
     }
 
     /**
