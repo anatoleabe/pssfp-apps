@@ -66,7 +66,17 @@ final class VersementsExcel
             $versements->loadMissing(self::RELATIONS_VERSEMENTS);
         }
 
-        return $this->classeur('Versements', self::ENTETES_VERSEMENTS, ['Montant'], self::transformer($versements, fn (Versement $v): array => [
+        return $this->classeur('Versements', self::ENTETES_VERSEMENTS, ['Montant'], self::transformer($versements, fn (Versement $v): array => self::ligneVersement($v)));
+    }
+
+    /**
+     * Ligne d'un versement, colonnes de ENTETES_VERSEMENTS (relations de RELATIONS_VERSEMENTS chargées).
+     *
+     * @return list<mixed>
+     */
+    public static function ligneVersement(Versement $v): array
+    {
+        return [
             $v->auditeur?->candidature?->matricule,
             $v->auditeur?->candidature?->nom,
             $v->auditeur?->candidature?->prenom,
@@ -85,7 +95,7 @@ final class VersementsExcel
             $v->confirmation?->confirme_at?->setTimezone(self::FUSEAU)->format('d/m/Y'),
             $v->annule_at?->setTimezone(self::FUSEAU)->format('d/m/Y H:i'),
             $v->annule_motif,
-        ]));
+        ];
     }
 
     /** @param  iterable<RecuVersement>  $recus  une collection, ou une lecture par morceaux (`lireRecus`) */
