@@ -18,6 +18,9 @@ return [
      */
     'annee_en_cours' => env('SCOLARITE_ANNEE_EN_COURS', '2026-2027'),
 
+    // Lignes exportées au plus en un fichier Excel (espace Finances, décision du 16/11/2026).
+    'export_max' => (int) env('SCOLARITE_EXPORT_MAX', 1000),
+
     'bareme_defaut' => [
         'M1' => ['inscription' => 185000, 'tranche1' => 500000, 'tranche2' => 500000],
         'M2' => ['inscription' => 135000, 'tranche1' => 500000, 'tranche2' => 500000],

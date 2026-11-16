@@ -91,6 +91,19 @@ it('exporte trois feuilles, montants en nombres', function (): void {
         ->and($classeur->getSheet(2)->getHighestRow())->toBe(1 + Versement::query()->count());
 });
 
+it('remplace le détail des versements par un renvoi au-delà du plafond d\'export', function (): void {
+    config()->set('scolarite.export_max', 2);
+    $contenu = app(AnalyseFinancesExcel::class)->generer($this->lignes, ['promotion'], ['Année académique' => '2026-2027']);
+    $fichier = tempnam(sys_get_temp_dir(), 'xlsx');
+    file_put_contents($fichier, $contenu);
+    $feuille = IOFactory::load($fichier)->getSheet(2);
+    unlink($fichier);
+
+    expect(Versement::query()->count())->toBe(3)
+        ->and($feuille->getHighestRow())->toBe(2)
+        ->and((string) $feuille->getCell('A2')->getValue())->toStartWith('Plus de 2 versements');
+});
+
 it('s\'ouvre à l\'espace Finances, journalise l\'export sans nom, et se ferme à l\'agent', function (): void {
     $this->actingAs($this->financier);
     $this->livewire(AnalyseFinances::class)->assertOk()->assertSee('Tableau croisé')->assertSee('14e promotion')

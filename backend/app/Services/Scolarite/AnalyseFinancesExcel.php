@@ -48,9 +48,16 @@ final class AnalyseFinancesExcel
         $this->auditeurs($classeur->createSheet(), $lignes);
         $feuille = $classeur->createSheet();
         $feuille->setTitle('Versements');
-        $source = Versement::query()->whereIn('inscription_annuelle_id', $lignes->pluck('inscription_id')->all())->orderBy('id')
-            ->with(VersementsExcel::RELATIONS_VERSEMENTS)->lazy(VersementsExcel::MORCEAU)->map(fn (Versement $v): array => VersementsExcel::ligneVersement($v));
-        self::remplir($feuille, VersementsExcel::ENTETES_VERSEMENTS, $source);
+        $requete = Versement::query()->whereIn('inscription_annuelle_id', $lignes->pluck('inscription_id')->all())->orderBy('id');
+        $source = VersementsExcel::lireVersements($requete);
+        // Au-delà du plafond, le détail ne tient pas en mémoire : il se prend dans la liste des versements, par filtres.
+        self::remplir($feuille, VersementsExcel::ENTETES_VERSEMENTS, $source === null
+            ? [['Plus de '.number_format(VersementsExcel::plafond(), 0, ',', ' ').' versements : exportez le détail depuis Finances → Versements, par filtres.']]
+            : (function () use ($source): \Generator {
+                foreach ($source as $v) {
+                    yield VersementsExcel::ligneVersement($v);
+                }
+            })());
 
         ob_start();
         (new Xlsx($classeur))->save('php://output');
