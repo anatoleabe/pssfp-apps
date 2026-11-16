@@ -394,9 +394,9 @@ it('refuse sans transit, avec une étape inconnue ou un code de niveau inconnu, 
 });
 
 it('se défait et se refait, mais refuse d\'être défaite une fois l\'archive gelée', function (): void {
-    $academique = require database_path('migrations/2026_12_04_100000_create_acma_archive_academique_tables.php');
-    $financiere = require database_path('migrations/2026_12_05_100000_create_acma_archive_financiere_tables.php');
-    $complements = require database_path('migrations/2026_12_06_100000_create_acma_complements_table.php');
+    $academique = require database_path('migrations/2026_12_07_100000_create_acma_archive_academique_tables.php');
+    $financiere = require database_path('migrations/2026_12_07_100100_create_acma_archive_financiere_tables.php');
+    $complements = require database_path('migrations/2026_12_07_100200_create_acma_complements_table.php');
 
     $complements->down();
     $financiere->down();

@@ -309,13 +309,13 @@ it('remet les classeurs de la reprise aux titulaires des permissions, et journal
 });
 
 it('accorde les droits par migration additive, et se défait', function (): void {
-    $complements = require database_path('migrations/2026_12_06_100000_create_acma_complements_table.php');
+    $complements = require database_path('migrations/2026_12_07_100200_create_acma_complements_table.php');
     $complements->down();
     $complements->up();
     app(ArchivesAcma::class)->completerDateNaissance(($this->dossier)('90EFP002'), '1990-05-05', 'Dossier papier', 'Date relevée sur l\'acte de naissance', $this->responsable);
     expect(fn () => $complements->down())->toThrow(RuntimeException::class, 'Compléments ou arbitrages');
 
-    $migration = require database_path('migrations/2026_12_06_100100_grant_archives_acma_permissions.php');
+    $migration = require database_path('migrations/2026_12_07_100300_grant_archives_acma_permissions.php');
     Permission::query()->whereIn('name', ['archives.consulter', 'archives.completer', 'archives.rapprocher'])->delete();
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 
