@@ -7,6 +7,7 @@ namespace App\Services\ExportsRetenus;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\User;
+use App\Services\Scolarite\AnneeEnCours;
 use App\Services\Scolarite\OuvertureAuditeur;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -49,8 +50,9 @@ final class AttributionMatricules
      */
     public static function anneeFigee(CampagneCandidature $campagne): ?string
     {
+        // Seuls les matricules attribués ici (avec un rang) : un matricule repris d'ACMA ne fige pas l'année.
         $matricule = Candidature::withTrashed()->forCampagne($campagne->id)
-            ->whereNotNull('matricule')->orderBy('rang_retenu')->value('matricule');
+            ->whereNotNull('matricule')->whereNotNull('rang_retenu')->orderBy('rang_retenu')->value('matricule');
 
         return $matricule === null ? null : substr((string) $matricule, 0, 2);
     }
@@ -71,6 +73,8 @@ final class AttributionMatricules
         if (preg_match('/^\d{2}$/', $annee) !== 1) {
             throw new InvalidArgumentException('L\'année du matricule doit compter deux chiffres.');
         }
+        // Aucune attribution hors de la promotion en cours (décision du 16/11/2026).
+        AnneeEnCours::exigerPromotionCourante($campagne);
         $figee = self::anneeFigee($campagne);
         if ($figee !== null && $figee !== $annee) {
             throw new InvalidArgumentException("Les matricules de cette promotion commencent déjà par « {$figee} » : l'année ne peut plus changer.");

@@ -90,11 +90,15 @@ class PromotionResource extends Resource
         return false;
     }
 
-    /** Une promotion naît avec ses premiers retenus. */
+    /**
+     * Une promotion naît avec ses premiers retenus ; une promotion antérieure (close, sans aucun dossier) se montre dès
+     * sa création, pour être réglée avant la réinscription de ses anciens (spec de la réinscription des anciens, §5.2).
+     */
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->whereHas('candidatures', fn (Builder $q) => $q->where('statut', Candidature::STATUT_ACCEPTE))
+            ->where(fn (Builder $p) => $p->whereHas('candidatures', fn (Builder $q) => $q->where('statut', Candidature::STATUT_ACCEPTE))
+                ->orWhere(fn (Builder $v) => $v->where('status', 'closed')->whereDoesntHave('candidatures')))
             ->withCount([
                 'candidatures as retenus_count' => fn (Builder $q) => $q->where('statut', Candidature::STATUT_ACCEPTE)->whereNull('withdrawn_at'),
                 'candidatures as matricules_count' => fn (Builder $q) => $q->whereNotNull('matricule')->whereNull('withdrawn_at'),

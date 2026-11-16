@@ -531,3 +531,12 @@ Chaque sous-lot a sa branche, ses tests, sa PR, et se déploie seul.
 2. **Fiches fusionnées.** Les coordonnées sont celles de la fiche de référence ; une divergence entre fiches est signalée sur le dossier (`coordonnees_divergentes`) et comptée par l'étape `dossiers`.
 3. **Formats refusés.** Une archive `/1` ou `/2` est refusée au chargement avec le message « refaire acma:extraire ».
 4. **Répétition locale** (copie de transit du 15/11, archive provisoire non gelée, comptes seulement) : dossiers et inscriptions tous « modifiés » au premier rejeu, aucun lien remis à arbitrer, contrôles bloquants verts, second rejeu sans aucune écriture. **Aucune fiche n'a d'e-mail de forme valide** (constat du §3.7 du lot 15 confirmé) : à la réinscription, l'e-mail se saisit (§7.3).
+
+### 15j — Promotions antérieures et garde-fous
+
+1. **Année en cours.** Réglage applicatif `scolarite.annee_en_cours`, sinon `config('scolarite.annee_en_cours')` (variable `SCOLARITE_ANNEE_EN_COURS`, défaut `2026-2027`). Pas encore d'écran pour la changer : D3 l'ajoutera avec l'ouverture de l'année suivante. Une valeur absente ou mal formée désactive les gardes de promotion ; seuls les tests s'en servent (`phpunit.xml` la vide), la production a toujours le défaut.
+2. **`CorrespondancesAcma::ANNEE_EN_COURS` reste une constante.** Pour la reprise, c'est l'année qu'ACMA tenait encore en parallèle (2026-2027), exclue de l'archive : elle ne suit pas l'année en cours de la plateforme.
+3. **Promotion courante** : la promotion dont l'année est l'année en cours ; les gardes vérifient seulement que la campagne visée est de cette année (une campagne de l'année en cours suffit, quel que soit son numéro).
+4. **Liste des promotions** : une campagne close sans aucun dossier s'y montre (c'est une promotion antérieure tout juste créée). Le filtre « Antérieures » n'est pas livré : la colonne « Retenus » à 0 suffit.
+5. **`scolarite:importer-auditeurs`** garde sa signature et échoue avec un message qui renvoie à l'archive. Le service `ImportAuditeurs` reste, pour ses tests et ses règles de lecture.
+6. **Création** : verrou sur la promotion courante ; refus d'un numéro pris, d'un numéro ≥ celui de la promotion courante, d'une année déjà portée par une autre promotion ou non antérieure.

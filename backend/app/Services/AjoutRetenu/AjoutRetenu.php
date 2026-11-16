@@ -10,6 +10,7 @@ use App\Models\Pays;
 use App\Models\User;
 use App\Services\CandidatUserService;
 use App\Services\ResultatsSelection\DetecteurDoublons;
+use App\Services\Scolarite\AnneeEnCours;
 use App\Support\PhoneMasker;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionInterface;
@@ -70,6 +71,8 @@ final class AjoutRetenu
         }
         $campagne = CampagneCandidature::query()->whereKey($donnees['campagne_id'] ?? null)->whereIn('status', self::STATUTS_CAMPAGNE)->first()
             ?? throw new InvalidArgumentException('Choisissez une campagne ouverte ou close : une campagne en préparation ou archivée n\'a pas de promotion à compléter.');
+        // Un nouvel auditeur n'entre que dans la promotion en cours (décision du 16/11/2026).
+        AnneeEnCours::exigerPromotionCourante($campagne);
         $naissance = CarbonImmutable::parse((string) $donnees['date_naissance'])->toDateString();
         $champs = array_merge(
             array_intersect_key($donnees, array_flip(self::CHAMPS)),
