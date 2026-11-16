@@ -103,6 +103,27 @@ return [
             'timezone' => env('DB_TIMEZONE', env('APP_TIMEZONE', 'UTC')),
         ],
 
+        // Lot 15a (ADR-0014) : base ACMA chargée dans un MariaDB jetable, sur le poste de l'USI seulement.
+        // Sans ACMA_DB_HOST, la connexion n'est pas définie et `acma:extraire` refuse de s'exécuter.
+        // Valeurs rendues en texte par le serveur (requêtes émulées) et lues en flux, sans tampon.
+        'acma_source' => [
+            'driver' => 'mariadb',
+            'host' => env('ACMA_DB_HOST'),
+            'port' => env('ACMA_DB_PORT', '3306'),
+            'database' => env('ACMA_DB_DATABASE', 'gestionacademic'),
+            'username' => env('ACMA_DB_USERNAME', 'root'),
+            'password' => env('ACMA_DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'strict' => false,
+            'options' => extension_loaded('pdo_mysql') ? [
+                PDO::ATTR_EMULATE_PREPARES => true,
+                PDO::ATTR_STRINGIFY_FETCHES => true,
+                PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => false,
+            ] : [],
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),
