@@ -73,6 +73,15 @@ class RecuVersement extends Model
         return $this->hasOne(self::class, 'remplace_recu_id');
     }
 
+    /**
+     * Le reçu lié (remplacé ou remplaçant) est-il du même auditeur ? Sinon (erreur d'auditeur corrigée), seul le numéro de
+     * la pièce de correction se cite : jamais le reçu d'un autre auditeur.
+     */
+    public function memeAuditeur(?self $autre): bool
+    {
+        return $autre !== null && $autre->versement?->auditeur_id === $this->versement?->auditeur_id;
+    }
+
     public function estAnnule(): bool
     {
         return $this->annulation !== null;

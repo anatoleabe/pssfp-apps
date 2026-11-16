@@ -120,8 +120,13 @@ class ViewDemande extends ViewRecord
     {
         $v = $this->versementCorrige();
 
-        return $v === null ? [CorrectionsVersements::OPTION_ATTESTATION => false, CorrectionsVersements::OPTION_FERMETURE => false]
-            : app(CorrectionsVersements::class)->exigences($v, $this->demande()->parametres ?? []);
+        $aucune = [CorrectionsVersements::OPTION_ATTESTATION => false, CorrectionsVersements::OPTION_FERMETURE => false];
+        try {
+            return $v === null ? $aucune : app(CorrectionsVersements::class)->exigences($v, $this->demande()->parametres ?? []);
+        } catch (InvalidArgumentException) {
+            // La correction serait refusée : la prévision en donne la raison, l'approbation la rappellera.
+            return $aucune;
+        }
     }
 
     /** Prévision lisible (R-C7) : pour chaque auditeur, accès eCampus, versé et reste, avant puis après. */
@@ -132,8 +137,13 @@ class ViewDemande extends ViewRecord
             return '—';
         }
         $acces = fn (bool $o): string => $o ? 'ouvert' : 'fermé';
+        try {
+            $prevision = app(CorrectionsVersements::class)->prevoir($v, $this->demande()->parametres ?? []);
+        } catch (InvalidArgumentException $e) {
+            return 'Correction impossible en l\'état : '.$e->getMessage();
+        }
 
-        return collect(app(CorrectionsVersements::class)->prevoir($v, $this->demande()->parametres ?? []))
+        return collect($prevision)
             ->map(fn (array $l): string => $l['matricule'].' : accès eCampus '.$acces($l['acces_avant']).' → '.$acces($l['acces_apres'])
                 .' ; versé '.LibelleSituation::fcfa($l['verse_avant']).' → '.LibelleSituation::fcfa($l['verse_apres'])
                 .' (dont à confirmer '.LibelleSituation::fcfa($l['a_confirmer_apres']).') ; reste '.LibelleSituation::fcfa($l['reste_avant']).' → '.LibelleSituation::fcfa($l['reste_apres']))

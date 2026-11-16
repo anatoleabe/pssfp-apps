@@ -38,15 +38,24 @@ final class CorrectionActions
             ->label('Corriger ce versement')
             ->icon('heroicon-o-pencil-square')
             ->color('warning')
+            // Tests bon marché seulement (une ligne de liste) ; les refus coûteux se vérifient à l'ouverture.
             ->visible(fn (Versement $record): bool => CorrectionsVersements::peutDemander(auth()->user())
-                && CorrectionsVersements::raisonRefus($record) === null && $record->correctionDemandee() === null)
+                && ! $record->estAnnule() && $record->reglement_organisme_id === null)
             ->modalHeading('Corriger ce versement')
             ->modalDescription(fn (Versement $record): string => self::direct()
                 ? 'Le versement de '.LibelleSituation::fcfa($record->montant).' (référence '.$record->reference.') sera annulé avec son reçu, puis remplacé si vous le demandez. Rien n\'est supprimé : une pièce de correction numérotée relie le tout.'
                 : 'Votre demande part au responsable de scolarité ou à un administrateur. À sa décision, le versement de '.LibelleSituation::fcfa($record->montant)
                     .' (référence '.$record->reference.') est annulé avec son reçu, puis remplacé si vous le demandez, et l\'auditeur reçoit le nouveau reçu. Rien n\'est supprimé.')
             ->modalSubmitActionLabel(fn (): string => self::direct() ? 'Corriger' : 'Envoyer la demande')
-            ->fillForm(fn (Versement $record): array => ['nature' => CorrectionVersement::REMPLACEMENT] + CorrectionsVersements::valeurs($record))
+            ->mountUsing(function (Versement $record, Forms\Form $form, TableAction $action): void {
+                $refus = CorrectionsVersements::raisonRefus($record)
+                    ?? (($d = $record->correctionDemandee()) !== null ? 'Une correction de ce versement est déjà demandée ('.$d->numero.').' : null);
+                if ($refus !== null) {
+                    Notification::make()->danger()->title('Correction impossible')->body($refus)->send();
+                    $action->cancel();
+                }
+                $form->fill(['nature' => CorrectionVersement::REMPLACEMENT] + CorrectionsVersements::valeurs($record));
+            })
             ->form(fn (Versement $record): array => MessagesValidation::appliquer([
                 Forms\Components\Radio::make('nature')->label('Nature')->options(CorrectionVersement::NATURES)->required()->live(),
                 Forms\Components\Select::make('categorie')->label('Catégorie de l\'erreur')->options(CorrectionVersement::CATEGORIES)->required()->native(false),
@@ -62,21 +71,25 @@ final class CorrectionActions
                         Forms\Components\Select::make('auditeur_id')->label('Auditeur')->required()->searchable()
                             ->getSearchResultsUsing(fn (string $search): array => self::auditeurs($search))
                             ->getOptionLabelUsing(fn ($value): string => CorrectionsVersements::afficher('auditeur_id', (int) $value)),
+                        AuditeurActions::champJustificatif('Scan du bordereau corrigé (facultatif)'),
                     ]),
                 Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(10)->maxLength(2000)->rows(3)
                     ->helperText('Ce qui s\'est passé, en une ou deux phrases : il reste dans la pièce de correction.'),
-                Forms\Components\Checkbox::make(CorrectionsVersements::OPTION_ATTESTATION)->label(CorrectionsVersements::ATTESTATION)
-                    ->visible(fn (): bool => self::direct() && $record->confirmation()->exists()),
                 Forms\Components\Checkbox::make(CorrectionsVersements::OPTION_FERMETURE)->label(CorrectionsVersements::FERMETURE)
                     ->visible(fn (): bool => self::direct()),
             ]))
             ->action(function (Versement $record, array $data, TableAction $action): void {
-                $saisie = array_intersect_key($data, array_flip(['nature', 'categorie', ...CorrectionsVersements::CHAMPS]));
+                $saisie = array_intersect_key($data, array_flip(['nature', 'categorie', 'justificatif_path', ...CorrectionsVersements::CHAMPS]));
                 $user = auth()->user();
                 try {
-                    if (self::direct()) {
-                        $c = app(CorrectionsVersements::class)->executer($record, CorrectionsVersements::parametres($record, $saisie), (string) $data['motif'], $user, $user,
-                            array_intersect_key($data, array_flip([CorrectionsVersements::OPTION_ATTESTATION, CorrectionsVersements::OPTION_FERMETURE])));
+                    if (filled($data['justificatif_path'] ?? null)) {
+                        AuditeurActions::exigerScanDepose((string) $data['justificatif_path']);
+                    }
+                    $services = app(CorrectionsVersements::class);
+                    // Directe pour qui a tous les droits, sauf quand une attestation est exigée : alors toujours une seconde personne.
+                    if (self::direct() && ! $services->exigences($record, $parametres = CorrectionsVersements::parametres($record, $saisie))[CorrectionsVersements::OPTION_ATTESTATION]) {
+                        $c = $services->executer($record, $parametres, (string) $data['motif'], $user, $user,
+                            array_intersect_key($data, array_flip([CorrectionsVersements::OPTION_FERMETURE])));
                         Notification::make()->success()->title('Correction '.$c->numero.' passée')
                             ->body($c->recuRemplacant !== null ? 'Nouveau reçu : '.$c->recuRemplacant->numero.'.' : null)->send();
 
@@ -84,6 +97,7 @@ final class CorrectionActions
                     }
                     $d = app(Demandes::class)->soumettre($user, TypesDemande::CORRIGER_VERSEMENT, $record->id, (string) $data['motif'], null, $saisie);
                 } catch (InvalidArgumentException $e) {
+                    AuditeurActions::supprimerScanOrphelin($data['justificatif_path'] ?? null);
                     Notification::make()->danger()->title('Correction non transmise')->body($e->getMessage())->send();
                     $action->halt();
 

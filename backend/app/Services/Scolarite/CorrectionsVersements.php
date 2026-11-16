@@ -53,6 +53,10 @@ final class CorrectionsVersements
 
     public const FERMETURE = 'Je sais que cette correction ferme l\'accès eCampus d\'un auditeur';
 
+    public const REFUS_DIRECT = 'Ce versement était confirmé et change de montant ou d\'auditeur : la correction passe par une demande, décidée et attestée par une autre personne.';
+
+    public const REFUS_ATTESTANT = 'L\'attestation sur le bordereau original revient à qui peut confirmer les versements (scolarite.versement_confirmer).';
+
     public function __construct(
         private readonly ConnectionInterface $db,
         private readonly RegistreVersements $registre,
@@ -164,10 +168,14 @@ final class CorrectionsVersements
 
     /**
      * Effet prévu (R-C7), pour chaque auditeur touché : accès eCampus, versé, à confirmer et reste de l'inscription courante,
-     * avant et après. La correction est jouée dans une transaction annulée : le calcul est celui de l'exécution.
+     * avant et après. La correction est jouée dans une transaction annulée : le calcul est celui de l'exécution. Une
+     * correction qui serait refusée lève l'exception du refus, avec sa raison.
+     *
      *
      * @param  array<string, mixed>  $parametres
      * @return list<array{matricule: string, acces_avant: bool, acces_apres: bool, verse_avant: int, verse_apres: int, a_confirmer_avant: int, a_confirmer_apres: int, reste_avant: int, reste_apres: int}>
+     *
+     * @throws InvalidArgumentException
      */
     public function prevoir(Versement $v, array $parametres): array
     {
@@ -179,9 +187,8 @@ final class CorrectionsVersements
             $executant = User::query()->findOrFail($v->saisi_par ?? User::query()->value('id'));
             $this->appliquer($v, $parametres, 'Prévision de la correction', $executant, $executant, null, null, true);
             $apres = array_map(fn (int $id): array => self::photo($id), $auditeurs);
-        } catch (InvalidArgumentException) {
-            $apres = $avant;
         } finally {
+            // Une correction refusée (InvalidArgumentException) remonte sa raison au décideur, après l'annulation.
             $this->db->rollBack();
         }
 
@@ -213,7 +220,16 @@ final class CorrectionsVersements
         if ($remplacement && ! ($demandeur->can(RegistreVersements::PERMISSION_SAISIR) && $demandeur->can(RecusVersements::PERMISSION_EMETTRE))) {
             throw new InvalidArgumentException('Le demandeur n\'a plus le droit d\'enregistrer un versement et d\'émettre son reçu.');
         }
-        $this->verifierOptions($v, $parametres, $options);
+        $exigences = $this->verifierOptions($v, $parametres, $options);
+        if ($exigences[self::OPTION_ATTESTATION]) {
+            // L'attestation porte sur le bordereau original : réservée à qui confirme les versements, et toujours par un second.
+            if ($demande === null) {
+                throw new InvalidArgumentException(self::REFUS_DIRECT);
+            }
+            if (! ConfirmationsVersements::peutConfirmer($executant)) {
+                throw new InvalidArgumentException(self::REFUS_ATTESTANT);
+            }
+        }
         $attestant = $remplacement && ($options[self::OPTION_ATTESTATION] ?? false) ? $executant : null;
 
         $correction = $this->appliquer($v, $parametres, $motif, $demandeur, $executant, $attestant, $demande, false);
@@ -320,7 +336,9 @@ final class CorrectionsVersements
                 self::verifierValeurs($nouvelles);
             }
             $origine = $v->confirmation;
-            $ancienRecu = $v->recus()->whereDoesntHave('annulation')->first();
+            // Reçu en vigueur, ou à défaut le dernier reçu déjà annulé de ce versement qui n'a pas encore de remplaçant.
+            $ancienRecu = $v->recus()->whereDoesntHave('annulation')->first()
+                ?? $v->recus()->whereHas('annulation')->whereDoesntHave('remplacant')->latest('id')->first();
             [$annee, $sequence] = $this->prochainNumero();
             $numero = sprintf('COR-%d-%05d', $annee, $sequence);
             $categorie = CorrectionVersement::CATEGORIES[$parametres['categorie']] ?? (string) $parametres['categorie'];
@@ -399,10 +417,11 @@ final class CorrectionsVersements
     /**
      * @param  array<string, mixed>  $parametres
      * @param  array<string, mixed>  $options
+     * @return array{attestation: bool, fermeture: bool}
      *
      * @throws InvalidArgumentException
      */
-    private function verifierOptions(Versement $v, array $parametres, array $options): void
+    private function verifierOptions(Versement $v, array $parametres, array $options): array
     {
         $exigences = $this->exigences($v, $parametres);
         if ($exigences[self::OPTION_ATTESTATION] && ! ($options[self::OPTION_ATTESTATION] ?? false)) {
@@ -411,6 +430,8 @@ final class CorrectionsVersements
         if ($exigences[self::OPTION_FERMETURE] && ! ($options[self::OPTION_FERMETURE] ?? false)) {
             throw new InvalidArgumentException('Cochez « '.self::FERMETURE.' » : la correction ferme un accès ouvert.');
         }
+
+        return $exigences;
     }
 
     /** @param  array<string, mixed>  $parametres */

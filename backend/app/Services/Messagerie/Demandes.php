@@ -70,7 +70,7 @@ final class Demandes
             throw new InvalidArgumentException('Trop de demandes soumises ou en attente : patientez, ou retirez celles qui n\'ont plus lieu d\'être.');
         }
         $objet = $this->objet($type, $entiteId, $objetLibre);
-        if (! $t['visa'] && $demandeur->can($this->types->permission($type, $entiteId))) {
+        if (! $t['visa'] && ! TypesDemande::toujoursParDemande($type) && $demandeur->can($this->types->permission($type, $entiteId))) {
             throw new InvalidArgumentException('Vous détenez déjà ce droit : agissez directement, sans demande.');
         }
         $parametres = $this->types->parametres($type, $entiteId, $parametres);
@@ -190,7 +190,7 @@ final class Demandes
             }
             $qualite = $d->statut === DemandeAutorisation::VISA_ATTENDU ? DecisionDemande::CONTROLE_INTERNE : DecisionDemande::RESPONSABLE;
             if ($approuve) {
-                $this->types->verifierApprobation($d, $options);
+                $this->types->verifierApprobation($d, $options, $decideur);
             }
             DecisionDemande::query()->create([
                 'demande_id' => $d->id, 'decideur_id' => $decideur->id, 'qualite' => $qualite,

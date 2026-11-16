@@ -111,8 +111,9 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (DB::table('corrections_versements')->exists() || DB::table('demandes_autorisation')->where('type', 'corriger_versement')->exists()) {
-            throw new RuntimeException('Des corrections de versement existent : ce sont des pièces. Revenez au code précédent sans annuler la migration.');
+        if (DB::table('corrections_versements')->exists() || DB::table('demandes_autorisation')->where('type', 'corriger_versement')->exists()
+            || DB::table('recus_versements')->whereNotNull('remplace_recu_id')->exists()) {
+            throw new RuntimeException('Des corrections de versement ou des reçus remplaçants existent : ce sont des pièces. Revenez au code précédent sans annuler la migration.');
         }
 
         DB::statement('ALTER TABLE demandes_autorisation DROP CONSTRAINT demandes_autorisation_correction_check');

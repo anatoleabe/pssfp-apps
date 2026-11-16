@@ -381,7 +381,8 @@ describe('écrans', function (): void {
             ->and($d->entite_id)->toBe($v->id)
             ->and($d->parametres['champs']['reference']['apres'])->toBe('BOR-ECRAN-2');
 
-        $this->livewire(ListVersements::class)->assertTableActionHidden('corriger', $v);
+        // La demande en cours se vérifie à l'ouverture de l'action, pas dans la liste (pas de requête par ligne).
+        $this->livewire(ListVersements::class)->mountTableAction('corriger', $v)->assertNotified('Correction impossible');
         $this->actingAs(($this->compte)('scolarite_agent'));
         $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->a->auditeur, 'pageClass' => ViewAuditeur::class])
             ->assertTableActionHidden('corriger', $v);
@@ -419,5 +420,127 @@ describe('écrans', function (): void {
 
         expect(CorrectionVersement::query()->sole()->categorie)->toBe('doublon')
             ->and($v->refresh()->annule_motif)->toContain('Doublon de saisie au guichet');
+    });
+});
+
+describe('suites de la relecture', function (): void {
+    it('réserve l\'attestation à qui peut confirmer les versements, en erreur de décision', function (): void {
+        $v = ($this->encaisser)($this->a, ['montant' => 50000]);
+        confirmerVersement($v);
+        $d = ($this->demander)($v, ['nature' => 'remplacement', 'categorie' => 'montant', 'montant' => 60000]);
+        $sansConfirmer = ($this->compte)('caisse');
+        $sansConfirmer->givePermissionTo(CorrectionsVersements::PERMISSION_DECIDER);
+
+        expect(fn () => ($this->decider)($d, [CorrectionsVersements::OPTION_ATTESTATION => true], $sansConfirmer))
+            ->toThrow(InvalidArgumentException::class, 'scolarite.versement_confirmer');
+        expect($d->refresh()->statut)->toBe(DemandeAutorisation::SOUMISE)
+            ->and($d->decisions()->count())->toBe(0)
+            ->and(fn () => app(CorrectionsVersements::class)->executer($v, $d->parametres, $d->motif, $this->financier, $sansConfirmer,
+                [CorrectionsVersements::OPTION_ATTESTATION => true], $d))->toThrow(InvalidArgumentException::class, 'scolarite.versement_confirmer');
+    });
+
+    it('fait passer le super administrateur par une demande dès qu\'une attestation est exigée', function (): void {
+        $super = ($this->compte)('super_admin');
+        $v = ($this->encaisser)($this->a, ['montant' => 50000]);
+        confirmerVersement($v);
+        $parametres = CorrectionsVersements::parametres($v, ['nature' => 'remplacement', 'categorie' => 'montant', 'montant' => 40000]);
+
+        expect(fn () => app(CorrectionsVersements::class)->executer($v, $parametres, 'Montant mal saisi au guichet', $super, $super,
+            [CorrectionsVersements::OPTION_ATTESTATION => true, CorrectionsVersements::OPTION_FERMETURE => true]))->toThrow(InvalidArgumentException::class, 'demande');
+
+        $this->actingAs($super);
+        $this->livewire(ListVersements::class)
+            ->callTableAction('corriger', $v, data: ['nature' => 'remplacement', 'categorie' => 'montant', 'montant' => 40000, 'motif' => 'Montant mal saisi au guichet'])
+            ->assertHasNoTableActionErrors();
+        expect(DemandeAutorisation::query()->sole()->demandeur_id)->toBe($super->id)
+            ->and(CorrectionVersement::query()->count())->toBe(0);
+    });
+
+    it('ne lance aucune requête de compte ni de demande par ligne de la liste', function (): void {
+        foreach (range(1, 4) as $k) {
+            ($this->encaisser)($k % 2 === 0 ? $this->a : $this->b);
+        }
+        $this->actingAs($this->financier);
+        DB::enableQueryLog();
+        $this->livewire(ListVersements::class)->assertSuccessful();
+        $requetes = collect(DB::getQueryLog())->pluck('query');
+        DB::disableQueryLog();
+
+        expect($requetes->filter(fn (string $q): bool => str_contains($q, 'demandes_autorisation') || str_contains($q, 'from "imputations_versements"'))->all())->toBe([]);
+    });
+
+    it('donne au décideur la raison d\'une correction devenue impossible', function (): void {
+        $v = ($this->encaisser)($this->a);
+        $d = ($this->demander)($v, ['nature' => 'remplacement', 'categorie' => 'auditeur', 'auditeur_id' => $this->b->auditeur->id]);
+        $this->b->forceFill(['withdrawn_at' => now()])->save();
+
+        expect(fn () => app(CorrectionsVersements::class)->prevoir($v, $d->parametres))->toThrow(InvalidArgumentException::class, 'retiré');
+        $this->actingAs($this->responsable);
+        $this->livewire(ViewDemande::class, ['record' => $d->getRouteKey()])->mountAction('approuver')->assertSee('Correction impossible en l\'état');
+    });
+
+    it('cite sur le nouveau reçu un reçu déjà annulé auparavant', function (): void {
+        $v = ($this->encaisser)($this->a, ['reference' => 'BOR-AVANT']);
+        $ancien = $v->recuEnVigueur();
+        app(RecusVersements::class)->annuler($ancien, 'Nom de l\'auditeur corrigé', $this->financier);
+        ($this->decider)(($this->demander)($v->refresh(), ['nature' => 'remplacement', 'categorie' => 'reference', 'reference' => 'BOR-APRES']));
+
+        expect(CorrectionVersement::query()->sole()->recuRemplacant->remplace_recu_id)->toBe($ancien->id);
+    });
+
+    it('joint au remplaçant le scan déposé avec la demande', function (): void {
+        $v = ($this->encaisser)($this->a);
+        $scan = Versement::DOSSIER_JUSTIFICATIFS.'/'.Str::ulid().'.pdf';
+        ($this->decider)(($this->demander)($v, ['nature' => 'remplacement', 'categorie' => 'reference', 'reference' => 'BOR-SCAN', 'justificatif_path' => $scan]));
+
+        expect(CorrectionVersement::query()->sole()->versementRemplacant->justificatif_path)->toBe($scan);
+    });
+
+    it('refuse le retour arrière dès qu\'un reçu en remplace un autre, même sans correction', function (): void {
+        $v = ($this->encaisser)($this->a);
+        app(RecusVersements::class)->annuler($v->recuEnVigueur(), 'Nom de l\'auditeur corrigé', $this->financier);
+        $nouveau = app(RecusVersements::class)->emettre($v->refresh(), $this->financier);
+        expect($nouveau->remplace_recu_id)->not->toBeNull();
+
+        $migration = require database_path('migrations/2026_12_08_100200_create_corrections_versements_tables.php');
+        expect(fn () => $migration->down())->toThrow(RuntimeException::class, 'reçus remplaçants');
+    });
+
+    it('ne cite jamais sur un reçu le reçu d\'un autre auditeur', function (): void {
+        $v = ($this->encaisser)($this->a);
+        $ancien = $v->recuEnVigueur();
+        ($this->decider)(($this->demander)($v, ['nature' => 'remplacement', 'categorie' => 'auditeur', 'auditeur_id' => $this->b->auditeur->id]));
+        $c = CorrectionVersement::query()->sole();
+        $recus = app(RecusVersements::class);
+
+        $nouveau = view('pdf.recu-versement', $recus->donneesPdf($c->recuRemplacant))->render();
+        $annule = view('pdf.recu-versement', $recus->donneesPdf($ancien->refresh()))->render();
+        expect($nouveau)->toContain($c->numero)->not->toContain($ancien->numero)
+            ->and($annule)->toContain($c->numero)->not->toContain($c->recuRemplacant->numero);
+    });
+
+    it('verrouille ensemble les deux auditeurs, par id croissant, avant toute écriture (corrections croisées)', function (): void {
+        [$petit, $grand] = $this->a->auditeur->id < $this->b->auditeur->id ? [$this->a, $this->b] : [$this->b, $this->a];
+        $deGrand = ($this->encaisser)($grand, ['montant' => 30000]);
+        $dePetit = ($this->encaisser)($petit, ['montant' => 40000]);
+        $dGrand = ($this->demander)($deGrand, ['nature' => 'remplacement', 'categorie' => 'auditeur', 'auditeur_id' => $petit->auditeur->id]);
+        $dPetit = ($this->demander)($dePetit, ['nature' => 'remplacement', 'categorie' => 'auditeur', 'auditeur_id' => $grand->auditeur->id]);
+
+        foreach ([$dGrand, $dPetit] as $d) {
+            $requetes = [];
+            DB::listen(function ($q) use (&$requetes): void {
+                $requetes[] = ['sql' => $q->sql, 'liaisons' => $q->bindings];
+            });
+            ($this->decider)($d);
+            $verrous = collect($requetes)->filter(fn (array $r): bool => str_contains($r['sql'], 'from "auditeurs"') && str_contains($r['sql'], 'for update') && str_contains($r['sql'], 'order by'));
+            $premiere = collect($requetes)->search(fn (array $r): bool => str_starts_with(mb_strtolower($r['sql']), 'update "versements"'));
+            $verrou = $verrous->keys()->first();
+
+            expect($verrou)->not->toBeNull()
+                ->and($verrou)->toBeLessThan($premiere)
+                // Identifiants écrits dans la requête (whereKey), dans l'ordre croissant, triés par id.
+                ->and($verrous->first()['sql'])->toContain('in ('.$petit->auditeur->id.', '.$grand->auditeur->id.')')->toContain('order by "id" asc');
+        }
+        $this->artisan('scolarite:verifier-comptes')->assertSuccessful();
     });
 });

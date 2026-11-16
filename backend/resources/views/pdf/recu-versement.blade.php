@@ -22,10 +22,14 @@
   </tr></table>
 
   @if ($recu->annulation !== null)
-    <div class="annule">ANNULÉ — écriture {{ $recu->annulation->numero }} du {{ $recu->annulation->annule_at->setTimezone($tz)->format('d/m/Y') }}@if ($recu->remplacant !== null) — remplacé par {{ $recu->remplacant->numero }}@endif</div>
+    <div class="annule">ANNULÉ — écriture {{ $recu->annulation->numero }} du {{ $recu->annulation->annule_at->setTimezone($tz)->format('d/m/Y') }}@if ($recu->remplacant !== null) — {{ $recu->memeAuditeur($recu->remplacant) ? 'remplacé par '.$recu->remplacant->numero : 'corrigé'.(($correction ?? null) !== null ? ' (correction '.$correction->numero.')' : '') }}@endif</div>
   @endif
   @if ($recu->remplace !== null)
+    @if ($recu->memeAuditeur($recu->remplace))
     <p class="pied">Remplace le reçu {{ $recu->remplace->numero }}@if ($recu->remplace->annulation !== null), annulé le {{ $recu->remplace->annulation->annule_at->setTimezone($tz)->format('d/m/Y') }}@endif{{ ($correction ?? null) !== null ? ' (correction '.$correction->numero.')' : '' }}.</p>
+    @else
+    <p class="pied">Reçu émis après correction d'un versement{{ ($correction ?? null) !== null ? ' (correction '.$correction->numero.')' : '' }}.</p>
+    @endif
   @endif
 
   <table class="ident">

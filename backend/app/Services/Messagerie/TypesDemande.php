@@ -23,6 +23,7 @@ use App\Services\Lmd\PointagesEnseignant;
 use App\Services\Lmd\Programmations;
 use App\Services\Lmd\SaisieNotes;
 use App\Services\Lmd\ValidationMaquette;
+use App\Services\Scolarite\ConfirmationsVersements;
 use App\Services\Scolarite\CorrectionsVersements;
 use App\Services\Scolarite\DeblocagesAcces;
 use App\Services\Scolarite\DemandeMoratoire;
@@ -197,6 +198,12 @@ final class TypesDemande
         return ($code === self::CORRIGER_VERSEMENT ? Versement::cheminJustificatifValide($chemin) : DeblocageAcces::cheminPieceValide($chemin)) ? $chemin : null;
     }
 
+    /** Types qu'on soumet même en détenant le droit : la correction attestée exige toujours une seconde personne (ADR-0015). */
+    public static function toujoursParDemande(string $code): bool
+    {
+        return $code === self::CORRIGER_VERSEMENT;
+    }
+
     public static function aUnObjet(string $code): bool
     {
         return $code !== self::VALIDER_AUTRE;
@@ -338,7 +345,7 @@ final class TypesDemande
      *
      * @throws InvalidArgumentException
      */
-    public function verifierApprobation(DemandeAutorisation $d, array $options): void
+    public function verifierApprobation(DemandeAutorisation $d, array $options, ?User $decideur = null): void
     {
         if ($d->type !== self::CORRIGER_VERSEMENT || $d->entite_id === null) {
             return;
@@ -348,6 +355,9 @@ final class TypesDemande
             return;
         }
         $exigences = app(CorrectionsVersements::class)->exigences($versement, $d->parametres ?? []);
+        if ($exigences[CorrectionsVersements::OPTION_ATTESTATION] && ! ConfirmationsVersements::peutConfirmer($decideur)) {
+            throw new InvalidArgumentException(CorrectionsVersements::REFUS_ATTESTANT);
+        }
         if ($exigences[CorrectionsVersements::OPTION_ATTESTATION] && ! ($options[CorrectionsVersements::OPTION_ATTESTATION] ?? false)) {
             throw new InvalidArgumentException('Cochez « '.CorrectionsVersements::ATTESTATION.' » pour approuver.');
         }

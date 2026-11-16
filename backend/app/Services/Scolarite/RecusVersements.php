@@ -235,17 +235,26 @@ final class RecusVersements
 
     public function pdf(RecuVersement $recu): string
     {
-        $recu->loadMissing(['annulation', 'remplace.annulation', 'remplacant']);
-        $correction = $recu->remplace === null ? null : CorrectionVersement::query()->where('recu_remplacant_id', $recu->id)->first();
+        return Pdf::loadView('pdf.recu-versement', $this->donneesPdf($recu))->setPaper('a5', 'landscape')->output();
+    }
 
-        return Pdf::loadView('pdf.recu-versement', ['recu' => $recu, 'correction' => $correction, 'lettres' => $this->enLettres($recu->montant)])->setPaper('a5', 'landscape')->output();
+    /** Données du PDF d'un reçu (sa vue se rend aussi telle quelle dans les tests). @return array<string, mixed> */
+    public function donneesPdf(RecuVersement $recu): array
+    {
+        $recu->loadMissing(['annulation', 'versement:id,auditeur_id', 'remplace.annulation', 'remplace.versement:id,auditeur_id', 'remplacant.versement:id,auditeur_id']);
+        // Pièce qui relie ce reçu au reçu qu'il remplace, ou au reçu qui le remplace.
+        $correction = CorrectionVersement::query()->whereIn('recu_remplacant_id', array_filter([$recu->id, $recu->remplacant?->id]))->first();
+
+        return ['recu' => $recu, 'correction' => $correction, 'lettres' => $this->enLettres($recu->montant)];
     }
 
     public function pdfAnnulation(AnnulationRecu $a): string
     {
-        $a->loadMissing('recu.remplacant');
+        $a->loadMissing(['recu.versement:id,auditeur_id', 'recu.remplacant.versement:id,auditeur_id']);
 
-        return Pdf::loadView('pdf.annulation-recu', ['annulation' => $a, 'recu' => $a->recu, 'lettres' => $this->enLettres($a->recu->montant)])->setPaper('a5', 'landscape')->output();
+        $correction = $a->recu->remplacant === null ? null : CorrectionVersement::query()->where('recu_remplacant_id', $a->recu->remplacant->id)->first();
+
+        return Pdf::loadView('pdf.annulation-recu', ['annulation' => $a, 'recu' => $a->recu, 'correction' => $correction, 'lettres' => $this->enLettres($a->recu->montant)])->setPaper('a5', 'landscape')->output();
     }
 
     /** Montant en toutes lettres : « cent quatre-vingt-cinq mille francs CFA ». */

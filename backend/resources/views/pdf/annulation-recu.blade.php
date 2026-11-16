@@ -23,8 +23,10 @@
     <tr><td class="l">Auditeur</td><td>{{ $recu->auditeur_nom }}@if ($recu->matricule) — matricule {{ $recu->matricule }}@endif</td></tr>
     <tr><td class="l">Montant du reçu</td><td>{{ $fcfa($recu->montant) }} ({{ $lettres }})</td></tr>
     <tr><td class="l">Motif</td><td>{{ $annulation->motif }}</td></tr>
-    @if ($recu->remplacant !== null)
+    @if ($recu->remplacant !== null && $recu->memeAuditeur($recu->remplacant))
     <tr><td class="l">Remplacé par</td><td>Reçu <strong>{{ $recu->remplacant->numero }}</strong> du {{ $recu->remplacant->emis_at->setTimezone($tz)->format('d/m/Y') }}</td></tr>
+    @elseif ($recu->remplacant !== null)
+    <tr><td class="l">Correction</td><td>{{ ($correction ?? null) !== null ? 'Pièce '.$correction->numero : 'Versement corrigé' }}</td></tr>
     @endif
   </table>
 
