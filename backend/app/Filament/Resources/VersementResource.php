@@ -178,17 +178,17 @@ class VersementResource extends Resource
     /** @param  array<string, mixed>  $data */
     private static function filtrerPeriode(Builder $q, array $data): Builder
     {
-        $jour = fn (string $date): CarbonImmutable => CarbonImmutable::parse($date, InscriptionAnnuelle::FUSEAU)->startOfDay();
-        $du = filled($data['du'] ?? null) ? $jour((string) $data['du']) : null;
-        $au = filled($data['au'] ?? null) ? $jour((string) $data['au']) : null;
+        $du = filled($data['du'] ?? null) ? (string) $data['du'] : null;
+        $au = filled($data['au'] ?? null) ? (string) $data['au'] : null;
         if (($data['date'] ?? 'versement') === 'enregistrement') {
-            // Jours de Yaoundé : l'instant d'enregistrement est comparé aux bornes du jour local.
-            return $q->when($du !== null, fn (Builder $b) => $b->where('created_at', '>=', $du))
-                ->when($au !== null, fn (Builder $b) => $b->where('created_at', '<', $au->addDay()));
+            // Jours de Yaoundé, bornes converties au fuseau de l'application (UTC en production).
+            return $q->when($du !== null, fn (Builder $b) => $b->where('created_at', '>=', EspaceFinances::debutJour($du)))
+                ->when($au !== null, fn (Builder $b) => $b->where('created_at', '<', EspaceFinances::finJour($au)));
         }
+        $jour = fn (string $d): string => CarbonImmutable::parse($d, InscriptionAnnuelle::FUSEAU)->toDateString();
 
-        return $q->when($du !== null, fn (Builder $b) => $b->where('date_versement', '>=', $du->toDateString()))
-            ->when($au !== null, fn (Builder $b) => $b->where('date_versement', '<=', $au->toDateString()));
+        return $q->when($du !== null, fn (Builder $b) => $b->where('date_versement', '>=', $jour($du)))
+            ->when($au !== null, fn (Builder $b) => $b->where('date_versement', '<=', $jour($au)));
     }
 
     public static function getPages(): array

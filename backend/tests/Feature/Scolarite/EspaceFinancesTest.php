@@ -23,7 +23,9 @@ use App\Services\Scolarite\VersementsExcel;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\AppSettings;
 use App\Support\ModulePermissionMap;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\LazyCollection;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -224,6 +226,40 @@ describe('liste des versements', function (): void {
             ->and($journal->properties['lignes'])->toBe(1)
             ->and(json_encode($journal->properties))->not->toContain('Alpha')
             ->and(json_encode($journal->properties))->not->toContain((string) $this->a->matricule);
+    });
+
+    it('lit l\'export par morceaux', function (): void {
+        ($this->encaisser)($this->a, ['reference' => 'BOR-L1']);
+        ($this->encaisser)($this->b, ['reference' => 'BOR-L2']);
+
+        $lecture = VersementsExcel::lireVersements(Versement::query()->orderBy('id'));
+        expect($lecture)->toBeInstanceOf(LazyCollection::class)
+            ->and(app(VersementsExcel::class)->generer($lecture))->not->toBe('');
+    });
+});
+
+describe('périodes en jours de Yaoundé, application en UTC (production)', function (): void {
+    it('borne l\'enregistrement et l\'émission sur le jour de Yaoundé', function (): void {
+        config()->set('app.timezone', 'UTC');
+        // 23 h 30 à Yaoundé le 09/11 (22 h 30 UTC), puis 0 h 30 à Yaoundé le 10/11 (23 h 30 UTC le 09/11).
+        $this->travelTo(CarbonImmutable::parse('2026-11-09 22:30:00', 'UTC'));
+        $soir = ($this->encaisser)($this->a, ['reference' => 'BOR-SOIR', 'date_versement' => '2026-11-09']);
+        $this->travelTo(CarbonImmutable::parse('2026-11-09 23:30:00', 'UTC'));
+        $minuit = ($this->encaisser)($this->b, ['reference' => 'BOR-MINUIT', 'date_versement' => '2026-11-09']);
+
+        $this->actingAs($this->financier);
+        $this->livewire(ListVersements::class)
+            ->filterTable('periode', ['date' => 'enregistrement', 'du' => '2026-11-09', 'au' => '2026-11-09'])
+            ->assertCanSeeTableRecords([$soir])
+            ->assertCanNotSeeTableRecords([$minuit])
+            ->filterTable('periode', ['date' => 'enregistrement', 'du' => '2026-11-10', 'au' => '2026-11-10'])
+            ->assertCanSeeTableRecords([$minuit])
+            ->assertCanNotSeeTableRecords([$soir]);
+
+        $this->livewire(ListRecusVersements::class)
+            ->filterTable('emission', ['du' => '2026-11-10', 'au' => '2026-11-10'])
+            ->assertCanSeeTableRecords([$minuit->recuEnVigueur()])
+            ->assertCanNotSeeTableRecords([$soir->recuEnVigueur()]);
     });
 });
 

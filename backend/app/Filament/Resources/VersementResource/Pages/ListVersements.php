@@ -39,10 +39,17 @@ class ListVersements extends ListRecords
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('gray')
                 ->visible(fn (): bool => EspaceFinances::peutExporter(auth()->user()))
-                ->action(function (): StreamedResponse {
+                ->action(function (): ?StreamedResponse {
                     abort_unless(EspaceFinances::peutExporter(auth()->user()), 403);
-                    $versements = $this->getFilteredSortedTableQuery()->get();
-                    EspaceFinances::journaliserExport(auth()->user(), 'versements', $this->criteres(), $versements->count());
+                    $requete = $this->getFilteredSortedTableQuery();
+                    $versements = VersementsExcel::lireVersements($requete);
+                    if ($versements === null) {
+                        Notification::make()->warning()->title('Export trop volumineux')
+                            ->body('Plus de '.number_format(VersementsExcel::EXPORT_MAX, 0, ',', ' ').' versements : affinez les filtres (période, année).')->send();
+
+                        return null;
+                    }
+                    EspaceFinances::journaliserExport(auth()->user(), 'versements', $this->criteres(), (clone $requete)->count());
                     $contenu = app(VersementsExcel::class)->generer($versements);
 
                     return response()->streamDownload(function () use ($contenu): void {

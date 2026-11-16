@@ -8,14 +8,12 @@ use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\RecuActions;
 use App\Filament\Resources\RecuVersementResource\Pages;
-use App\Models\InscriptionAnnuelle;
 use App\Models\RecuVersement;
 use App\Models\User;
 use App\Models\Versement;
 use App\Services\Scolarite\EspaceFinances;
 use App\Services\Scolarite\RecusVersements;
 use App\Support\BelongsToModule;
-use Carbon\CarbonImmutable;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -109,12 +107,10 @@ class RecuVersementResource extends Resource
                         Forms\Components\DatePicker::make('du')->label('Émis du')->native(false)->displayFormat('d/m/Y'),
                         Forms\Components\DatePicker::make('au')->label('Au')->native(false)->displayFormat('d/m/Y'),
                     ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        $jour = fn (string $d): CarbonImmutable => CarbonImmutable::parse($d, InscriptionAnnuelle::FUSEAU)->startOfDay();
-
-                        return $query->when(filled($data['du'] ?? null), fn (Builder $b) => $b->where('emis_at', '>=', $jour((string) $data['du'])))
-                            ->when(filled($data['au'] ?? null), fn (Builder $b) => $b->where('emis_at', '<', $jour((string) $data['au'])->addDay()));
-                    }),
+                    // Jours de Yaoundé, bornes converties au fuseau de l'application (UTC en production).
+                    ->query(fn (Builder $query, array $data): Builder => $query
+                        ->when(filled($data['du'] ?? null), fn (Builder $b) => $b->where('emis_at', '>=', EspaceFinances::debutJour((string) $data['du'])))
+                        ->when(filled($data['au'] ?? null), fn (Builder $b) => $b->where('emis_at', '<', EspaceFinances::finJour((string) $data['au'])))),
             ])
             ->actions([Tables\Actions\ActionGroup::make([
                 Tables\Actions\Action::make('telecharger')->label('Reçu (PDF)')->icon('heroicon-o-arrow-down-tray')

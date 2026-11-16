@@ -10,6 +10,7 @@ use App\Services\Scolarite\EspaceFinances;
 use App\Services\Scolarite\RecusVersements;
 use App\Services\Scolarite\VersementsExcel;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -25,14 +26,21 @@ class ListRecusVersements extends ListRecords
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('gray')
                 ->visible(fn (): bool => EspaceFinances::peutExporter(auth()->user()))
-                ->action(function (): StreamedResponse {
+                ->action(function (): ?StreamedResponse {
                     abort_unless(EspaceFinances::peutExporter(auth()->user()), 403);
                     // Mêmes filtres que la liste, triés par numéro : le registre se lit dans l'ordre d'émission.
-                    $recus = $this->getFilteredTableQuery()->reorder()->orderBy('annee_numero')->orderBy('sequence')->get();
+                    $requete = $this->getFilteredTableQuery();
+                    $recus = VersementsExcel::lireRecus($requete);
+                    if ($recus === null) {
+                        Notification::make()->warning()->title('Export trop volumineux')
+                            ->body('Plus de '.number_format(VersementsExcel::EXPORT_MAX, 0, ',', ' ').' reçus : filtrez l\'année d\'émission.')->send();
+
+                        return null;
+                    }
                     EspaceFinances::journaliserExport(auth()->user(), 'recus', [
                         'filtres' => collect($this->tableFilters ?? [])->filter(fn ($v): bool => filled(array_filter((array) $v, fn ($x): bool => filled($x))))->all(),
                         'recherche' => filled($this->tableSearch),
-                    ], $recus->count());
+                    ], (clone $requete)->count());
                     $contenu = app(VersementsExcel::class)->registre($recus);
 
                     return response()->streamDownload(function () use ($contenu): void {
