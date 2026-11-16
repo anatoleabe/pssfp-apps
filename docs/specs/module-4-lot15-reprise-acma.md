@@ -4,7 +4,7 @@
 **Statut** : proposé (spec seule, avant réalisation) ; cas à arbitrer au §12
 **Décideur** : M. ABE ETOUMOU Anatole, Chef USI (décisions du 15/11/2026, §2)
 **Décision d'architecture** : [ADR-0014](../adr/0014-reprise-acma-archive-lecture-seule.md)
-**Suite** : [réinscription des anciens](module-4-lot15-reinscription-anciens.md) (16/11/2026 : promotions antérieures, réinscription d'un ancien depuis l'archive, coordonnées reprises ; modifie la décision 4, Q7 et Q16)
+**Suite** : [réinscription des anciens](module-4-lot15-reinscription-anciens.md) (16/11/2026 : promotions antérieures, réinscription d'un ancien depuis l'archive, coordonnées reprises, matricule ACMA qui fait foi pour un ancien revenu en P14 ; modifie la décision 4, Q7 et Q16 ; questions tranchées le 16/11)
 **Specs liées** : [feuille de route LMD](module-4-lmd-feuille-de-route.md) (lots 6 et 15) · [compte de l'auditeur, D1](module-4-scolarite-comptes-d1.md) et [ADR-0013](../adr/0013-compte-de-l-auditeur.md) · [demandes d'autorisation, 14c](module-4-lmd-lot14c-demandes-autorisation.md) · [documents vérifiables, lot 7](module-4-lmd-lot7-resultats-documents.md) · [import des auditeurs antérieurs](module-4-import-auditeurs-anterieurs.md)
 **Sources** : export complet d'ACMA du 15/11/2026 (base `gestionacademic`, chargée dans un conteneur jetable, lu en lecture seule) ; analyse du schéma faite en octobre (dossier « PSSFP Système », annexe 5) ; scripts de reprise du dossier « PSSFP Système » (`20_copie_acma.py` à `30_controles_reprise.sql`), dont on reprend la connaissance des pièges d'ACMA, pas le schéma cible.
 

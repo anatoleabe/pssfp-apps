@@ -1,7 +1,7 @@
 # Module 4 — Lot 15, suite : réinscription des anciens auditeurs depuis l'archive ACMA
 
 **Date** : 2026-11-16
-**Statut** : proposé (spec seule, avant réalisation) ; questions ouvertes au §14
+**Statut** : validé ; questions du §14 **tranchées le 16/11/2026** (§2 bis) ; réalisation en sous-lots 15i à 15m
 **Décideur** : M. ABE ETOUMOU Anatole, Chef USI (demande et décisions du 16/11/2026, §2)
 **Spec mère** : [lot 15, reprise d'ACMA](module-4-lot15-reprise-acma.md) (décision 4, Q7, Q16 modifiées par celle-ci) · [ADR-0014](../adr/0014-reprise-acma-archive-lecture-seule.md) (avenant du 16/11)
 **Specs liées** : [import des auditeurs antérieurs (P13)](module-4-import-auditeurs-anterieurs.md) · [compte de l'auditeur, D1](module-4-scolarite-comptes-d1.md) et [lot D](module-4-scolarite-comptes-auditeur-proposition.md) (D3) · [accès anticipé, A1 et A3](module-4-scolarite-acces-anticipe.md) · [encaissement et confirmation](module-4-scolarite-encaissement-confirmation.md) · [lot 2, promotions](module-4-scolarite-lot2-2026-11.md)
@@ -41,6 +41,14 @@ Ce qui change, pour qui :
 
    Le garde-fou contre le doublon (ancien qui a aussi candidaté en P14) est au §8 ; le dossier qui fait foi est la question Q2.
 3. **Tout importer d'ACMA pour les auditeurs**, coordonnées comprises : téléphones, e-mails, adresse, région et toute autre colonne utile des tables des auditeurs. La minimisation du sous-lot 15a (coordonnées non extraites) et la réponse à la Q16 du lot 15 sont levées pour ces données. Restent exclus les secrets et les données du personnel d'ACMA (§4).
+
+## 2 bis. Questions tranchées le 16/11/2026
+
+Le chef de projet retient la recommandation de Q1, Q3, Q4, Q6 et Q8 à Q14, et :
+
+- **Q5** : réinscription **unitaire seulement** ;
+- **Q7** : M2 sans M1 admis dans l'archive = **refus, sauf dérogation du responsable** (motif et pièce) ;
+- **Q2** : **le dossier ACMA fait foi**, contre la recommandation. Un ancien qui a aussi candidaté en P14 garde son matricule ACMA ; la candidature P14 ne porte plus un second matricule. Mécanisme au §8.3 (conversion du dossier P14), livré en sous-lot **15m**, après 15k.
 
 ## 3. Ce que fait le code aujourd'hui (vérifié le 16/11/2026)
 
@@ -162,6 +170,8 @@ Nouvelle table `reinscriptions_acma`, **en ajout seul** (déclencheur sur le pr�
 | `campagne_id` | Promotion de rattachement choisie |
 | `rapprochement_id` | La décision `lie` écrite par le geste |
 | `coordonnees_modifiees` | JSONB : liste des champs que l'agent a changés par rapport à la proposition ACMA (noms de champs, jamais de valeur) |
+| `mode` | `creation` (§7), `conversion` ou `attribution` (§8.3) |
+| `ancien_matricule` | Matricule `26…` remplacé (mode `conversion`), sinon nul |
 | `motif`, `auteur_id`, `created_at` | Motif d'au moins 10 caractères |
 
 Elle marque le dossier « réinscrit depuis ACMA » pour l'espace (§9), les listes et les garde-fous, sans toucher au schéma de `candidatures`.
@@ -268,16 +278,63 @@ Détection, à la réinscription et à l'attribution des matricules de la P14 :
 | Même date de naissance et noms compatibles (`ComparaisonIdentite`, seuil 0,66) | Candidatures de toutes campagnes, non retirées |
 | Même téléphone E.164 ou même e-mail | Candidatures et comptes, d'après les coordonnées ACMA (désormais reprises, §4) |
 
-Traitement proposé (Q2) :
+Traitement (Q2 tranchée le 16/11 : **le dossier ACMA fait foi**) :
 
 | Situation | Effet |
 |---|---|
-| La personne est déjà **auditeur** de la plateforme (P14 retenue avec matricule `26…`, ou autre) | **Réinscription refusée.** Le dossier d'archive se **lie** à cet auditeur par l'arbitrage existant (cas R6). Le matricule `26…` reste celui de la plateforme (déjà communiqué, identifiant eCampus) ; le matricule ACMA reste lisible dans l'archive. |
+| La personne est déjà **auditeur** de la plateforme (P14 retenue avec matricule `26…`) | **Réinscription refusée** (elle créerait un second auditeur). Le responsable **convertit** le dossier P14 (§8.3) : il prend le matricule ACMA, tout le reste est conservé, et l'archive se lie à lui. |
+| La personne est auditeur d'une autre promotion de la plateforme (P13) sous un autre matricule | Même conversion (§8.3). Cas improbable : le matricule P13 vient en principe d'ACMA. |
 | Candidature P14 **en cours** (non décidée) | Réinscription refusée tant que le jury n'a pas décidé ; la fiche d'archive affiche le dossier P14 concerné. |
+| Candidature P14 retenue **sans matricule** encore | Réinscription refusée ; l'attribution des matricules lui donne le matricule ACMA au lieu d'un `26…` (§8.3, variante sans conversion). |
 | Candidature P14 **refusée** | Réinscription possible, avec avertissement et motif. |
-| Ancien **déjà réinscrit**, puis retenu en P14 par le portail | L'attribution du matricule de ce retenu est **refusée** (« déjà auditeur depuis l'archive, dossier … ») ; la scolarité retire la candidature P14 (geste existant). Le jury voit le signal dans la liste des retenus. |
+| Ancien **déjà réinscrit**, puis retenu en P14 par le portail | L'attribution du matricule de ce retenu est **refusée** (« déjà auditeur depuis l'archive, dossier … ») ; la scolarité retire la candidature P14 (geste existant). |
 
 Les signaux téléphone et e-mail ne bloquent jamais seuls : ils s'affichent et exigent une confirmation motivée (un numéro peut avoir changé de titulaire).
+
+### 8.3 Q2 : un ancien déjà auditeur de la P14 prend son matricule ACMA (sous-lot 15m)
+
+**Ce que le dossier P14 peut déjà porter** : inscription 2026-2027, versements, imputations (D1), confirmations, reçus numérotés, déblocages et moratoires, engagement de prise en charge (A2), compte eCampus `26…` dans la cohorte P14, mot de passe remis, lettre et lien d'accès envoyés, documents délivrés (lot 7), inscription pédagogique, notes, messages, journal.
+
+**Combien de cas ?** Non mesurable sur le poste : la base locale de la reprise (`pssfp_reprise_acma`) n'a pas les candidatures, et la base de développement n'a que des données fictives. En production, les cas possibles sont les propositions **R6** de la reprise provisoire (même date de naissance, noms compatibles, matricule différent), listées dans le classeur « à arbitrer ». 15m peut donc être livré après 15k.
+
+#### Deux mécanismes comparés
+
+| Critère | (a) **Conversion** du dossier P14 | (b) Nouvelle réinscription, **transfert** puis retrait de la candidature P14 |
+|---|---|---|
+| Versements, imputations, confirmations | Intacts : ils pendent à l'auditeur et à l'inscription, qui ne changent pas | À déplacer d'un auditeur à l'autre. Les clés étrangères composites de D1 (versement, inscription et imputation du même auditeur) et l'immuabilité des imputations l'interdisent : il faudrait **annuler** chaque versement et le **ressaisir** |
+| Reçus | Aucun nouveau reçu, aucune annulation : numérotation intacte | Annulation de chaque reçu et nouveau reçu : la séquence reste sans trou, mais chaque paiement apparaît deux fois, sous deux numéros |
+| Accès | Inchangé (même inscription, même situation, même déblocage) | Coupé entre le retrait et la reconstitution ; risque d'un second avis d'accès (nouvelle inscription, `acces_notifie_at` vide) |
+| Comptes D1, `CPT_COHERENCE` | Équivalents par construction | À reconstituer ; avance et ordre R1 recalculés, écarts possibles |
+| eCampus | Compte et cohorte inchangés | Second compte sous le matricule ACMA, ou bascule manuelle de l'historique Moodle |
+| Documents, notes, messages | Intacts | À rattacher à la main, ou perdus pour l'espace |
+| Journal | Une entrée de conversion | Des dizaines d'opérations d'argent pour un changement d'identifiant |
+
+**Recommandation : (a), la conversion.** Elle ne touche qu'un champ d'identification ; (b) déplace de l'argent pour changer un numéro.
+
+#### La conversion
+
+Geste « Reprendre le matricule ACMA » sur la fiche d'archive, permission `scolarite.inscrire_ancien`, motif d'au moins 10 caractères, **unitaire**. Service `ConversionMatriculeAcma::convertir(dossierAcma, auditeur, motif, auteur)`, dans une transaction, sous le verrou de la candidature puis du dossier d'archive :
+
+1. **Préalables** : dossier d'archive ni retiré, ni écarté, ni déjà réinscrit, ni lié à un **autre** auditeur ; matricule ACMA libre (aucune candidature, supprimées comprises) ; identité concordante (même date de naissance et noms compatibles), sinon confirmation explicite.
+2. **Trace d'abord** : ligne `reinscriptions_acma` de mode `conversion` (§6.2), qui garde **l'ancien matricule** ; la base refuse ensuite de changer un matricule sans cette ligne (déclencheur, ci-dessous).
+3. **Matricule** : `candidatures.matricule` = matricule ACMA. `rang_retenu` est **conservé** : le rang reste pris, `max(rang_retenu)` ne recule pas, et l'ancien `26…` ne sera jamais réattribué ; `AttributionMatricules` le vérifie aussi dans `reinscriptions_acma.ancien_matricule`.
+4. **Identifiant eCampus figé** : nouvelle colonne `candidatures.identifiant_ecampus`, posée à l'ancien identifiant (`26…` en minuscules). `IdentifiantsMoodle::identifiant` la lit d'abord, sinon le matricule. Le compte eCampus n'est **pas touché** (règle de `ComptesEcampus`), ni sa cohorte, ni le mot de passe : l'auditeur se connecte comme avant. Le contrôle `porteLaMarque` (`idnumber`) compare à l'identifiant figé.
+5. **Archive, décision d'abord** : décision `lie` signée vers cet auditeur, puis le lien (comme au §7.5, étape 6).
+6. **Journal** : `scolarite`, `matricule_converti_acma` (ancien, nouveau, dossier d'archive, motif). **Aucun envoi.**
+
+Invariants et leur traitement :
+
+| Invariant | Traitement |
+|---|---|
+| **Le matricule ne change pas** | Exception unique, tracée (`reinscriptions_acma`, journal), réservée au responsable, une fois par dossier. Un déclencheur sur `candidatures` refuse tout changement d'un matricule déjà attribué sans ligne `conversion` correspondante (ancien et nouveau égaux à ceux de la ligne). |
+| **Identifiant Moodle et cohorte** | Figés par `identifiant_ecampus` : rien ne change sur eCampus. |
+| **Lettre et lien d'accès déjà envoyés** | Le lien ouvert reste valable (même identifiant, même mot de passe). Une lettre régénérée porte le nouveau matricule et le même identifiant ; la lettre d'admission signée, déjà remise, reste telle quelle. |
+| **Reçus qui portent l'ancien matricule** | Instantanés légaux, jamais modifiés : ils gardent l'ancien matricule. Les reçus suivants portent le matricule ACMA. La fiche de l'auditeur affiche l'ancien matricule. |
+| **Documents délivrés** (lot 7) | Fichiers scellés inchangés ; la vérification publique n'affiche pas de matricule. |
+| **Exports, listes, recherche** | Le matricule ACMA partout ; la recherche trouve aussi l'ancien (`reinscriptions_acma`). |
+| **Numéro de dossier, campagne, PV** | Inchangés : la candidature reste celle du portail, dans le PV du jury. L'espace garde le récépissé et la lettre d'admission (mode `conversion`). |
+
+**Variante sans conversion** : une candidature P14 retenue **sans** matricule encore, dont le dossier d'archive lui est déjà lié par arbitrage. L'attribution des matricules lui pose le matricule ACMA au lieu d'un `26…`, sans rang ; même trace (`reinscriptions_acma`, mode `attribution`).
 
 ## 9. L'espace de l'ancien réinscrit
 
@@ -420,6 +477,14 @@ Chaque sous-lot a sa branche, ses tests, sa PR, et se déploie seul.
 6. eCampus après validation (création, ou compte existant et mot de passe effacé).
 7. Journal ; tests du §13.3.
 
+**15m — Q2 : matricule ACMA pour un ancien déjà auditeur de la P14.** Prérequis : 15k.
+1. Migration : `candidatures.identifiant_ecampus`, colonnes `mode` et `ancien_matricule` de `reinscriptions_acma`, déclencheur de matricule figé.
+2. `IdentifiantsMoodle::identifiant` et `ComptesEcampus` lisent l'identifiant figé.
+3. Service `ConversionMatriculeAcma` (§8.3) et action sur la fiche d'archive.
+4. Attribution des matricules : variante sans conversion, ancien matricule jamais réattribué.
+5. Fiche de l'auditeur : ancien matricule.
+6. Tests : accès, situation, `CPT_COHERENCE`, reçus et numérotation, lien d'accès, identifiant eCampus inchangés après conversion ; refus sans trace.
+
 **15l — Année d'accueil.** Prérequis : 15j ; Q10.
 1. Cohorte eCampus lue dans la promotion d'accueil (M1) ; M2 signalé « cohorte à poser » tant que Q10 n'est pas tranchée.
 2. Paramètres de la lettre d'accès lus dans la promotion d'accueil (lien, PDF, espace).
@@ -444,7 +509,7 @@ Chaque sous-lot a sa branche, ses tests, sa PR, et se déploie seul.
 | N° | Question | Options | Recommandation |
 |---|---|---|---|
 | **Q1** | Correspondance promotion ↔ année d'entrée | a) P n = `2012 + n` (P1 = 2013-2014 … P14 = 2026-2027), 2016-2017 compté comme une promotion sans inscription ; b) liste fournie par la scolarité, saisie à la création ; c) numéros consécutifs des seules années avec inscriptions | **a)**, avec l'année modifiable à la création : c'est la règle déjà en base (P13, P14) et dans `ImportAuditeurs`. La scolarité confirme le cas 2016-2017. |
-| **Q2** | Ancien qui a aussi candidaté en P14 : quel dossier fait foi ? | a) la candidature P14 (si retenue) : pas de réinscription, archive liée par arbitrage, matricule `26…` conservé ; b) la réinscription : candidature P14 retirée, matricule ACMA ; c) la candidature P14, mais avec le matricule ACMA | **a)**. La décision du jury et les données saisies par le candidat sont plus fraîches, et le matricule `26…` est déjà communiqué et sert d'identifiant eCampus (un matricule ne change pas). Le matricule ACMA reste lisible dans l'archive. Pour une candidature P14 non encore décidée : attendre le jury. |
+| **Q2** (tranchée : **dossier ACMA**, §8.3) | Ancien qui a aussi candidaté en P14 : quel dossier fait foi ? | a) la candidature P14 (si retenue) : pas de réinscription, archive liée par arbitrage, matricule `26…` conservé ; b) la réinscription : candidature P14 retirée, matricule ACMA ; c) la candidature P14, mais avec le matricule ACMA | **a)**. La décision du jury et les données saisies par le candidat sont plus fraîches, et le matricule `26…` est déjà communiqué et sert d'identifiant eCampus (un matricule ne change pas). Le matricule ACMA reste lisible dans l'archive. Pour une candidature P14 non encore décidée : attendre le jury. |
 | **Q3** | Promotion de rattachement d'un réinscrit, et création des promotions antérieures | a) promotion d'origine proposée, au choix ; promotion antérieure créée à la demande ; b) promotion d'accueil (P14 en M1, P13 en M2) imposée ; c) toutes les promotions P1 à P13 créées d'un coup | **a)**, conforme à la décision 2 (« n'importe quelle promotion »). Avec 15l, le choix n'a pas d'effet sur la cohorte ni sur la lettre. Créer à la demande évite des promotions vides. |
 | **Q4** | Année en cours | a) réglage applicatif changé par le responsable ; b) déduite de la date (bascule au 1er septembre) ; c) constante du code | **a)** : la bascule est une décision (D3, décision 11 du lot D), pas une date. |
 | **Q5** | Geste unitaire ou aussi en lot ? | a) unitaire seulement ; b) en plus, une commande depuis une liste de matricules, à blanc par défaut ; c) en lot seulement | **a)**. Les cas attendus sont rares (quatre au 16/11) et chacun exige de vérifier une identité et des coordonnées. b) peut venir ensuite sur le même service. |
