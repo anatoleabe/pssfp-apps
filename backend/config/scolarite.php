@@ -11,6 +11,13 @@ declare(strict_types=1);
  * sur la campagne (lettre d'admission).
  */
 return [
+    /*
+     * Année en cours (spec de la réinscription des anciens, §6.1) : seule sa promotion reçoit un nouvel auditeur et
+     * des matricules attribués par la plateforme. Le réglage applicatif `scolarite.annee_en_cours` l'emporte.
+     * Vide : aucune garde de promotion (réservé aux tests qui ne s'en occupent pas).
+     */
+    'annee_en_cours' => env('SCOLARITE_ANNEE_EN_COURS', '2026-2027'),
+
     'bareme_defaut' => [
         'M1' => ['inscription' => 185000, 'tranche1' => 500000, 'tranche2' => 500000],
         'M2' => ['inscription' => 135000, 'tranche1' => 500000, 'tranche2' => 500000],

@@ -131,6 +131,7 @@ final class ModulePermissionMap
                     'scolarite.remise' => 'Accorder une remise',
                     'scolarite.bareme' => 'Modifier les barèmes',
                     'scolarite.promotion' => 'Modifier les réglages d\'une promotion (lettres, rentrée, consignes)',
+                    'scolarite.promotion_anterieure' => 'Créer une promotion antérieure (rattachement d\'un ancien auditeur réinscrit depuis l\'archive ACMA)',
                     'scolarite.statut' => 'Changer le statut d\'un auditeur (suspendu, abandon, exclu, diplômé)',
                     'scolarite.messages' => 'Envoyer un message aux auditeurs (relance des impayés)',
                     'scolarite.lettre_acces' => 'Télécharger depuis sa fiche la lettre d\'accès FOAD (avec le mot de passe) d\'un auditeur dont l\'inscription est soldée ; lui renvoyer le SMS et l\'e-mail des accès, ou un nouveau lien vers sa lettre',

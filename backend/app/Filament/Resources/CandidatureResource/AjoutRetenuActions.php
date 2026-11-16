@@ -10,6 +10,7 @@ use App\Models\DepartementCameroun;
 use App\Models\Pays;
 use App\Models\RegionCameroun;
 use App\Services\AjoutRetenu\AjoutRetenu;
+use App\Services\Scolarite\AnneeEnCours;
 use App\Support\PhoneMasker;
 use Filament\Actions\Action;
 use Filament\Actions\MountableAction;
@@ -167,9 +168,10 @@ final class AjoutRetenuActions
                 ->schema([
                     Forms\Components\Select::make('campagne_id')
                         ->label('Campagne')
-                        ->options(fn () => self::campagnes()->get()
+                        ->options(fn () => self::campagnes()->get()->filter(fn (CampagneCandidature $c): bool => AnneeEnCours::estCourante($c))
                             ->mapWithKeys(fn (CampagneCandidature $c): array => [$c->id => $c->nom]))
-                        ->default(fn () => self::campagnes()->value('id'))
+                        ->default(fn () => self::campagnes()->get()->first(fn (CampagneCandidature $c): bool => AnneeEnCours::estCourante($c))?->id)
+                        ->helperText('Promotion en cours seulement : un ancien auditeur se réinscrit depuis son dossier d\'archive ACMA.')
                         ->required(),
                     Forms\Components\Textarea::make('motif')
                         ->label('Motif de l\'ajout')

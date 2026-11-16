@@ -281,6 +281,11 @@ final class RolePermissionSeeder extends Seeder
         foreach (['admin', 'scolarite_responsable'] as $name) {
             $roles[$name]['sensitive'] = [...$roles[$name]['sensitive'], 'archives.completer', 'archives.rapprocher'];
         }
+        // Réinscription des anciens (lot 15j, 16/11/2026) : promotions antérieures, au responsable de scolarité et à
+        // l'administrateur (super_admin les a toutes).
+        foreach (['admin', 'scolarite_responsable'] as $name) {
+            $roles[$name]['sensitive'] = [...$roles[$name]['sensitive'], 'scolarite.promotion_anterieure'];
+        }
 
         foreach ($roles as $name => $definition) {
             $role = Role::findOrCreate($name, 'web');
