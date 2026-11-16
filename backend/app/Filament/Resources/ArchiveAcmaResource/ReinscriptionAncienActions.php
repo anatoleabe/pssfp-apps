@@ -55,6 +55,18 @@ final class ReinscriptionAncienActions
             });
     }
 
+    /** Origine du téléphone proposé, et numéros devinés de l'ancienne numérotation, à vérifier avant usage. */
+    private static function aideTelephone(AcmaDossier $d): string
+    {
+        $c = CoordonneesAcma::propositions($d);
+        $aide = $c['telephone'] !== null ? 'Proposé d\'après ACMA : peut être périmé, à vérifier auprès de l\'auditeur.' : 'Aucun numéro exploitable dans ACMA : saisissez celui de l\'auditeur.';
+        if ($c['a_verifier'] !== []) {
+            $aide .= ' Ancienne numérotation dans ACMA (chiffre ajouté deviné, non prérempli) : '.implode(', ', $c['a_verifier']).'.';
+        }
+
+        return $aide;
+    }
+
     /**
      * Q2 (16/11/2026, le dossier ACMA fait foi) : un ancien revenu par la candidature de la promotion en cours reprend
      * son matricule ACMA sur son dossier, sans second dossier (spec de la réinscription des anciens, §8.3).
@@ -67,7 +79,9 @@ final class ReinscriptionAncienActions
             ->color('gray')
             ->visible(fn (AcmaDossier $record): bool => (bool) auth()->user()?->can(ReinscriptionAncien::PERMISSION)
                 && $record->retire_de_la_source_at === null && $record->statut_rapprochement !== 'ecarte'
-                && ! ReinscriptionAcma::query()->where('dossier_acma_id', $record->id)->exists())
+                && ! ReinscriptionAcma::query()->where('dossier_acma_id', $record->id)->exists()
+                // Dossier déjà lié à un auditeur qui porte ce matricule : rien à reprendre.
+                && $record->auditeur?->candidature?->matricule !== $record->matricule)
             ->modalHeading(fn (AcmaDossier $record): string => 'Donner le matricule '.$record->matricule.' à un dossier de la plateforme')
             ->modalDescription('Pour un ancien auditeur revenu par la candidature : son dossier prend le matricule ACMA, qui fait foi. Versements, reçus, inscription, accès et compte eCampus restent tels quels ; l\'identifiant eCampus ne change pas. Aucun message ne part.')
             ->form([
@@ -119,6 +133,7 @@ final class ReinscriptionAncienActions
             'genre' => $d->sexe,
             'lieu_naissance' => $d->lieu_naissance,
             'nationalite' => 'CM',
+            // Jamais un numéro deviné (ancienne numérotation) : il reste une suggestion à vérifier.
             'phone_e164' => $coordonnees['telephone'],
             'email' => $coordonnees['email'],
             'adresse' => $d->adresse_source,
@@ -161,12 +176,15 @@ final class ReinscriptionAncienActions
                 Forms\Components\Select::make('nationalite')->label('Nationalité')->options(fn () => Pays::orderBy('nom')->pluck('nom', 'code_iso'))->searchable()->required(),
             ]),
             Forms\Components\Section::make('Coordonnées (vérifiées auprès de l\'auditeur)')->columns(2)->schema([
-                Forms\Components\TextInput::make('phone_e164')->label('Téléphone (connexion à l\'espace)')->required()->placeholder('+237699000000'),
+                Forms\Components\TextInput::make('phone_e164')->label('Téléphone (connexion à l\'espace)')->required()->placeholder('+237699000000')
+                    ->helperText(fn (): string => self::aideTelephone($d)),
                 Forms\Components\TextInput::make('email')->label('E-mail')->email()->maxLength(150)
                     ->helperText('Obligatoire pour créer le compte eCampus, si aucun n\'existe sous ce matricule.'),
                 Forms\Components\TextInput::make('adresse')->label('Adresse')->maxLength(200),
                 Forms\Components\TextInput::make('ville_residence')->label('Ville de résidence')->maxLength(100),
                 Forms\Components\Checkbox::make('confirmer_signaux')->label('Ce téléphone ou cet e-mail figure sur un autre dossier : je l\'ai vérifié')->columnSpanFull(),
+                Forms\Components\Checkbox::make('coordonnees_verifiees')->label('Téléphone et e-mail vérifiés auprès de l\'auditeur')->accepted()->required()->columnSpanFull()
+                    ->helperText('Obligatoire : les coordonnées d\'ACMA peuvent être anciennes ; le lien d\'accès partira vers ce téléphone et cet e-mail.'),
             ]),
             Forms\Components\Section::make('Inscription en '.AnneeEnCours::annee())->columns(2)->schema([
                 Forms\Components\Select::make('campagne_id')->label('Promotion de rattachement')->options($promotions)->required()

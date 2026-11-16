@@ -43,6 +43,8 @@ return new class extends Migration
             $table->boolean('derogation_m2')->default(false);
             $table->string('derogation_piece', 100)->nullable();
             $table->jsonb('coordonnees_modifiees')->nullable();
+            // Case « coordonnées vérifiées auprès de l'auditeur », exigée à la création (celles d'ACMA peuvent être périmées).
+            $table->boolean('coordonnees_verifiees')->default(false);
             $table->string('motif', 500);
             $table->foreignId('auteur_id')->constrained('users')->restrictOnDelete();
             $table->timestampTz('created_at');
@@ -60,6 +62,7 @@ return new class extends Migration
             'creation' => "mode <> 'creation' OR (inscription_annuelle_id IS NOT NULL AND niveau IN ('M1', 'M2') AND parcours IS NOT NULL)",
             'ancien_matricule' => "(mode = 'conversion') = (ancien_matricule IS NOT NULL)",
             'derogation' => "NOT derogation_m2 OR (niveau = 'M2' AND char_length(trim(coalesce(derogation_piece, ''))) >= 1)",
+            'coordonnees_verifiees' => "mode <> 'creation' OR coordonnees_verifiees",
         ];
         foreach ($checks as $nom => $expression) {
             DB::statement("ALTER TABLE reinscriptions_acma ADD CONSTRAINT reinscriptions_acma_{$nom}_check CHECK ({$expression})");

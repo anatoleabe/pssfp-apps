@@ -74,7 +74,8 @@ beforeEach(function (): void {
         AcmaDossier::query()->where('matricule', '90EFP001')->firstOrFail(),
         array_merge(['nom' => 'ESSAI', 'prenom' => 'Alpha Béta', 'date_naissance' => '1985-03-12', 'genre' => 'M', 'nationalite' => 'CM',
             'phone_e164' => '+237699000001', 'email' => 'essai.alpha@exemple.invalid', 'campagne_id' => $this->p12->id, 'niveau' => $niveau,
-            'parcours' => $niveau === 'M2' ? 'ACFP' : 'TC', 'motif' => 'Demande écrite de reprise des études', 'confirmer_m1_admis' => true], $autres),
+            'parcours' => $niveau === 'M2' ? 'ACFP' : 'TC', 'motif' => 'Demande écrite de reprise des études', 'confirmer_m1_admis' => true,
+            'coordonnees_verifiees' => true], $autres),
         $this->admin,
     );
 });

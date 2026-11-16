@@ -9,12 +9,14 @@ use App\Models\Auditeur;
 use App\Models\Candidature;
 use App\Models\ReinscriptionAcma;
 use App\Models\User;
+use App\Services\Ecampus\ComptesEcampus;
 use App\Services\ExportsRetenus\AttributionMatricules;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\OuvertureAuditeur;
 use App\Support\Journaux;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -47,6 +49,17 @@ final class ConversionMatriculeAcma
             throw new InvalidArgumentException('Indiquez le motif (au moins '.ReinscriptionAncien::MOTIF_MINIMUM.' caractères).');
         }
 
+        // Même verrou que la création du compte eCampus : jamais une conversion pendant une création de compte.
+        $resultat = Cache::lock('ecampus-compte:'.$dossierPlateforme->id, 60)->get(fn (): Candidature => $this->convertirSousVerrou($dossier, $dossierPlateforme, $motif, $auteur, $identiteConfirmee));
+        if ($resultat === false) {
+            throw new InvalidArgumentException('Le compte eCampus de ce dossier est en cours de traitement : réessayez dans une minute.');
+        }
+
+        return $resultat;
+    }
+
+    private function convertirSousVerrou(AcmaDossier $dossier, Candidature $dossierPlateforme, string $motif, User $auteur, bool $identiteConfirmee): Candidature
+    {
         try {
             return DB::transaction(function () use ($dossier, $dossierPlateforme, $motif, $auteur, $identiteConfirmee): Candidature {
                 $c = Candidature::query()->whereKey($dossierPlateforme->id)->lockForUpdate()->firstOrFail();
@@ -98,11 +111,19 @@ final class ConversionMatriculeAcma
         if ($c->statut !== Candidature::STATUT_ACCEPTE || $c->withdrawn_at !== null) {
             throw new InvalidArgumentException('Seul un retenu non retiré peut reprendre un matricule ACMA.');
         }
+        if ($c->matricule === $d->matricule) {
+            throw new InvalidArgumentException('Ce dossier porte déjà le matricule ACMA : rien à reprendre.');
+        }
+        // Un matricule déjà attribué ne change que si l'on sait où en est le compte eCampus (créé, existant ou à finir) :
+        // sinon, une création ultérieure partirait sous le nouveau matricule et l'ancien compte serait orphelin.
+        if ($c->matricule !== null && in_array($c->ecampus_statut, [null, ComptesEcampus::ECHEC], true)) {
+            throw new InvalidArgumentException('Compte eCampus de ce dossier inconnu ou en échec : rapprochez-le d\'abord (ecampus:rapprocher, ou bouton eCampus de la fiche), puis reprenez le matricule.');
+        }
         $auditeur = $c->auditeur;
         if ($d->auditeur_id !== null && ($auditeur === null || (int) $d->auditeur_id !== (int) $auditeur->id)) {
             throw new InvalidArgumentException('Ce dossier d\'archive est lié à un autre auditeur : arbitrez d\'abord.');
         }
-        if (Candidature::withTrashed()->where('matricule', $d->matricule)->whereKeyNot($c->id)->exists()) {
+        if (Candidature::withTrashed()->where('matricule', $d->matricule)->whereKeyNot($c->id)->exists() || ReinscriptionAncien::matriculeDejaUtilise($d->matricule)) {
             throw new InvalidArgumentException("Le matricule {$d->matricule} est déjà porté par un autre dossier.");
         }
         $naissance = ReinscriptionAncien::dateNaissanceArchive($d);

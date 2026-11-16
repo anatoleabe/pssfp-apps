@@ -254,6 +254,17 @@ it('reprend les coordonnées brutes des fiches et le parcours des inscriptions, 
     refusee(fn () => DB::table('acma_dossiers')->where('matricule', '90EFP001')->update(['mobile_source' => '600000009']), 'lecture seule');
 });
 
+it('refuse clairement un transit au format /2, la reprise comme l\'inventaire', function (): void {
+    TransitAcma::construire();
+    $manifeste = json_decode((string) DB::table('acma_transit._chargement')->value('manifeste'), true);
+    $manifeste['format'] = 'pssfp-acma-transit/2';
+    DB::table('acma_transit._chargement')->update(['manifeste' => json_encode($manifeste)]);
+
+    expect(fn () => reprendre($this->usi))->toThrow(RuntimeException::class, 'rechargez une archive au format pssfp-acma-transit/3');
+    $this->artisan('acma:inventaire')->expectsOutputToContain('rechargez une archive')->assertFailed();
+    expect(DB::table('acma_dossiers')->count())->toBe(0);
+});
+
 it('ne réécrit rien au second passage, met à jour et marque retiré sur un export modifié, garde les arbitrages', function (): void {
     TransitAcma::construire();
     $auditeur = auditeurAcma('90EFP011', 'ESSAI', 'Epsilon', '1983-03-03');

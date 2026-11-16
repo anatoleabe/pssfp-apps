@@ -56,6 +56,10 @@ it('propose d\'abord le mobile, puis le téléphone, puis le premier e-mail vali
         ->and($c['telephone2'])->toBe('+237222000001')
         ->and($c['email'])->toBe('essai@exemple.invalid');
 
+    // Ancienne numérotation : jamais préremplie, seulement suggérée à vérifier.
+    $devine = CoordonneesAcma::propositions(['telephone_source' => '99000001']);
+    expect($devine['telephone'])->toBeNull()->and($devine['a_verifier'])->toBe(['+237699000001']);
+
     $vide = CoordonneesAcma::propositions([]);
     expect($vide['telephone'])->toBeNull()->and($vide['telephone2'])->toBeNull()->and($vide['email'])->toBeNull();
 });

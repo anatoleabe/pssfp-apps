@@ -84,7 +84,8 @@ final class ReinscriptionAncien
                     'inscription_annuelle_id' => $inscription->id, 'campagne_id' => $campagne->id, 'rapprochement_id' => $rapprochement,
                     'mode' => ReinscriptionAcma::CREATION, 'niveau' => $niveau, 'parcours' => $parcours->code,
                     'derogation_m2' => (bool) $s['derogation_m2'], 'derogation_piece' => $s['derogation_m2'] ? $s['derogation_piece'] : null,
-                    'coordonnees_modifiees' => $this->coordonneesModifiees($d, $s), 'motif' => $s['motif'], 'auteur_id' => $auteur->id,
+                    'coordonnees_modifiees' => $this->coordonneesModifiees($d, $s), 'coordonnees_verifiees' => true,
+                    'motif' => $s['motif'], 'auteur_id' => $auteur->id,
                 ])->save();
 
                 $this->journaliser($d, $candidature, $trace, $campagne, $auteur);
@@ -150,6 +151,9 @@ final class ReinscriptionAncien
         if (AnneeEnCours::annee() === null) {
             throw new InvalidArgumentException('Année en cours non réglée : aucune réinscription possible.');
         }
+        if (($saisie['coordonnees_verifiees'] ?? false) !== true) {
+            throw new InvalidArgumentException('Vérifiez le téléphone et l\'e-mail auprès de l\'auditeur, puis cochez la case : ceux d\'ACMA peuvent être périmés.');
+        }
 
         return array_merge($saisie, [
             'motif' => $motif,
@@ -179,9 +183,19 @@ final class ReinscriptionAncien
             'a_arbitrer' => throw new InvalidArgumentException('Arbitrez d\'abord le rapprochement de ce dossier : un auditeur de la plateforme est peut-être la même personne.'),
             default => null,
         };
-        if (Candidature::withTrashed()->where('matricule', $d->matricule)->exists()) {
+        if (Candidature::withTrashed()->where('matricule', $d->matricule)->exists() || self::matriculeDejaUtilise($d->matricule)) {
             throw new InvalidArgumentException("Le matricule {$d->matricule} est déjà porté par un dossier de la plateforme.");
         }
+    }
+
+    /**
+     * Matricule ACMA déjà pris ailleurs que dans `candidatures.matricule` : ancien matricule d'une conversion, ou
+     * identifiant eCampus figé d'un autre dossier (15m). Unicité croisée.
+     */
+    public static function matriculeDejaUtilise(string $matricule): bool
+    {
+        return ReinscriptionAcma::query()->where('ancien_matricule', $matricule)->exists()
+            || Candidature::withTrashed()->where('identifiant_ecampus', mb_strtolower($matricule))->exists();
     }
 
     /**
@@ -312,7 +326,7 @@ final class ReinscriptionAncien
             ->withProperties([
                 'dossier' => $d->uuid, 'promotion' => $campagne->promotion_numero,
                 'niveau' => $trace->niveau, 'parcours' => $trace->parcours, 'derogation_m2' => $trace->derogation_m2,
-                'champs_modifies' => $trace->coordonnees_modifiees ?? [], 'motif' => $trace->motif,
+                'champs_modifies' => $trace->coordonnees_modifiees ?? [], 'coordonnees_verifiees' => true, 'motif' => $trace->motif,
             ])
             ->log('Ancien auditeur réinscrit depuis l\'archive ACMA');
         activity(Journaux::CANDIDATURES)->causedBy($auteur)->performedOn($candidature)->event('retenu_reinscrit_acma')

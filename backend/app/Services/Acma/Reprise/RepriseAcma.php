@@ -57,7 +57,7 @@ final class RepriseAcma
      */
     public function executer(User $auteur, ?array $etapes, bool $appliquer): array
     {
-        LectureTransit::chargement();
+        LectureTransit::chargement(formatCourant: true);
         self::refuserSiGelee();
         $etapes = self::etapes($etapes);
         $this->ecouterHttp();

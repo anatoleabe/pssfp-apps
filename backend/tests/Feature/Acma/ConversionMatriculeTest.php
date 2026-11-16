@@ -17,6 +17,7 @@ use App\Services\ExportsRetenus\AttributionMatricules;
 use App\Services\ExportsRetenus\IdentifiantsMoodle;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Sms\SmsServiceInterface;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -127,6 +128,28 @@ it('refuse sans identité concordante confirmée, une seconde fois, un dossier l
     $autre = ($this->retenu)(['nom' => 'ESSAI', 'prenom' => 'Zeta', 'date_naissance' => '1984-04-04']);
     expect(fn () => $conversion->convertir(($this->dossier)('90EFP012'), $autre, 'Motif suffisamment long', $this->responsable, true))->toThrow(InvalidArgumentException::class, 'déjà repris');
     expect(fn () => $conversion->convertir(($this->dossier)('90EFP013'), $c->fresh(), 'Motif suffisamment long', $this->responsable, true))->toThrow(InvalidArgumentException::class, 'déjà repris');
+});
+
+it('refuse sans compte eCampus rapproché, pour une paire déjà cohérente, et pendant une création de compte', function (): void {
+    $c = ($this->retenu)(['nom' => 'ESSAI', 'prenom' => 'Zeta', 'date_naissance' => '1984-04-04']);
+    $c->forceFill(['matricule' => '26EFP555', 'rang_retenu' => 1, 'moodle_password' => 'Ab3@efghjk', 'matricule_attribue_at' => now()])->save();
+    $conversion = app(ConversionMatriculeAcma::class);
+
+    foreach ([null, ComptesEcampus::ECHEC] as $statut) {
+        $c->forceFill(['ecampus_statut' => $statut])->save();
+        expect(fn () => $conversion->convertir(($this->dossier)('90EFP012'), $c->fresh(), 'Motif suffisamment long', $this->responsable))->toThrow(InvalidArgumentException::class, 'rapprochez-le');
+    }
+
+    $c->forceFill(['ecampus_statut' => ComptesEcampus::CREE])->save();
+    $verrou = Cache::lock('ecampus-compte:'.$c->id, 60);
+    $verrou->get();
+    expect(fn () => $conversion->convertir(($this->dossier)('90EFP012'), $c->fresh(), 'Motif suffisamment long', $this->responsable))->toThrow(InvalidArgumentException::class, 'en cours de traitement');
+    $verrou->release();
+
+    $coherent = ($this->retenu)(['nom' => 'ESSAI', 'prenom' => 'Eta Theta', 'date_naissance' => '1986-06-06']);
+    $coherent->forceFill(['matricule' => '90EFP013'])->save();
+    expect(fn () => $conversion->convertir(($this->dossier)('90EFP013'), $coherent->fresh(), 'Motif suffisamment long', $this->responsable))->toThrow(InvalidArgumentException::class, 'porte déjà le matricule ACMA');
+    expect(ReinscriptionAcma::query()->count())->toBe(0);
 });
 
 it('se défait tant qu\'aucun identifiant n\'est figé, et refuse ensuite', function (): void {

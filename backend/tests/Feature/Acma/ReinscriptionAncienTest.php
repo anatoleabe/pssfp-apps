@@ -59,6 +59,7 @@ beforeEach(function (): void {
         'nom' => 'ESSAI', 'prenom' => 'Alpha Béta', 'date_naissance' => '1985-03-12', 'genre' => 'M', 'nationalite' => 'CM',
         'phone_e164' => '+237 699 000 001', 'email' => 'essai.alpha@exemple.invalid', 'adresse' => 'ADRESSE FICTIVE',
         'campagne_id' => $this->p13->id, 'niveau' => 'M2', 'parcours' => 'ACFP', 'motif' => 'Demande écrite de reprise des études',
+        'coordonnees_verifiees' => true,
     ], $autres);
     $this->reinscrire = fn (string $m, array $autres = [], ?User $auteur = null): Candidature => app(ReinscriptionAncien::class)
         ->reinscrire(($this->dossier)($m), ($this->saisie)($autres), $auteur ?? $this->responsable);
@@ -129,6 +130,21 @@ it('réinscrit en M1 un ancien non admis, rattaché à la P14, et ne lui donne a
         ->and($i->deblocages()->count())->toBe(0)->and($i->versements()->count())->toBe(0)
         ->and($c->campagne_id)->toBe($this->p14->id)->and($c->email)->toBeNull();
     expect(InscriptionAnnuelle::query()->where('auditeur_id', $c->auditeur->id)->count())->toBe(1);
+});
+
+it('exige des coordonnées vérifiées auprès de l\'auditeur, et la trace le garde', function (): void {
+    expect(fn () => ($this->reinscrire)('90EFP001', ['coordonnees_verifiees' => false]))->toThrow(InvalidArgumentException::class, 'cochez la case');
+    expect(ReinscriptionAcma::query()->count())->toBe(0);
+
+    ($this->reinscrire)('90EFP001');
+    expect(ReinscriptionAcma::query()->sole()->coordonnees_verifiees)->toBeTrue();
+});
+
+it('refuse un matricule déjà pris comme identifiant eCampus figé ou ancien matricule d\'un autre dossier', function (): void {
+    Candidature::factory()->forCampagne($this->p14)->create()->forceFill(['identifiant_ecampus' => '90efp012'])->save();
+
+    expect(fn () => ($this->reinscrire)('90EFP012', ['nom' => 'ESSAI', 'prenom' => 'Zeta', 'date_naissance' => '1984-04-04', 'phone_e164' => '+237699000012', 'niveau' => 'M1', 'parcours' => 'TC', 'email' => null]))
+        ->toThrow(InvalidArgumentException::class, 'déjà porté');
 });
 
 it('refuse un dossier déjà réinscrit, un matricule déjà pris, un M2 sans M1 admis et une date sans pièce', function (): void {
