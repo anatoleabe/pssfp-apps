@@ -4,6 +4,7 @@
 **Statut** : proposé (spec seule, avant réalisation) ; cas à arbitrer au §12
 **Décideur** : M. ABE ETOUMOU Anatole, Chef USI (décisions du 15/11/2026, §2)
 **Décision d'architecture** : [ADR-0014](../adr/0014-reprise-acma-archive-lecture-seule.md)
+**Suite** : [réinscription des anciens](module-4-lot15-reinscription-anciens.md) (16/11/2026 : promotions antérieures, réinscription d'un ancien depuis l'archive, coordonnées reprises ; modifie la décision 4, Q7 et Q16)
 **Specs liées** : [feuille de route LMD](module-4-lmd-feuille-de-route.md) (lots 6 et 15) · [compte de l'auditeur, D1](module-4-scolarite-comptes-d1.md) et [ADR-0013](../adr/0013-compte-de-l-auditeur.md) · [demandes d'autorisation, 14c](module-4-lmd-lot14c-demandes-autorisation.md) · [documents vérifiables, lot 7](module-4-lmd-lot7-resultats-documents.md) · [import des auditeurs antérieurs](module-4-import-auditeurs-anterieurs.md)
 **Sources** : export complet d'ACMA du 15/11/2026 (base `gestionacademic`, chargée dans un conteneur jetable, lu en lecture seule) ; analyse du schéma faite en octobre (dossier « PSSFP Système », annexe 5) ; scripts de reprise du dossier « PSSFP Système » (`20_copie_acma.py` à `30_controles_reprise.sql`), dont on reprend la connaissance des pièges d'ACMA, pas le schéma cible.
 
@@ -25,7 +26,7 @@ Ce qui change, pour qui :
 | Scolarité (agents, responsable) | Nouvel écran « Archives ACMA » (fiche d'ancien auditeur, relevés et attestations historiques), onglet « Historique ACMA » sur la fiche des auditeurs P13, écran « Arriérés ACMA » (vérifier, demander, approuver), rapport des écarts 2026-2027. ACMA ne sert plus. |
 | Service financier | Les arriérés validés apparaissent au compte des auditeurs concernés (relevé de compte du sous-lot D2). |
 | Auditeurs en formation | Rien de visible dans le lot 15, sauf un arriéré porté au compte après validation (§8). |
-| Anciens auditeurs | Rien : aucun compte, aucun SMS, aucun e-mail, aucun compte eCampus (décision 4). |
+| Anciens auditeurs | Rien : aucun compte, aucun SMS, aucun e-mail, aucun compte eCampus (décision 4). Exception depuis le 16/11 : l'ancien réinscrit dans l'année en cours depuis l'archive ([réinscription des anciens](module-4-lot15-reinscription-anciens.md)). |
 | USI | Commandes de transit, de reprise, de contrôle et de gel ; répétition sur une copie locale de la production ; retrait d'ACMA. |
 
 ## 2. Décisions du chef de projet (15/11/2026)
@@ -36,6 +37,8 @@ Appliquées telles quelles :
 2. **2026-2027 : la plateforme fait foi.** Les versements 2026-2027 d'ACMA ne sont pas importés. Une liste d'écarts est remise à la scolarité, et la saisie dans ACMA s'arrête.
 3. **Arriérés des années passées** (surtout le M1 2025-2026 des P13) : une liste calculée depuis ACMA est validée **ligne par ligne** par la scolarité. Seuls les arriérés validés entrent dans le compte de l'auditeur (décision Q10 du lot D : « au cas par cas, jamais en masse »).
 4. **Anciens auditeurs** (avant la P13) : pas d'accès à l'espace auditeur pour l'instant. Aucun SMS, e-mail ni compte eCampus lors de la reprise. Leur dossier n'est visible que par l'administration, qui délivre relevés et attestations.
+
+   **Modifiée le 16/11/2026** pour les seuls anciens **réinscrits** dans l'année en cours (M1 ou M2, toute promotion, P14 comprise) : ils sont créés depuis leur dossier d'archive, matricule ACMA conservé, et reçoivent leurs accès par le chemin normal (paiement confirmé ou déblocage). Les autres anciens restent sans compte, sans espace et sans envoi. Voir [réinscription des anciens](module-4-lot15-reinscription-anciens.md), §2 et §9.
 
 ## 3. Inventaire de l'export du 15/11/2026
 
@@ -380,7 +383,7 @@ Exclusions par défaut, journalisées et listées :
 | `date_naissance` | Date valide, année comprise entre 1940 et 2010 ; sinon vide, avec `date_naissance_a_verifier`. Valeur d'origine gardée en texte. « Né vers » : année seule, précision `vers`. |
 | `lieu_naissance`, `nationalite` | Texte d'origine, nettoyé des espaces |
 | `categorie_acma`, `filiere_acma` | Codes d'origine |
-| Téléphone, adresse, région | **Non repris** (Q2) |
+| Téléphone, adresse, région | ~~Non repris (Q16)~~ **Repris depuis le 16/11/2026**, bruts, avec toutes les colonnes de `etudiant` (décision 3 du 16/11 ; [réinscription des anciens](module-4-lot15-reinscription-anciens.md), §4) |
 
 ### 6.3 Rapprochement avec la plateforme
 
@@ -498,7 +501,7 @@ CREATE TRIGGER acma_<table>_sans_truncate BEFORE TRUNCATE ON acma_<table>
 - **Visible** dans l'écran « Archives ACMA » par les titulaires de `archives.consulter`.
 - **Aucun envoi.** Aucun code de la reprise n'appelle un service d'envoi, eCampus ou une notification. Les tests le vérifient : `Notification::fake`, `Queue::fake`, `Http::fake` et `assertNothingSent` (C10).
 - **Un ancien qui revient** (nouvelle candidature, par exemple) devient un auditeur par le chemin normal, et son dossier d'archive s'y lie par arbitrage (cas R6). Le lien n'est pas unique : une même personne peut avoir deux dossiers d'archive sous deux matricules.
-- **Accès en ligne des anciens** : hors du lot 15 (décision 4). Il passerait plus tard par la création d'un compte, sans changer l'archive.
+- **Accès en ligne des anciens** : hors du lot 15 (décision 4). Depuis le 16/11, un ancien réinscrit dans l'année en cours est créé comme auditeur depuis son dossier, sans changer l'archive : [réinscription des anciens](module-4-lot15-reinscription-anciens.md).
 
 ### 7.5 Archive des résultats et des notes
 
@@ -984,7 +987,7 @@ Chaque sous-lot a sa branche, ses tests, sa PR et se déploie seul.
 **Prérequis** : 15a à 15c ; Q14 tranchée. **Livre** : l'arrêt d'ACMA.
 
 1. Répétitions sur une copie locale de la production (§10.6), jusqu'à des contrôles verts ; relecture des listes avec la scolarité.
-2. Choix et annonce de J0. Création dans la plateforme des auditeurs actifs absents (Q7), avant J0.
+2. Choix et annonce de J0. Création dans la plateforme des auditeurs actifs absents (Q7), avant ou après J0, par la réinscription depuis l'archive ([réinscription des anciens](module-4-lot15-reinscription-anciens.md), §7.7).
 3. J0 : arrêt de la saisie, fermeture des comptes d'écriture d'ACMA, export final.
 4. Production : charger, reprendre à blanc puis appliquer, contrôler, remettre le rapport des écarts, geler.
 5. Retrait de l'export « Importation ACMA (Excel) » des campagnes (petite PR de code).
@@ -995,6 +998,8 @@ Chaque sous-lot a sa branche, ses tests, sa PR et se déploie seul.
 
 **Tranchés le 15/11/2026.** Le chef de projet retient la recommandation de chaque question. Pour Q4, la délibération finale du M2 2025-2026 (P12) **a eu lieu et son PV est signé** : ses décisions seront transcrites par complément (option a), comme en Q3. Pour Q7, les 3 auditeurs de la P12 actifs en 2026-2027 sont créés sur la plateforme avant J0. Le tableau ci-dessous garde les options proposées.
 
+**Modifiés le 16/11/2026** ([réinscription des anciens](module-4-lot15-reinscription-anciens.md)) : **Q7** — les auditeurs actifs absents de la plateforme (3 de la P12 et 1 de la P13 au 16/11) sont créés par la réinscription depuis l'archive, **matricule ACMA conservé**, et non plus par « Ajouter un retenu », qui attribuerait un nouveau matricule ; **Q16** — option **b)** retenue et élargie : téléphones, e-mails, adresse, région et toutes les colonnes de `etudiant` sont repris (décision 3 du 16/11), sans aucun envoi vers ces coordonnées.
+
 | N° | Question | Options | Recommandation |
 |---|---|---|---|
 | **Q1** | Les 95 fiches sans aucune inscription datée (aucune note, aucun paiement) sont-elles reprises ? | a) toutes ; b) aucune, la liste est remise ; c) seulement celles qui ont un document (1 PV, 1 certificat) | **c)** Les autres n'ont aucun contenu académique : les reprendre ajouterait des données personnelles sans usage (minimisation). La liste reste dans l'export chiffré. |
@@ -1003,7 +1008,7 @@ Chaque sous-lot a sa branche, ses tests, sa PR et se déploie seul.
 | **Q4** | Délibération finale du M2 2025-2026 (P12) : aucun admis enregistré dans ACMA, et 169 soutenances datées de 2026. A-t-elle eu lieu ? | a) déjà tenue sur papier : transcription par complément (Q3) ; b) pas encore tenue : à faire dans ACMA avant J0 ; c) pas encore tenue : hors système, puis transcription | **À confirmer d'abord.** Si elle n'a pas eu lieu : **c)**, pour ne pas retarder J0. Le module LMD ne porte pas les maquettes 2025-2026. |
 | **Q5** | Reprendre les 309 580 versions de notes (`notes_hist`) ? | a) oui, en archive consultable ; b) seulement les 2 468 notes reconstituées, le reste dans l'export chiffré | **a)** C'est la seule trace des notes écrasées et des modifications en cas de litige, et ACMA disparaît. Volume modeste (environ 40 Mo). |
 | **Q6** | 1 510 notes dont le programme a été supprimé dans ACMA (année inconnue) | a) archivées « non rattachées », visibles, hors relevés ; b) ignorées | **a)** Elles peuvent répondre à une contestation. Elles n'entrent pas dans les crédits ni dans les documents. |
-| **Q7** | Auditeurs actifs en 2026-2027 dans ACMA mais absents de la plateforme (3 de la P12 au 15/11) | a) créés dans la plateforme avant J0 (« Ajouter un retenu », inscription 2026-2027), au cas par cas ; b) laissés hors plateforme | **a)** La plateforme fait foi pour 2026-2027 (décision 2), et ces auditeurs paient et suivent des cours. |
+| **Q7** | Auditeurs actifs en 2026-2027 dans ACMA mais absents de la plateforme (3 de la P12 au 15/11) | a) créés dans la plateforme avant J0 (« Ajouter un retenu », inscription 2026-2027), au cas par cas ; b) laissés hors plateforme | **a)** La plateforme fait foi pour 2026-2027 (décision 2), et ces auditeurs paient et suivent des cours. **Modifiée le 16/11/2026** : créés par la réinscription depuis l'archive, matricule ACMA conservé ([réinscription des anciens](module-4-lot15-reinscription-anciens.md), §7.7). |
 | **Q8** | Barèmes des années passées pour le compte (2024-2025, 2025-2026) : quelle répartition du total ? | a) celle de 2026-2027 (M1 185 000 / 500 000 / 500 000 ; M2 135 000 / 500 000 / 500 000) ; b) celle d'ACMA (50 000 + frais annexes / 1 000 000) | **a)** Totaux identiques. Les paliers d'une année passée ne commandent rien, et la répartition reste homogène pour les relevés de compte. |
 | **Q9** | Visa du contrôle interne sur l'entrée d'un arriéré ? | a) non, l'agent demande et le responsable approuve ; b) oui | **a)** La décision 3 confie la validation à la scolarité, et les quatre yeux sont garantis. `ACMA_ARRIERES` et le journal permettent un contrôle a posteriori. |
 | **Q10** | Trop-perçus des années passées (11 P13 en M1 2025-2026) | a) listés seulement ; b) portés en avance après validation | **a)** Porter une avance, c'est faire entrer de l'argent non vérifié au compte, et il pourrait payer 2026-2027. Un trop-perçu prouvé s'enregistre comme un versement ordinaire, pièce à l'appui. |
@@ -1012,7 +1017,7 @@ Chaque sous-lot a sa branche, ses tests, sa PR et se déploie seul.
 | **Q13** | Acquis des redoublants P13 : à quelle maille ? | a) une UE d'accueil est acquise si la moyenne des UE ACMA correspondantes, pondérée par les crédits, atteint 12 et que toutes ses ECUE sont couvertes ; b) acquis par ECUE (nouvelle règle, change les lots 5 et 6) ; c) aucune capitalisation | **a)** Cohérent avec la règle du lot 4 (note d'UE = moyenne des ECUE pondérée par les crédits) et sans nouvelle règle LMD. Validé ligne par ligne. |
 | **Q14** | Conservation de l'export ACMA et du transit | a) transit purgé après le gel ; export et manifeste chiffrés, gardés hors ligne par l'USI sans limite de durée (registre de scolarité) ; b) export détruit après validation de l'archive | **a)** L'archive est une sélection. L'export brut, avec le journal d'ACMA, peut seul trancher un litige futur. Hors ligne et chiffré, il n'expose rien. |
 | **Q15** | L'espace des P13 doit-il afficher leur M1 2025-2026 archivé (« Mes résultats ») ? | a) non dans le lot 15 ; b) oui, en lecture seule | **a)** La décision 4 limite l'archive à l'administration. On rouvrira la question après validation de l'archive par la scolarité. |
-| **Q16** | Téléphones des anciens (2 056 fiches ; ACMA n'a ni e-mail ni pièce exploitable) | a) non repris ; b) repris, sans usage d'envoi | **a)** Aucun envoi n'est prévu (décision 4), et les numéros sont anciens. Minimisation : ils restent dans l'export chiffré. |
+| **Q16** | Téléphones des anciens (2 056 fiches ; ACMA n'a ni e-mail ni pièce exploitable) | a) non repris ; b) repris, sans usage d'envoi | **a)** Aucun envoi n'est prévu (décision 4), et les numéros sont anciens. Minimisation : ils restent dans l'export chiffré. **Décision du 16/11/2026 : b), élargie à toutes les coordonnées** ([réinscription des anciens](module-4-lot15-reinscription-anciens.md), §4). |
 
 ## 13. Sécurité et données personnelles
 
@@ -1027,7 +1032,7 @@ Chaque sous-lot a sa branche, ses tests, sa PR et se déploie seul.
   - **à faire au J0** :
     - prévenir les 4 titulaires de changer ce mot de passe s'ils l'utilisent ailleurs ;
     - faire changer le mot de passe du compte FTP par son gestionnaire, puisqu'il figure dans chaque export d'ACMA depuis des années.
-- **Minimisation** : seule l'identité utile aux documents est reprise (§6.2). Les téléphones et le journal d'ACMA ne sont pas repris (Q14, Q16).
+- **Minimisation** : seule l'identité utile aux documents est reprise (§6.2). Les téléphones et le journal d'ACMA ne sont pas repris (Q14, Q16). **Levée le 16/11/2026 pour les données des auditeurs** (coordonnées comprises, lecture réservée à `archives.consulter`, jamais dans le journal ni les classeurs) ; restent exclus les secrets et les données du personnel d'ACMA ([réinscription des anciens](module-4-lot15-reinscription-anciens.md), §4).
 - **Accès** :
   - l'archive n'est lisible qu'avec `archives.consulter` ;
   - aucune route d'API ni page publique, hormis la vérification des documents, qui n'affiche que le minimum du lot 7 ;
@@ -1157,7 +1162,7 @@ Données fictives seulement. Une fabrique `TransitAcma` construit un petit sché
 
 ## 16. Hors périmètre
 
-- Accès des anciens auditeurs à un espace en ligne (décision 4).
+- Accès des anciens auditeurs à un espace en ligne (décision 4), sauf l'ancien réinscrit dans l'année en cours ([réinscription des anciens](module-4-lot15-reinscription-anciens.md)).
 - Recalcul ou nouvelle délibération des années passées, PV d'archive dans le LMD (décision 1).
 - Reprise des versements 2026-2027 d'ACMA (décision 2).
 - Enseignants, attributions, salles et emplois du temps d'ACMA : vides ou déjà repris par les lots 12 et 13.
@@ -1169,7 +1174,7 @@ Données fictives seulement. Une fabrique `TransitAcma` construit un petit sché
 
 ### 15a — Transit et inventaire
 
-1. **Colonnes d'identité non extraites.** En plus des exclusions du §10.1, `acma:extraire` n'extrait pas les coordonnées et l'origine des auditeurs (`etudiant` : `telephone`, `mobile`, `adresse`, `email`, `EmailB`, `numcni`, `region`, `RegionBis`, `departement`). Ni l'archive (§6.2, Q16) ni le rapport des écarts ne s'en servent ; elles restent dans l'export chiffré. Minimisation (§13).
+1. **Colonnes d'identité non extraites.** En plus des exclusions du §10.1, `acma:extraire` n'extrait pas les coordonnées et l'origine des auditeurs (`etudiant` : `telephone`, `mobile`, `adresse`, `email`, `EmailB`, `numcni`, `region`, `RegionBis`, `departement`). Ni l'archive (§6.2, Q16) ni le rapport des écarts ne s'en servent ; elles restent dans l'export chiffré. Minimisation (§13). **Remplacé le 16/11/2026** : elles entrent dans la liste blanche (format `/3`), le transit et l'archive (sous-lot 15i, [réinscription des anciens](module-4-lot15-reinscription-anciens.md), §4).
 2. **Rang des lignes.** Chaque table du transit reçoit une colonne technique `_ligne` (rang de la ligne dans le CSV, clé primaire). Elle permet la lecture par lots sans tri des 309 580 versions de notes. Aucune valeur d'ACMA n'est transformée, sauf le caractère nul, que PostgreSQL refuse dans un texte.
 3. **Chiffrement.** L'archive est un zip des CSV et du manifeste, chiffré en AES-256-GCM par morceaux d'un mébioctet (numéro et drapeau « dernier » authentifiés), clé dérivée de la phrase de passe par PBKDF2-SHA256 à 600 000 itérations. La phrase se donne par la variable `ACMA_PHRASE` ou à l'invite, jamais en option. Procédure : `docs/ops/reprise-acma.md`.
 4. **Comptes de l'inventaire.** Trois libellés précisent le §3 sans le contredire : « année de la note différente du programme » ne compte que les années renseignées (64 ; les 3 850 du §3.4 comprenaient 3 786 années vides, déjà comptées parmi les 29 428) ; les négatifs sont appariés un pour un (147 au lieu de 148 : deux négatifs ne partagent pas une contrepartie) ; les « né vers » ne sont pas comptés parmi les dates vides (135 au lieu de 136).
