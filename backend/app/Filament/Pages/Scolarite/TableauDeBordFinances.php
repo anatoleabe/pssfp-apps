@@ -12,6 +12,7 @@ use App\Models\CampagneCandidature;
 use App\Services\Scolarite\CriteresFinances;
 use App\Services\Scolarite\EspaceFinances;
 use App\Services\Scolarite\IndicateursFinanciers;
+use App\Services\Scolarite\RubriquesFrais;
 use App\Support\BelongsToModule;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
@@ -66,6 +67,14 @@ class TableauDeBordFinances extends Page
     public static function canAccess(): bool
     {
         return static::moduleAllows() && EspaceFinances::peutConsulter(auth()->user());
+    }
+
+    /** Signale les rubriques de frais en anomalie : les reçus de ces couples sont ventilés par palier (R2, relecture M2). */
+    public function getSubheading(): ?string
+    {
+        $n = RubriquesFrais::nombreAnomalies();
+
+        return $n === 0 ? null : "Rubriques de frais : {$n} anomalie(s), voir Finances > Rubriques. Les reçus concernés sont ventilés par palier.";
     }
 
     public function mount(): void

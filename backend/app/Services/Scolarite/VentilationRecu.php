@@ -6,6 +6,7 @@ namespace App\Services\Scolarite;
 
 use App\Models\InscriptionAnnuelle;
 use App\Models\RubriqueFrais;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Ventilation d'un versement sur son reçu (reçu A4, R1), figée à l'émission dans `recus_versements.ventilation`. Calcul pur,
@@ -60,7 +61,20 @@ final class VentilationRecu
     public static function pour(InscriptionAnnuelle $designee, int $avant, int $part, int $autresAnnees, int $avance): array
     {
         $brut = (int) $designee->montant_inscription + (int) $designee->montant_tranche1 + (int) $designee->montant_tranche2;
-        $rubriques = RubriquesFrais::utilisables((string) $designee->annee_academique, (string) $designee->niveau, $brut);
+        $annee = (string) $designee->annee_academique;
+        $niveau = (string) $designee->niveau;
+        $rubriques = RubriquesFrais::utilisables($annee, $niveau, $brut);
+        if ($rubriques === null && RubriqueFrais::query()->duCouple($annee, $niveau)->exists()) {
+            // Repli jamais silencieux : le couple a des rubriques, mais elles ne servent pas (somme ≠ barème, ou montants de
+            // l'inscription différents du barème). L'écran Rubriques le signale aussi.
+            $etat = RubriquesFrais::etat($annee, $niveau);
+            Log::warning('Reçu ventilé par palier : les rubriques du couple ne servent pas.', [
+                'annee' => $annee, 'niveau' => $niveau, 'raison' => $etat['raison'] ?? 'montants de l\'inscription différents du barème',
+            ]);
+            activity('finances')->event('ventilation_repli')
+                ->withProperties(['annee' => $annee, 'niveau' => $niveau, 'raison' => $etat['raison'] ?? 'montants de l\'inscription différents du barème'])
+                ->log('Reçu ventilé par palier faute de rubriques utilisables');
+        }
 
         return $rubriques === null
             ? self::parPalier($designee, $avant, $part, $autresAnnees, $avance)

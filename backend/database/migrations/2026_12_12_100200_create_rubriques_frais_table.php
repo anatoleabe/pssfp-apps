@@ -30,17 +30,19 @@ return new class extends Migration
             $table->unsignedSmallInteger('ordre');
             $table->boolean('actif')->default(true);
             $table->timestampsTz();
-
-            $table->unique(['annee_academique', 'niveau', 'ordre']);
-            $table->unique(['annee_academique', 'niveau', 'libelle']);
         });
+        // Unicités différables : les rubriques d'un couple s'enregistrent ensemble (réordonnées, renommées) et ne sont
+        // contrôlées qu'à la validation de la transaction (RubriquesFrais::enregistrerCouple).
+        DB::statement('ALTER TABLE rubriques_frais ADD CONSTRAINT rubriques_frais_ordre_unique UNIQUE (annee_academique, niveau, ordre) DEFERRABLE INITIALLY IMMEDIATE');
+        DB::statement('ALTER TABLE rubriques_frais ADD CONSTRAINT rubriques_frais_libelle_unique UNIQUE (annee_academique, niveau, libelle) DEFERRABLE INITIALLY IMMEDIATE');
         DB::statement("ALTER TABLE rubriques_frais ADD CONSTRAINT rubriques_frais_check CHECK (
             annee_academique ~ '^[0-9]{4}-[0-9]{4}$' AND niveau IN ('M1', 'M2') AND length(trim(libelle)) > 0
             AND (code_imputation IS NULL OR length(trim(code_imputation)) > 0)
             AND (NOT compte_selon_promotion OR code_imputation IS NULL)
         )");
-        // Au plus une rubrique « compte selon la promotion » (la pension) par année et par niveau.
-        DB::statement('CREATE UNIQUE INDEX rubriques_frais_pension_unique ON rubriques_frais (annee_academique, niveau) WHERE compte_selon_promotion');
+        // Au plus une rubrique active « compte selon la promotion » (la pension) par année et par niveau ; une ancienne
+        // pension désactivée peut rester à côté de la nouvelle.
+        DB::statement('CREATE UNIQUE INDEX rubriques_frais_pension_unique ON rubriques_frais (annee_academique, niveau) WHERE compte_selon_promotion AND actif');
     }
 
     public function down(): void

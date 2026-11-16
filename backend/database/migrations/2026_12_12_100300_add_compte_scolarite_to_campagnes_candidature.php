@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Services\Scolarite\RubriquesFrais;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -15,12 +16,6 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    /** Promotion => compte de scolarité (RAF, 16/11/2026). */
-    public const COMPTES = [
-        4 => '710070', 5 => '710080', 6 => '710090', 7 => '710110', 8 => '710120', 9 => '710130',
-        10 => '710140', 11 => '710150', 12 => '710160', 13 => '710170', 14 => '710180',
-    ];
-
     public function up(): void
     {
         Schema::table('campagnes_candidature', function (Blueprint $table): void {
@@ -29,7 +24,8 @@ return new class extends Migration
         DB::statement("ALTER TABLE campagnes_candidature ADD CONSTRAINT campagnes_candidature_compte_scolarite_check CHECK (
             compte_scolarite IS NULL OR (compte_scolarite ~ '^[0-9]{6}$' AND compte_scolarite <> '710100')
         )");
-        foreach (self::COMPTES as $promotion => $compte) {
+        // La table promotion => compte vit dans le code (RubriquesFrais::COMPTES_PROMOTIONS), appliquée aussi aux créations.
+        foreach (RubriquesFrais::COMPTES_PROMOTIONS as $promotion => $compte) {
             DB::table('campagnes_candidature')->where('promotion_numero', $promotion)->whereNull('compte_scolarite')->update(['compte_scolarite' => $compte]);
         }
     }

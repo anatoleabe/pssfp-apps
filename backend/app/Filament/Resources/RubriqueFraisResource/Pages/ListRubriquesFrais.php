@@ -10,18 +10,16 @@ use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
 use App\Services\Scolarite\RubriquesFrais;
 use Filament\Actions\Action;
-use Filament\Actions\CreateAction;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\HtmlString;
-use InvalidArgumentException;
 
 class ListRubriquesFrais extends ListRecords
 {
     protected static string $resource = RubriqueFraisResource::class;
 
-    /** Anomalies (somme différente du barème, couple sans rubriques, promotion sans compte), ou rappel de la règle. */
+    /** Anomalies (couple ventilé par palier, promotion sans compte), ou rappel de la règle. */
     public function getSubheading(): HtmlString
     {
         $anomalies = RubriquesFrais::anomalies();
@@ -36,25 +34,20 @@ class ListRubriquesFrais extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
-            Action::make('proposer')->label('Proposer les rubriques types')->icon('heroicon-o-document-duplicate')->color('gray')
-                ->visible(fn (): bool => RubriquesFrais::peutGerer(auth()->user()))
-                ->modalDescription('Crée, pour un couple sans rubriques, les rubriques du plan comptable (inscription, bibliothèque, tenue de sport, périscolaires, pension selon la promotion), montants à saisir.')
-                ->form(MessagesValidation::appliquer([
-                    Forms\Components\TextInput::make('annee_academique')->label('Année académique')->required()->regex('/^\d{4}-\d{4}$/')->placeholder('2026-2027'),
-                    Forms\Components\Select::make('niveau')->label('Niveau')->required()->options(BaremeScolarite::NIVEAUX)->native(false),
-                ]))
-                ->action(function (array $data, Action $action): void {
-                    try {
-                        $n = RubriquesFrais::proposerModele((string) $data['annee_academique'], (string) $data['niveau'], auth()->user());
-                    } catch (InvalidArgumentException $e) {
-                        Notification::make()->danger()->title('Rubriques non créées')->body($e->getMessage())->send();
-                        $action->halt();
-
-                        return;
-                    }
-                    Notification::make()->success()->title($n.' rubriques créées')->body('Saisissez leurs montants : leur somme doit égaler le barème.')->send();
-                }),
+            Action::make('modifierCouple')->label('Rubriques d\'un couple')->icon('heroicon-o-pencil-square')
+                ->visible(fn (): bool => RubriquesFrais::peutGerer(auth()->user()))->modalWidth('6xl')
+                ->modalDescription('Choisissez l\'année et le niveau : leurs rubriques s\'affichent, ou, pour un couple vide, les rubriques types du plan comptable (montants à saisir). Les rubriques actives doivent égaler le total du barème.')
+                ->form(fn (): array => [
+                    Forms\Components\Grid::make(2)->schema(MessagesValidation::appliquer([
+                        Forms\Components\TextInput::make('annee_academique')->label('Année académique')->required()->regex('/^\d{4}-\d{4}$/')->placeholder('2026-2027')
+                            ->live(onBlur: true)->afterStateUpdated(fn (Forms\Set $set, Forms\Get $get) => self::chargerCouple($set, $get)),
+                        Forms\Components\Select::make('niveau')->label('Niveau')->required()->options(BaremeScolarite::NIVEAUX)->native(false)
+                            ->live()->afterStateUpdated(fn (Forms\Set $set, Forms\Get $get) => self::chargerCouple($set, $get)),
+                    ])),
+                    ...RubriqueFraisResource::champsLignes(),
+                ])
+                ->action(fn (array $data, Action $action) => RubriqueFraisResource::enregistrer(
+                    (string) $data['annee_academique'], (string) $data['niveau'], $data['lignes'] ?? [], $action)),
             Action::make('comptesPromotions')->label('Comptes des promotions')->icon('heroicon-o-banknotes')->color('gray')
                 ->visible(fn (): bool => RubriquesFrais::peutGerer(auth()->user()))
                 ->modalDescription('Compte de scolarité de chaque promotion (plan comptable de la RAF) : c\'est le code de la pension sur les reçus de ses auditeurs. Le compte 710100 (pénalité de retard des soutenances) n\'en est jamais un.')
@@ -82,5 +75,15 @@ class ListRubriquesFrais extends ListRecords
                     Notification::make()->success()->title($modifiees === 0 ? 'Aucun compte modifié' : $modifiees.' compte(s) modifié(s)')->send();
                 }),
         ];
+    }
+
+    /** Charge les rubriques du couple choisi (ou les rubriques types d'un couple vide) dans le formulaire. */
+    private static function chargerCouple(Forms\Set $set, Forms\Get $get): void
+    {
+        $annee = (string) $get('annee_academique');
+        $niveau = (string) $get('niveau');
+        if (preg_match('/^\d{4}-\d{4}$/', $annee) === 1 && array_key_exists($niveau, BaremeScolarite::NIVEAUX)) {
+            $set('lignes', RubriquesFrais::lignesDuCouple($annee, $niveau));
+        }
     }
 }

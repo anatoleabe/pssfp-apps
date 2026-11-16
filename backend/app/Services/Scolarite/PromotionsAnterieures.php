@@ -72,6 +72,8 @@ final class PromotionsAnterieures
                 'slug' => "p{$numero}-{$debut}",
                 'nom' => ['fr' => "Année académique {$annee}"],
                 'promotion_numero' => $numero,
+                // Compte de scolarité de la promotion (plan comptable de la RAF) : code de la pension sur les reçus.
+                'compte_scolarite' => RubriquesFrais::comptePromotion($numero),
                 'prefix_numero' => sprintf('P%02d%03d-', $numero, $debut % 1000),
                 'status' => 'closed',
                 'opens_at' => CarbonImmutable::create($debut, 6, 1),
