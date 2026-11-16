@@ -2,13 +2,25 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\VerificationRecuController;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Symfony\Component\HttpFoundation\Response;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Vérification publique d'un reçu par son QR code (reçu A4) : minimum de données, limitée en débit, non indexée.
+// Sans session ni jeton CSRF ni partage des erreurs : une consultation anonyme n'écrit rien (aucune ligne `sessions`).
+Route::get('/recus/verifier/{uuid}', VerificationRecuController::class)
+    ->middleware('throttle:verification-recus')
+    ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, ValidateCsrfToken::class, AddQueuedCookiesToResponse::class])
+    ->name('recus.verifier');
 
 // Les routes HTTP de Fortify sont fermées (lot 14d-2) : « login » reste nommé pour les redirections d'invités de Laravel.
 Route::redirect('/login', '/admin/login')->name('login');
