@@ -15,6 +15,7 @@ use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\Solvabilite;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\AppSettings;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
@@ -116,6 +117,25 @@ describe('extrait de compte', function (): void {
         $html = view('pdf.scolarite.extrait-compte', $d)->render();
         expect($html)->toContain('Extrait de compte')->toContain('25EFP900')->toContain('BOR-EXTRAIT')
             ->toContain('PARTIELLEMENT INSOLVABLE')->toContain('Échu impayé')->toContain('1 070 000 FCFA');
+    });
+
+    it('lit les versements sans requête par ligne', function (): void {
+        $compter = function (): int {
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            app(ExtraitCompte::class)->donnees($this->auditeur->fresh());
+            DB::disableQueryLog();
+
+            return count(DB::getQueryLog());
+        };
+        $avecUn = $compter();
+        foreach (range(1, 3) as $n) {
+            app(RegistreVersements::class)->encaisser($this->auditeur->fresh()->inscriptionCourante, [
+                'montant' => 10000, 'date_versement' => '2026-11-09', 'mode' => 'cremincam_agence', 'reference' => 'BOR-N'.$n, 'payeur' => 'auditeur',
+            ], $this->financier);
+        }
+
+        expect($compter())->toBe($avecUn);
     });
 
     it('s\'affiche pour l\'impression, se télécharge, et chaque édition est journalisée', function (): void {

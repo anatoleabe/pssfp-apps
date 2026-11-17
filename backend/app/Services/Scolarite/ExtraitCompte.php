@@ -53,7 +53,7 @@ final class ExtraitCompte
         $auditeur->loadMissing(['candidature.campagne']);
         $compte = CompteAuditeur::pour($auditeur);
         $versements = Versement::query()->where('auditeur_id', $auditeur->id)
-            ->with(['recus.annulation'])
+            ->with(['recus.annulation', 'confirmation', 'correction'])
             ->orderBy('date_versement')->orderBy('id')->get();
         $verseValide = (int) $versements->whereNull('annule_at')->sum('montant');
 
@@ -67,7 +67,7 @@ final class ExtraitCompte
                 'mode' => Versement::MODES[$v->mode] ?? Versement::libelleMode($v->mode),
                 'payeur' => Versement::PAYEURS[$v->payeur] ?? $v->payeur,
                 'montant' => (int) $v->montant,
-                'statut' => $v->statut(),
+                'statut' => self::statut($v),
                 'recu' => ($v->recuEnVigueur() ?? $v->recus->sortByDesc('id')->first())?->numero,
             ])->all(),
             'totaux' => Solvabilite::classer($compte->inscriptions, $verseValide) + ['avance' => $compte->avance(), 'verse_valide' => $verseValide],
@@ -97,6 +97,16 @@ final class ExtraitCompte
                 'echu' => $p->reste > 0 && ($p->cle === Palier::INSCRIPTION || $p->enRetard),
             ], $s->paliers),
         ];
+    }
+
+    /** Statut du versement d'après les relations préchargées (même règle que Versement::statut(), sans requête). */
+    private static function statut(Versement $v): string
+    {
+        return match (true) {
+            $v->estAnnule() => $v->correction?->versement_remplacant_id !== null ? Versement::STATUT_REMPLACE : Versement::STATUT_ANNULE,
+            $v->confirmation !== null => Versement::STATUT_CONFIRME,
+            default => Versement::STATUT_ENREGISTRE,
+        };
     }
 
     private static function logo(): ?string

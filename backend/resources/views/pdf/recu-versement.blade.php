@@ -57,7 +57,7 @@
       <td class="n">{{ $fcfa((int) $recu->total_verse) }}</td><td class="n">{{ (int) $recu->reste_a_payer === 0 ? 'Soldé' : $fcfa((int) $recu->reste_a_payer) }}</td></tr>
   </table>
 
-  <table style="margin-top:2mm"><tr>
+  <table style="margin-top:1.2mm"><tr>
     <td class="lettres">Montant reçu : <strong>{{ $fcfa((int) $recu->montant) }}</strong><br>Arrêté le présent reçu à la somme de {{ $lettres }}.</td>
     <td class="lettres" style="width:52mm;text-align:right;border-left:none">Reste à payer sur l'année<br><strong>{{ (int) $recu->reste_a_payer === 0 ? 'Soldé' : $fcfa((int) $recu->reste_a_payer) }}</strong></td>
   </tr></table>
