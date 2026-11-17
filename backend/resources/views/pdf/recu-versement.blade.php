@@ -35,7 +35,7 @@
     @endif
   @endif
 
-  <table class="ident">
+  <table class="ident quatre">
     <tr><td class="l">Reçu de</td><td class="v">{{ $recu->auditeur_nom }}</td><td class="l2">Année académique</td><td class="v">{{ $recu->annee_academique }}</td></tr>
     <tr><td class="l">Matricule</td><td class="v">{{ $recu->matricule ?? '—' }}</td><td class="l2">Niveau</td><td class="v">{{ $niveaux[$recu->niveau] ?? $recu->niveau }}</td></tr>
     <tr><td class="l">Versement</td><td>{{ $modes[$recu->mode] ?? \App\Models\Versement::libelleMode($recu->mode) }}, bordereau <strong>{{ $recu->reference }}</strong> du {{ $recu->date_versement->format('d/m/Y') }}</td><td class="l2">Payé par</td><td>{{ $payeurs[$recu->payeur] ?? $recu->payeur }}</td></tr>

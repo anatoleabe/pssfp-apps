@@ -6,6 +6,7 @@ namespace App\Filament\Pages\Scolarite;
 
 use App\Filament\Concerns\ChecksModuleAccess;
 use App\Filament\Navigation\GroupeNavigation;
+use App\Filament\Resources\VersementResource\Pages\ListVersements;
 use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
@@ -75,6 +76,12 @@ class TableauDeBordFinances extends Page
         $n = RubriquesFrais::nombreAnomalies();
 
         return $n === 0 ? null : "Rubriques de frais : {$n} anomalie(s), voir Finances > Rubriques. Les reçus concernés sont ventilés par palier.";
+    }
+
+    /** Encaissement à portée de main du service financier (17/11/2026) : la saisie de la liste des versements. */
+    protected function getHeaderActions(): array
+    {
+        return [ListVersements::encaisser()];
     }
 
     public function mount(): void

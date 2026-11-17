@@ -9,6 +9,7 @@ use App\Models\BaremeScolarite;
 use App\Models\InscriptionAnnuelle;
 use App\Models\LienLettreAcces;
 use App\Models\Parcours;
+use App\Models\RecuVersement;
 use App\Models\Versement;
 use App\Services\Acma\ReinscriptionAncien;
 use App\Services\DocumentsAuditeurs\DocumentsAuditeurs;
@@ -30,6 +31,7 @@ use App\Services\Scolarite\StatutAuditeur;
 use App\Support\CandidatureObjectStorage;
 use Filament\Actions\Action;
 use Filament\Forms;
+use Filament\Notifications\Actions\Action as NotificationAction;
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions\Action as TableAction;
 use Filament\Tables\Actions\BulkAction;
@@ -532,11 +534,22 @@ final class AuditeurActions
 
     private static function notifier(string $titre, ResultatOperation $resultat): void
     {
-        match ($resultat->sms) {
-            true => Notification::make()->success()->title($titre)->body('Inscription soldée : l\'auditeur a été prévenu de ses accès par SMS et par e-mail (détail par canal dans le journal d\'activité).')->send(),
+        $notification = match ($resultat->sms) {
+            true => Notification::make()->success()->title($titre)->body('Inscription soldée : l\'auditeur a été prévenu de ses accès par SMS et par e-mail (détail par canal dans le journal d\'activité).'),
             false => Notification::make()->warning()->persistent()->title($titre)
-                ->body('Inscription soldée, mais ni le SMS ni l\'e-mail des accès ne sont partis. La scolarité peut les renvoyer depuis la fiche (« Renvoyer le SMS et l\'e-mail »).')->send(),
-            null => Notification::make()->success()->title($titre)->send(),
+                ->body('Inscription soldée, mais ni le SMS ni l\'e-mail des accès ne sont partis. La scolarité peut les renvoyer depuis la fiche (« Renvoyer le SMS et l\'e-mail »).'),
+            null => Notification::make()->success()->title($titre),
         };
+        self::avecImpression($notification, $resultat->recu)->send();
+    }
+
+    /** Bouton « Imprimer le reçu » (aperçu A4 dans un nouvel onglet) sur la notification d'un reçu tout juste émis ; elle reste affichée. */
+    public static function avecImpression(Notification $notification, ?RecuVersement $recu): Notification
+    {
+        $url = RecuActions::urlImpression($recu);
+
+        return $url === null ? $notification : $notification->persistent()->actions([
+            NotificationAction::make('imprimerRecu')->label('Imprimer le reçu')->icon('heroicon-o-printer')->button()->url($url, shouldOpenInNewTab: true),
+        ]);
     }
 }

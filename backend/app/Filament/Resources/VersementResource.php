@@ -11,6 +11,7 @@ use App\Filament\Resources\AuditeurResource\CorrectionActions;
 use App\Filament\Resources\AuditeurResource\RecuActions;
 use App\Filament\Resources\VersementResource\Pages;
 use App\Models\InscriptionAnnuelle;
+use App\Models\RecuVersement;
 use App\Models\User;
 use App\Models\Versement;
 use App\Services\Scolarite\EspaceFinances;
@@ -156,6 +157,7 @@ class VersementResource extends Resource
             ->actions([Tables\Actions\ActionGroup::make([
                 Tables\Actions\Action::make('fiche')->label('Fiche de l\'auditeur')->icon('heroicon-o-user')
                     ->url(fn (Versement $v): ?string => $v->auditeur === null ? null : AuditeurResource::getUrl('view', ['record' => $v->auditeur])),
+                RecuActions::imprimer(fn (Versement $v): ?RecuVersement => $v->recuEnVigueur()),
                 Tables\Actions\Action::make('recu')->label('Reçu (PDF)')->icon('heroicon-o-arrow-down-tray')
                     ->visible(fn (Versement $v): bool => $v->recuEnVigueur() !== null)
                     ->action(fn (Versement $v): StreamedResponse => RecuActions::reponse($v->recuEnVigueur())),

@@ -10,6 +10,7 @@ use App\Filament\Resources\AuditeurResource\ConfirmationActions;
 use App\Filament\Resources\AuditeurResource\CorrectionActions;
 use App\Filament\Resources\AuditeurResource\RecuActions;
 use App\Models\Auditeur;
+use App\Models\RecuVersement;
 use App\Models\Versement;
 use App\Services\Scolarite\LibelleSituation;
 use App\Support\BelongsToModule;
@@ -101,6 +102,7 @@ class VersementsRelationManager extends RelationManager
                     CorrectionActions::corriger(),
                     CorrectionActions::annuler(),
                     RecuActions::emettre(),
+                    RecuActions::imprimer(fn (Versement $v): ?RecuVersement => $v->recuEnVigueur()),
                     RecuActions::telechargerDepuisVersement(),
                     RecuActions::annulerDepuisVersement(),
                 ])->tooltip('Actions sur ce versement'),
