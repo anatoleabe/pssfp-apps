@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\AuditeurResource;
 
+use App\Http\Controllers\Admin\ImprimerRecuController;
 use App\Models\RecuVersement;
 use App\Models\Versement;
 use App\Services\Scolarite\RecusVersements;
@@ -11,6 +12,7 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Support\Exceptions\Halt;
 use Filament\Tables\Actions\Action as TableAction;
+use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -33,7 +35,7 @@ final class RecuActions
             ->modalDescription(fn (Versement $record): string => 'Un reçu numéroté de '.RecusVersements::fcfa($record->montant).' est émis à votre nom. Il ne se modifie plus : une erreur se corrige par une écriture d\'annulation.')
             ->action(function (Versement $record): void {
                 $recu = self::executer(fn (): RecuVersement => app(RecusVersements::class)->emettre($record, auth()->user()));
-                Notification::make()->success()->title('Reçu '.$recu->numero.' émis')->body('L\'auditeur peut le télécharger dans son espace.')->send();
+                AuditeurActions::avecImpression(Notification::make()->success()->title('Reçu '.$recu->numero.' émis')->body('L\'auditeur peut le télécharger dans son espace.'), $recu)->send();
             });
     }
 
@@ -69,6 +71,21 @@ final class RecuActions
         return MessagesValidation::appliquer([
             Forms\Components\Textarea::make('motif')->label('Motif de l\'annulation')->required()->minLength(5)->maxLength(500)->rows(3),
         ], ['min' => 'Le motif compte au moins 5 caractères.']);
+    }
+
+    /** Adresse de l'aperçu imprimable du reçu (nouvel onglet), ou null si l'agent ne peut pas le lire. */
+    public static function urlImpression(?RecuVersement $recu): ?string
+    {
+        return $recu === null || ! ImprimerRecuController::peutImprimer(auth()->user()) ? null : route('filament.admin.recus.imprimer', $recu);
+    }
+
+    /** « Imprimer le reçu » : aperçu A4 dans un nouvel onglet, d'où l'agent imprime aussitôt. */
+    public static function imprimer(\Closure $recu, string $nom = 'imprimerRecu'): TableAction
+    {
+        return TableAction::make($nom)->label('Imprimer le reçu')->icon('heroicon-o-printer')->color('gray')
+            ->visible(fn (Model $record): bool => self::urlImpression($recu($record)) !== null)
+            ->url(fn (Model $record): ?string => self::urlImpression($recu($record)))
+            ->openUrlInNewTab();
     }
 
     public static function reponse(RecuVersement $recu): StreamedResponse

@@ -120,6 +120,7 @@ class RecuVersementResource extends Resource
                         ->when(filled($data['au'] ?? null), fn (Builder $b) => $b->where('emis_at', '<', EspaceFinances::finJour((string) $data['au'])))),
             ])
             ->actions([Tables\Actions\ActionGroup::make([
+                RecuActions::imprimer(fn (RecuVersement $r): RecuVersement => $r),
                 Tables\Actions\Action::make('telecharger')->label('Reçu (PDF)')->icon('heroicon-o-arrow-down-tray')
                     ->action(fn (RecuVersement $r): StreamedResponse => RecuActions::reponse($r)),
                 Tables\Actions\Action::make('telechargerAnnulation')->label('Écriture d\'annulation (PDF)')->icon('heroicon-o-document-minus')

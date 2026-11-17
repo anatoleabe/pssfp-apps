@@ -33,7 +33,7 @@ class ListVersements extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            $this->encaisser(),
+            self::encaisser(),
             Action::make('exporter')
                 ->label('Exporter (Excel)')
                 ->icon('heroicon-o-arrow-down-tray')
@@ -61,8 +61,8 @@ class ListVersements extends ListRecords
         ];
     }
 
-    /** « Enregistrer un versement » sans passer par la fiche : choix de l'auditeur, puis la saisie de la fiche (spec §6.2). */
-    private function encaisser(): Action
+    /** « Enregistrer un versement » sans passer par la fiche : choix de l'auditeur, puis la saisie de la fiche (spec §6.2). Aussi sur le tableau de bord. */
+    public static function encaisser(): Action
     {
         return Action::make('encaisser')
             ->label(fn (): string => AuditeurActions::encaisseAvecRecu() ? 'Enregistrer et émettre le reçu' : 'Enregistrer un versement')

@@ -8,6 +8,7 @@ use App\Filament\GlobalSearch\RechercheGlobale;
 use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Pages\Auth\Connexion;
 use App\Filament\Pages\MaSecurite;
+use App\Http\Controllers\Admin\ImprimerRecuController;
 use App\Http\Controllers\Admin\OuvrirEspaceCandidatController;
 use App\Http\Middleware\ExigerDoubleAuthentification;
 use Filament\Http\Middleware\Authenticate;
@@ -112,6 +113,8 @@ final class AdminPanelProvider extends PanelProvider
             ->authenticatedRoutes(function (): void {
                 Route::get('candidatures/{candidature}/espace', OuvrirEspaceCandidatController::class)
                     ->name('candidatures.espace');
+                Route::get('recus/{recu}/imprimer', ImprimerRecuController::class)
+                    ->name('recus.imprimer');
             });
     }
 }
