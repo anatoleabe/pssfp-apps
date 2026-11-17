@@ -77,6 +77,7 @@ class ViewAuditeur extends ViewRecord
             AuditeurActions::envoyerLienLettre(),
             AuditeurActions::creerInscription(),
             AuditeurActions::reinscrire(),
+            AuditeurActions::extraitCompte(),
             EtiquettesActions::gerer(),
             ActionGroup::make([
                 AccesAnticipe::debloquer(),

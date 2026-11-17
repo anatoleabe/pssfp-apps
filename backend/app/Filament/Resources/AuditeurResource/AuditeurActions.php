@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\AuditeurResource;
 
+use App\Http\Controllers\Admin\ImprimerRecuController;
 use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
 use App\Models\InscriptionAnnuelle;
@@ -272,6 +273,18 @@ final class AuditeurActions
                     ? Notification::make()->danger()->title('Barème manquant')->body('Aucun barème M1 pour l\'année de cette promotion : un responsable de scolarité doit d\'abord le saisir (Vie académique > Barèmes).')->persistent()->send()
                     : Notification::make()->success()->title('Inscription créée')->send();
             });
+    }
+
+    /** Extrait de compte (PDF) : aperçu imprimable dans un nouvel onglet, téléchargeable depuis le lecteur. */
+    public static function extraitCompte(): Action
+    {
+        return Action::make('extraitCompte')
+            ->label('Extrait de compte')
+            ->icon('heroicon-o-document-chart-bar')
+            ->color('gray')
+            ->visible(fn (): bool => ImprimerRecuController::peutImprimer(auth()->user()))
+            ->url(fn (Auditeur $record): string => route('filament.admin.auditeurs.extrait-compte', $record))
+            ->openUrlInNewTab();
     }
 
     /**
