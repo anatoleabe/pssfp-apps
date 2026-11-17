@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Filament\Resources\AuditeurResource;
 
 use App\Models\Auditeur;
+use App\Models\BaremeScolarite;
 use App\Models\InscriptionAnnuelle;
 use App\Models\LienLettreAcces;
+use App\Models\Parcours;
 use App\Models\Versement;
+use App\Services\Acma\ReinscriptionAncien;
 use App\Services\DocumentsAuditeurs\DocumentsAuditeurs;
 use App\Services\NotificationCandidatsService;
 use App\Services\Scolarite\AccesEcampus;
+use App\Services\Scolarite\AnneeEnCours;
 use App\Services\Scolarite\CompteAuditeur;
 use App\Services\Scolarite\ConfirmationsVersements;
 use App\Services\Scolarite\LibelleSituation;
@@ -20,6 +24,7 @@ use App\Services\Scolarite\NotificationAcces;
 use App\Services\Scolarite\OuvertureAuditeur;
 use App\Services\Scolarite\RecusVersements;
 use App\Services\Scolarite\RegistreVersements;
+use App\Services\Scolarite\ReinscriptionAuditeur;
 use App\Services\Scolarite\ResultatOperation;
 use App\Services\Scolarite\StatutAuditeur;
 use App\Support\CandidatureObjectStorage;
@@ -247,7 +252,9 @@ final class AuditeurActions
             ->label('Créer l\'inscription')
             ->icon('heroicon-o-plus-circle')
             ->visible(fn (Auditeur $record): bool => (auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR) || ConfirmationsVersements::peutConfirmer(auth()->user()))
-                && $record->inscriptionCourante === null && $record->candidature?->withdrawn_at === null)
+                && $record->inscriptionCourante === null && $record->candidature?->withdrawn_at === null
+                // Une promotion antérieure se réinscrit dans l'année en cours (« Réinscrire »), jamais dans son année.
+                && ($record->candidature === null || AnneeEnCours::estCourante($record->candidature->campagne)))
             ->requiresConfirmation()
             ->modalDescription('Inscription en Master 1 pour l\'année de la promotion, au barème en vigueur.')
             ->action(function (Auditeur $record): void {
@@ -262,6 +269,52 @@ final class AuditeurActions
                 $inscription === null
                     ? Notification::make()->danger()->title('Barème manquant')->body('Aucun barème M1 pour l\'année de cette promotion : un responsable de scolarité doit d\'abord le saisir (Vie académique > Barèmes).')->persistent()->send()
                     : Notification::make()->success()->title('Inscription créée')->send();
+            });
+    }
+
+    /**
+     * Réinscription d'un auditeur d'une promotion antérieure dans l'année en cours, au niveau choisi : il reste dans
+     * sa promotion (cf. ReinscriptionAuditeur).
+     */
+    public static function reinscrire(): Action
+    {
+        return Action::make('reinscrire')
+            ->label(fn (): string => 'Réinscrire en '.(AnneeEnCours::annee() ?? 'année en cours'))
+            ->icon('heroicon-o-arrow-path')
+            ->visible(fn (Auditeur $record): bool => ReinscriptionAuditeur::peutReinscrire(auth()->user()) && ReinscriptionAuditeur::possible($record))
+            ->modalHeading(fn (): string => 'Réinscrire en '.AnneeEnCours::annee())
+            ->modalDescription(fn (Auditeur $record): string => 'L\'auditeur reste dans sa promotion ('
+                .($record->candidature?->campagne?->anneeAcademique() ?? '—').') ; une inscription est créée pour '
+                .AnneeEnCours::annee().', au barème de l\'année et du niveau choisi.')
+            ->modalSubmitActionLabel('Réinscrire')
+            ->fillForm(['niveau' => BaremeScolarite::NIVEAU_M1, 'parcours' => Parcours::TRONC_COMMUN])
+            ->form(fn (Auditeur $record): array => MessagesValidation::appliquer([
+                Forms\Components\Select::make('niveau')->label('Niveau')->required()->native(false)->live()
+                    ->options(BaremeScolarite::NIVEAUX)
+                    ->afterStateUpdated(fn (Forms\Set $set, ?string $state) => $set('parcours', $state === BaremeScolarite::NIVEAU_M1 ? Parcours::TRONC_COMMUN : null)),
+                Forms\Components\Select::make('parcours')->label('Parcours')->required()->native(false)
+                    ->options(fn (Forms\Get $get): array => Parcours::query()->where('niveau', (string) $get('niveau'))->where('actif', true)
+                        ->orderBy('ordre')->pluck('libelle', 'code')->all()),
+                Forms\Components\Checkbox::make('derogation_m2')->label('Dérogation : inscrire en M2 sans M1 suivi')->live()
+                    ->helperText('Aucun M1 sur la plateforme ni dans l\'archive ACMA liée. Réservé au droit « dérogation M2 ».')
+                    ->visible(fn (Forms\Get $get): bool => $get('niveau') === BaremeScolarite::NIVEAU_M2 && ! ReinscriptionAuditeur::aSuiviLeM1($record)),
+                Forms\Components\TextInput::make('derogation_piece')->label('Référence de la pièce')->maxLength(ReinscriptionAuditeur::PIECE_MAXIMUM)
+                    ->visible(fn (Forms\Get $get): bool => (bool) $get('derogation_m2'))->required(fn (Forms\Get $get): bool => (bool) $get('derogation_m2')),
+                Forms\Components\Textarea::make('motif')->label('Motif')->rows(3)
+                    ->minLength(ReinscriptionAncien::MOTIF_MINIMUM)->maxLength(ReinscriptionAncien::MOTIF_MAXIMUM)
+                    ->visible(fn (Forms\Get $get): bool => (bool) $get('derogation_m2'))->required(fn (Forms\Get $get): bool => (bool) $get('derogation_m2')),
+            ]))
+            ->action(function (Auditeur $record, array $data, Action $action): void {
+                try {
+                    app(ReinscriptionAuditeur::class)->reinscrire($record, $data, auth()->user());
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title('Réinscription non faite')->body($e->getMessage())->persistent()->send();
+                    $action->halt();
+
+                    return;
+                }
+                $record->refresh();
+                Notification::make()->success()->title('Auditeur réinscrit')->send();
             });
     }
 
