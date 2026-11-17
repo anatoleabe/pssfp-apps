@@ -124,6 +124,16 @@ it('exporte l\'onglet en PDF et en Excel, et journalise chaque export', function
     expect(app(ListeSolvabilite::class)->pdf([], Solvabilite::PARTIELLE, $this->financier))->toStartWith('%PDF');
 });
 
+it('plafonne le PDF et invite à préciser le périmètre ou à passer par Excel', function (): void {
+    config()->set('scolarite.liste_pdf_max', 1);
+    ($this->auditeur)('DELTA', $this->p13);
+
+    expect(fn () => app(ListeSolvabilite::class)->pdf([], Solvabilite::TOTALE, $this->financier))
+        ->toThrow(InvalidArgumentException::class, 'Précisez la promotion ou le niveau, ou exportez en Excel');
+    expect(Activity::query()->where('event', ListeSolvabilite::EVENEMENT)->exists())->toBeFalse()
+        ->and(app(ListeSolvabilite::class)->pdf(['campagne_id' => $this->p14->id], Solvabilite::PARTIELLE, $this->financier))->toStartWith('%PDF');
+});
+
 it('refuse l\'export sans le droit d\'export, et une situation inconnue', function (): void {
     $sansExport = ($this->compte)('scolarite_responsable');
     $sansExport->givePermissionTo(EspaceFinances::PERMISSION);

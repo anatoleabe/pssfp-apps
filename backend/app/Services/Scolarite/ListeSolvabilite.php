@@ -29,6 +29,14 @@ final class ListeSolvabilite
 
     public const EVENEMENT = 'liste_solvabilite_editee';
 
+    /** Lignes au plus dans un PDF (DomPDF : ~0,5 Mo par ligne, sous le memory_limit de PHP-FPM). Réglable par `scolarite.liste_pdf_max`. */
+    public const PDF_MAX = 250;
+
+    public static function plafondPdf(): int
+    {
+        return max(1, (int) config('scolarite.liste_pdf_max', self::PDF_MAX));
+    }
+
     public const TITRES = [
         Solvabilite::EN_REGLE => 'Auditeurs en règle',
         Solvabilite::PARTIELLE => 'Auditeurs partiellement insolvables',
@@ -85,6 +93,9 @@ final class ListeSolvabilite
     {
         $this->exiger($categorie, $auteur);
         $lignes = $this->lignes($criteres)->where('categorie', $categorie)->values();
+        if ($lignes->count() > self::plafondPdf()) {
+            throw new InvalidArgumentException($lignes->count().' auditeurs : le PDF en prend '.self::plafondPdf().' au plus. Précisez la promotion ou le niveau, ou exportez en Excel.');
+        }
         $html = view('pdf.scolarite.liste-solvabilite', [
             'titre' => self::TITRES[$categorie],
             'criteres' => self::libelles($criteres),
