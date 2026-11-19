@@ -70,6 +70,7 @@ beforeEach(function (): void {
             }
         });
     });
+    Storage::fake(CandidatureObjectStorage::DISK);
     $this->saisie = fn (array $champs = []): array => $champs + [
         'montant' => 185000, 'date_versement' => '2026-11-02', 'mode' => 'cremincam_agence', 'reference' => 'BOR-'.Str::random(6), 'payeur' => 'auditeur',
     ];
@@ -104,7 +105,7 @@ it('enregistre un versement depuis la fiche ; le SMS des accès part à sa confi
 
     // Le service financier enregistre et émet le reçu en un geste (15/11/2026).
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
-        ->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'BOR-101']))
+        ->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'BOR-101']) + ['justificatif_path' => bordereauScanne()])
         ->assertHasNoActionErrors()
         ->assertNotified('Versement enregistré, reçu '.RecuVersement::query()->sole()->numero.' émis');
 
@@ -118,9 +119,9 @@ it('enregistre un versement depuis la fiche ; le SMS des accès part à sa confi
 it('laisse la fenêtre ouverte et explique un doublon de référence', function (): void {
     $this->actingAs(($this->compte)('service_financier'));
     $page = $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()]);
-    $page->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'BOR-7']));
+    $page->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'BOR-7']) + ['justificatif_path' => bordereauScanne()]);
 
-    $page->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'bor-7']))
+    $page->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'bor-7']) + ['justificatif_path' => bordereauScanne()])
         ->assertNotified('Versement non enregistré');
 
     expect(Versement::query()->count())->toBe(1);
@@ -146,7 +147,7 @@ it('annonce que l\'excédent d\'un employeur attend la décision du responsable'
 
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
         ->mountAction('enregistrerVersement')
-        ->setActionData(($this->saisie)(['montant' => 1285000, 'payeur' => 'employeur']))
+        ->setActionData(($this->saisie)(['montant' => 1285000, 'payeur' => 'employeur']) + ['justificatif_path' => bordereauScanne()])
         ->assertSee('Je confirme : '.LibelleSituation::fcfa(100000).' dépassent le reste à payer et resteront en avance, en attente de la décision du responsable.')
         ->setActionData(['confirmer_avance' => true])
         ->callMountedAction()
@@ -189,7 +190,7 @@ it('accepte la date du jour, y compris le soir à Yaoundé', function (string $h
     $this->actingAs(($this->compte)('service_financier'));
 
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
-        ->callAction('enregistrerVersement', data: ($this->saisie)(['date_versement' => InscriptionAnnuelle::aujourdhui()->toDateString()]))
+        ->callAction('enregistrerVersement', data: ($this->saisie)(['date_versement' => InscriptionAnnuelle::aujourdhui()->toDateString()]) + ['justificatif_path' => bordereauScanne()])
         ->assertHasNoActionErrors();
     Carbon::setTestNow();
 

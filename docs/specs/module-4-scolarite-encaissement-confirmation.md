@@ -27,7 +27,7 @@ Cette spec modifie le lot 4 (reçus), D1 (compte de l'auditeur), A1 (accès anti
 ### 2.2 Confirmation (PR 2)
 
 1. **Permission.** Nouvelle permission sensible `scolarite.versement_confirmer`. Elle va à `scolarite_agent`, `scolarite_responsable` et `admin`. `super_admin` la reçoit avec toutes les actions sensibles. Le service financier ne la reçoit pas.
-2. **Geste.** Confirmer un versement exige le **scan du bordereau bancaire**, déposé par la scolarité, et la case « J'atteste avoir vérifié le reçu bancaire original : le montant a bien été versé ».
+2. **Geste.** Confirmer un versement exige le **scan du bordereau bancaire**, déposé par la scolarité, et la case « J'atteste avoir vérifié le reçu bancaire original : le montant a bien été versé ». *Remplacé par le §10 (décision du 19/11/2026) : la scolarité confirme sur le scan du service financier.*
 3. **Contrôle croisé.** Personne ne confirme un versement qu'il a lui-même saisi.
 4. **Définitive.** La confirmation est tracée (qui, quand, pièce) et écrite au journal `scolarite`. Elle se fait une seule fois. Une erreur se corrige par l'annulation du versement.
 5. **Effet « à jour ».**
@@ -215,3 +215,18 @@ Les commandes se lancent en utilisateur `pssfp`, depuis `backend`. L'application
 9. Au moment de l'arrêt d'ACMA : `php artisan scolarite:bascule-recus` (lot 4 §5.4).
 10. Régénérer `docs/ops/roles.md` (`php artisan roles:matrice`), puis vérifier les rôles dans l'écran Rôles.
 11. Contrôler que « Versements à confirmer » est vide juste après la reprise, et que `scolarite:verifier-comptes` rend 0.
+
+## 10. Confirmation sur le scan du service financier (décision du 19/11/2026)
+
+**Décideur** : M. ABE ETOUMOU Anatole, Chef USI. Cette section remplace le §2.2 point 2 et le §5 PR 2 point 3 ; le reste de la spec ne change pas.
+
+**Constat.** Depuis le 15/11, le service financier scanne le bordereau à l'encaissement (72 versements sur 72 en production au 19/11). La scolarité devait ensuite déposer son propre scan du même papier : une deuxième copie, qui ne prouve rien de plus. Ce qui compte dans la confirmation, c'est qu'un autre agent que celui de l'encaissement ait comparé le reçu bancaire original à ce qui a été saisi.
+
+1. **Scan exigé à l'encaissement d'un paiement en banque.** Pour les modes « Agence CREMINCAM » et « Virement bancaire » (`Versement::MODES_BANQUE`), le formulaire du service financier exige le scan du bordereau, pour un versement comme pour un règlement d'organisme. Les autres modes le gardent facultatif. La règle vit dans le formulaire : les reprises et les imports n'en dépendent pas, et la confirmation garde son propre filet (point 3).
+2. **La scolarité confirme sur ce scan, sans rien joindre.** La fenêtre « Confirmer le versement » donne le montant, la référence et la date saisis, et un lien vers le scan du service financier. L'agent le compare au reçu bancaire original présenté par l'auditeur, puis coche : « J'ai comparé le reçu bancaire original présenté par l'auditeur au scan du service financier : montant, référence et date concordent. » Pour une part de règlement : « J'ai vérifié la pièce bancaire du règlement jointe par le service financier : montant, référence et date concordent. »
+3. **Sans scan du service financier**, la scolarité dépose le scan comme avant (versements anciens, modes hors banque, pièce manquante). Il est alors joint au versement, comme le permet D1.
+4. **Désaccord.** Si le reçu original ne concorde pas, l'agent ne confirme pas. Il signale l'écart au service financier, qui demande la correction (ADR-0015, `scolarite.versement_corriger`) ; la demande suspend la confirmation.
+5. **Trace.** La confirmation garde le chemin de la pièce vérifiée (`justificatif_path`) et la nouvelle colonne `sur_scan_finances` (vrai quand la pièce est celle du service financier). La contrainte `CHECK (NOT sur_scan_finances OR justificatif_path IS NOT NULL)` l'impose. Le journal `scolarite` note la pièce utilisée.
+6. **Inchangé.** Contrôle croisé (personne ne confirme sa propre saisie), confirmation définitive, effet « à jour », relance au 7e jour, parts de règlement confirmées ensemble.
+
+Migration : `2026_12_12_100700_add_sur_scan_finances_to_confirmations_versements` (réversible, sans réécriture des confirmations existantes).

@@ -127,7 +127,7 @@ describe('confirmation', function (): void {
         $service = app(ConfirmationsVersements::class);
 
         expect(fn () => $service->confirmer($v, null, true, $this->agent))->toThrow(InvalidArgumentException::class, 'scan')
-            ->and(fn () => $service->confirmer($v, ($this->scan)(), false, $this->agent))->toThrow(InvalidArgumentException::class, 'J\'atteste')
+            ->and(fn () => $service->confirmer($v, ($this->scan)(), false, $this->agent))->toThrow(InvalidArgumentException::class, 'Cochez l\'attestation')
             ->and(fn () => $service->confirmer($v, 'autre/dossier/piece.pdf', true, $this->agent))->toThrow(InvalidArgumentException::class, 'scan')
             ->and(fn () => $service->confirmer($v, ($this->scan)(), true, $this->financier))->toThrow(HttpException::class);
 
@@ -213,6 +213,115 @@ describe('effet « à jour »', function (): void {
         $this->withToken($jeton())->getJson('/v1/applications/me/scolarite')->assertOk()
             ->assertJsonPath('data.a_confirmer', 0)
             ->assertJsonPath('data.versements.0.confirme_le', '2026-11-10');
+    });
+});
+
+describe('confirmation sur le scan du service financier (décision du 19/11)', function (): void {
+    beforeEach(function (): void {
+        $this->encaisserScanne = fn (int $montant = 185000, string $mode = 'cremincam_agence'): Versement => app(RegistreVersements::class)->encaisser(($this->inscription)($this->awa),
+            ['montant' => $montant, 'date_versement' => '2026-11-09', 'mode' => $mode, 'reference' => 'BOR-'.Str::random(6), 'payeur' => 'auditeur',
+                'justificatif_path' => ($this->scan)()], $this->financier)->versement;
+    });
+
+    it('confirme sur le scan du service financier, sans scan de la scolarité, et le trace', function (): void {
+        $v = ($this->encaisserScanne)();
+        $scanFinances = $v->justificatif_path;
+
+        [$c] = app(ConfirmationsVersements::class)->confirmer($v, null, true, $this->agent)->confirmations;
+
+        expect($c->justificatif_path)->toBe($scanFinances)
+            ->and($c->fresh()->sur_scan_finances)->toBeTrue()
+            ->and($c->confirme_par)->toBe($this->agent->id)
+            ->and($v->fresh()->justificatif_path)->toBe($scanFinances)
+            ->and(($this->etat)($this->awa))->toBe(AccesEcampus::DISPONIBLE)
+            ->and(Activity::query()->where('event', 'versement_confirme')->sole()->properties['piece'])->toBe('scan_service_financier')
+            ->and(ConfirmationsVersements::attestation($v))->toBe(ConfirmationsVersements::ATTESTATION);
+    });
+
+    it('exige le scan de la scolarité quand le service financier n\'en a pas joint', function (): void {
+        $v = ($this->encaisser)();
+
+        expect(fn () => app(ConfirmationsVersements::class)->confirmer($v, null, true, $this->agent))->toThrow(InvalidArgumentException::class, ConfirmationsVersements::SANS_SCAN)
+            ->and(ConfirmationVersement::query()->exists())->toBeFalse()
+            ->and(ConfirmationsVersements::attestation($v))->toBe(ConfirmationsVersements::ATTESTATION_SCAN_PROPRE);
+
+        [$c] = ($this->confirmer)($v);
+        expect($c->fresh()->sur_scan_finances)->toBeFalse()
+            ->and($v->fresh()->justificatif_path)->toBe($c->justificatif_path);
+    });
+
+    it('garde le contrôle croisé et la règle en base', function (): void {
+        $admin = ($this->compte)('super_admin');
+        $sien = app(RegistreVersements::class)->encaisser(($this->inscription)($this->bruno), ['montant' => 10000, 'date_versement' => '2026-11-09',
+            'mode' => 'cremincam_agence', 'reference' => 'BOR-SIEN', 'payeur' => 'auditeur', 'justificatif_path' => ($this->scan)()], $admin)->versement;
+
+        expect(fn () => app(ConfirmationsVersements::class)->confirmer($sien, null, true, $admin))->toThrow(InvalidArgumentException::class, 'Vous avez enregistré ce versement')
+            ->and(fn () => app(ConfirmationsVersements::class)->confirmer($sien, null, false, $this->agent))->toThrow(InvalidArgumentException::class, 'Cochez l\'attestation')
+            ->and(fn () => DB::transaction(fn () => DB::table('confirmations_versements')->insert(['versement_id' => $sien->id, 'confirme_par' => $this->agent->id,
+                'confirme_at' => now(), 'attestation' => true, 'reprise' => true, 'sur_scan_finances' => true])))->toThrow(QueryException::class, 'scan_finances');
+    });
+
+    it('confirme les parts d\'un règlement sur la pièce que le service financier y a jointe', function (): void {
+        $engagements = app(EngagementsPriseEnCharge::class);
+        $e = $engagements->creer(['organisme' => 'Ministère de test', 'lettre_reference' => 'LT-2026-019', 'lettre_date' => '2026-11-09',
+            'lettre_path' => 'scolarite/justificatifs/01JLETTRE0000000000000019A.pdf', 'contact_email' => 'rh@organisme.example',
+            'portee' => EngagementPriseEnCharge::DROITS_INSCRIPTION, 'annee_academique' => '2026-2027', 'echeance' => '2026-12-31'], $this->agent);
+        $engagements->rattacher($e, [$this->awa->fresh()->auditeur, $this->bruno->fresh()->auditeur], $this->agent);
+        $piece = ($this->scan)();
+        app(ReglementsOrganismes::class)->enregistrer($e, ['montant' => 370000, 'date_reglement' => '2026-11-09', 'mode' => 'virement', 'reference' => 'OV-79',
+            'piece_path' => $piece, 'parts' => ReglementsOrganismes::partsProposees($e)], $this->financier);
+        $parts = Versement::query()->whereNotNull('reglement_organisme_id')->orderBy('id')->get();
+
+        expect(ConfirmationsVersements::attestation($parts->first()))->toBe(ConfirmationsVersements::ATTESTATION_REGLEMENT);
+        $confirmations = app(ConfirmationsVersements::class)->confirmer($parts->first(), null, true, $this->agent)->confirmations;
+
+        expect($confirmations)->toHaveCount(2)
+            ->and(collect($confirmations)->map(fn (ConfirmationVersement $c): array => [$c->justificatif_path, $c->fresh()->sur_scan_finances])->unique()->values()->all())->toBe([[$piece, true]])
+            ->and($parts->map(fn (Versement $p): ?string => $p->fresh()->justificatif_path)->filter()->all())->toBe([]);
+    });
+
+    it('ne demande à la scolarité que l\'attestation quand le scan du service financier existe, le scan sinon', function (): void {
+        Storage::fake(CandidatureObjectStorage::DISK);
+        $scanne = ($this->encaisserScanne)();
+        $sansScan = ($this->encaisser)(50000, $this->bruno);
+
+        $this->actingAs($this->agent);
+        $this->livewire(ListVersementsAConfirmer::class)
+            ->mountTableAction('confirmer', $scanne)
+            ->assertSee('Ouvrir le scan du bordereau')
+            ->assertSee(ConfirmationsVersements::ATTESTATION)
+            ->assertSee('Rien à scanner')
+            ->setTableActionData(['attestation' => true])
+            ->callMountedTableAction()
+            ->assertHasNoTableActionErrors()
+            ->assertNotified('Versement confirmé');
+
+        $this->livewire(ListVersementsAConfirmer::class)
+            ->callTableAction('confirmer', $sansScan, data: ['attestation' => true])
+            ->assertHasTableActionErrors(['justificatif_path' => 'required']);
+
+        expect(ConfirmationVersement::query()->where('versement_id', $scanne->id)->sole()->sur_scan_finances)->toBeTrue()
+            ->and(ConfirmationVersement::query()->where('versement_id', $sansScan->id)->exists())->toBeFalse();
+    });
+
+    it('exige le scan à l\'encaissement d\'un paiement en banque, pas en espèces', function (): void {
+        Storage::fake(CandidatureObjectStorage::DISK);
+        $this->actingAs($this->financier);
+        $fiche = fn () => $this->livewire(ViewAuditeur::class, ['record' => $this->awa->fresh()->auditeur->getRouteKey()]);
+        $saisie = ['montant' => 10000, 'date_versement' => '2026-11-09', 'reference' => 'BOR-'.Str::random(6), 'payeur' => 'auditeur'];
+
+        $fiche()->callAction('enregistrerVersement', data: $saisie + ['mode' => 'cremincam_agence'])
+            ->assertHasActionErrors(['justificatif_path' => 'required']);
+        $fiche()->callAction('enregistrerVersement', data: $saisie + ['mode' => 'virement'])
+            ->assertHasActionErrors(['justificatif_path' => 'required']);
+        expect(Versement::query()->count())->toBe(0);
+
+        $fiche()->callAction('enregistrerVersement', data: $saisie + ['mode' => 'especes'])->assertHasNoActionErrors();
+        $fiche()->callAction('enregistrerVersement', data: ['montant' => 10000, 'date_versement' => '2026-11-09', 'reference' => 'BOR-'.Str::random(6),
+            'payeur' => 'auditeur', 'mode' => 'cremincam_agence', 'justificatif_path' => bordereauScanne()])->assertHasNoActionErrors();
+
+        expect(Versement::query()->whereNull('justificatif_path')->pluck('mode')->all())->toBe(['especes'])
+            ->and(Versement::query()->whereNotNull('justificatif_path')->pluck('mode')->all())->toBe(['cremincam_agence']);
     });
 });
 

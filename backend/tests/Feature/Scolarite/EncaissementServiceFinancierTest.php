@@ -18,8 +18,10 @@ use App\Services\Scolarite\RecusVersements;
 use App\Services\Scolarite\RegistreVersements;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\AppSettings;
+use App\Support\CandidatureObjectStorage;
 use App\Support\ModulePermissionMap;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\PermissionRegistrar;
@@ -35,6 +37,7 @@ uses()->group('scolarite');
 const MIGRATION_SAISIE = '2026_12_04_100400_revoke_scolarite_versement_saisir.php';
 
 beforeEach(function (): void {
+    Storage::fake(CandidatureObjectStorage::DISK);
     config()->set('pssfp.filament.require_2fa', false);
     config()->set('pssfp.candidature_app_url', 'https://apply.pssfp.org');
     Mail::fake();
@@ -104,7 +107,7 @@ describe('un geste : enregistrer et émettre le reçu', function (): void {
         $page = $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()]);
         $page->assertActionVisible('enregistrerVersement')
             ->assertActionHasLabel('enregistrerVersement', 'Enregistrer et émettre le reçu')
-            ->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'BOR-902']))
+            ->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'BOR-902']) + ['justificatif_path' => bordereauScanne()])
             ->assertHasNoActionErrors()
             ->assertNotified('Versement enregistré, reçu RCPT-2026-000001 émis');
 
@@ -118,7 +121,7 @@ describe('un geste : enregistrer et émettre le reçu', function (): void {
         $this->actingAs(($this->compte)('super_admin'));
         $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
             ->assertActionHasLabel('enregistrerVersement', 'Enregistrer et émettre le reçu')
-            ->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'BOR-903']))
+            ->callAction('enregistrerVersement', data: ($this->saisie)(['reference' => 'BOR-903']) + ['justificatif_path' => bordereauScanne()])
             ->assertHasNoActionErrors();
 
         expect(Versement::query()->count())->toBe(1)

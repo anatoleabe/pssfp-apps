@@ -113,15 +113,26 @@ final class AuditeurActions
                 // Fin de journée : le sélecteur du navigateur renvoie une heure, et une
                 // borne à minuit refusait la date du jour (constaté au navigateur).
                 ->maxDate(InscriptionAnnuelle::aujourdhui()->endOfDay()->toDateTimeString()),
-            Forms\Components\Select::make('mode')->label('Mode de paiement')->required()->options(Versement::MODES)->default('cremincam_agence')->native(false),
+            Forms\Components\Select::make('mode')->label('Mode de paiement')->required()->options(Versement::MODES)->default('cremincam_agence')->native(false)->live(),
             Forms\Components\TextInput::make('reference')->label('Référence du bordereau')->required()->maxLength(100),
             Forms\Components\Select::make('payeur')->label('Payé par')->required()->options(Versement::PAYEURS)->default('auditeur')->native(false)->live(),
-            self::champJustificatif(),
+            self::scanExigeEnBanque(self::champJustificatif(), 'Scan du bordereau bancaire', 'Scan du bordereau (facultatif)'),
             Forms\Components\Checkbox::make('confirmer_avance')
                 ->label(fn (Forms\Get $get): string => ($a = $auditeur($get)) === null ? '' : self::libelleAvance($a, (int) $get('montant'), (string) $get('payeur')))
                 ->visible(fn (Forms\Get $get): bool => ($a = $auditeur($get)) !== null && self::avanceAnnoncee($a, (int) $get('montant'), (string) $get('payeur')) > 0)
                 ->accepted(),
         ];
+    }
+
+    /**
+     * Scan exigé pour un paiement en banque (décision du 19/11/2026, spec encaissement-confirmation §10) : la scolarité
+     * confirme sur ce scan. Le champ `mode` du formulaire doit être `live()`.
+     */
+    public static function scanExigeEnBanque(Forms\Components\FileUpload $champ, string $libelleBanque, string $libelleFacultatif): Forms\Components\FileUpload
+    {
+        return $champ
+            ->label(fn (Forms\Get $get): string => Versement::estBancaire($get('mode')) ? $libelleBanque : $libelleFacultatif)
+            ->required(fn (Forms\Get $get): bool => Versement::estBancaire($get('mode')));
     }
 
     /** Enregistre le versement (et, pour le service financier, son reçu) sur l'inscription courante de l'auditeur. */

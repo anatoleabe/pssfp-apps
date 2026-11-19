@@ -19,7 +19,9 @@ use App\Services\Scolarite\RecusVersements;
 use App\Services\Scolarite\RegistreVersements;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\AppSettings;
+use App\Support\CandidatureObjectStorage;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
 
@@ -31,6 +33,7 @@ use Spatie\Activitylog\Models\Activity;
 uses()->group('scolarite');
 
 beforeEach(function (): void {
+    Storage::fake(CandidatureObjectStorage::DISK);
     config()->set('pssfp.filament.require_2fa', false);
     Mail::fake();
     $this->mock(SmsServiceInterface::class, fn ($mock) => $mock->shouldReceive('send')->andReturnNull());
@@ -81,7 +84,7 @@ it('propose « Imprimer le reçu » dès l\'encaissement depuis le tableau de bo
     $this->actingAs($this->financier);
     $this->livewire(TableauDeBordFinances::class)
         ->assertActionVisible('encaisser')
-        ->callAction('encaisser', data: ['auditeur_id' => $this->auditeur->id] + ($this->saisie)('BOR-TDB'))
+        ->callAction('encaisser', data: ['auditeur_id' => $this->auditeur->id] + ($this->saisie)('BOR-TDB') + ['justificatif_path' => bordereauScanne()])
         ->assertHasNoActionErrors();
 
     $recu = RecuVersement::query()->sole();
@@ -93,7 +96,7 @@ it('propose « Imprimer le reçu » dès l\'encaissement depuis le tableau de bo
 it('propose « Imprimer le reçu » après l\'encaissement depuis la fiche de l\'auditeur', function (): void {
     $this->actingAs($this->financier);
     $this->livewire(ViewAuditeur::class, ['record' => $this->auditeur->getRouteKey()])
-        ->callAction('enregistrerVersement', data: ($this->saisie)('BOR-FICHE'))
+        ->callAction('enregistrerVersement', data: ($this->saisie)('BOR-FICHE') + ['justificatif_path' => bordereauScanne()])
         ->assertHasNoActionErrors();
 
     expect(collect(($this->boutons)())->pluck('name')->all())->toContain('imprimerRecu');

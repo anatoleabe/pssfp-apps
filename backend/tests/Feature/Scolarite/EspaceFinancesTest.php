@@ -22,9 +22,11 @@ use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\VersementsExcel;
 use App\Services\Sms\SmsServiceInterface;
 use App\Support\AppSettings;
+use App\Support\CandidatureObjectStorage;
 use App\Support\ModulePermissionMap;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\LazyCollection;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -43,6 +45,7 @@ uses()->group('scolarite');
 const MIGRATION_FINANCES = '2026_12_08_100100_grant_finances_consulter.php';
 
 beforeEach(function (): void {
+    Storage::fake(CandidatureObjectStorage::DISK);
     config()->set('pssfp.filament.require_2fa', false);
     config()->set('pssfp.candidature_app_url', 'https://apply.pssfp.org');
     Mail::fake();
@@ -176,7 +179,7 @@ describe('liste des versements', function (): void {
         $this->actingAs($this->financier);
         $this->livewire(ListVersements::class)
             ->assertActionVisible('encaisser')
-            ->callAction('encaisser', data: ['auditeur_id' => $this->b->auditeur->id] + ($this->saisie)(['reference' => 'BOR-LISTE']))
+            ->callAction('encaisser', data: ['auditeur_id' => $this->b->auditeur->id] + ($this->saisie)(['reference' => 'BOR-LISTE']) + ['justificatif_path' => bordereauScanne()])
             ->assertHasNoActionErrors()
             ->assertNotified('Versement enregistré, reçu RCPT-2026-000001 émis');
 

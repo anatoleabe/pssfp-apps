@@ -19,8 +19,9 @@ use Throwable;
 /**
  * Confirmation des versements par la scolarité, sur présentation du reçu bancaire original (spec
  * module-4-scolarite-encaissement-confirmation §2.2, décision du 15/11/2026). Seul point d'écriture des
- * confirmations : scan du bordereau et attestation exigés, jamais un versement que l'agent a saisi,
- * une seule fois. La confirmation n'écrit pas d'argent : elle verrouille la ligne du versement (ce qui
+ * confirmations : attestation exigée, jamais un versement que l'agent a saisi, une seule fois. Depuis le
+ * 19/11/2026 (§10), la pièce est le scan joint par le service financier à l'encaissement ; la scolarité ne
+ * dépose son propre scan que s'il n'y en a pas. La confirmation n'écrit pas d'argent : elle verrouille la ligne du versement (ce qui
  * la sérialise avec son annulation) et laisse l'index unique trancher entre deux agents. Après la
  * validation : régularisation de l'accès anticipé et SMS des accès, si les droits sont alors soldés.
  */
@@ -28,7 +29,16 @@ final class ConfirmationsVersements
 {
     public const PERMISSION = 'scolarite.versement_confirmer';
 
-    public const ATTESTATION = 'J\'atteste avoir vérifié le reçu bancaire original : le montant a bien été versé';
+    /** Attestation sur le scan du service financier (§10). */
+    public const ATTESTATION = 'J\'ai comparé le reçu bancaire original présenté par l\'auditeur au scan du service financier : montant, référence et date concordent';
+
+    /** Attestation d'une part de règlement d'organisme, sur la pièce du règlement (§10). */
+    public const ATTESTATION_REGLEMENT = 'J\'ai vérifié la pièce bancaire du règlement jointe par le service financier : montant, référence et date concordent';
+
+    /** Attestation quand la scolarité dépose le scan elle-même, faute de scan du service financier. */
+    public const ATTESTATION_SCAN_PROPRE = 'J\'atteste avoir vérifié le reçu bancaire original : le montant a bien été versé';
+
+    public const SANS_SCAN = 'Le service financier n\'a pas joint le scan du bordereau : déposez-le pour confirmer.';
 
     public function __construct(
         private readonly DeblocagesAcces $deblocages,
@@ -63,9 +73,22 @@ final class ConfirmationsVersements
         return null;
     }
 
+    /** L'attestation à faire cocher pour ce versement (§10). */
+    public static function attestation(Versement $v): string
+    {
+        return match (true) {
+            $v->scanServiceFinancier() === null => self::ATTESTATION_SCAN_PROPRE,
+            $v->reglement_organisme_id !== null => self::ATTESTATION_REGLEMENT,
+            default => self::ATTESTATION,
+        };
+    }
+
     /**
      * Confirme le versement ; la part d'un règlement d'organisme se confirme avec toutes les parts encore
      * à confirmer de son règlement, sur la pièce bancaire du règlement (§5 PR 2, point 4).
+     *
+     * `$scan` est le scan déposé par la scolarité : facultatif quand le service financier a joint le sien (§10), sur
+     * lequel la confirmation se fait alors ; exigé sinon.
      *
      * @throws InvalidArgumentException message destiné à l'agent
      */
@@ -73,16 +96,10 @@ final class ConfirmationsVersements
     {
         abort_unless(self::peutConfirmer($agent), 403);
         if (! $attestation) {
-            throw new InvalidArgumentException('Cochez « '.self::ATTESTATION.' » : la confirmation l\'exige.');
+            throw new InvalidArgumentException('Cochez l\'attestation de vérification du reçu bancaire original : la confirmation l\'exige.');
         }
-        if (blank($scan)) {
-            throw new InvalidArgumentException('Déposez le scan du bordereau bancaire : la confirmation l\'exige.');
-        }
-        if (! Versement::cheminJustificatifValide($scan)) {
-            throw new InvalidArgumentException('Le scan du bordereau est invalide : déposez-le à nouveau.');
-        }
-        if (Versement::pieceDejaJointe((string) $scan)) {
-            throw new InvalidArgumentException('Ce scan est déjà joint à un autre versement ou à une autre pièce : déposez le bordereau propre à ce versement.');
+        if (filled($scan)) {
+            self::verifierScanPropre((string) $scan);
         }
 
         $sms = null;
@@ -95,7 +112,12 @@ final class ConfirmationsVersements
                     if ($raison !== null) {
                         throw new InvalidArgumentException($raison);
                     }
-                    $confirmations[] = $this->ecrire($v, (string) $scan, $agent, $lignes->count() === 1 && $v->reglement_organisme_id === null);
+                    // Lue sur la ligne verrouillée : le bordereau joint entre-temps par le service financier compte.
+                    [$piece, $finances] = filled($scan) ? [(string) $scan, false] : [$v->scanServiceFinancier(), true];
+                    if ($piece === null) {
+                        throw new InvalidArgumentException(self::SANS_SCAN);
+                    }
+                    $confirmations[] = $this->ecrire($v, $piece, $finances, $agent, ! $finances && $lignes->count() === 1 && $v->reglement_organisme_id === null);
                 }
                 $inscriptions = $lignes->pluck('inscription_annuelle_id')->unique()->values()->all();
                 DB::afterCommit(function () use ($inscriptions, $agent, &$sms): void {
@@ -109,6 +131,17 @@ final class ConfirmationsVersements
         }
 
         return new ResultatConfirmation($confirmations, $sms);
+    }
+
+    /** Scan déposé par la scolarité : propre à cette confirmation, jamais une pièce déjà jointe ailleurs. */
+    private static function verifierScanPropre(string $scan): void
+    {
+        if (! Versement::cheminJustificatifValide($scan)) {
+            throw new InvalidArgumentException('Le scan du bordereau est invalide : déposez-le à nouveau.');
+        }
+        if (Versement::pieceDejaJointe($scan)) {
+            throw new InvalidArgumentException('Ce scan est déjà joint à un autre versement ou à une autre pièce : déposez le bordereau propre à ce versement.');
+        }
     }
 
     /**
@@ -175,13 +208,14 @@ final class ConfirmationsVersements
         return $parts->contains('id', $courant->id) ? $parts : new Collection([$courant]);
     }
 
-    private function ecrire(Versement $v, string $scan, User $agent, bool $joindre): ConfirmationVersement
+    private function ecrire(Versement $v, string $scan, bool $surScanFinances, User $agent, bool $joindre): ConfirmationVersement
     {
         $c = (new ConfirmationVersement)->forceFill([
             'versement_id' => $v->id,
             'confirme_par' => $agent->id,
             'confirme_at' => now(),
             'justificatif_path' => $scan,
+            'sur_scan_finances' => $surScanFinances,
             'attestation' => true,
             'reprise' => false,
         ]);
@@ -191,8 +225,11 @@ final class ConfirmationsVersements
             Versement::query()->whereKey($v->id)->whereNull('justificatif_path')->update(['justificatif_path' => $scan]);
         }
         activity('scolarite')->causedBy($agent)->performedOn($v)->event('versement_confirme')
-            ->withProperties(['montant' => $v->montant, 'reference' => $v->reference, 'reglement' => $v->reglement_organisme_id !== null])
-            ->log('Versement confirmé par la scolarité, sur le reçu bancaire original');
+            ->withProperties(['montant' => $v->montant, 'reference' => $v->reference, 'reglement' => $v->reglement_organisme_id !== null,
+                'piece' => $surScanFinances ? 'scan_service_financier' : 'scan_scolarite'])
+            ->log($surScanFinances
+                ? 'Versement confirmé par la scolarité : reçu bancaire original comparé au scan du service financier'
+                : 'Versement confirmé par la scolarité, sur le reçu bancaire original');
 
         return $c;
     }
