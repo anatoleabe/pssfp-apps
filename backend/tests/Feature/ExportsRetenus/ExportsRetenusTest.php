@@ -105,15 +105,15 @@ it('fige les matricules : un second passage ne change rien, un nouveau retenu pr
         ->and($tardif->fresh()->matricule)->toBe('26EFP002');
 });
 
-it('chiffre le mot de passe Moodle en base et le génère conforme à la politique Moodle', function (): void {
+it('chiffre le mot de passe Moodle en base et le génère simple : 6 minuscules et chiffres, sans caractère spécial', function (): void {
     $c = ($this->retenu)('Owona', 'Rose');
     app(AttributionMatricules::class)->attribuer($this->campagne, '26', ($this->agent)('admin'));
 
     $clair = $c->fresh()->moodle_password;
     $brut = DB::table('candidatures')->where('id', $c->id)->value('moodle_password');
 
-    expect($clair)->toMatch('/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*@).{10}$/')
-        ->and($clair)->not->toMatch('/[IlO01]/')
+    expect($clair)->toMatch('/^(?=.*[a-z])(?=.*\d)[a-z2-9]{6}$/')
+        ->and($clair)->not->toMatch('/[lo01]/')
         ->and($brut)->not->toContain($clair);
 });
 

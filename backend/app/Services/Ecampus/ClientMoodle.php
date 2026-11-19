@@ -45,6 +45,19 @@ final class ClientMoodle
         }
     }
 
+    /**
+     * Remplace le mot de passe d'un compte (core_user_update_users). eCampus répond par une liste d'avertissements :
+     * vide, le changement est fait ; sinon il est refusé (compte administrateur, utilisateur introuvable…).
+     */
+    public function changerMotDePasse(int $idCompte, #[SensitiveParameter] string $motDePasse): void
+    {
+        $reponse = $this->appeler('core_user_update_users', ['users' => [['id' => $idCompte, 'password' => $motDePasse]]]);
+
+        if (! array_key_exists('warnings', $reponse) || $reponse['warnings'] !== []) {
+            throw new EchecEcampus('eCampus n\'a pas confirmé le changement du mot de passe.');
+        }
+    }
+
     public function ajouterACohorte(string $cohorte, string $identifiant): void
     {
         $reponse = $this->appeler('core_cohort_add_cohort_members', ['members' => [[

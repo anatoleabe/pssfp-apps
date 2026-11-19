@@ -32,6 +32,8 @@ use RuntimeException;
  */
 final class AttributionMatricules
 {
+    public const LONGUEUR_MOT_DE_PASSE = 6;
+
     public function __construct(
         private readonly ConnectionInterface $db,
         private readonly OuvertureAuditeur $ouverture,
@@ -152,22 +154,20 @@ final class AttributionMatricules
     }
 
     /**
-     * Mot de passe Moodle initial de 10 caractères : au moins une majuscule,
-     * une minuscule, un chiffre et « @ » (politique par défaut de Moodle), le
-     * reste tiré au hasard, puis l'ordre mélangé. Sans caractères ambigus
-     * (I, l, O, 0, 1), puisqu'il est recopié à la main par le candidat.
+     * Mot de passe Moodle de 6 caractères, tout en minuscules (lettres et chiffres, sans caractère spécial) :
+     * décision du chef de projet du 19/11/2026 pour les nouveaux comptes et les réinitialisations. eCampus
+     * n'impose aucune règle de complexité. Au moins une lettre et un chiffre ; sans caractères ambigus
+     * (l, o, 0, 1), puisqu'il est recopié à la main. Les mots de passe déjà remis ne changent pas.
      */
     public static function motDePasse(): string
     {
-        $majuscules = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-        $minuscules = 'abcdefghijkmnpqrstuvwxyz';
+        $lettres = 'abcdefghijkmnpqrstuvwxyz';
         $chiffres = '23456789';
-        $tous = $majuscules.$minuscules.$chiffres;
         $tirer = fn (string $alphabet): string => $alphabet[random_int(0, strlen($alphabet) - 1)];
 
-        $caracteres = [$tirer($majuscules), $tirer($minuscules), $tirer($chiffres), '@'];
-        while (count($caracteres) < 10) {
-            $caracteres[] = $tirer($tous);
+        $caracteres = [$tirer($lettres), $tirer($chiffres)];
+        while (count($caracteres) < self::LONGUEUR_MOT_DE_PASSE) {
+            $caracteres[] = $tirer($lettres.$chiffres);
         }
         // Mélange de Fisher-Yates sur random_int : shuffle() n'est pas cryptographique.
         for ($i = count($caracteres) - 1; $i > 0; $i--) {
