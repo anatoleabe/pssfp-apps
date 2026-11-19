@@ -24,6 +24,6 @@
     </dl>
 
     <p class="text-xs text-gray-500 dark:text-gray-400">
-        Mot de passe fixé à l'attribution du matricule, identique à celui du fichier Moodle. Il ne change pas.
+        Mot de passe attribué par le portail, ou réinitialisé à la demande de l'auditeur. eCampus ne permet pas de relire un mot de passe : s'il ne fonctionne plus, l'administrateur le réinitialise depuis la fiche de l'auditeur.
     </p>
 </div>

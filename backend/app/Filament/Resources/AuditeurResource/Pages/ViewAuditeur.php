@@ -7,6 +7,7 @@ namespace App\Filament\Resources\AuditeurResource\Pages;
 use App\Filament\Resources\AuditeurResource;
 use App\Filament\Resources\AuditeurResource\AccesAnticipe;
 use App\Filament\Resources\AuditeurResource\AuditeurActions;
+use App\Filament\Resources\AuditeurResource\CompteEcampusActions;
 use App\Filament\Resources\AuditeurResource\DemandeMoratoireActions;
 use App\Filament\Resources\AuditeurResource\EtiquettesActions;
 use App\Filament\Resources\AuditeurResource\ParcoursActions;
@@ -89,6 +90,9 @@ class ViewAuditeur extends ViewRecord
                 ComptesEcampusActions::creer(Action::make('creerCompteEcampus')),
                 IdentifiantsMoodleActions::consulter(Action::make('identifiantsMoodle')),
                 IdentifiantsMoodleActions::envoyer(Action::make('envoyerIdentifiantsMoodle')),
+                CompteEcampusActions::verifier(),
+                CompteEcampusActions::reinitialiser(),
+                CompteEcampusActions::ouvrir(),
                 EspaceCandidatActions::voirEspace(Action::make('voirEspace')),
                 EspaceCandidatActions::nouveauCode(Action::make('nouveauCode')),
             ])->label('Accès eCampus')->icon('heroicon-o-key')->button()->color('gray'),

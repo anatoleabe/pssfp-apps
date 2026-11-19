@@ -10,6 +10,7 @@ use App\Filament\Pages\Auth\Connexion;
 use App\Filament\Pages\MaSecurite;
 use App\Http\Controllers\Admin\ExtraitCompteController;
 use App\Http\Controllers\Admin\ImprimerRecuController;
+use App\Http\Controllers\Admin\OuvrirCompteEcampusController;
 use App\Http\Controllers\Admin\OuvrirEspaceCandidatController;
 use App\Http\Middleware\ExigerDoubleAuthentification;
 use Filament\Http\Middleware\Authenticate;
@@ -118,6 +119,8 @@ final class AdminPanelProvider extends PanelProvider
                     ->name('recus.imprimer');
                 Route::get('auditeurs/{auditeur}/extrait-compte', ExtraitCompteController::class)
                     ->name('auditeurs.extrait-compte');
+                Route::get('auditeurs/{auditeur}/ecampus', OuvrirCompteEcampusController::class)
+                    ->name('auditeurs.ecampus');
             });
     }
 }
