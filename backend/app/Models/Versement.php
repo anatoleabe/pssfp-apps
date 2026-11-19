@@ -36,6 +36,17 @@ class Versement extends Model
         'autre' => 'Autre',
     ];
 
+    /**
+     * Paiements en banque : le service financier en joint le scan du bordereau à l'encaissement, et la scolarité
+     * confirme sur ce scan (décision du 19/11/2026, spec encaissement-confirmation §10).
+     */
+    public const MODES_BANQUE = ['cremincam_agence', 'virement'];
+
+    public static function estBancaire(?string $mode): bool
+    {
+        return in_array($mode, self::MODES_BANQUE, true);
+    }
+
     public const PAYEURS = [
         'auditeur' => 'L\'auditeur',
         'employeur' => 'Son employeur',
@@ -175,6 +186,17 @@ class Versement extends Model
     public function reglement(): BelongsTo
     {
         return $this->belongsTo(ReglementOrganisme::class, 'reglement_organisme_id');
+    }
+
+    /**
+     * Scan joint par le service financier, sur lequel la scolarité confirme : le bordereau du versement, ou la pièce
+     * du règlement pour une part d'organisme (jamais le bordereau d'une part : il n'en a pas). null s'il n'y en a pas.
+     */
+    public function scanServiceFinancier(): ?string
+    {
+        $chemin = $this->reglement_organisme_id === null ? $this->justificatif_path : $this->reglement?->piece_path;
+
+        return self::cheminJustificatifValide($chemin) ? $chemin : null;
     }
 
     public function saisiPar(): BelongsTo

@@ -169,11 +169,12 @@ final class EngagementActions
                         .' (reste couvert : '.LibelleSituation::fcfa(array_sum(array_column($couverts, 'reste'))).').'),
                 Forms\Components\DatePicker::make('date_reglement')->label('Date du règlement')->required()->native(false)->displayFormat('d/m/Y')
                     ->maxDate(InscriptionAnnuelle::aujourdhui()->endOfDay()->toDateTimeString()),
-                Forms\Components\Select::make('mode')->label('Mode de paiement')->required()->options(Versement::MODES)->native(false),
+                Forms\Components\Select::make('mode')->label('Mode de paiement')->required()->options(Versement::MODES)->native(false)->live(),
                 Forms\Components\TextInput::make('reference')->label('Référence')->required()->maxLength(ReglementsOrganismes::REFERENCE_MAX)
                     ->helperText('Chaque versement portera la référence <référence>-<MATRICULE>.'),
-                AuditeurActions::champJustificatif('Avis de virement ou bordereau (facultatif)', 10,
-                    'Le stockage n\'a pas répondu : la pièce n\'est pas enregistrée. Réessayez dans quelques instants.', 'piece_path')->columnSpan(2),
+                AuditeurActions::scanExigeEnBanque(AuditeurActions::champJustificatif('Avis de virement ou bordereau', 10,
+                    'Le stockage n\'a pas répondu : la pièce n\'est pas enregistrée. Réessayez dans quelques instants.', 'piece_path'),
+                    'Avis de virement ou bordereau', 'Avis de virement ou bordereau (facultatif)')->columnSpan(2),
             ]),
             Forms\Components\Section::make('Parts par auditeur')->columns(2)->schema(self::champsParts($couverts)),
             Forms\Components\Checkbox::make('confirmer_depassement')

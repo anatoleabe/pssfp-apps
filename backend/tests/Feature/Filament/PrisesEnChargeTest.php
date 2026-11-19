@@ -169,7 +169,7 @@ it('enregistre un règlement réparti depuis la fiche, parts proposées au reste
     ($this->fiche)()
         ->mountAction('enregistrerReglement')
         ->assertActionDataSet(['parts' => $parts])
-        ->setActionData(['montant' => 370000, 'date_reglement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'OV-55', 'parts' => $parts])
+        ->setActionData(['montant' => 370000, 'date_reglement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'OV-55', 'parts' => $parts, 'piece_path' => bordereauScanne()])
         ->callMountedAction()
         ->assertHasNoActionErrors();
 
@@ -181,7 +181,7 @@ it('refuse depuis la fiche une somme des parts différente du montant, et exige 
     ($this->rattacher)([$this->awa, $this->bruno]);
     $this->actingAs($this->encaisseur);
     $parts = ReglementsOrganismes::partsProposees($this->engagement);
-    $saisie = ['date_reglement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'OV-56'];
+    $saisie = ['date_reglement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'OV-56', 'piece_path' => bordereauScanne()];
 
     ($this->fiche)()->callAction('enregistrerReglement', data: $saisie + ['montant' => 400000, 'parts' => $parts])
         ->assertNotified('Règlement non enregistré');

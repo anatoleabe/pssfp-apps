@@ -14,6 +14,7 @@ use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\ResultatConfirmation;
 use App\Services\Scolarite\ResultatOperation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -120,6 +121,15 @@ function annulerVersement(Versement $versement, string $motif = 'Annulation de t
     ImputationVersement::query()->where('versement_id', $versement->id)->whereNull('annule_at')
         ->update(['annule_at' => now(), 'annule_motif' => $motif]);
     $versement->forceFill(['annule_at' => now(), 'annule_motif' => $motif])->save();
+}
+
+/**
+ * Scan fictif d'un bordereau, à déposer dans un formulaire Filament (disque des pièces simulé par le test) : le
+ * service financier le joint à l'encaissement d'un paiement en banque (décision du 19/11/2026).
+ */
+function bordereauScanne(): UploadedFile
+{
+    return UploadedFile::fake()->createWithContent('bordereau.pdf', "%PDF-1.4\n%%EOF\n");
 }
 
 /** Fiche auditeur d'un dossier (créée si le test a posé le matricule à la main). */

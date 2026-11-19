@@ -29,6 +29,7 @@ class ConfirmationVersement extends Model
         'attestation' => 'boolean',
         'reprise' => 'boolean',
         'correction_id' => 'integer',
+        'sur_scan_finances' => 'boolean',
     ];
 
     /** Le chemin privé du scan ne sort jamais du back-office. */
