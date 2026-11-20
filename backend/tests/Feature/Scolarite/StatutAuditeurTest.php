@@ -53,7 +53,7 @@ it('refuse un statut inconnu, identique, sans motif ou daté dans le futur', fun
 ]);
 
 it('réserve le changement de statut au responsable et à l\'administration', function (string $role, bool $autorise): void {
-    $appel = fn () => app(StatutAuditeur::class)->changer($this->auditeur, Auditeur::STATUT_SUSPENDU, 'motif', '2026-11-01', ($this->compte)($role));
+    $appel = fn () => app(StatutAuditeur::class)->changer($this->auditeur, Auditeur::STATUT_ABANDON, 'motif', '2026-11-01', ($this->compte)($role));
 
     $autorise ? expect($appel)->not->toThrow(HttpException::class) : expect($appel)->toThrow(HttpException::class);
 })->with([['scolarite_responsable', true], ['admin', true], ['scolarite_agent', false], ['caisse', false]]);

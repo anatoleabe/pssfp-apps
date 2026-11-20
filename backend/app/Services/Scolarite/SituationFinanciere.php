@@ -22,6 +22,9 @@ use Carbon\CarbonImmutable;
  *   les états (inscription soldée, soldé, en retard) ne lisent que l'imputé des
  *   versements confirmés. `aConfirmer` est la part encore à confirmer.
  *
+ * - Année suspendue sur demande de l'auditeur (20/11/2026) : le reste n'est plus réclamé. Aucun palier n'est en
+ *   retard ni échu ; les montants (dû, versé, reste) restent affichés tels quels.
+ *
  * Les expressions SQL équivalentes (filtres de la liste) sont dans les scopes
  * d'InscriptionAnnuelle ; un test vérifie qu'elles donnent le même résultat.
  */
@@ -40,6 +43,7 @@ final readonly class SituationFinanciere
         public int $tropPercu,
         public int $aConfirmer,
         private array $paliersConfirmes,
+        public bool $suspendue = false,
     ) {}
 
     public static function calculer(
@@ -52,7 +56,12 @@ final readonly class SituationFinanciere
         ?CarbonImmutable $echeanceTranche1 = null,
         ?CarbonImmutable $echeanceTranche2 = null,
         int $aConfirmer = 0,
+        bool $suspendue = false,
     ): self {
+        if ($suspendue) {
+            // Plus réclamé : sans échéance, aucun palier n'est en retard.
+            [$echeanceTranche1, $echeanceTranche2] = [null, null];
+        }
         $bareme = $montantInscription + $montantTranche1 + $montantTranche2;
         $remiseAppliquee = min(max(0, $remise), $bareme);
 
@@ -86,6 +95,7 @@ final readonly class SituationFinanciere
             tropPercu: $disponible,
             aConfirmer: $aConfirmer,
             paliersConfirmes: $paliersConfirmes,
+            suspendue: $suspendue,
         );
     }
 

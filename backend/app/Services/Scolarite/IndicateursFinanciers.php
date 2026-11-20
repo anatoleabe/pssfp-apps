@@ -107,6 +107,8 @@ final class IndicateursFinanciers
             'a_jour' => $compte(LibelleSituation::A_JOUR),
             'en_retard' => $compte(LibelleSituation::EN_RETARD),
             'soldes' => $compte(LibelleSituation::SOLDEE),
+            'suspendues' => $compte(LibelleSituation::SUSPENDUE),
+            'reste_suspendu' => (int) $lignes->where('situation', LibelleSituation::SUSPENDUE)->sum('reste'),
             'a_jour_ou_soldes' => $compte(LibelleSituation::A_JOUR) + $compte(LibelleSituation::SOLDEE),
             'faute_confirmation' => $lignes->where('faute_confirmation', true)->count(),
             'avec_a_confirmer' => $lignes->filter(fn (array $l): bool => $l['a_confirmer'] > 0)->count(),
@@ -277,7 +279,8 @@ final class IndicateursFinanciers
         $impayeEchu = 0;
         $impayes = [];
         $plusAncien = null;
-        foreach ($s->paliers as $p) {
+        // Année suspendue sur demande de l'auditeur : son reste n'est plus réclamé, ni exigible ni impayé.
+        foreach ($s->suspendue ? [] : $s->paliers as $p) {
             $echeance = $p->cle === Palier::INSCRIPTION ? $creation : $p->echeance?->startOfDay();
             $echu = $echeance !== null && ($p->cle === Palier::INSCRIPTION ? $echeance->lessThanOrEqualTo($aujourdhui) : $echeance->lessThan($aujourdhui->startOfDay()));
             if ($echu) {

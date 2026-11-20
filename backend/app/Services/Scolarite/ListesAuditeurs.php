@@ -138,7 +138,8 @@ final class ListesAuditeurs
             // Même logique que le filtre « Situation » de la liste des auditeurs (scopes d'InscriptionAnnuelle).
             ->when($c->situation !== CriteresListe::TOUTES, fn (Builder $q) => $q->whereHas('inscriptionCourante', fn (Builder $i) => match ($c->situation) {
                 CriteresListe::SOLDE => $i->entierementSoldee(),
-                CriteresListe::NON_SOLDE => $i->whereNot(fn (Builder $n) => $n->entierementSoldee()),
+                // Une année suspendue n'est plus réclamée : hors de la liste des non-soldés.
+                CriteresListe::NON_SOLDE => $i->whereNot(fn (Builder $n) => $n->entierementSoldee())->whereNull('suspendue_at'),
                 default => $i->inscriptionSoldee()->enRetard(),
             }));
     }

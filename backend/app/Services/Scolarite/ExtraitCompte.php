@@ -94,7 +94,7 @@ final class ExtraitCompte
                 'libelle' => self::PALIERS[$p->cle] ?? $p->cle,
                 'echeance' => $p->echeance,
                 'du' => $p->du, 'paye' => $p->paye, 'reste' => $p->reste,
-                'echu' => $p->reste > 0 && ($p->cle === Palier::INSCRIPTION || $p->enRetard),
+                'echu' => ! $s->suspendue && $p->reste > 0 && ($p->cle === Palier::INSCRIPTION || $p->enRetard),
             ], $s->paliers),
         ];
     }
