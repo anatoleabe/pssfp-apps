@@ -88,6 +88,7 @@ final class RolePermissionSeeder extends Seeder
                     'campagne.export_retenus',
                     'candidature.matricules_moodle',
                     'candidature.ecampus_mot_de_passe',
+                    'scolarite.suspension',
                     'scolarite.lettre_acces',
                     'candidature.ajouter_retenu',
                     'candidature.lettres_signees',

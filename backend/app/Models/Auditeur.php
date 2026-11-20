@@ -100,6 +100,18 @@ class Auditeur extends Model
         return $this->belongsTo(Candidature::class);
     }
 
+    /** Suspensions sur demande écrite, levées comprises, de la plus récente à la plus ancienne. */
+    public function suspensions(): HasMany
+    {
+        return $this->hasMany(SuspensionAuditeur::class)->latest('id');
+    }
+
+    /** La suspension en cours, s'il y en a une (au plus une, garanti par un index unique partiel). */
+    public function suspensionEnCours(): HasOne
+    {
+        return $this->hasOne(SuspensionAuditeur::class)->whereNull('levee_at');
+    }
+
     public function inscriptions(): HasMany
     {
         return $this->hasMany(InscriptionAnnuelle::class);

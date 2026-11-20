@@ -12,8 +12,9 @@ use Illuminate\Database\ConnectionInterface;
 use InvalidArgumentException;
 
 /**
- * Statut de l'auditeur (spec module 4, lot 2 §4). Informatif dans ce lot : il ne
- * bloque ni les versements ni l'accès. Chaque changement porte un motif, une
+ * Statut de l'auditeur (spec module 4, lot 2 §4). « Suspendu » se pose et se lève par SuspensionsAuditeurs, avec la
+ * demande écrite de l'auditeur (20/11/2026). Les autres statuts restent informatifs : ils ne
+ * bloquent ni les versements ni l'accès. Chaque changement porte un motif, une
  * date d'effet et finit au journal avec l'ancien et le nouveau statut.
  */
 final class StatutAuditeur
@@ -41,10 +42,17 @@ final class StatutAuditeur
         if ($date->greaterThan(InscriptionAnnuelle::aujourdhui())) {
             throw new InvalidArgumentException('La date d\'effet ne peut pas être dans le futur.');
         }
+        // Une suspension porte la demande écrite de l'auditeur et suspend son compte eCampus (20/11/2026).
+        if ($statut === Auditeur::STATUT_SUSPENDU) {
+            throw new InvalidArgumentException('Une suspension se pose par « Suspendre pour l\'année », avec la demande écrite de l\'auditeur.');
+        }
 
         $this->db->transaction(function () use ($auditeur, $statut, $motif, $date, $auteur): void {
             $verrouille = Auditeur::query()->whereKey($auditeur->id)->lockForUpdate()->firstOrFail();
             $ancien = (string) $verrouille->statut;
+            if ($verrouille->suspensionEnCours()->exists()) {
+                throw new InvalidArgumentException('Une suspension est en cours : levez-la d\'abord (« Lever la suspension »).');
+            }
             if ($ancien === $statut) {
                 throw new InvalidArgumentException('L\'auditeur est déjà « '.Auditeur::STATUTS[$statut].' ».');
             }

@@ -58,6 +58,19 @@ final class ClientMoodle
         }
     }
 
+    /**
+     * Suspend ou rouvre un compte (champ `suspended` de core_user_update_users). Un compte suspendu ne peut plus se
+     * connecter ; ses inscriptions aux cours sont gardées. Même lecture de la réponse que pour le mot de passe.
+     */
+    public function suspendreCompte(int $idCompte, bool $suspendu): void
+    {
+        $reponse = $this->appeler('core_user_update_users', ['users' => [['id' => $idCompte, 'suspended' => $suspendu ? 1 : 0]]]);
+
+        if (! array_key_exists('warnings', $reponse) || $reponse['warnings'] !== []) {
+            throw new EchecEcampus($suspendu ? 'eCampus n\'a pas confirmé la suspension du compte.' : 'eCampus n\'a pas confirmé la réouverture du compte.');
+        }
+    }
+
     public function ajouterACohorte(string $cohorte, string $identifiant): void
     {
         $reponse = $this->appeler('core_cohort_add_cohort_members', ['members' => [[

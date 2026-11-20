@@ -11,6 +11,7 @@ use App\Filament\Resources\AuditeurResource\CompteEcampusActions;
 use App\Filament\Resources\AuditeurResource\DemandeMoratoireActions;
 use App\Filament\Resources\AuditeurResource\EtiquettesActions;
 use App\Filament\Resources\AuditeurResource\ParcoursActions;
+use App\Filament\Resources\AuditeurResource\SuspensionActions;
 use App\Filament\Resources\CandidatureResource;
 use App\Filament\Resources\CandidatureResource\AjoutRetenuActions;
 use App\Filament\Resources\CandidatureResource\ComptesEcampusActions;
@@ -112,6 +113,10 @@ class ViewAuditeur extends ViewRecord
             ])->label('Parcours')->icon('heroicon-o-academic-cap')->button()->color('gray'),
             ActionGroup::make([
                 AuditeurActions::changerStatut(),
+                SuspensionActions::suspendre(),
+                SuspensionActions::lever(),
+                SuspensionActions::reessayerEcampus(),
+                SuspensionActions::voirDemande(),
                 AjoutRetenuActions::corrigerTelephone(Action::make('corrigerTelephone')),
                 Action::make('dossier')
                     ->label('Dossier de candidature')

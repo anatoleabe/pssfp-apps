@@ -115,16 +115,20 @@ class AuditeurResource extends Resource
                         LibelleSituation::EN_RETARD => 'En retard (inscription soldée, tranche échue)',
                         LibelleSituation::A_JOUR => 'À jour',
                         LibelleSituation::SOLDEE => 'Soldé',
+                        LibelleSituation::SUSPENDUE => 'Année suspendue (reste non réclamé)',
                         LibelleSituation::SANS_INSCRIPTION => 'Barème manquant',
                     ])
                     ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
-                        LibelleSituation::NON_SOLDEE => $query->whereHas('inscriptionCourante', fn (Builder $i) => $i->inscriptionNonSoldee()),
+                        // Même priorité que le badge : une année suspendue (et non soldée) n'est que « suspendue ».
+                        LibelleSituation::NON_SOLDEE => $query->whereHas('inscriptionCourante', fn (Builder $i) => $i->inscriptionNonSoldee()->whereNull('suspendue_at')),
                         // Même priorité que le badge : une inscription non soldée n'est pas « en retard ».
                         LibelleSituation::EN_RETARD => $query->whereHas('inscriptionCourante', fn (Builder $i) => $i->inscriptionSoldee()->enRetard()),
-                        LibelleSituation::A_JOUR => $query->whereHas('inscriptionCourante', fn (Builder $i) => $i->inscriptionSoldee()
+                        LibelleSituation::A_JOUR => $query->whereHas('inscriptionCourante', fn (Builder $i) => $i->inscriptionSoldee()->whereNull('suspendue_at')
                             ->whereNot(fn (Builder $q) => $q->enRetard())
                             ->whereNot(fn (Builder $q) => $q->entierementSoldee())),
                         LibelleSituation::SOLDEE => $query->whereHas('inscriptionCourante', fn (Builder $i) => $i->entierementSoldee()),
+                        LibelleSituation::SUSPENDUE => $query->whereHas('inscriptionCourante', fn (Builder $i) => $i->whereNotNull('suspendue_at')
+                            ->whereNot(fn (Builder $q) => $q->entierementSoldee())),
                         LibelleSituation::SANS_INSCRIPTION => $query->doesntHave('inscriptions'),
                         default => $query,
                     }),
@@ -174,6 +178,9 @@ class AuditeurResource extends Resource
                         ->color(fn (string $state): string => self::couleurStatut($state)),
                     Infolists\Components\TextEntry::make('statut_depuis')->label('Depuis le')->date('d/m/Y')->placeholder('—'),
                     Infolists\Components\TextEntry::make('statut_motif')->label('Motif')->placeholder('—'),
+                    Infolists\Components\TextEntry::make('suspension')->label('Suspension sur demande écrite')->columnSpanFull()
+                        ->getStateUsing(fn (Auditeur $record): ?string => AuditeurResource\SuspensionActions::resume($record))
+                        ->visible(fn (Auditeur $record): bool => $record->suspensions()->exists()),
                 ]),
             Infolists\Components\Section::make('Parcours LMD')
                 ->visible(fn (): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER))

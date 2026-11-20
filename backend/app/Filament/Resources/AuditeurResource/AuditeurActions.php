@@ -349,12 +349,14 @@ final class AuditeurActions
         return Action::make('changerStatut')
             ->label('Changer le statut')
             ->icon('heroicon-o-flag')
-            ->visible(fn (): bool => (bool) auth()->user()?->can(StatutAuditeur::PERMISSION))
+            // Pendant une suspension, seul « Lever la suspension » rend l'auditeur actif (compte eCampus rouvert).
+            ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(StatutAuditeur::PERMISSION) && ! $record->suspensionEnCours()->exists())
             ->modalHeading('Statut de l\'auditeur')
-            ->modalDescription('Informatif : le statut ne bloque ni les versements ni l\'accès à eCampus. Il n\'a pas d\'effet sur le dossier de candidature.')
+            ->modalDescription('Informatif : le statut ne bloque ni les versements ni l\'accès à eCampus. Il n\'a pas d\'effet sur le dossier de candidature. Une suspension se pose par « Suspendre pour l\'année », avec la demande écrite de l\'auditeur.')
             ->fillForm(fn (Auditeur $record): array => ['statut' => $record->statut, 'depuis' => InscriptionAnnuelle::aujourdhui()->toDateString()])
             ->form(MessagesValidation::appliquer([
-                Forms\Components\Select::make('statut')->label('Statut')->required()->options(Auditeur::STATUTS)->native(false),
+                Forms\Components\Select::make('statut')->label('Statut')->required()->native(false)
+                    ->options(array_diff_key(Auditeur::STATUTS, [Auditeur::STATUT_SUSPENDU => true])),
                 Forms\Components\DatePicker::make('depuis')->label('Date d\'effet')->required()->native(false)->displayFormat('d/m/Y')
                     ->maxDate(InscriptionAnnuelle::aujourdhui()->endOfDay()->toDateTimeString()),
                 Forms\Components\Textarea::make('motif')->label('Motif')->required()->maxLength(500)->rows(3),

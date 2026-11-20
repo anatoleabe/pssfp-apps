@@ -19,12 +19,16 @@ final class LibelleSituation
 
     public const SOLDEE = 'soldee';
 
+    /** Année suspendue sur demande de l'auditeur : reste non réclamé (20/11/2026). */
+    public const SUSPENDUE = 'suspendue';
+
     public const LIBELLES = [
         self::SANS_INSCRIPTION => 'Barème manquant',
         self::NON_SOLDEE => 'Inscription non soldée',
         self::EN_RETARD => 'En retard',
         self::A_JOUR => 'À jour',
         self::SOLDEE => 'Soldé',
+        self::SUSPENDUE => 'Année suspendue',
     ];
 
     public static function cle(?InscriptionAnnuelle $inscription): string
@@ -36,6 +40,7 @@ final class LibelleSituation
 
         return match (true) {
             $s->solde() => self::SOLDEE,
+            $s->suspendue => self::SUSPENDUE,
             ! $s->inscriptionSoldee() => self::NON_SOLDEE,
             $s->enRetard() => self::EN_RETARD,
             default => self::A_JOUR,

@@ -101,7 +101,7 @@
                         'Exigible à ce jour' => $fcfa($ind['exigible']), 'Impayé échu' => $fcfa($ind['impaye_echu']), 'Taux de recouvrement de l\'exigible' => $pct($ind['taux_exigible']),
                         'Avance au compte des auditeurs du périmètre (toutes années)' => $fcfa($ind['avance']),
                         'Inscrits' => $ind['inscrits'], 'Inscription non soldée' => $ind['non_soldes'], 'À jour' => $ind['a_jour'], 'En retard' => $ind['en_retard'],
-                        'Soldés' => $ind['soldes'], 'En retard faute de confirmation' => $ind['faute_confirmation'], 'Avec un versement à confirmer' => $ind['avec_a_confirmer'],
+                        'Soldés' => $ind['soldes'], 'Années suspendues (reste non réclamé)' => $ind['suspendues'].' · '.$fcfa($ind['reste_suspendu']), 'En retard faute de confirmation' => $ind['faute_confirmation'], 'Avec un versement à confirmer' => $ind['avec_a_confirmer'],
                         'Accès eCampus ouvert' => $ind['acces_ouvert'],
                     ] as $libelle => $v)
                         <tr style="{{ $ligne }}"><th scope="row" style="{{ $cellule }}font-weight:400;">{{ $libelle }}</th><td style="{{ $droite }}">{{ $v }}</td></tr>

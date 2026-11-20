@@ -49,6 +49,7 @@ class InscriptionAnnuelle extends Model
         'remise_par' => 'integer',
         'remise_at' => 'datetime',
         'acces_notifie_at' => 'datetime',
+        'suspendue_at' => 'datetime',
     ];
 
     public function uniqueIds(): array
@@ -59,6 +60,15 @@ class InscriptionAnnuelle extends Model
     public function getRouteKeyName(): string
     {
         return 'uuid';
+    }
+
+    /**
+     * Année suspendue sur demande de l'auditeur (spec module-4-scolarite-suspension) : son reste n'est plus réclamé.
+     * Seul SuspensionsAuditeurs pose et retire la marque.
+     */
+    public function estSuspendue(): bool
+    {
+        return $this->suspendue_at !== null;
     }
 
     public static function aujourdhui(): CarbonImmutable
@@ -155,6 +165,7 @@ class InscriptionAnnuelle extends Model
             echeanceTranche1: $this->bareme?->tranche1_echeance,
             echeanceTranche2: $this->bareme?->tranche2_echeance,
             aConfirmer: $verse - $confirme,
+            suspendue: $this->estSuspendue(),
         );
     }
 
@@ -216,7 +227,9 @@ class InscriptionAnnuelle extends Model
         $jusquTranche1 = self::DU_INSCRIPTION.' + '.self::DU_TRANCHE1;
         $jour = self::aujourdhui()->toDateString();
 
-        return $query->whereRaw(
+        // Année suspendue : plus réclamée, jamais en retard (même règle que SituationFinanciere). Pas pour la
+        // vérification du compte (tout l'argent), qui compare les imputations à l'ancien calcul, suspension ignorée.
+        return $query->when(! $toutLArgent, fn (Builder $q) => $q->whereNull('inscriptions_annuelles.suspendue_at'))->whereRaw(
             'EXISTS (SELECT 1 FROM baremes_scolarite b WHERE b.id = inscriptions_annuelles.bareme_id AND ('
             .'(b.tranche1_echeance < ? AND '.self::DU_TRANCHE1.' > 0 AND '.$verse.' < '.$jusquTranche1.')'
             .' OR (b.tranche2_echeance < ? AND '.self::DU_TRANCHE2.' > 0 AND '.$verse.' < '.$jusquTranche1.' + '.self::DU_TRANCHE2.')'

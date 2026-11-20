@@ -43,6 +43,10 @@ final class Solvabilite
     /** Échu impayé d'une inscription : droits d'inscription restants, et tranches échues restantes. */
     public static function echuImpaye(SituationFinanciere $situation): int
     {
+        // Année suspendue sur demande de l'auditeur : son reste n'est plus réclamé, donc jamais échu.
+        if ($situation->suspendue) {
+            return 0;
+        }
         $echu = 0;
         foreach ($situation->paliers as $palier) {
             if ($palier->cle === Palier::INSCRIPTION || $palier->enRetard) {

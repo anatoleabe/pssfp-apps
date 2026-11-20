@@ -66,13 +66,13 @@ it('change le statut depuis la fiche, et filtre la liste par statut', function (
     $this->actingAs(($this->compte)('scolarite_responsable'));
 
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
-        ->callAction('changerStatut', data: ['statut' => Auditeur::STATUT_SUSPENDU, 'depuis' => '2026-11-02', 'motif' => 'Mission longue'])
+        ->callAction('changerStatut', data: ['statut' => Auditeur::STATUT_ABANDON, 'depuis' => '2026-11-02', 'motif' => 'Mission longue'])
         ->assertHasNoActionErrors()
         ->assertSee('Mission longue');
 
-    expect($this->fiche->fresh()->statut)->toBe(Auditeur::STATUT_SUSPENDU);
+    expect($this->fiche->fresh()->statut)->toBe(Auditeur::STATUT_ABANDON);
     $this->livewire(ListAuditeurs::class)
-        ->filterTable('statut', Auditeur::STATUT_SUSPENDU)->assertCanSeeTableRecords([$this->fiche])
+        ->filterTable('statut', Auditeur::STATUT_ABANDON)->assertCanSeeTableRecords([$this->fiche])
         ->filterTable('statut', Auditeur::STATUT_ACTIF)->assertCanNotSeeTableRecords([$this->fiche]);
 });
 

@@ -133,11 +133,12 @@ class Versement extends Model
      * Une pièce du dossier des justificatifs ne sert qu'une fois : jamais le
      * bordereau d'un autre versement, la pièce d'un accès anticipé, la lettre
      * d'un engagement de prise en charge, la pièce d'un règlement (lot A2) ni le
-     * scan d'une confirmation par la scolarité.
+     * scan d'une confirmation par la scolarité, ni la demande écrite d'une suspension.
      */
     public static function pieceDejaJointe(string $chemin): bool
     {
         return self::query()->where('justificatif_path', $chemin)->exists()
+            || SuspensionAuditeur::query()->where('demande_path', $chemin)->exists()
             || ConfirmationVersement::query()->where('justificatif_path', $chemin)->exists()
             || DeblocageAcces::query()->where('justificatif_path', $chemin)->exists()
             || EngagementPriseEnCharge::query()->where('lettre_path', $chemin)->exists()
