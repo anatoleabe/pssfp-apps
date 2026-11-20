@@ -72,7 +72,7 @@ class RequeteResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('statut')->label('Étape')->options(Requete::STATUTS)->multiple(),
                 Tables\Filters\SelectFilter::make('type')->label('Type')->options([Requete::NOTE => 'Requête de note', Requete::DOCUMENT => 'Demande de document']),
-                Tables\Filters\Filter::make('miennes')->label('Mes requêtes')->query(fn (Builder $q): Builder => $q->where('agent_id', auth()->id())),
+                Tables\Filters\Filter::make('miennes')->label('Mes requêtes')->query(fn (Builder $query): Builder => $query->where('agent_id', auth()->id())),
             ])
             ->actions([Tables\Actions\ViewAction::make()]);
     }
