@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Filament\Resources\RequeteResource;
+use App\Filament\Resources\RequeteResource\Pages\ListRequetes;
 use App\Filament\Resources\SeanceRequetesResource;
 use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
@@ -176,6 +177,21 @@ it('traite une demande de document jusqu\'au document disponible dans l\'espace'
     expect($r->refresh()->statut)->toBe('document_disponible');
     $jeton = $this->auditeur->candidature->user->createToken('candidat', ['profile:read', 'application:read'])->plainTextToken;
     expect($this->withToken($jeton)->get('/v1/applications/me/requetes/'.$r->uuid.'/document')->assertOk()->getContent())->toBe('%PDF-1.4 essai');
+});
+
+it('filtre « Mes requêtes » sur les requêtes cotées à l\'agent connecté', function (): void {
+    ($this->verrouiller)('examen');
+    ($this->verrouiller)('cc');
+    $r1 = ($this->requeteExamen)();
+    $r2 = $this->service->deposer($this->auditeur, ['type' => 'note', 'maquette_ecue_id' => $this->ecue->id, 'session' => 'normale', 'note_visee' => 'cc',
+        'motif' => 'autre', 'description' => 'Note de CC à vérifier.'], []);
+    [$mienne, $autre] = $r1->agent_id === $this->agentA->id ? [$r1, $r2] : [$r2, $r1];
+    expect($autre->agent_id)->toBe($this->agentB->id);
+
+    $this->actingAs($this->agentA);
+    $this->livewire(ListRequetes::class)
+        ->assertCanSeeTableRecords([$mienne, $autre])
+        ->filterTable('miennes')->assertCanSeeTableRecords([$mienne])->assertCanNotSeeTableRecords([$autre]);
 });
 
 it('ouvre les requêtes à la scolarité et le jury des requêtes au chef de la commission', function (): void {

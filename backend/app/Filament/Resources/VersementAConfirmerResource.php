@@ -98,7 +98,8 @@ class VersementAConfirmerResource extends Resource
                 Tables\Columns\TextColumn::make('auditeur')->label('Auditeur')->wrap()
                     ->getStateUsing(fn (Versement $v): string => trim(mb_strtoupper((string) $v->auditeur?->candidature?->nom).' '.$v->auditeur?->candidature?->prenom))
                     ->description(fn (Versement $v): ?string => $v->auditeur?->candidature?->matricule)
-                    ->searchable(query: fn (Builder $q, string $search): Builder => $q->whereHas('auditeur.candidature', fn (Builder $c) => $c
+                    // Filament injecte la requête par le nom du paramètre : `$query`, sinon il reçoit un constructeur sans modèle.
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas('auditeur.candidature', fn (Builder $c) => $c
                         ->where(fn (Builder $w) => $w->where('nom', 'ilike', '%'.$search.'%')->orWhere('prenom', 'ilike', '%'.$search.'%')->orWhere('matricule', 'ilike', '%'.$search.'%')))),
                 Tables\Columns\TextColumn::make('montant')->label('Montant')->alignEnd()
                     ->formatStateUsing(fn (int $state): string => LibelleSituation::fcfa($state)),

@@ -374,6 +374,16 @@ describe('écrans', function (): void {
         $this->get(VersementAConfirmerResource::getUrl('index'))->assertForbidden();
     });
 
+    it('cherche un versement à confirmer par le nom ou le matricule de l\'auditeur', function (): void {
+        $awa = ($this->encaisser)(185000);
+        $bruno = ($this->encaisser)(50000, $this->bruno);
+
+        $this->actingAs($this->agent);
+        $this->livewire(ListVersementsAConfirmer::class)
+            ->searchTable($this->awa->fresh()->nom)->assertCanSeeTableRecords([$awa])->assertCanNotSeeTableRecords([$bruno])
+            ->searchTable((string) $this->bruno->fresh()->matricule)->assertCanSeeTableRecords([$bruno])->assertCanNotSeeTableRecords([$awa]);
+    });
+
     it('exige l\'attestation dans le formulaire', function (): void {
         Storage::fake(CandidatureObjectStorage::DISK);
         $v = ($this->encaisser)(185000);
