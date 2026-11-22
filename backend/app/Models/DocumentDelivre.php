@@ -68,6 +68,12 @@ class DocumentDelivre extends Model
         return $this->belongsTo(Deliberation::class);
     }
 
+    /** Agent qui a délivré le document ; vide quand l'auditeur l'a obtenu lui-même. */
+    public function delivrePar(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'delivre_par');
+    }
+
     public function estRevoque(): bool
     {
         return $this->revoque_at !== null;

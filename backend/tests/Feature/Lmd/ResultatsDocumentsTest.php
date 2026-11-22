@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Filament\Resources\DocumentDelivreResource;
+use App\Filament\Resources\DocumentDelivreResource\Pages\ListDocumentsDelivres;
 use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
 use App\Models\DocumentDelivre;
@@ -28,6 +30,7 @@ use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Activity;
 
 uses()->group('lmd', 'applications');
 
@@ -251,4 +254,25 @@ it('dit si le PDF présenté est bien celui délivré, sans jamais renvoyer l\'e
     $this->getJson($verif.'?empreinte='.hash('sha256', $pdf))->assertOk()->assertJsonPath('data.conforme', true)->assertJsonMissing(['sha256' => $doc->sha256]);
     $this->getJson($verif.'?empreinte='.hash('sha256', $pdf.' falsifié'))->assertOk()->assertJsonPath('data.conforme', false)->assertJsonPath('data.statut', 'authentique');
     $this->getJson($verif.'?empreinte=pas-une-empreinte')->assertOk()->assertJsonMissingPath('data.conforme');
+});
+
+it('tient le registre des documents délivrés : liste, téléchargement tracé et révocation, réservés à la scolarité', function (): void {
+    config()->set('pssfp.filament.require_2fa', false);
+    ($this->publier)();
+    $releve = app(DocumentsOfficiels::class)->obtenir(DocumentDelivre::RELEVE, $this->admis->auditeur, $this->d->refresh());
+    $pv = DocumentDelivre::query()->where('type', DocumentDelivre::PV)->sole();
+
+    $this->actingAs($this->rapporteur)->get(DocumentDelivreResource::getUrl())->assertForbidden();
+    $this->actingAs($this->responsable)->get(DocumentDelivreResource::getUrl())->assertOk();
+
+    Livewire::test(ListDocumentsDelivres::class)
+        ->assertCanSeeTableRecords([$releve, $pv])
+        ->assertTableActionVisible('telecharger', $releve)
+        ->assertTableActionHidden('revoquer', $pv)
+        ->callTableAction('telecharger', $releve)->assertFileDownloaded(mb_strtolower($releve->numero).'.pdf')
+        ->callTableAction('revoquer', $releve, ['motif' => 'Erreur sur le nom du titulaire'])->assertHasNoTableActionErrors()
+        ->filterTable('revoque', true)->assertCanSeeTableRecords([$releve])->assertCanNotSeeTableRecords([$pv]);
+
+    expect($releve->refresh()->estRevoque())->toBeTrue()
+        ->and(Activity::query()->where('event', 'document_consulte')->sole()->causer_id)->toBe($this->responsable->id);
 });
