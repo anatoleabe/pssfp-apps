@@ -13,6 +13,7 @@ use App\Models\MaquetteEcue;
 use App\Models\NoteEcue;
 use App\Models\User;
 use App\Services\Lmd\Assiduite;
+use App\Services\Lmd\ImportRefuse;
 use App\Services\Lmd\NotesExcel;
 use App\Services\Lmd\PerimetreCours;
 use App\Services\Lmd\PermissionsLmd;
@@ -231,29 +232,37 @@ class SaisieNotes extends Page implements HasForms
                 }),
             Action::make('importer')->label('Importer')->icon('heroicon-o-arrow-up-tray')->color('gray')
                 ->visible(fn (): bool => $statut() === EtapeSaisie::OUVERTE)
-                ->modalDescription('Déposez le modèle rempli. Rien n\'est enregistré si une ligne est invalide.')
+                ->modalDescription('Déposez le modèle rempli. Rien n\'est enregistré si une ligne est invalide : un rapport donne alors chaque ligne en erreur, avec son numéro dans le fichier.')
                 ->form(MessagesValidation::appliquer([
                     Forms\Components\FileUpload::make('fichier')->label('Modèle rempli (.xlsx)')->required()->storeFiles(false)
                         ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])->maxSize(2048),
                     Forms\Components\Toggle::make('simulation')->label('Contrôler seulement, sans enregistrer')->default(true),
                 ], ['mimetypes' => 'Format accepté : le modèle Excel (.xlsx).']))
-                ->action(function (array $data): void {
+                ->action(function (array $data): ?StreamedResponse {
                     $etape = $this->etapeCourante();
                     if ($etape === null) {
-                        return;
+                        return null;
                     }
                     $fichier = $data['fichier'];
                     $chemin = is_object($fichier) && method_exists($fichier, 'getRealPath') ? (string) $fichier->getRealPath() : '';
                     try {
                         $n = app(NotesExcel::class)->importer($etape, $chemin, $this->utilisateur(), ! (bool) $data['simulation']);
+                    } catch (ImportRefuse $e) {
+                        Notification::make()->danger()->title('Import refusé')->body($e->getMessage().' Le rapport complet se télécharge.')->persistent()->send();
+                        $rapport = app(NotesExcel::class)->rapport($etape, $e->lignes);
+
+                        return response()->streamDownload(fn () => print ($rapport),
+                            sprintf('rapport-import-%s-%s-%s.xlsx', mb_strtolower($etape->ecue->code), $etape->session, $etape->etape));
                     } catch (InvalidArgumentException $e) {
                         Notification::make()->danger()->title('Import refusé')->body($e->getMessage())->persistent()->send();
 
-                        return;
+                        return null;
                     }
                     Notification::make()->success()
                         ->title($data['simulation'] ? "Fichier valide : {$n} note(s) à enregistrer" : "{$n} note(s) importée(s)")->send();
                     $this->charger();
+
+                    return null;
                 }),
         ];
     }

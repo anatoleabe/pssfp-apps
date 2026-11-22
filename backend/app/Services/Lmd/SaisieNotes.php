@@ -147,7 +147,7 @@ final class SaisieNotes
             foreach ($lignes as $id => $ligne) {
                 $inscription = $inscrits->get((int) $id);
                 if ($inscription === null) {
-                    $erreurs[] = "Inscription {$id} : auditeur non inscrit à cette UE.";
+                    $erreurs[] = ['id' => (int) $id, 'matricule' => '', 'message' => "Inscription {$id} : auditeur non inscrit à cette UE."];
 
                     continue;
                 }
@@ -155,7 +155,7 @@ final class SaisieNotes
                 try {
                     $valeurs = $this->valeurs($etape->etape, $ligne);
                 } catch (InvalidArgumentException $e) {
-                    $erreurs[] = "{$matricule} : {$e->getMessage()}";
+                    $erreurs[] = ['id' => (int) $id, 'matricule' => $matricule, 'message' => $e->getMessage()];
 
                     continue;
                 }
@@ -175,14 +175,16 @@ final class SaisieNotes
                 $correction = array_filter($changements, fn (array $c): bool => $c[0] !== null) !== [];
                 $motif = trim((string) ($ligne['motif'] ?? ''));
                 if ($correction && mb_strlen($motif) < self::MOTIF_MIN) {
-                    $erreurs[] = "{$matricule} : une note déjà saisie ne change qu'avec un motif.";
+                    $erreurs[] = ['id' => (int) $id, 'matricule' => $matricule, 'message' => 'une note déjà saisie ne change qu\'avec un motif.'];
 
                     continue;
                 }
                 $ecritures[] = [$inscription, $note, $valeurs, $changements, $correction ? $motif : 'Saisie'];
             }
             if ($erreurs !== []) {
-                throw new InvalidArgumentException(implode(' ', array_slice($erreurs, 0, 15)).(count($erreurs) > 15 ? ' …' : ''));
+                $textes = array_map(fn (array $e): string => $e['matricule'] === '' ? $e['message'] : $e['matricule'].' : '.$e['message'], $erreurs);
+
+                throw new SaisieRefusee(implode(' ', array_slice($textes, 0, 15)).(count($textes) > 15 ? ' …' : ''), $erreurs);
             }
             if (! $appliquer) {
                 return count($ecritures);

@@ -17,6 +17,7 @@ use App\Models\NoteEcue;
 use App\Models\RegleEvaluation;
 use App\Models\User;
 use App\Services\Lmd\ImportMaquettes;
+use App\Services\Lmd\ImportRefuse;
 use App\Services\Lmd\InscriptionsPedagogiques;
 use App\Services\Lmd\NotesExcel;
 use App\Services\Lmd\SaisieNotes;
@@ -28,6 +29,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -168,6 +170,44 @@ it('importe le modèle Excel rempli, en essai à blanc puis pour de bon', functi
     IOFactory::createWriter($classeur, 'Xlsx')->save($chemin);
     expect(fn () => app(NotesExcel::class)->importer($this->etapeCc, $chemin, $this->agent, true))->toThrow(InvalidArgumentException::class, '99EFP999');
     @unlink($chemin);
+});
+
+it('rend un rapport d\'import ligne à ligne, sans rien enregistrer, quand plusieurs lignes sont en erreur', function (): void {
+    $this->service->ouvrir($this->etapeCc, $this->responsable);
+    $chemin = tempnam(sys_get_temp_dir(), 'notes').'.xlsx';
+    file_put_contents($chemin, app(NotesExcel::class)->modele($this->etapeCc));
+    $classeur = IOFactory::load($chemin);
+    $feuille = $classeur->getSheet(0);
+    $feuille->setCellValue('D5', 13);                                             // ligne valide
+    $feuille->setCellValue('D6', 25);                                             // note hors bornes
+    $feuille->setCellValue('A7', '99EFP999');                                     // matricule non inscrit
+    $feuille->setCellValue('D7', 10);
+    $feuille->setCellValueExplicit('A8', (string) $feuille->getCell('A5')->getValue(), DataType::TYPE_STRING); // doublon de la ligne 5
+    $feuille->setCellValue('D8', 9);
+    IOFactory::createWriter($classeur, 'Xlsx')->save($chemin);
+
+    $refus = null;
+    try {
+        app(NotesExcel::class)->importer($this->etapeCc, $chemin, $this->agent, true);
+    } catch (ImportRefuse $e) {
+        $refus = $e;
+    }
+    @unlink($chemin);
+
+    expect($refus)->not->toBeNull()
+        ->and(array_column($refus->lignes, 'ligne'))->toBe([6, 7, 8])
+        ->and($refus->lignes[1])->toBe(['ligne' => 7, 'matricule' => '99EFP999', 'message' => 'matricule non inscrit à cette UE'])
+        ->and($refus->lignes[2]['message'])->toBe('matricule déjà présent à la ligne 5')
+        ->and($refus->getMessage())->toContain('3 lignes en erreur')
+        ->and(NoteEcue::query()->count())->toBe(0);
+
+    $rapport = tempnam(sys_get_temp_dir(), 'rapport').'.xlsx';
+    file_put_contents($rapport, app(NotesExcel::class)->rapport($this->etapeCc, $refus->lignes));
+    $lu = IOFactory::load($rapport)->getSheet(0);
+    @unlink($rapport);
+    expect($lu->getCell('A5')->getValue())->toBe(6)
+        ->and($lu->getCell('B6')->getValue())->toBe('99EFP999')
+        ->and($lu->getHighestDataRow())->toBe(7);
 });
 
 it('ouvre l\'écran de saisie à la scolarité et à l\'enseignant, pas aux autres', function (string $role, int $statut): void {
