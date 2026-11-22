@@ -95,10 +95,14 @@ function Resultat({ r }: { r: ResultatPublie }): JSX.Element {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <a href={`/dossier/documents-officiels/releve_notes?deliberation=${r.deliberation}`} className={LIEN} data-testid="doc-releve">
-          <Download size={16} aria-hidden="true" />
-          {semestre === null ? t('releve') : t('releveSemestre')}
-        </a>
+        {r.documents.releve_notes === null ? (
+          <a href={`/dossier/documents-officiels/releve_notes?deliberation=${r.deliberation}`} className={LIEN} data-testid="doc-releve">
+            <Download size={16} aria-hidden="true" />
+            {semestre === null ? t('releve') : t('releveSemestre')}
+          </a>
+        ) : (
+          <p className="text-sm text-[#3C3C3C]" data-testid="doc-releve-indisponible">{r.documents.releve_notes}</p>
+        )}
         {semestre !== null ? null : r.documents.attestation_reussite === null ? (
           <a href={`/dossier/documents-officiels/attestation_reussite?deliberation=${r.deliberation}`} className={LIEN} data-testid="doc-attestation">
             <Download size={16} aria-hidden="true" />

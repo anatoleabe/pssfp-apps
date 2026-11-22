@@ -210,6 +210,24 @@ final class DocumentsOfficiels
     }
 
     /**
+     * Parmi ces inscriptions, celles qui ne sont pas en règle (même règle que `enRegle`), sans
+     * requête par ligne : pour la liste d'émargement d'une épreuve (lot 19).
+     *
+     * @param  iterable<int>  $ids
+     * @return array<int, true> par id d'inscription annuelle
+     */
+    public function nonEnRegle(iterable $ids): array
+    {
+        $inscriptions = InscriptionAnnuelle::query()->whereKey(collect($ids)->unique()->values())->with('bareme')
+            ->withSum('imputationsActives', 'montant')->withSum('imputationsConfirmees', 'montant')->get();
+        $levees = LeveeRestriction::query()->whereIn('inscription_annuelle_id', $inscriptions->modelKeys())->pluck('inscription_annuelle_id')->flip();
+
+        return $inscriptions
+            ->filter(fn (InscriptionAnnuelle $i): bool => ! $levees->has($i->id) && $i->situation()->enRetard())
+            ->mapWithKeys(fn (InscriptionAnnuelle $i): array => [$i->id => true])->all();
+    }
+
+    /**
      * Disponibilité d'un document : null si disponible, sinon le motif.
      */
     public function indisponibilite(string $type, Auditeur $auditeur, ?Deliberation $d): ?string
@@ -253,9 +271,10 @@ final class DocumentsOfficiels
             if (! in_array($resultat->decision, ['AD', 'AS'], true)) {
                 throw new InvalidArgumentException('L\'attestation de réussite n\'est délivrée qu\'aux admis et aux autorisés à soutenir.');
             }
-            if (! $this->enRegle($resultat->inscriptionAnnuelle)) {
-                throw new InvalidArgumentException('Une échéance de vos frais de scolarité est en retard : rapprochez-vous de la scolarité.');
-            }
+        }
+        // Décision D5 (lot 19) : le relevé de notes est retenu comme l'attestation, sauf levée de restriction.
+        if (! $this->enRegle($resultat->inscriptionAnnuelle)) {
+            throw new InvalidArgumentException('Une échéance de vos frais de scolarité est en retard : rapprochez-vous de la scolarité.');
         }
 
         return [$resultat->inscriptionAnnuelle, $resultat];

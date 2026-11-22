@@ -126,17 +126,27 @@ it('délivre un relevé numéroté, vérifiable, et sert le même fichier ensuit
     $this->getJson('/v1/documents/verification/INCONNU12345')->assertNotFound();
 });
 
-it('refuse l\'attestation à un auditeur en retard de paiement, puis la délivre après une levée tracée', function (): void {
+it('refuse l\'attestation et le relevé à un auditeur en retard de paiement, puis les délivre après une levée tracée', function (): void {
     ($this->publier)();
     $this->admis->bareme->update(['tranche1_echeance' => now()->subMonth()->toDateString()]);
     Versement::factory()->create(['inscription_annuelle_id' => $this->admis->id, 'montant' => 185000]);
     $url = '/v1/applications/me/documents-officiels/attestation_reussite?deliberation='.$this->d->uuid;
 
     $this->withToken(($this->jeton)($this->admis))->get($url)->assertStatus(409)->assertJsonPath('code', 'document_indisponible');
-    $this->withToken(($this->jeton)($this->admis))->get('/v1/applications/me/documents-officiels/releve_notes?deliberation='.$this->d->uuid)->assertOk();
+    // Décision D5 (lot 19) : le relevé de notes est retenu lui aussi ; les résultats restent visibles, avec le motif.
+    $releve = '/v1/applications/me/documents-officiels/releve_notes?deliberation='.$this->d->uuid;
+    $this->withToken(($this->jeton)($this->admis))->get($releve)->assertStatus(409)->assertJsonPath('code', 'document_indisponible');
+    $this->withToken(($this->jeton)($this->admis))->getJson('/v1/applications/me/resultats')->assertOk()
+        ->assertJsonPath('data.resultats.0.decision', 'AD')
+        ->assertJsonPath('data.resultats.0.documents.releve_notes', 'Une échéance de vos frais de scolarité est en retard : rapprochez-vous de la scolarité.');
+    $documents = app(DocumentsOfficiels::class);
+    // Les deux auditeurs partagent le barème : tous deux sont en retard, donc non autorisés à composer.
+    expect(array_keys($documents->nonEnRegle([$this->admis->id, $this->ajourne->id])))->toEqualCanonicalizing([$this->admis->id, $this->ajourne->id]);
 
-    app(DocumentsOfficiels::class)->leverRestriction($this->admis->refresh(), 'Échéancier signé le 07/11/2026', $this->responsable);
+    $documents->leverRestriction($this->admis->refresh(), 'Échéancier signé le 07/11/2026', $this->responsable);
     $this->withToken(($this->jeton)($this->admis))->get($url)->assertOk();
+    $this->withToken(($this->jeton)($this->admis))->get($releve)->assertOk();
+    expect($documents->nonEnRegle([$this->admis->id, $this->ajourne->id]))->toBe([$this->ajourne->id => true]);
     expect(DocumentDelivre::query()->where('type', 'attestation_reussite')->value('numero'))->toBe('AR-2026-000001');
 });
 
