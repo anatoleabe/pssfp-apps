@@ -60,9 +60,14 @@ class RegleEvaluationResource extends Resource
                     $note('seuil_validation', 'Seuil de validation')->required(),
                     Forms\Components\Select::make('note_ue')->label('Note de l\'UE')->required()->native(false)
                         ->options(RegleEvaluation::CALCULS_NOTE_UE),
-                    $note('note_plancher', 'Note éliminatoire (vide : aucune)')
+                    Forms\Components\Toggle::make('note_eliminatoire_active')->label('Appliquer une note éliminatoire')->inline(false)->live()->default(true)
+                        ->helperText('Désactivée, la valeur ci-contre est conservée mais n\'entre plus dans le calcul.')->columnSpanFull(),
+                    $note('note_plancher', 'Note éliminatoire')
+                        ->required(fn (Forms\Get $get): bool => (bool) $get('note_eliminatoire_active'))
+                        ->disabled(fn (Forms\Get $get): bool => ! $get('note_eliminatoire_active'))->dehydrated()
                         ->helperText('Sous cette note d\'examen, l\'UE n\'est pas validable, quelle que soit sa moyenne.'),
                     Forms\Components\Select::make('note_plancher_porte')->label('La note éliminatoire porte sur')->required()->native(false)
+                        ->disabled(fn (Forms\Get $get): bool => ! $get('note_eliminatoire_active'))->dehydrated()
                         ->options(RegleEvaluation::PORTEES_PLANCHER),
                     Forms\Components\Select::make('mode_rattrapage')->label('Rattrapage')->required()->native(false)
                         ->options(RegleEvaluation::MODES_RATTRAPAGE)->columnSpanFull(),
@@ -133,7 +138,8 @@ class RegleEvaluationResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('annee_academique')->label('Année')->sortable(),
                 Tables\Columns\TextColumn::make('seuil_validation')->label('Seuil')->suffix(' / 20'),
-                Tables\Columns\TextColumn::make('note_plancher')->label('Note éliminatoire')->suffix(' / 20')->placeholder('aucune'),
+                Tables\Columns\TextColumn::make('note_plancher')->label('Note éliminatoire')->placeholder('aucune')
+                    ->formatStateUsing(fn (?string $state, RegleEvaluation $record): string => $record->noteEliminatoireAppliquee() ? $state.' / 20' : 'désactivée'),
                 Tables\Columns\TextColumn::make('mode_rattrapage')->label('Rattrapage')->wrap()
                     ->formatStateUsing(fn (string $state): string => RegleEvaluation::MODES_RATTRAPAGE[$state] ?? $state),
                 Tables\Columns\TextColumn::make('ponderation')->label('CC / assiduité / examen')

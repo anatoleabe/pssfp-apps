@@ -20,6 +20,23 @@ use App\Models\RegleEvaluation;
  */
 final class CalculNotes
 {
+    /** Décimales des calculs intermédiaires (ECUE, moyennes pondérées) : jamais arrondis au centième avant la publication. */
+    private const PRECISION = 6;
+
+    /**
+     * Valeur publiée d'une moyenne : arrondie au centième, le demi vers le haut. Passe par des entiers pour
+     * qu'un 11,995 stocké 11,99499… en binaire donne bien 12,00, et qu'un 11,9946 reste à 11,99.
+     */
+    public static function publiee(?float $valeur): ?float
+    {
+        if ($valeur === null) {
+            return null;
+        }
+        $millioniemes = (int) round($valeur * 1_000_000);
+
+        return intdiv($millioniemes + 5_000, 10_000) / 100;
+    }
+
     /**
      * @param  array<int, NoteEcue>  $normales  notes de session normale, par id d'ECUE
      * @param  array<int, NoteEcue>  $rattrapages  notes de rattrapage, par id d'ECUE
@@ -36,10 +53,12 @@ final class CalculNotes
         }
 
         $complete = $ecues !== [] && array_reduce($ecues, fn (bool $c, ResultatEcue $e): bool => $c && $e->complete, true);
-        $noteNormale = $this->moyennePonderee($ecues, fn (ResultatEcue $e): ?float => $e->moyenne);
-        $note = $this->moyennePonderee($ecues, fn (ResultatEcue $e): ?float => $e->moyenneRetenue);
-        $examenNormal = $this->moyennePonderee($ecues, fn (ResultatEcue $e): ?float => $e->examen ?? ($this->absent($e->presence) ? 0.0 : null));
-        $examen = $this->moyennePonderee($ecues, fn (ResultatEcue $e): ?float => $e->examenRetenu);
+        // Décision du 22/11/2026 : la valeur publiée fait foi. Les ECUE restent en pleine précision ; la note
+        // d'UE est arrondie au centième, puis comparée au seuil et à la note éliminatoire.
+        $noteNormale = self::publiee($this->moyennePonderee($ecues, fn (ResultatEcue $e): ?float => $e->moyenne));
+        $note = self::publiee($this->moyennePonderee($ecues, fn (ResultatEcue $e): ?float => $e->moyenneRetenue));
+        $examenNormal = self::publiee($this->moyennePonderee($ecues, fn (ResultatEcue $e): ?float => $e->examen ?? ($this->absent($e->presence) ? 0.0 : null)));
+        $examen = self::publiee($this->moyennePonderee($ecues, fn (ResultatEcue $e): ?float => $e->examenRetenu));
         $rattrapageSaisi = array_filter($ecues, fn (ResultatEcue $e): bool => $e->rattrapage !== null) !== [];
 
         $seuil = (float) $regle->seuil_validation;
@@ -80,7 +99,7 @@ final class CalculNotes
         $moyenneRetenue = $moyenne;
         if ($rat !== null) {
             [$examenRetenu, $moyenneRetenue] = match ($mode) {
-                RegleEvaluation::RATTRAPAGE_REMPLACE_MOYENNE => [$rat, round($rat, 3)],
+                RegleEvaluation::RATTRAPAGE_REMPLACE_MOYENNE => [$rat, $rat],
                 RegleEvaluation::RATTRAPAGE_REMPLACE_EXAMEN => [$rat, $this->moyenne($cc, $ass, $rat, $pcc, $ptp, $pexam)],
                 default => [max($rat, (float) $examCalcul), max((float) $moyenne, $this->moyenne($cc, $ass, $rat, $pcc, $ptp, $pexam))],
             };
@@ -91,7 +110,7 @@ final class CalculNotes
 
     private function moyenne(?float $cc, ?float $ass, ?float $exam, float $pcc, float $ptp, float $pexam): float
     {
-        return round(($cc ?? 0) * $pcc + ($ass ?? 0) * $ptp + ($exam ?? 0) * $pexam, 3);
+        return round(($cc ?? 0) * $pcc + ($ass ?? 0) * $ptp + ($exam ?? 0) * $pexam, self::PRECISION);
     }
 
     /**
@@ -118,13 +137,13 @@ final class CalculNotes
             return null;
         }
 
-        return round($poids > 0 ? $somme / $poids : array_sum($simple) / count($simple), 3);
+        return round($poids > 0 ? $somme / $poids : array_sum($simple) / count($simple), self::PRECISION);
     }
 
     /** @param  list<?float>  $examensEcue */
     private function eliminatoire(RegleEvaluation $regle, ?float $examenUe, array $examensEcue): bool
     {
-        if ($regle->note_plancher === null) {
+        if (! $regle->noteEliminatoireAppliquee()) {
             return false;
         }
         $plancher = (float) $regle->note_plancher;

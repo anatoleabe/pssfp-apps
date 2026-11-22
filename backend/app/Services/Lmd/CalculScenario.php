@@ -262,7 +262,7 @@ final class CalculScenario
             $somme = fn (callable $filtre): int => array_sum(array_map(fn (array $l): int => $filtre($l) ? $l['credits'] : 0, $ls));
             $avecNote = array_filter($ls, fn (array $l): bool => $l['note_jury'] !== null);
             $creditsNotes = array_sum(array_column($avecNote, 'credits'));
-            $moyenne = $creditsNotes > 0 ? array_sum(array_map(fn (array $l): float => (float) $l['note_jury'] * $l['credits'], $avecNote)) / $creditsNotes : null;
+            $moyenne = CalculNotes::publiee($creditsNotes > 0 ? array_sum(array_map(fn (array $l): float => (float) $l['note_jury'] * $l['credits'], $avecNote)) / $creditsNotes : null);
             $acquises = array_filter($ls, fn (array $l): bool => $l['acquise'] && $l['note_jury'] !== null);
             $creditsAcquisNotes = array_sum(array_column($acquises, 'credits'));
             $mgp = $creditsAcquisNotes > 0
