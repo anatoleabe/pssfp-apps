@@ -18,6 +18,9 @@ class ListInscriptions extends ListRecords
 {
     protected static string $resource = InscriptionResource::class;
 
+    /** Aperçu du passage, calculé une fois par requête (la fenêtre lit sa description plusieurs fois). */
+    private ?array $apercuPassage = null;
+
     public function getSubheading(): ?string
     {
         $annee = AnneeEnCours::annee();
@@ -40,7 +43,11 @@ class ListInscriptions extends ListRecords
             ->requiresConfirmation()
             ->modalHeading('Passage en M2')
             ->modalDescription(function (): string {
-                $a = app(PassageEnGroupe::class)->apercu();
+                try {
+                    $a = $this->apercuPassage ??= app(PassageEnGroupe::class)->apercu();
+                } catch (InvalidArgumentException $e) {
+                    return $e->getMessage();
+                }
                 $ecartes = array_filter([
                     $a['deja_inscrits'] > 0 ? $a['deja_inscrits'].' déjà inscrit(s) en '.$a['annee'] : null,
                     count($a['sans_option']) > 0 ? count($a['sans_option']).' sans option reconnue, à inscrire depuis leur fiche' : null,
@@ -78,7 +85,7 @@ class ListInscriptions extends ListRecords
             ->color('gray')
             ->visible(fn (): bool => AnneeEnCours::peutChanger(auth()->user()))
             ->modalHeading('Année en cours')
-            ->modalDescription('L\'année en cours est celle des nouvelles inscriptions, des réinscriptions et du passage en M2. Aucune inscription existante ne change. Le barème de la nouvelle année doit être saisi.')
+            ->modalDescription('L\'année en cours est celle des nouvelles inscriptions, des réinscriptions et du passage en M2. Aucune inscription existante ne change. Le barème de la nouvelle année doit être saisi. Attention : la promotion de l\'année quittée ne reçoit plus ni nouveau retenu ni matricule, et une suspension levée après le changement ne rend plus dû le reste de l\'année quittée. Le retour en arrière est refusé dès qu\'un auditeur est inscrit dans la nouvelle année.')
             ->modalSubmitActionLabel('Changer l\'année')
             ->form(MessagesValidation::appliquer([
                 Forms\Components\Select::make('annee')->label('Nouvelle année en cours')->required()->native(false)

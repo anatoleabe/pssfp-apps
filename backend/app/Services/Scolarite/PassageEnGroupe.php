@@ -11,6 +11,7 @@ use App\Models\Parcours;
 use App\Models\User;
 use App\Services\Lmd\ParcoursAuditeur;
 use InvalidArgumentException;
+use Throwable;
 
 /**
  * Passage en groupe du M1 au M2 (spec lot 18, règle 2) : les admis du M1 de l'année précédente, pas
@@ -24,10 +25,7 @@ final class PassageEnGroupe
 {
     public const EVENEMENT = 'passage_m2_groupe';
 
-    public function __construct(
-        private readonly InscriptionAnneeEnCours $inscriptions,
-        private readonly ParcoursAuditeur $parcours,
-    ) {}
+    public function __construct(private readonly InscriptionAnneeEnCours $inscriptions) {}
 
     public static function peutPasser(?User $user): bool
     {
@@ -39,13 +37,18 @@ final class PassageEnGroupe
      *
      * @return array{annee: string, precedente: string, a_inscrire: list<array{auditeur: Auditeur, parcours: Parcours}>, sans_option: list<Auditeur>, retires: int, inactifs: int, deja_inscrits: int}
      *
-     * @throws InvalidArgumentException année en cours non réglée
+     * @throws InvalidArgumentException année en cours non réglée, ou barème de M2 absent
      */
     public function apercu(): array
     {
         $annee = AnneeEnCours::annee() ?? throw new InvalidArgumentException('Année en cours non réglée : aucun passage possible.');
         $precedente = AnneeEnCours::suivante($annee, -1);
+        if (! BaremeScolarite::query()->where('annee_academique', $annee)->where('niveau', BaremeScolarite::NIVEAU_M2)->exists()) {
+            throw new InvalidArgumentException("Aucun barème de M2 pour {$annee} : saisissez-le d'abord (Scolarité > Barèmes).");
+        }
         $bilan = ['annee' => $annee, 'precedente' => $precedente, 'a_inscrire' => [], 'sans_option' => [], 'retires' => 0, 'inactifs' => 0, 'deja_inscrits' => 0];
+        $options = Parcours::query()->where('actif', true)->where('niveau', BaremeScolarite::NIVEAU_M2)->whereNotNull('specialite')->get()
+            ->keyBy(fn (Parcours $p): string => ParcoursAuditeur::normaliser((string) $p->specialite));
 
         $admis = ReinscriptionAuditeur::admisSurLaPlateforme($precedente)->with('auditeur.candidature')->orderBy('id')->get()
             ->pluck('auditeur')->filter()->unique('id');
@@ -59,7 +62,7 @@ final class PassageEnGroupe
                 $bilan['retires']++;
             } elseif ($auditeur->statut !== Auditeur::STATUT_ACTIF) {
                 $bilan['inactifs']++;
-            } elseif (($parcours = $this->option($auditeur)) === null) {
+            } elseif (($parcours = $options->get(ParcoursAuditeur::normaliser((string) $auditeur->candidature->specialite))) === null) {
                 $bilan['sans_option'][] = $auditeur;
             } else {
                 $bilan['a_inscrire'][] = ['auditeur' => $auditeur, 'parcours' => $parcours];
@@ -83,11 +86,20 @@ final class PassageEnGroupe
         $bilan = ['inscrits' => 0, 'sans_option' => count($apercu['sans_option']), 'echecs' => []];
 
         foreach ($apercu['a_inscrire'] as $ligne) {
+            $matricule = (string) $ligne['auditeur']->candidature?->matricule;
             try {
                 $this->inscriptions->inscrire($ligne['auditeur'], BaremeScolarite::NIVEAU_M2, $ligne['parcours'], $auteur, ReinscriptionAuditeur::DECLENCHEUR);
                 $bilan['inscrits']++;
             } catch (InvalidArgumentException $e) {
-                $bilan['echecs'][] = $ligne['auditeur']->candidature?->matricule.' : '.$e->getMessage();
+                // Inscrit entre l'aperçu et le geste (autre agent) : écarté, pas un échec.
+                if (InscriptionAnnuelle::query()->where('auditeur_id', $ligne['auditeur']->id)->where('annee_academique', $apercu['annee'])->exists()) {
+                    continue;
+                }
+                $bilan['echecs'][] = $matricule.' : '.$e->getMessage();
+            } catch (Throwable $e) {
+                // Erreur technique (verrou, base) : l'inscription est annulée par sa transaction, les autres continuent.
+                report($e);
+                $bilan['echecs'][] = $matricule.' : erreur technique, à refaire depuis la fiche.';
             }
         }
 
@@ -97,13 +109,5 @@ final class PassageEnGroupe
             ->log('Passage en M2 des admis du M1');
 
         return $bilan;
-    }
-
-    /** Option de M2 de la spécialité du dossier, ou null si elle n'est pas reconnue. */
-    private function option(Auditeur $auditeur): ?Parcours
-    {
-        $virtuelle = (new InscriptionAnnuelle)->forceFill(['niveau' => BaremeScolarite::NIVEAU_M2]);
-
-        return $this->parcours->pour($virtuelle->setRelation('auditeur', $auditeur));
     }
 }

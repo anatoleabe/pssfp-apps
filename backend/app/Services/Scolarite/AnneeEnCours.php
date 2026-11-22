@@ -6,6 +6,7 @@ namespace App\Services\Scolarite;
 
 use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
+use App\Models\InscriptionAnnuelle;
 use App\Models\User;
 use App\Support\AppSettings;
 use Illuminate\Support\Collection;
@@ -57,6 +58,10 @@ final class AnneeEnCours
         }
         if ($actuelle !== null && abs(self::debut($annee) - self::debut($actuelle)) !== 1) {
             throw new InvalidArgumentException('L\'année en cours ne change que d\'un an à la fois : '.self::suivante($actuelle, 1).' ou '.self::suivante($actuelle, -1).'.');
+        }
+        if ($actuelle !== null && self::debut($annee) < self::debut($actuelle)
+            && InscriptionAnnuelle::query()->where('annee_academique', $actuelle)->exists()) {
+            throw new InvalidArgumentException("Des auditeurs sont déjà inscrits en {$actuelle} : le retour à {$annee} n'est plus possible.");
         }
         if (! BaremeScolarite::query()->where('annee_academique', $annee)->where('niveau', BaremeScolarite::NIVEAU_M1)->exists()) {
             throw new InvalidArgumentException("Aucun barème de M1 pour {$annee} : saisissez-le d'abord (Scolarité > Barèmes).");

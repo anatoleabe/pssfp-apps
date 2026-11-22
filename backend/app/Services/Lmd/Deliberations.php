@@ -8,6 +8,7 @@ use App\Models\AcquisUe;
 use App\Models\Deliberation;
 use App\Models\EtapeSaisie;
 use App\Models\InscriptionAnnuelle;
+use App\Models\InscriptionPedagogique;
 use App\Models\Jury;
 use App\Models\MaquetteEcue;
 use App\Models\MembreJury;
@@ -288,6 +289,7 @@ final class Deliberations
                 AcquisUe::query()->where('deliberation_id', $d->rectifie_id)->delete();
                 Deliberation::query()->whereKey($d->rectifie_id)->update(['statut' => Deliberation::RECTIFIEE]);
             }
+            $auditeursConcernes = $resultats->map(fn ($r): int => (int) $r->inscriptionAnnuelle->auditeur_id)->unique()->values();
             $lignes = $scenario->resultatsUe()->where('acquise', true)->where('capitalisee', false)
                 ->with(['maquetteUe', 'mesure'])->get();
             $auditeurs = $resultats->mapWithKeys(fn ($r): array => [$r->inscription_annuelle_id => $r->inscriptionAnnuelle->auditeur_id]);
@@ -298,6 +300,10 @@ final class Deliberations
                     'annee_academique' => $d->annee_academique, 'session' => $d->session, 'origine' => $l->mesure_id === null ? 'evaluation' : 'deliberation',
                     'deliberation_id' => $d->id, 'created_at' => now(), 'updated_at' => now(),
                 ]]);
+            }
+
+            if ($d->rectifie_id !== null) {
+                $this->decapitaliser($d, $auditeursConcernes);
             }
 
             DB::select('SELECT pg_advisory_xact_lock(?)', [crc32('numero_pv_'.$d->annee_academique)]);
@@ -319,6 +325,30 @@ final class Deliberations
 
             return $numero;
         });
+    }
+
+    /**
+     * Après une rectification (lot 18) : l'UE qu'un redoublant avait « capitalisée » une année suivante,
+     * et dont l'acquis vient d'être retiré, redevient une UE à suivre. Il retrouve les listes de notes.
+     *
+     * @param  Collection<int, int>  $auditeurs
+     */
+    private function decapitaliser(Deliberation $d, Collection $auditeurs): void
+    {
+        $lignes = InscriptionPedagogique::query()->where('statut', InscriptionPedagogique::CAPITALISEE)
+            ->whereHas('inscriptionAnnuelle', fn ($q) => $q->whereIn('auditeur_id', $auditeurs)->where('niveau', $d->niveau)->where('annee_academique', '>', $d->annee_academique))
+            ->with(['inscriptionAnnuelle:id,auditeur_id,annee_academique,niveau', 'maquetteUe:id,unite_enseignement_id'])->get();
+        if ($lignes->isEmpty()) {
+            return;
+        }
+        $acquis = AcquisUe::query()->whereIn('auditeur_id', $auditeurs)->where('niveau', $d->niveau)->get(['auditeur_id', 'unite_enseignement_id', 'annee_academique']);
+        foreach ($lignes as $ip) {
+            $reste = $acquis->contains(fn (AcquisUe $a): bool => $a->auditeur_id === $ip->inscriptionAnnuelle->auditeur_id
+                && $a->unite_enseignement_id === $ip->maquetteUe->unite_enseignement_id && $a->annee_academique < $ip->inscriptionAnnuelle->annee_academique);
+            if (! $reste) {
+                $ip->forceFill(['statut' => InscriptionPedagogique::INSCRIT, 'motif' => null])->save();
+            }
+        }
     }
 
     /** @return list<string> noms des signataires attendus qui n'ont pas signé */

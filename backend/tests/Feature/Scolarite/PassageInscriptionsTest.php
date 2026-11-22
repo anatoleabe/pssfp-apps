@@ -125,3 +125,13 @@ it('montre l\'écran « Inscriptions » à la scolarité, avec l\'année en cour
     Livewire::test(ListInscriptions::class)->assertActionVisible('passerEnM2')->assertActionHidden('changerAnnee');
     expect($admis->fresh()->inscriptionCourante->niveau)->toBe('M2');
 });
+
+it('refuse le passage sans barème de M2, et le retour à l\'année précédente dès qu\'un auditeur est inscrit', function (): void {
+    ($this->m1)('AD');
+    BaremeScolarite::query()->where('annee_academique', '2026-2027')->where('niveau', 'M2')->delete();
+    expect(fn () => $this->passage->apercu())->toThrow(InvalidArgumentException::class, 'Aucun barème de M2');
+
+    BaremeScolarite::factory()->m2()->create(['annee_academique' => '2026-2027']);
+    $this->passage->executer($this->agent);
+    expect(fn () => AnneeEnCours::changer('2025-2026', $this->responsable))->toThrow(InvalidArgumentException::class, 'déjà inscrits en 2026-2027');
+});
