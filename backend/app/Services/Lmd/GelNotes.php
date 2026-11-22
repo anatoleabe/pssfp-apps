@@ -12,8 +12,8 @@ use InvalidArgumentException;
 
 /**
  * Gel des notes après délibération (spec lot 16a, § 2.1). Une délibération arrêtée couvre les ECUE
- * des maquettes de son année, de son niveau et de son parcours ; celle du rattrapage couvre les deux
- * sessions. Le gel se lève tant qu'une rectification de cette délibération est en préparation.
+ * des maquettes de son année, de son niveau et de son parcours (de son seul semestre si elle est
+ * semestrielle, lot 17a) ; celle du rattrapage couvre les deux sessions. Le gel se lève tant qu'une rectification de cette délibération est en préparation.
  */
 final class GelNotes
 {
@@ -32,13 +32,19 @@ final class GelNotes
             return null;
         }
 
+        $rang = NumerotationSemestres::rang((int) $ecue->maquetteUe->semestre);
+
         return self::gelantes()
+            ->where(fn (Builder $q) => $q->whereNull('semestre')->orWhere('semestre', $rang))
             ->where('annee_academique', $maquette->annee_academique)
             ->where('niveau', $maquette->parcours->niveau)
             ->where(fn (Builder $q) => $q->whereNull('parcours_id')->orWhere('parcours_id', $maquette->parcours_id))
             ->whereIn('session', self::sessionsCouvrantes($session))
             ->orderBy('arretee_at')
-            ->first();
+            ->get()
+            // Lot 17a : le gel se lève aussi quand la rectification en préparation est celle d'une
+            // délibération qui reprend celle-ci (l'année pour un semestre, le rattrapage pour la session normale).
+            ->first(fn (Deliberation $d): bool => ! self::leveeParDependante($d));
     }
 
     /** @throws InvalidArgumentException notes gelées : le message désigne le PV et la voie de correction */
@@ -62,6 +68,13 @@ final class GelNotes
     public static function sessionsGelees(string $sessionDeliberation): array
     {
         return array_keys(array_filter(self::COUVERTURE, fn (array $s): bool => in_array($sessionDeliberation, $s, true)));
+    }
+
+    /** Une délibération qui reprend celle-ci (lot 17a) a-t-elle une rectification en préparation ? */
+    public static function leveeParDependante(Deliberation $d): bool
+    {
+        return $d->dependantes()->where('statut', Deliberation::ARRETEE)
+            ->whereHas('rectification', fn (Builder $q) => $q->where('statut', Deliberation::SIMULATION))->exists();
     }
 
     /** Délibérations arrêtées sans rectification en préparation. @return Builder<Deliberation> */

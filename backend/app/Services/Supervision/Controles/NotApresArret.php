@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Supervision\Controles;
 
-use App\Models\InscriptionPedagogique;
+use App\Models\Deliberation;
 use App\Models\NoteEcue;
 use App\Services\Lmd\CalculScenario;
 use App\Services\Lmd\GelNotes;
 use App\Services\Supervision\Controle;
+use Carbon\CarbonImmutable;
 
 /**
  * Notes modifiées après l'arrêt d'une délibération (spec lot 16a, § 2.3, NOT_APRES_ARRET) : filet de
@@ -51,11 +52,17 @@ final class NotApresArret implements Controle
     {
         $cas = [];
         foreach (GelNotes::gelantes()->whereNull('a_rectifier_at')->whereNotNull('arretee_at')->orderBy('id')->get() as $d) {
+            // Lot 17a : une délibération qui reprend celle-ci est en rectification (gel levé), ou a été
+            // arrêtée depuis : les notes changées avant son arrêt y sont prises en compte.
+            if (GelNotes::leveeParDependante($d)) {
+                continue;
+            }
+            $reprise = $d->dependantes()->where('statut', Deliberation::ARRETEE)->max('arretee_at');
+            $seuil = $reprise !== null && CarbonImmutable::parse($reprise)->gt($d->arretee_at) ? CarbonImmutable::parse($reprise) : $d->arretee_at;
             $notes = NoteEcue::query()
                 ->whereIn('session', GelNotes::sessionsGelees((string) $d->session))
-                ->whereIn('inscription_pedagogique_id', InscriptionPedagogique::query()
-                    ->whereIn('inscription_annuelle_id', CalculScenario::population($d)->select('id'))->select('id'))
-                ->where('updated_at', '>', $d->arretee_at)
+                ->whereIn('inscription_pedagogique_id', CalculScenario::inscriptionsPedagogiques($d)->select('id'))
+                ->where('updated_at', '>', $seuil)
                 ->count();
             if ($notes === 0) {
                 continue;

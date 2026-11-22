@@ -6,12 +6,13 @@
 @php
     $n = fn ($v, int $dec = 2): string => $v === null ? '—' : number_format((float) $v, $dec, ',', ' ');
     $modes = ['acquise' => 'Acquise', 'deliberation' => 'Acquise par décision du jury', 'capitalisee' => 'Capitalisée', 'non_acquise' => 'Non acquise'];
-    $decisions = \App\Models\ResultatAnnuel::DECISIONS;
+    $decisions = $d->decisions();
+    $semestre = $d->estSemestrielle() ? \App\Services\Lmd\NumerotationSemestres::libelle((int) $d->semestre, $promotion ?? null) : null;
 @endphp
 @include('pdf.lmd._entete')
 </head>
 <body>
-  <h1>Relevé de notes</h1>
+  <h1>Relevé de notes{{ $semestre ? ' du '.mb_strtolower($semestre) : '' }}</h1>
   <p class="sous-titre"><em>Transcript of records</em> · Année académique {{ $d->annee_academique }} · {{ $d->session === 'rattrapage' ? 'après rattrapage' : 'session normale' }}</p>
 
   <table>
@@ -38,7 +39,7 @@
     </tbody>
   </table>
 
-  <h2>Résultat de l'année</h2>
+  <h2>{{ $semestre ? 'Résultat du semestre' : 'Résultat de l\'année' }}</h2>
   <table>
     <thead><tr><th class="n">Crédits acquis</th><th class="n">Moyenne / 20</th><th class="n">MGP / 4</th><th>Décision</th><th>Mention</th></tr></thead>
     <tbody><tr>

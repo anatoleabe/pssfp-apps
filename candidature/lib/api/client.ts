@@ -476,6 +476,8 @@ export interface ResultatPublie {
   niveau: string;
   parcours: string | null;
   session: 'normale' | 'rattrapage';
+  /** Numéro affiché du semestre pour une délibération de semestre, null pour l'année. */
+  semestre: number | null;
   publie_le: string | null;
   requetes_jusqu_au: string | null;
   decision: 'AD' | 'AS' | 'AJ';

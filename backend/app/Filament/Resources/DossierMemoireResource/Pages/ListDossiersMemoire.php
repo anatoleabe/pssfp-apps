@@ -27,7 +27,7 @@ class ListDossiersMemoire extends ListRecords
                 ->modalDescription('Un dossier de mémoire est ouvert pour chaque auditeur autorisé à soutenir (AS) de la délibération du M2 arrêtée.')
                 ->form(MessagesValidation::appliquer([
                     Forms\Components\Select::make('deliberation_id')->label('Délibération')->required()->native(false)
-                        ->options(fn (): array => Deliberation::query()->where('niveau', 'M2')->where('statut', Deliberation::ARRETEE)->orderByDesc('id')->get()
+                        ->options(fn (): array => Deliberation::query()->annuelles()->where('niveau', 'M2')->where('statut', Deliberation::ARRETEE)->orderByDesc('id')->get()
                             ->mapWithKeys(fn (Deliberation $d): array => [$d->id => $d->libelle()])->all()),
                 ]))
                 ->action(function (array $data): void {

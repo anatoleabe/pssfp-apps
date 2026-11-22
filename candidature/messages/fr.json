@@ -1221,9 +1221,15 @@
       "aucunTitre": "Pas encore de résultats publiés",
       "aucun": "Vos résultats apparaîtront ici dès leur publication, après la délibération du jury.",
       "annee": "Année {annee} · {session}",
+      "semestre": "Année {annee} · Semestre {semestre} · {session}",
       "session": {
         "normale": "session normale",
         "rattrapage": "après rattrapage"
+      },
+      "decisionSemestre": {
+        "AD": "Semestre validé",
+        "AS": "Semestre validé",
+        "AJ": "Semestre non validé"
       },
       "decision": {
         "AD": "Admis(e)",
@@ -1251,6 +1257,7 @@
         "non_acquise": "Non acquise"
       },
       "releve": "Relevé de notes (PDF)",
+      "releveSemestre": "Relevé de notes du semestre (PDF)",
       "attestation": "Attestation de réussite (PDF)",
       "certificatTitre": "Certificat de scolarité",
       "certificat": "Certificat de scolarité de l'année en cours (PDF)",

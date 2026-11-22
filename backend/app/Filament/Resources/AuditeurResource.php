@@ -196,8 +196,9 @@ class AuditeurResource extends Resource
                         ->getStateUsing(fn (Auditeur $record): array => ResultatAnnuel::query()->where('inscription_annuelle_id', $record->inscriptionCourante?->id)
                             ->whereHas('deliberation', fn ($q) => $q->where('statut', 'arretee'))->with('deliberation')->get()
                             ->map(fn (ResultatAnnuel $r): string => sprintf('%s (%s) : %s, %d crédits, moyenne %s%s',
-                                $r->deliberation->numero_pv, $r->deliberation->session === 'rattrapage' ? 'rattrapage' : 'session normale',
-                                ResultatAnnuel::DECISIONS[$r->decision] ?? $r->decision, $r->credits_acquis,
+                                $r->deliberation->numero_pv, ($r->deliberation->estSemestrielle() ? mb_strtolower((string) $r->deliberation->libelleSemestre()).', ' : '')
+                                    .($r->deliberation->session === 'rattrapage' ? 'rattrapage' : 'session normale'),
+                                $r->deliberation->decisions()[$r->decision] ?? $r->decision, $r->credits_acquis,
                                 $r->moyenne === null ? '—' : number_format((float) $r->moyenne, 2, ',', ' '),
                                 $r->deliberation->publiee_at ? ' · publié' : ' · non publié'))->all()),
                 ]),

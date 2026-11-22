@@ -49,11 +49,11 @@ final class Requetes
         }
         $cibles = [];
         $ecues = MaquetteEcue::query()->whereIn('maquette_ue_id', $inscription->inscriptionsPedagogiques()->select('maquette_ue_id'))
-            ->with('etapes')->orderBy('code')->get();
+            ->with(['etapes', 'maquetteUe'])->orderBy('code')->get();
         foreach ($ecues as $ecue) {
             foreach ([EtapeSaisie::NORMALE, EtapeSaisie::RATTRAPAGE] as $session) {
                 $notes = $ecue->etapes->where('session', $session)->where('statut', EtapeSaisie::VERROUILLEE)->pluck('etape')->values()->all();
-                if ($notes !== [] && ! $this->horsDelai($inscription, $session)) {
+                if ($notes !== [] && ! $this->horsDelai($inscription, $session, NumerotationSemestres::rang((int) $ecue->maquetteUe->semestre))) {
                     $cibles[] = ['ecue' => $ecue, 'session' => $session, 'notes' => $notes];
                 }
             }
@@ -349,8 +349,10 @@ final class Requetes
 
         $inscription = $r->inscriptionAnnuelle;
         // Même couverture que le gel (lot 16a) : parcours de l'auditeur, et délibération du rattrapage pour une note de session normale.
+        $rang = NumerotationSemestres::rang((int) $r->ecue->maquetteUe->semestre);
         Deliberation::query()->where('annee_academique', $inscription->annee_academique)->where('niveau', $inscription->niveau)
             ->where(fn ($q) => $q->whereNull('parcours_id')->orWhere('parcours_id', $inscription->parcours_id))
+            ->where(fn ($q) => $q->whereNull('semestre')->orWhere('semestre', $rang))
             ->whereIn('session', GelNotes::sessionsCouvrantes((string) $r->session))->where('statut', Deliberation::ARRETEE)
             ->whereNull('a_rectifier_at')
             ->update(['a_rectifier_at' => now(), 'a_rectifier_motif' => 'Requête '.$r->numero.' appliquée après l\'arrêt']);
@@ -379,10 +381,15 @@ final class Requetes
         return ['maquette_ecue_id' => $ecue->id, 'session' => $session, 'note_visee' => $visee, 'motif' => $motif];
     }
 
-    private function horsDelai(InscriptionAnnuelle $inscription, string $session): bool
+    /**
+     * Délai de requête clos : celui de la dernière délibération publiée qui couvre l'UE (année ou
+     * semestre, lot 17a). Une publication plus récente rouvre donc le délai pour les UE qu'elle couvre.
+     */
+    private function horsDelai(InscriptionAnnuelle $inscription, string $session, int $rangSemestre): bool
     {
         $d = Deliberation::query()->where('annee_academique', $inscription->annee_academique)->where('niveau', $inscription->niveau)
-            ->where('session', $session)->where('statut', Deliberation::ARRETEE)->whereNotNull('publiee_at')->first();
+            ->where(fn ($q) => $q->whereNull('semestre')->orWhere('semestre', $rangSemestre))
+            ->where('session', $session)->where('statut', Deliberation::ARRETEE)->whereNotNull('publiee_at')->orderByDesc('publiee_at')->first();
 
         return $d !== null && $d->requetes_jusqu_au !== null && CarbonImmutable::now('Africa/Douala')->startOfDay()->gt($d->requetes_jusqu_au);
     }

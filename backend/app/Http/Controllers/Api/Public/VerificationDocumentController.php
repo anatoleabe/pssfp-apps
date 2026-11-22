@@ -37,7 +37,9 @@ final class VerificationDocumentController extends Controller
         return response()->json(['data' => [
             ...$conforme,
             'type' => $document->type,
-            'libelle' => DocumentDelivre::TYPES[$document->type],
+            // Lot 17a : un relevé de semestre se distingue d'un relevé de l'année.
+            'libelle' => DocumentDelivre::TYPES[$document->type].($document->type === DocumentDelivre::RELEVE && $document->deliberation?->estSemestrielle()
+                ? ' du '.mb_strtolower((string) $document->deliberation->libelleSemestre()) : ''),
             'numero' => $document->numero,
             'delivre_le' => $document->created_at?->timezone('Africa/Douala')->toDateString(),
             'titulaire' => $document->titulaire,

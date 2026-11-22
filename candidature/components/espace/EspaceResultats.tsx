@@ -43,11 +43,19 @@ function Resultat({ r }: { r: ResultatPublie }): JSX.Element {
   const t = useTranslations('espace.resultats');
   const nombre = (v: number | null): string => (v === null ? '—' : v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
   const id = `resultat-${r.deliberation}`;
+  // Une délibération de semestre porte son numéro ; l'année entière n'en a pas.
+  const semestre = r.semestre ?? null;
 
   return (
     <section aria-labelledby={id} className={CARTE} data-testid="resultat">
-      <p className="pssfp-eyebrow">{t('annee', { annee: r.annee_academique, session: t(`session.${r.session}`) })}</p>
-      <h2 id={id} className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A1A1A]">{t(`decision.${r.decision}`)}</h2>
+      <p className="pssfp-eyebrow">
+        {semestre === null
+          ? t('annee', { annee: r.annee_academique, session: t(`session.${r.session}`) })
+          : t('semestre', { annee: r.annee_academique, semestre, session: t(`session.${r.session}`) })}
+      </p>
+      <h2 id={id} className="mt-1 font-heading text-pssfp-h3 font-bold text-[#1A1A1A]" data-testid="resultat-decision">
+        {semestre === null ? t(`decision.${r.decision}`) : t(`decisionSemestre.${r.decision}`)}
+      </h2>
       <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div><dt className="text-xs uppercase text-[#5C5C5C]">{t('credits')}</dt><dd className="text-lg font-semibold text-[#1A1A1A]">{r.credits}</dd></div>
         <div><dt className="text-xs uppercase text-[#5C5C5C]">{t('moyenne')}</dt><dd className="text-lg font-semibold text-[#1A1A1A]">{nombre(r.moyenne)}</dd></div>
@@ -89,9 +97,9 @@ function Resultat({ r }: { r: ResultatPublie }): JSX.Element {
       <div className="mt-5 flex flex-wrap gap-3">
         <a href={`/dossier/documents-officiels/releve_notes?deliberation=${r.deliberation}`} className={LIEN} data-testid="doc-releve">
           <Download size={16} aria-hidden="true" />
-          {t('releve')}
+          {semestre === null ? t('releve') : t('releveSemestre')}
         </a>
-        {r.documents.attestation_reussite === null ? (
+        {semestre !== null ? null : r.documents.attestation_reussite === null ? (
           <a href={`/dossier/documents-officiels/attestation_reussite?deliberation=${r.deliberation}`} className={LIEN} data-testid="doc-attestation">
             <Download size={16} aria-hidden="true" />
             {t('attestation')}
