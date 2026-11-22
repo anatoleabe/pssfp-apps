@@ -18,4 +18,6 @@ test('/verifier/{code} est public et n\'affirme jamais l\'authenticité sans ré
   await page.goto('/verifier/ABCDEF123456', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveURL(/\/verifier\/ABCDEF123456/);
   await expect(page.getByTestId('verification')).not.toContainText('authentique');
+  // Le contrôle du contenu ne se propose que pour un document reconnu (comparaison couverte côté Laravel).
+  await expect(page.getByTestId('verification-contenu')).toHaveCount(0);
 });

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { BadgeCheck, ShieldAlert } from 'lucide-react';
 import { verifierDocument } from '@/lib/api/client';
+import { VerificationContenu } from '@/components/VerificationContenu';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('verification');
@@ -9,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('title'), robots: { index: false, follow: false } };
 }
 
-/** Vérification publique d'un document officiel (RG-059) : type, numéro, date, titulaire, statut. */
+/** Vérification publique d'un document officiel (RG-059) : type, numéro, date, titulaire, statut, puis contrôle du contenu par dépôt du PDF. */
 export default async function VerifierPage({ params }: { params: { code: string } }): Promise<JSX.Element> {
   const t = await getTranslations('verification');
   const code = params.code.toUpperCase();
@@ -42,6 +43,7 @@ export default async function VerifierPage({ params }: { params: { code: string 
           </>
         )}
       </section>
+      {document !== null ? <VerificationContenu code={code} /> : null}
     </main>
   );
 }

@@ -215,6 +215,8 @@ Conséquences : 11,995 devient 12,00 et l'UE est acquise ; 11,994 devient 11,99 
 
 ## 7. Plan proposé
 
+Avancement : étape 1 en production le 22/11/2026 (PR #166), étape 2 développée (dépôt du PDF sur `/verifier/{code}`).
+
 Plan d'ensemble validé par le chef de projet le 22/11/2026. Chaque étape fait l'objet d'un plan détaillé validé avant tout code, selon la règle Plan → Act → Verify.
 
 1. Gel après délibération et archivage du PV avec QR code (B1, B2).
