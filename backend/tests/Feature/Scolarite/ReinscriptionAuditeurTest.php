@@ -8,8 +8,10 @@ use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
 use App\Models\Candidature;
+use App\Models\Deliberation;
 use App\Models\InscriptionAnnuelle;
 use App\Models\Parcours;
+use App\Models\ResultatAnnuel;
 use App\Models\User;
 use App\Services\Acma\LienArchive;
 use App\Services\Acma\Reprise\RepriseAcma;
@@ -46,6 +48,20 @@ beforeEach(function (): void {
     $this->ancien = ($this->auditeurDe)($this->p13);
     $this->reinscrire = fn (array $saisie, ?User $auteur = null): InscriptionAnnuelle => app(ReinscriptionAuditeur::class)
         ->reinscrire($this->ancien->fresh(), $saisie, $auteur ?? $this->agent);
+    /** M1 de 2025-2026 sur la plateforme, avec la décision d'une délibération arrêtée (de l'année, ou d'un semestre). */
+    $this->m1Delibere = function (string $decision, ?int $semestre = null): InscriptionAnnuelle {
+        $m1 = BaremeScolarite::factory()->create(['annee_academique' => '2025-2026']);
+        $inscription = InscriptionAnnuelle::query()->create([
+            'auditeur_id' => $this->ancien->id, 'bareme_id' => $m1->id, 'annee_academique' => '2025-2026', 'niveau' => 'M1',
+            'montant_inscription' => $m1->montant_inscription, 'montant_tranche1' => $m1->montant_tranche1, 'montant_tranche2' => $m1->montant_tranche2,
+        ]);
+        $d = Deliberation::query()->create(['annee_academique' => '2025-2026', 'niveau' => 'M1', 'session' => 'normale', 'semestre' => $semestre]);
+        $d->forceFill(['statut' => Deliberation::ARRETEE, 'numero_pv' => 'PVD-2025-2026-000'.random_int(1, 9), 'pv_sha256' => str_repeat('a', 64), 'arretee_at' => now()])->save();
+        ResultatAnnuel::query()->create(['deliberation_id' => $d->id, 'inscription_annuelle_id' => $inscription->id, 'credits_acquis' => $decision === 'AD' ? 60 : 40,
+            'credits_annee' => 60, 'decision_calculee' => $decision, 'decision' => $decision]);
+
+        return $inscription;
+    };
 });
 
 it('réinscrit en M1 dans l\'année en cours un auditeur sans inscription d\'une promotion antérieure, qui reste dans sa promotion', function (): void {
@@ -60,12 +76,15 @@ it('réinscrit en M1 dans l\'année en cours un auditeur sans inscription d\'une
         ->and($journal->properties['promotion'])->toBe(13)->and($journal->causer_id)->toBe($this->agent->id);
 });
 
-it('réinscrit en M2 un auditeur dont le M1 est sur la plateforme, une année antérieure', function (): void {
-    $m1 = BaremeScolarite::factory()->create(['annee_academique' => '2025-2026']);
-    InscriptionAnnuelle::query()->create([
-        'auditeur_id' => $this->ancien->id, 'bareme_id' => $m1->id, 'annee_academique' => '2025-2026', 'niveau' => 'M1',
-        'montant_inscription' => $m1->montant_inscription, 'montant_tranche1' => $m1->montant_tranche1, 'montant_tranche2' => $m1->montant_tranche2,
-    ]);
+it('refuse le M2 à un M1 suivi mais ajourné, ou validé pour un seul semestre', function (string $decision, ?int $semestre): void {
+    ($this->m1Delibere)($decision, $semestre);
+
+    expect(ReinscriptionAuditeur::estAdmisEnM1($this->ancien))->toBeFalse()
+        ->and(fn () => ($this->reinscrire)(['niveau' => 'M2', 'parcours' => 'ACFP']))->toThrow(InvalidArgumentException::class, 'Aucun M1 admis');
+})->with([['AJ', null], ['AD', 1]]);
+
+it('réinscrit en M2 un auditeur admis en M1 sur la plateforme, une année antérieure', function (): void {
+    ($this->m1Delibere)('AD');
 
     $inscription = ($this->reinscrire)(['niveau' => 'M2', 'parcours' => 'ACFP']);
 
@@ -74,7 +93,7 @@ it('réinscrit en M2 un auditeur dont le M1 est sur la plateforme, une année an
         ->and(InscriptionAnnuelle::query()->where('auditeur_id', $this->ancien->id)->count())->toBe(2);
 });
 
-it('réinscrit en M2 un auditeur dont le M1 est dans l\'archive ACMA liée', function (): void {
+it('réinscrit en M2 un auditeur dont le M1 admis est dans l\'archive ACMA liée', function (): void {
     Storage::fake('local');
     TransitAcma::construire();
     $admin = ($this->compte)('admin');
@@ -84,7 +103,7 @@ it('réinscrit en M2 un auditeur dont le M1 est dans l\'archive ACMA liée', fun
     expect(($this->reinscrire)(['niveau' => 'M2', 'parcours' => 'ACFP'])->niveau)->toBe('M2');
 });
 
-it('refuse le M2 sans M1 suivi, sauf dérogation motivée avec sa pièce par le responsable', function (): void {
+it('refuse le M2 sans M1 admis, sauf dérogation motivée avec sa pièce par le responsable', function (): void {
     expect(fn () => ($this->reinscrire)(['niveau' => 'M2', 'parcours' => 'ACFP']))
         ->toThrow(InvalidArgumentException::class, 'dérogation')
         ->and(fn () => ($this->reinscrire)(['niveau' => 'M2', 'parcours' => 'ACFP', 'derogation_m2' => true, 'derogation_piece' => 'Note 12/2026', 'motif' => 'Reprise validée par le directeur']))

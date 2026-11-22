@@ -2,15 +2,18 @@
 
 declare(strict_types=1);
 
+use App\Models\AcquisUe;
 use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
 use App\Models\InscriptionAnnuelle;
 use App\Models\InscriptionPedagogique;
 use App\Models\Maquette;
+use App\Models\MaquetteUe;
 use App\Models\Parcours;
 use App\Models\User;
 use App\Services\Lmd\ImportMaquettes;
 use App\Services\Lmd\InscriptionsPedagogiques;
+use App\Services\Lmd\SaisieNotes;
 use App\Services\Lmd\ValidationMaquette;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
@@ -120,4 +123,20 @@ it('rend compte par matricules seulement en essai à blanc de la commande', func
     expect(InscriptionPedagogique::query()->count())->toBe(0);
 
     $this->artisan('lmd:inscrire --appliquer')->expectsOutputToContain('inscriptions faites : 1 (6 UE)')->assertSuccessful();
+});
+
+it('pose « capitalisée » l\'UE qu\'un redoublant a acquise une année antérieure, et la sort de la liste de saisie', function (): void {
+    ($this->valider)('TC');
+    $inscription = inscriptionLmd('M1');
+    $ue = MaquetteUe::query()->whereHas('maquette.parcours', fn ($q) => $q->where('code', 'TC'))->with('ecues')->orderBy('id')->firstOrFail();
+    // Acquis de l'année précédente (2025-2026) sur la même UE du catalogue ; un acquis de M2 ne compte pas.
+    AcquisUe::query()->create(['auditeur_id' => $inscription->auditeur_id, 'unite_enseignement_id' => $ue->unite_enseignement_id, 'maquette_ue_id' => $ue->id,
+        'niveau' => 'M1', 'credits' => $ue->credits, 'note_retenue' => '13.000', 'annee_academique' => '2025-2026', 'session' => 'normale', 'origine' => 'reprise']);
+
+    app(InscriptionsPedagogiques::class)->inscrire($inscription);
+
+    $statuts = $inscription->inscriptionsPedagogiques()->pluck('statut', 'maquette_ue_id');
+    expect($statuts[$ue->id])->toBe(InscriptionPedagogique::CAPITALISEE)
+        ->and($statuts->filter(fn (string $s): bool => $s === InscriptionPedagogique::INSCRIT)->count())->toBe(5)
+        ->and(app(SaisieNotes::class)->inscrits($ue->ecues->first()))->toHaveCount(0);
 });
