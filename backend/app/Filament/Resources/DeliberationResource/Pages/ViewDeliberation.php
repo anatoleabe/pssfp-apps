@@ -130,11 +130,23 @@ class ViewDeliberation extends ViewRecord
                 ->visible(fn (): bool => $d()->statut === Deliberation::ARRETEE && $d()->publiee_at === null && $peut(PermissionsLmd::DELIBERATION_PUBLIER))
                 ->requiresConfirmation()
                 ->modalDescription('Les auditeurs voient leurs résultats dans leur espace ; la date limite des requêtes est fixée.')
-                ->action(fn () => $this->executer(fn (): string => 'Résultats publiés ; requêtes jusqu\'au '.app(Deliberations::class)->publier($d(), $this->utilisateur())->format('d/m/Y').'.')),
+                ->form(fn (): array => Deliberations::signaturePapier($d()) ? MessagesValidation::appliquer([
+                    Forms\Components\FileUpload::make('scan')->label('Scan du PV signé (PDF)')->required()->storeFiles(false)
+                        ->maxSize(10240)->acceptedFileTypes(['application/pdf'])
+                        ->helperText('Une signature a été constatée sur papier : le PV signé est conservé avec la délibération.'),
+                ], ['mimetypes' => 'Format accepté : PDF.']) : [])
+                ->action(fn (array $data) => $this->executer(fn (): string => 'Résultats publiés ; requêtes jusqu\'au '
+                    .app(Deliberations::class)->publier($d(), $this->utilisateur(), isset($data['scan']) ? (string) $data['scan']->getRealPath() : null)->format('d/m/Y').'.')),
             ActionGroup::make([
                 Action::make('pv')->label('PV (PDF)')->icon('heroicon-o-document-arrow-down')
-                    ->action(function () use ($d): StreamedResponse {
-                        $pdf = app(PvDeliberation::class)->pv($d());
+                    ->action(function () use ($d): ?StreamedResponse {
+                        try {
+                            $pdf = app(PvDeliberation::class)->pv($d());
+                        } catch (InvalidArgumentException $e) {
+                            Notification::make()->danger()->title('PV indisponible')->body($e->getMessage())->persistent()->send();
+
+                            return null;
+                        }
 
                         return response()->streamDownload(fn () => print ($pdf), mb_strtolower(($d()->numero_pv ?? 'projet-pv')).'.pdf', ['Content-Type' => 'application/pdf']);
                     }),

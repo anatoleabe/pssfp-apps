@@ -348,8 +348,10 @@ final class Requetes
         $this->passer($r, 'appliquee', 'Note corrigée : '.number_format((float) $r->note_retenue, 2, ',', ' ').' / 20', null, $chef);
 
         $inscription = $r->inscriptionAnnuelle;
+        // Même couverture que le gel (lot 16a) : parcours de l'auditeur, et délibération du rattrapage pour une note de session normale.
         Deliberation::query()->where('annee_academique', $inscription->annee_academique)->where('niveau', $inscription->niveau)
-            ->where('session', $r->session === EtapeSaisie::RATTRAPAGE ? 'rattrapage' : 'normale')->where('statut', Deliberation::ARRETEE)
+            ->where(fn ($q) => $q->whereNull('parcours_id')->orWhere('parcours_id', $inscription->parcours_id))
+            ->whereIn('session', GelNotes::sessionsCouvrantes((string) $r->session))->where('statut', Deliberation::ARRETEE)
             ->whereNull('a_rectifier_at')
             ->update(['a_rectifier_at' => now(), 'a_rectifier_motif' => 'Requête '.$r->numero.' appliquée après l\'arrêt']);
     }

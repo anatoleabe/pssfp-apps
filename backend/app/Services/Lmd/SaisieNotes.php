@@ -27,7 +27,7 @@ final class SaisieNotes
 {
     public const MOTIF_MIN = 5;
 
-    public function __construct(private readonly CalculNotes $calcul) {}
+    public function __construct(private readonly CalculNotes $calcul, private readonly GelNotes $gel) {}
 
     public function etape(MaquetteEcue $ecue, string $session, string $etape): EtapeSaisie
     {
@@ -101,6 +101,7 @@ final class SaisieNotes
             if ($etape->statut !== EtapeSaisie::VERROUILLEE) {
                 throw new InvalidArgumentException('Seule une étape verrouillée se rouvre.');
             }
+            $this->gel->exiger($etape->ecue, $etape->session);
             $etape->forceFill(['statut' => EtapeSaisie::OUVERTE, 'rouverte_par' => $auteur->id, 'rouverte_at' => now(), 'motif_reouverture' => $motif])->save();
             $this->journal($etape, $auteur, 'etape_rouverte', 'Étape de saisie rouverte', ['motif' => $motif]);
         });
@@ -136,6 +137,7 @@ final class SaisieNotes
                 throw new InvalidArgumentException(sprintf('Saisie refusée : étape « %s » %s. Correction par requête ou réouverture motivée.',
                     EtapeSaisie::ETAPES[$etape->etape], $etape->statut === EtapeSaisie::FERMEE ? 'fermée' : 'verrouillée'));
             }
+            $this->gel->exiger($etape->ecue, $etape->session);
             if ($etape->etape === EtapeSaisie::EXAMEN && Anonymat::enCours($etape->maquette_ecue_id, $etape->session)) {
                 throw new InvalidArgumentException('Saisie refusée : cet examen est sous anonymat ; les notes se saisissent sur les numéros (D36).');
             }

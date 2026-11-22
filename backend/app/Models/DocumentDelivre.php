@@ -24,11 +24,15 @@ class DocumentDelivre extends Model
 
     public const AUTORISATION_DEPOT = 'autorisation_depot';
 
+    /** PV de délibération (lot 16a) : sans auditeur, numéroté par le numéro du PV. */
+    public const PV = 'pv_deliberation';
+
     public const TYPES = [
         self::RELEVE => 'Relevé de notes',
         self::ATTESTATION => 'Attestation de réussite',
         self::CERTIFICAT => 'Certificat de scolarité',
         self::AUTORISATION_DEPOT => 'Attestation d\'autorisation de dépôt du mémoire',
+        self::PV => 'Procès-verbal de délibération',
     ];
 
     public const PREFIXES = [self::RELEVE => 'RN', self::ATTESTATION => 'AR', self::CERTIFICAT => 'CS', self::AUTORISATION_DEPOT => 'AD'];

@@ -111,6 +111,42 @@ final class DocumentsOfficiels
         });
     }
 
+    /**
+     * PV de délibération (spec lot 16a) : archivé une seule fois sous le numéro du PV, scellé et
+     * vérifiable. Rejouable : un PV déjà archivé, même révoqué, est rendu tel quel.
+     *
+     * @param  callable(string, string): string  $produire  code, adresse de vérification → PDF
+     */
+    public function archiverPv(Deliberation $d, callable $produire, ?User $auteur): DocumentDelivre
+    {
+        if ($d->numero_pv === null) {
+            throw new InvalidArgumentException('Seul le PV d\'une délibération arrêtée s\'archive.');
+        }
+
+        return DB::transaction(function () use ($d, $produire, $auteur): DocumentDelivre {
+            DB::select('SELECT pg_advisory_xact_lock(?)', [crc32('document_pv_'.$d->id)]);
+            $existant = DocumentDelivre::query()->where('type', DocumentDelivre::PV)->where('deliberation_id', $d->id)->orderBy('id')->first();
+            if ($existant !== null) {
+                return $existant;
+            }
+            $code = Str::upper(Str::random(12));
+            $pdf = $produire($code, config('pssfp.candidature_app_url').'/verifier/'.$code);
+            $chemin = self::DOSSIER.'/'.Str::ulid().'.pdf';
+            if (! Storage::disk(CandidatureObjectStorage::DISK)->put($chemin, $pdf)) {
+                throw new InvalidArgumentException('Le PV n\'a pas pu être enregistré : réessayez dans quelques minutes.');
+            }
+            $document = DocumentDelivre::query()->create([
+                'type' => DocumentDelivre::PV, 'numero' => $d->numero_pv, 'code_verification' => $code, 'deliberation_id' => $d->id,
+                'titulaire' => mb_substr('Jury de délibération · '.$d->libelle(), 0, 255), 'chemin' => $chemin,
+                'sha256' => hash('sha256', $pdf), 'delivre_par' => $auteur?->id,
+            ]);
+            activity('lmd')->causedBy($auteur)->performedOn($d)->event('pv_archive')
+                ->withProperties(['numero' => $d->numero_pv, 'sha256' => $document->sha256])->log('PV de délibération archivé');
+
+            return $document;
+        });
+    }
+
     /** Contenu conservé du document (jamais régénéré). */
     public function contenu(DocumentDelivre $document): string
     {
@@ -126,6 +162,9 @@ final class DocumentsOfficiels
     {
         if ($auteur !== null) {
             abort_unless($auteur->can(PermissionsLmd::DOCUMENTS_REVOQUER), 403);
+            if ($document->type === DocumentDelivre::PV) {
+                throw new InvalidArgumentException('Un PV de délibération ne se révoque que par une rectification de la délibération.');
+            }
         }
         if (mb_strlen(trim($motif)) < 10) {
             throw new InvalidArgumentException('Indiquez le motif de la révocation (10 caractères au moins).');
@@ -134,7 +173,7 @@ final class DocumentsOfficiels
             return;
         }
         $document->forceFill(['revoque_at' => now(), 'revoque_motif' => mb_substr(trim($motif), 0, 500), 'revoque_par' => $auteur?->id])->save();
-        activity('lmd')->causedBy($auteur)->performedOn($document->auditeur)->event('document_revoque')
+        activity('lmd')->causedBy($auteur)->performedOn($document->auditeur ?? $document->deliberation ?? $document)->event('document_revoque')
             ->withProperties(['numero' => $document->numero, 'motif' => trim($motif)])->log('Document officiel révoqué');
     }
 
@@ -191,7 +230,7 @@ final class DocumentsOfficiels
      */
     private function verifier(string $type, Auditeur $auditeur, ?Deliberation $d): array
     {
-        if (! array_key_exists($type, DocumentDelivre::TYPES)) {
+        if (! array_key_exists($type, DocumentDelivre::TYPES) || $type === DocumentDelivre::PV) {
             throw new InvalidArgumentException('Document inconnu.');
         }
         if ($type === DocumentDelivre::CERTIFICAT) {

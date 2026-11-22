@@ -5,21 +5,45 @@ declare(strict_types=1);
 namespace App\Services\Lmd;
 
 use App\Models\Deliberation;
+use App\Models\DocumentDelivre;
 use App\Models\ResultatAnnuel;
 use App\Models\ResultatScenario;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 /**
- * PV de délibération et liste d'affichage en PDF (D35, D37). Le PV d'une
- * délibération arrêtée lit les résultats figés ; sinon le scénario retenu
- * (« projet »). L'empreinte du premier PV arrêté produit est enregistrée une fois.
+ * PV de délibération et liste d'affichage en PDF (D35, D37 ; spec lot 16a). Avant l'arrêt, le PV
+ * est un projet produit à la demande depuis le scénario retenu. À l'arrêt, il est archivé au
+ * registre des documents délivrés avec son code de vérification : tout téléchargement sert ce
+ * fichier, jamais régénéré.
  */
 final class PvDeliberation
 {
-    public function __construct(private readonly Deliberations $deliberations) {}
+    public function __construct(private readonly Deliberations $deliberations, private readonly DocumentsOfficiels $documents) {}
 
+    /** @throws InvalidArgumentException fichier archivé absent ou altéré */
     public function pv(Deliberation $d): string
+    {
+        return $d->statut === Deliberation::SIMULATION
+            ? $this->rendre($d, null, null)
+            : $this->documents->contenu($this->archiver($d, null));
+    }
+
+    /** Archive le PV d'une délibération arrêtée (rejouable) ; celui d'une délibération rectifiée est aussitôt révoqué. */
+    public function archiver(Deliberation $d, ?User $auteur): DocumentDelivre
+    {
+        $document = $this->documents->archiverPv($d, fn (string $code, string $url): string => $this->rendre($d, $code, $url), $auteur);
+        if ($d->statut === Deliberation::RECTIFIEE && ! $document->estRevoque()) {
+            $this->documents->revoquer($document, 'Délibération rectifiée par le '.($d->rectification?->numero_pv ?? 'PV rectificatif'), null);
+        }
+
+        return $document;
+    }
+
+    private function rendre(Deliberation $d, ?string $code, ?string $url): string
     {
         $d->loadMissing(['jury', 'parcours', 'rectifiee']);
         $arretee = $d->statut !== Deliberation::SIMULATION;
@@ -29,8 +53,10 @@ final class PvDeliberation
         $participations = $d->participations()->with('membre')->get()
             ->sortBy(fn ($p): array => [array_search($p->membre->role, ['president', 'vice_president', 'rapporteur', 'membre'], true), $p->membre->rang])->values();
 
-        $pdf = Pdf::loadView('pdf.lmd.pv-deliberation', [
+        return Pdf::loadView('pdf.lmd.pv-deliberation', [
             'd' => $d,
+            'numero' => $d->numero_pv, 'code' => $code, 'url' => $url, 'edite_le' => now('Africa/Douala'),
+            'qr' => $url === null ? null : 'data:image/svg+xml;base64,'.base64_encode((string) QrCode::format('svg')->size(110)->margin(0)->generate($url)),
             'resultats' => $resultats,
             'mesures' => $mesures,
             'participations' => $participations,
@@ -42,12 +68,6 @@ final class PvDeliberation
                 'AJ' => $resultats->where('decision', 'AJ')->count(),
             ],
         ])->setPaper('a4', 'landscape')->output();
-
-        if ($arretee && $d->pv_pdf_sha256 === null) {
-            $d->forceFill(['pv_pdf_sha256' => hash('sha256', $pdf)])->save();
-        }
-
-        return $pdf;
     }
 
     /** Liste d'affichage sans notes (ENF-12), seulement pour une délibération arrêtée. */

@@ -21,9 +21,12 @@ use App\Models\ResultatScenario;
 use App\Models\ResultatScenarioUe;
 use App\Models\Scenario;
 use App\Models\User;
+use App\Support\CandidatureObjectStorage;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 /**
@@ -34,6 +37,8 @@ use InvalidArgumentException;
 final class Deliberations
 {
     public const SCENARIO_BASE = 'Application stricte des règles';
+
+    public const SCAN_MAX_OCTETS = 10 * 1024 * 1024;
 
     private const RANG_DECISION = ['AJ' => 0, 'AS' => 1, 'AD' => 2];
 
@@ -295,6 +300,8 @@ final class Deliberations
             if ($d->rectifie_id !== null) {
                 app(DocumentsOfficiels::class)->revoquerPourRectification($d->rectifiee, $d);
             }
+            // Lot 16a : le PV arrêté est archivé une fois ; tout téléchargement sert ce fichier.
+            app(PvDeliberation::class)->archiver($d, $auteur);
             $this->journal($d, $auteur, 'deliberation_arretee', 'Délibération arrêtée', ['numero_pv' => $numero, 'resultats' => $resultats->count(), 'sceau' => $sceau]);
 
             return $numero;
@@ -352,11 +359,15 @@ final class Deliberations
         $this->journal($d, $auteur, 'signature_constatee', 'Signature constatée sur le PV papier', ['membre' => $membre->libelle()]);
     }
 
-    public function publier(Deliberation $d, User $auteur): CarbonImmutable
+    /**
+     * @param  ?string  $scan  chemin local du scan du PV signé (PDF) ; obligatoire si une signature a été constatée sur papier (lot 16a)
+     */
+    public function publier(Deliberation $d, User $auteur, ?string $scan = null): CarbonImmutable
     {
         abort_unless($auteur->can(PermissionsLmd::DELIBERATION_PUBLIER), 403);
+        $contenu = $scan === null ? null : $this->scanSigne($scan);
 
-        return DB::transaction(function () use ($d, $auteur): CarbonImmutable {
+        return DB::transaction(function () use ($d, $auteur, $contenu): CarbonImmutable {
             $d = Deliberation::query()->lockForUpdate()->findOrFail($d->id);
             if ($d->statut !== Deliberation::ARRETEE) {
                 throw new InvalidArgumentException('Seule une délibération arrêtée se publie.');
@@ -368,13 +379,46 @@ final class Deliberations
             if ($manquantes !== []) {
                 throw new InvalidArgumentException('PV non signé par : '.implode(', ', $manquantes).'.');
             }
+            if ($contenu === null && self::signaturePapier($d)) {
+                throw new InvalidArgumentException('Une signature a été constatée sur papier : joignez le scan du PV signé (PDF).');
+            }
+            $piece = [];
+            if ($contenu !== null) {
+                $chemin = DocumentsOfficiels::DOSSIER.'/pv-signes/'.Str::ulid().'.pdf';
+                if (! Storage::disk(CandidatureObjectStorage::DISK)->put($chemin, $contenu)) {
+                    throw new InvalidArgumentException('Le scan du PV signé n\'a pas pu être enregistré : réessayez dans quelques minutes.');
+                }
+                $piece = ['pv_signe_chemin' => $chemin, 'pv_signe_sha256' => hash('sha256', $contenu)];
+            }
             $delai = (int) (RegleEvaluation::pourAnnee($d->annee_academique)->jury['delai_requetes_jours'] ?? 10);
             $limite = CarbonImmutable::now('Africa/Douala')->startOfDay()->addDays($delai);
-            $d->forceFill(['publiee_at' => now(), 'publiee_par' => $auteur->id, 'requetes_jusqu_au' => $limite->toDateString()])->save();
-            $this->journal($d, $auteur, 'deliberation_publiee', 'Résultats publiés', ['requetes_jusqu_au' => $limite->toDateString()]);
+            $d->forceFill(['publiee_at' => now(), 'publiee_par' => $auteur->id, 'requetes_jusqu_au' => $limite->toDateString(), ...$piece])->save();
+            $this->journal($d, $auteur, 'deliberation_publiee', 'Résultats publiés', array_filter([
+                'requetes_jusqu_au' => $limite->toDateString(), 'pv_signe_sha256' => $piece['pv_signe_sha256'] ?? null,
+            ]));
 
             return $limite;
         });
+    }
+
+    /** Une signature du PV a-t-elle été constatée sur papier ? Le scan du PV signé est alors exigé à la publication. */
+    public static function signaturePapier(Deliberation $d): bool
+    {
+        return $d->participations()->whereNotNull('signature_constatee_par')->exists();
+    }
+
+    /** @throws InvalidArgumentException fichier illisible, trop lourd ou qui n'est pas un PDF */
+    private function scanSigne(string $chemin): string
+    {
+        $contenu = is_file($chemin) ? file_get_contents($chemin) : false;
+        if ($contenu === false || ! str_starts_with($contenu, '%PDF')) {
+            throw new InvalidArgumentException('Le scan du PV signé doit être un fichier PDF.');
+        }
+        if (strlen($contenu) > self::SCAN_MAX_OCTETS) {
+            throw new InvalidArgumentException('Le scan du PV signé dépasse 10 Mo.');
+        }
+
+        return $contenu;
     }
 
     /** Rectification (D35, D37) : nouvelle délibération liée, même jury, mesures du scénario retenu. */

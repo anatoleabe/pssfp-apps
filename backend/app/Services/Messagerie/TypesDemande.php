@@ -381,7 +381,8 @@ final class TypesDemande
             self::VALIDER_MAQUETTE => Maquette::query()->where('statut', Maquette::BROUILLON)->with('parcours'),
             self::ANNULER_POINTAGE => PointageEnseignant::query()->where('statut', PointageEnseignant::VALIDE)->whereNull('ligne_paie_id')
                 ->with(['seance.ecue:id,code,intitule', 'enseignant:id,name']),
-            self::REVOQUER_DOCUMENT => DocumentDelivre::query()->whereNull('revoque_at'),
+            // Un PV de délibération ne se révoque que par une rectification (lot 16a).
+            self::REVOQUER_DOCUMENT => DocumentDelivre::query()->whereNull('revoque_at')->where('type', '<>', DocumentDelivre::PV),
             self::REJETER_ETAT_PAIE => EtatPaie::query()->whereIn('statut', self::ETATS_PAIE_REJETABLES),
             self::DEVERROUILLER_COMPTE => VerrouillageComptes::verrouilles(),
             self::ACCORDER_MORATOIRE => InscriptionAnnuelle::query()->whereHas('auditeur.candidature')->with('auditeur.candidature'),
