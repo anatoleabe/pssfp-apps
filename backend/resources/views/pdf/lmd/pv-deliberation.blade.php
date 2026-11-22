@@ -92,5 +92,8 @@
     <p class="sceau">Arrêté le {{ $d->arretee_at?->timezone('Africa/Douala')->format('d/m/Y à H:i') }}. Sceau des résultats (SHA-256) : {{ $d->pv_sha256 }}.
       Toute modification des résultats après l'arrêt est impossible sans PV rectificatif.</p>
   @endif
+  @if (! empty($code))
+    @include('pdf.lmd._verification')
+  @endif
 </body>
 </html>

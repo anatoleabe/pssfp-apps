@@ -112,7 +112,7 @@ it('délivre un relevé numéroté, vérifiable, et sert le même fichier ensuit
     $premier = $this->withToken(($this->jeton)($this->admis))->get($url)->assertOk()->assertHeader('Content-Type', 'application/pdf')->getContent();
     $second = $this->withToken(($this->jeton)($this->admis))->get($url)->assertOk()->getContent();
 
-    $doc = DocumentDelivre::query()->sole();
+    $doc = DocumentDelivre::query()->where('type', DocumentDelivre::RELEVE)->sole();
     expect($premier)->toBe($second)->toStartWith('%PDF')
         ->and($doc->numero)->toBe('RN-2026-000001')
         ->and($doc->sha256)->toBe(hash('sha256', $premier));
@@ -168,7 +168,10 @@ it('constate sur le PV papier la signature d\'un membre sans compte, de façon t
 
     $this->service->constaterSignature($this->d->refresh(), $sansCompte, $this->responsable);
 
-    $this->service->publier($this->d->refresh(), $this->responsable);
+    // Lot 16a : une signature constatée sur papier exige le scan du PV signé.
+    $scan = tempnam(sys_get_temp_dir(), 'pv');
+    file_put_contents($scan, "%PDF-1.4\nPV signé");
+    $this->service->publier($this->d->refresh(), $this->responsable, $scan);
     expect(ParticipationDeliberation::query()->where('membre_jury_id', $sansCompte->id)->value('signature_constatee_par'))->toBe($this->responsable->id);
 });
 
@@ -213,7 +216,7 @@ it('numérote les semestres d\'un nouveau relevé selon la promotion, sans jamai
     $this->admis->auditeur->candidature->campagne->update(['numerotation_semestres' => NumerotationSemestres::LMD]);
     app('auth')->forgetGuards();
     $second = $this->withToken(($this->jeton)($this->admis))->get($url)->assertOk()->getContent();
-    $doc = DocumentDelivre::query()->sole();
+    $doc = DocumentDelivre::query()->where('type', DocumentDelivre::RELEVE)->sole();
     expect($second)->toBe($premier)
         ->and($donnees)->toHaveCount(1)
         ->and($doc->sha256)->toBe(hash('sha256', $premier))

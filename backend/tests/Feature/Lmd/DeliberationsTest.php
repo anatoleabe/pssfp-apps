@@ -23,12 +23,14 @@ use App\Services\Lmd\Deliberations;
 use App\Services\Lmd\ImportMaquettes;
 use App\Services\Lmd\InscriptionsPedagogiques;
 use App\Services\Lmd\PvDeliberation;
+use App\Support\CandidatureObjectStorage;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -36,6 +38,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 uses()->group('lmd');
 
 beforeEach(function (): void {
+    Storage::fake(CandidatureObjectStorage::DISK);
     config()->set('pssfp.filament.require_2fa', false);
     $this->seed([PaysSeeder::class, RegionsCamerounSeeder::class, DepartementsCamerounSeeder::class, RolePermissionSeeder::class]);
     app(ImportMaquettes::class)->importer(json_decode((string) file_get_contents(resource_path('lmd/maquettes-2026-2027.json')), true), true);
@@ -282,7 +285,7 @@ it('compte une UE capitalisée une année antérieure', function (): void {
     expect($r->credits_acquis)->toBe(60)->and($r->credits_annee)->toBe(51)->and($r->decision)->toBe('AD');
 });
 
-it('produit le PV en PDF et en garde l\'empreinte une fois arrêté', function (): void {
+it('produit le PV en projet, puis sert le PV archivé une fois arrêté', function (): void {
     auditeurNote('M1', null, 14);
     verrouillerTout();
     $d = deliberationM1($this);
@@ -290,13 +293,13 @@ it('produit le PV en PDF et en garde l\'empreinte une fois arrêté', function (
     $this->service->calculer($s, $this->agent);
 
     expect(app(PvDeliberation::class)->pv($d))->toStartWith('%PDF');
-    expect($d->refresh()->pv_pdf_sha256)->toBeNull();
 
     $this->service->ouvrirSeance($d, ($this->tous)(), $this->agent);
     $this->service->retenir($s, $this->agent);
     $this->service->arreter($d->refresh(), $this->responsable);
     $pdf = app(PvDeliberation::class)->pv($d->refresh());
-    expect($d->refresh()->pv_pdf_sha256)->toBe(hash('sha256', $pdf))
+    expect($pdf)->toStartWith('%PDF')
+        ->and(app(PvDeliberation::class)->pv($d->refresh()))->toBe($pdf)
         ->and(app(PvDeliberation::class)->affichage($d))->toStartWith('%PDF');
 });
 
