@@ -175,6 +175,7 @@ final class ModulePermissionMap
                     'lmd.notes_rouvrir' => 'Rouvrir une étape de saisie verrouillée (avec motif)',
                     'lmd.derogation_rattrapage' => 'Accorder une dérogation pour le rattrapage',
                     'lmd.notes_enseignant' => 'Saisir le contrôle continu et l\'assiduité de ses ECUE (enseignant)',
+                    'lmd.point_focal' => 'Tenir l\'assiduité et le contrôle continu des cours de ses classes, voir la liste de ses auditeurs (point focal)',
                     'lmd.deliberation_arreter' => 'Arrêter et rectifier une délibération (résultats figés, PV numéroté)',
                     'lmd.deliberation_publier' => 'Publier les résultats d\'une délibération',
                     'lmd.jury_signer' => 'Consulter les délibérations de ses jurys et signer leur PV (membre de jury)',
@@ -198,7 +199,7 @@ final class ModulePermissionMap
                     'lmd.paie_payer' => 'Prendre en charge et payer les états de paie des enseignants (service financier)',
                     'lmd.controle_gestion' => 'Consulter le contrôle de gestion : coûts par UE et par parcours, tableau de bord mensuel, dossiers en retard',
                 ],
-                'standalone' => ['lmd.notes_enseignant', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir', 'lmd.calendrier_signer', 'lmd.actes_signer', 'lmd.programmation_repondre', 'lmd.pointage_emarger', 'lmd.dossier_paie', 'lmd.paie_viser', 'lmd.paie_payer', 'lmd.controle_gestion'],
+                'standalone' => ['lmd.notes_enseignant', 'lmd.point_focal', 'lmd.jury_signer', 'lmd.requetes_valider', 'lmd.anonymat_gerer', 'lmd.anonymat_saisir', 'lmd.calendrier_signer', 'lmd.actes_signer', 'lmd.programmation_repondre', 'lmd.pointage_emarger', 'lmd.dossier_paie', 'lmd.paie_viser', 'lmd.paie_payer', 'lmd.controle_gestion'],
             ],
             'bibliotheque' => [
                 'label' => 'Bibliothèque',

@@ -12,7 +12,7 @@ final class SeancePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->can(PermissionsLmd::ASSIDUITE) || $user->can(PermissionsLmd::NOTES_ENSEIGNANT);
+        return $user->can(PermissionsLmd::ASSIDUITE) || $user->can(PermissionsLmd::NOTES_ENSEIGNANT) || $user->can(PermissionsLmd::POINT_FOCAL);
     }
 
     public function view(User $user): bool

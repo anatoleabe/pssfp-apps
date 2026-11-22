@@ -27,6 +27,9 @@ final class PermissionsLmd
 
     public const NOTES_ENSEIGNANT = 'lmd.notes_enseignant';
 
+    /** Point focal de classe (lot 16b) : assiduité et contrôle continu des cours de ses classes. */
+    public const POINT_FOCAL = 'lmd.point_focal';
+
     public const DEROGATION_RATTRAPAGE = 'lmd.derogation_rattrapage';
 
     public const DELIBERATION_PREPARER = 'lmd.deliberation_preparer';

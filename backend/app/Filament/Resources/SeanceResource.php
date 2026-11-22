@@ -8,9 +8,9 @@ use App\Filament\Concerns\RestrictedToModule;
 use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
 use App\Filament\Resources\SeanceResource\Pages;
-use App\Models\AttributionEcue;
 use App\Models\MaquetteEcue;
 use App\Models\Seance;
+use App\Services\Lmd\PerimetreCours;
 use App\Services\Lmd\PermissionsLmd;
 use App\Support\BelongsToModule;
 use Filament\Forms;
@@ -42,12 +42,16 @@ class SeanceResource extends Resource
 
     protected static ?int $navigationSort = 50;
 
-    /** ECUE visibles : tous pour la scolarité, les siens pour un enseignant. */
+    /** ECUE visibles : tous pour la scolarité, les siens pour un enseignant, ceux de ses classes pour un point focal. */
     public static function ecuesAccessibles(): Builder
     {
         $query = MaquetteEcue::query()->whereHas('maquetteUe.maquette', fn ($q) => $q->where('statut', 'validee'));
-        if (! auth()->user()?->can(PermissionsLmd::ASSIDUITE)) {
-            $query->whereIn('id', AttributionEcue::query()->where('user_id', auth()->id())->select('maquette_ecue_id'));
+        $user = auth()->user();
+        if ($user === null) {
+            return $query->whereKey([]);
+        }
+        if (! $user->can(PermissionsLmd::ASSIDUITE)) {
+            $query->whereIn('id', PerimetreCours::ecues($user)->select('id'));
         }
 
         return $query;

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Lmd;
 
-use App\Models\AttributionEcue;
 use App\Models\EtapeSaisie;
 use App\Models\InscriptionPedagogique;
 use App\Models\MaquetteEcue;
@@ -25,11 +24,10 @@ final class Assiduite
 {
     public function __construct(private readonly SaisieNotes $saisie) {}
 
-    /** L'auteur gère-t-il les séances de cet ECUE ? Scolarité, ou enseignant attributaire. */
+    /** L'auteur gère-t-il les séances de cet ECUE ? Scolarité, enseignant attributaire ou point focal de la classe. */
     public function peutGerer(MaquetteEcue $ecue, User $user): bool
     {
-        return $user->can(PermissionsLmd::ASSIDUITE)
-            || ($user->can(PermissionsLmd::NOTES_ENSEIGNANT) && AttributionEcue::query()->where('maquette_ecue_id', $ecue->id)->where('user_id', $user->id)->exists());
+        return $user->can(PermissionsLmd::ASSIDUITE) || PerimetreCours::couvre($user, (int) $ecue->id);
     }
 
     /** @param  array{date_seance: string, debut: string, fin: string, modalite?: string, salle?: ?string, lien_reunion?: ?string}  $data */

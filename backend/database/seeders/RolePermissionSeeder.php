@@ -208,6 +208,12 @@ final class RolePermissionSeeder extends Seeder
                 'modules' => [],
                 'sensitive' => ['lmd.notes_enseignant', 'lmd.programmation_repondre', 'lmd.pointage_emarger'],
             ],
+            'point_focal' => [
+                'label' => 'Point focal de classe',
+                'description' => 'Assiduité et contrôle continu des cours de sa classe ; liste de ses auditeurs en lecture seule.',
+                'modules' => [],
+                'sensitive' => ['lmd.point_focal'],
+            ],
             'membre_jury' => [
                 'label' => 'Membre de jury',
                 'description' => 'Consultation des délibérations de ses jurys et signature de leurs PV.',

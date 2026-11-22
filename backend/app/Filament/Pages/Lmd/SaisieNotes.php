@@ -7,7 +7,6 @@ namespace App\Filament\Pages\Lmd;
 use App\Filament\Concerns\ChecksModuleAccess;
 use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Resources\AuditeurResource\MessagesValidation;
-use App\Models\AttributionEcue;
 use App\Models\EtapeSaisie;
 use App\Models\Maquette;
 use App\Models\MaquetteEcue;
@@ -15,6 +14,7 @@ use App\Models\NoteEcue;
 use App\Models\User;
 use App\Services\Lmd\Assiduite;
 use App\Services\Lmd\NotesExcel;
+use App\Services\Lmd\PerimetreCours;
 use App\Services\Lmd\PermissionsLmd;
 use App\Services\Lmd\SaisieNotes as ServiceSaisie;
 use App\Support\BelongsToModule;
@@ -65,7 +65,8 @@ class SaisieNotes extends Page implements HasForms
         $user = auth()->user();
 
         return static::moduleAllows() && $user !== null
-            && ($user->can(PermissionsLmd::NOTES_SAISIR) || $user->can(PermissionsLmd::NOTES_VERROUILLER) || $user->can(PermissionsLmd::NOTES_ENSEIGNANT));
+            && ($user->can(PermissionsLmd::NOTES_SAISIR) || $user->can(PermissionsLmd::NOTES_VERROUILLER)
+                || $user->can(PermissionsLmd::NOTES_ENSEIGNANT) || $user->can(PermissionsLmd::POINT_FOCAL));
     }
 
     public function mount(): void
@@ -108,6 +109,10 @@ class SaisieNotes extends Page implements HasForms
         $session = (string) ($this->filtres['session'] ?? '');
         $etape = (string) ($this->filtres['etape'] ?? '');
         if ($ecue === null || ! in_array($etape, EtapeSaisie::etapesDe($session), true)) {
+            return null;
+        }
+        // Enseignant ou point focal : ni examen ni rattrapage, même en forçant le filtre (les listes ne suffisent pas).
+        if ($this->enseignantSeul() && ($etape === EtapeSaisie::EXAMEN || $session !== EtapeSaisie::NORMALE)) {
             return null;
         }
 
@@ -201,7 +206,7 @@ class SaisieNotes extends Page implements HasForms
                 ->action(fn (array $data) => $this->executer(fn (EtapeSaisie $e) => app(ServiceSaisie::class)->rouvrir($e, $this->utilisateur(), (string) $data['motif']), 'Étape rouverte')),
             Action::make('reporterAssiduite')->label('Reporter l\'assiduité calculée')->icon('heroicon-o-calendar-days')->color('gray')
                 ->visible(fn (): bool => $statut() === EtapeSaisie::OUVERTE && $this->etapeCourante()?->etape === EtapeSaisie::ASSIDUITE
-                    && $this->utilisateur()->can(PermissionsLmd::ASSIDUITE))
+                    && ($this->utilisateur()->can(PermissionsLmd::ASSIDUITE) || $this->utilisateur()->can(PermissionsLmd::POINT_FOCAL)))
                 ->requiresConfirmation()
                 ->modalDescription('La note d\'assiduité de chaque auditeur est calculée sur les séances tenues de l\'ECUE (D12) et écrite ici, avec historique.')
                 ->action(function (): void {
@@ -290,7 +295,7 @@ class SaisieNotes extends Page implements HasForms
     {
         $query = Maquette::query()->validees()->with('parcours')->orderByDesc('annee_academique');
         if ($this->enseignantSeul()) {
-            $query->whereHas('ues.ecues.attributions', fn ($q) => $q->where('user_id', $this->utilisateur()->id));
+            $query->whereHas('ues.ecues', fn ($q) => $q->whereIn($q->qualifyColumn('id'), PerimetreCours::ecues($this->utilisateur())->select('id')));
         }
 
         return $query->get()->mapWithKeys(fn (Maquette $m): array => [$m->id => $m->libelle()])->all();
@@ -305,7 +310,7 @@ class SaisieNotes extends Page implements HasForms
         $query = MaquetteEcue::query()->whereHas('maquetteUe', fn ($q) => $q->where('maquette_id', $maquetteId))
             ->with('maquetteUe')->orderBy('code');
         if ($this->enseignantSeul()) {
-            $query->whereIn('id', AttributionEcue::query()->where('user_id', $this->utilisateur()->id)->select('maquette_ecue_id'));
+            $query->whereIn('id', PerimetreCours::ecues($this->utilisateur())->select('id'));
         }
 
         return $query->get()->mapWithKeys(fn (MaquetteEcue $e): array => [$e->id => $e->libelle()])->all();
