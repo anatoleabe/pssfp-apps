@@ -89,6 +89,7 @@ class RegleEvaluation extends Model
         'annee_academique',
         'seuil_validation',
         'note_plancher',
+        'note_eliminatoire_active',
         'note_plancher_porte',
         'mode_rattrapage',
         'note_ue',
@@ -105,6 +106,7 @@ class RegleEvaluation extends Model
     protected $casts = [
         'seuil_validation' => 'decimal:2',
         'note_plancher' => 'decimal:2',
+        'note_eliminatoire_active' => 'boolean',
         'pcc_defaut' => 'decimal:4',
         'ptp_defaut' => 'decimal:4',
         'pexam_defaut' => 'decimal:4',
@@ -127,12 +129,19 @@ class RegleEvaluation extends Model
      *
      * @return array<string, mixed>
      */
+    /** La note éliminatoire s'applique-t-elle cette année ? Activée (décision du 22/11/2026) et renseignée. */
+    public function noteEliminatoireAppliquee(): bool
+    {
+        return (bool) ($this->note_eliminatoire_active ?? true) && $this->note_plancher !== null;
+    }
+
     public static function valeursParDefaut(string $annee): array
     {
         return [
             'annee_academique' => $annee,
             'seuil_validation' => '12.00',
             'note_plancher' => '7.00',
+            'note_eliminatoire_active' => true,
             'note_plancher_porte' => self::PLANCHER_EXAMEN_UE,
             'mode_rattrapage' => self::RATTRAPAGE_REMPLACE_MOYENNE,
             'note_ue' => self::NOTE_UE_MOYENNE_ECUE_CREDITS,
