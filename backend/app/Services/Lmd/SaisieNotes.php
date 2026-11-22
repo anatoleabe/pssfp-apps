@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Lmd;
 
-use App\Models\AttributionEcue;
 use App\Models\EtapeSaisie;
 use App\Models\HistoriqueNote;
 use App\Models\InscriptionPedagogique;
@@ -114,9 +113,7 @@ final class SaisieNotes
             return true;
         }
 
-        return $etape->etape !== EtapeSaisie::EXAMEN
-            && $auteur->can(PermissionsLmd::NOTES_ENSEIGNANT)
-            && AttributionEcue::query()->where('maquette_ecue_id', $etape->maquette_ecue_id)->where('user_id', $auteur->id)->exists();
+        return $etape->etape !== EtapeSaisie::EXAMEN && PerimetreCours::couvre($auteur, (int) $etape->maquette_ecue_id);
     }
 
     /**
