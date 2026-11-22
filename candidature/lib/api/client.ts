@@ -504,6 +504,14 @@ export interface DocumentVerifie {
   revoque_le: string | null;
 }
 
+/** Le PDF présenté (empreinte SHA-256 calculée par le navigateur) est-il celui qui a été délivré ? */
+export function verifierContenuDocument(code: string, empreinte: string): Promise<ApiResult<DocumentVerifie & { conforme?: boolean }>> {
+  return apiGet<DocumentVerifie & { conforme?: boolean }>(
+    `/documents/verification/${encodeURIComponent(code)}?empreinte=${encodeURIComponent(empreinte)}`,
+    { noStore: true },
+  );
+}
+
 /** Résultats publiés de l'auditeur connecté (rien avant la publication). */
 export function getMyResultats(token: string): Promise<ApiResult<MesResultats>> {
   return apiGet<MesResultats>('/applications/me/resultats', { token, noStore: true });

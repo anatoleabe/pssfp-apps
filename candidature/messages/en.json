@@ -1373,7 +1373,21 @@
     "numero": "Number",
     "titulaire": "Holder",
     "date": "Issued on",
-    "aide": "Compare these details with the document presented. A revoked document is no longer valid."
+    "aide": "Compare these details with the document presented. A revoked document is no longer valid.",
+    "contenu": {
+      "title": "Check the document's content",
+      "intro": "The code confirms that a document was issued. To make sure the file you were given has not been altered, select it below.",
+      "label": "PDF file received",
+      "confidentialite": "The file stays on your device: only its digital fingerprint is compared.",
+      "etat": {
+        "calcul": "Checking…",
+        "conforme": "This file is identical to the document issued by PSSFP.",
+        "different": "This file differs from the issued document: it has been altered or it is not the right file. Do not rely on it and contact the registry.",
+        "indisponible": "The check could not be completed. Please try again in a few minutes.",
+        "trop_lourd": "This file exceeds 20 MB: a PSSFP document is much smaller.",
+        "pas_pdf": "Please select a PDF file."
+      }
+    }
   },
   "lienLettre": {
     "title": "Your FOAD access letter",

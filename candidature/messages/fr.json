@@ -1373,7 +1373,21 @@
     "numero": "Numéro",
     "titulaire": "Titulaire",
     "date": "Délivré le",
-    "aide": "Comparez ces informations avec le document présenté. Un document révoqué n'a plus de valeur."
+    "aide": "Comparez ces informations avec le document présenté. Un document révoqué n'a plus de valeur.",
+    "contenu": {
+      "title": "Vérifier le contenu du document",
+      "intro": "Le code confirme qu'un document a bien été délivré. Pour vous assurer que le fichier qu'on vous a remis n'a pas été modifié, choisissez-le ci-dessous.",
+      "label": "Fichier PDF reçu",
+      "confidentialite": "Le fichier reste sur votre appareil : seule son empreinte numérique est comparée.",
+      "etat": {
+        "calcul": "Vérification en cours…",
+        "conforme": "Ce fichier est identique au document délivré par le PSSFP.",
+        "different": "Ce fichier est différent du document délivré : il a été modifié ou ce n'est pas le bon fichier. Ne vous y fiez pas et rapprochez-vous de la scolarité.",
+        "indisponible": "La vérification n'a pas pu aboutir. Réessayez dans quelques minutes.",
+        "trop_lourd": "Ce fichier dépasse 20 Mo : un document du PSSFP est bien plus léger.",
+        "pas_pdf": "Choisissez un fichier PDF."
+      }
+    }
   },
   "lienLettre": {
     "title": "Votre lettre d'accès FOAD",

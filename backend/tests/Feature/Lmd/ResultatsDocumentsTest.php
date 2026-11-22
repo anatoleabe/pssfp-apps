@@ -228,3 +228,17 @@ it('numérote les semestres d\'un nouveau relevé selon la promotion, sans jamai
     expect($donnees)->toHaveCount(2)
         ->and($html($donnees[1]))->toContain('<td>S7</td>')->toContain('<td>S8</td>')->not->toContain('<td>S1</td>');
 });
+
+it('dit si le PDF présenté est bien celui délivré, sans jamais renvoyer l\'empreinte conservée', function (): void {
+    ($this->publier)();
+    $url = '/v1/applications/me/documents-officiels/releve_notes?deliberation='.$this->d->uuid;
+    $pdf = $this->withToken(($this->jeton)($this->admis))->get($url)->assertOk()->getContent();
+    $doc = DocumentDelivre::query()->where('type', DocumentDelivre::RELEVE)->sole();
+    app('auth')->forgetGuards();
+    $verif = '/v1/documents/verification/'.$doc->code_verification;
+
+    $this->getJson($verif)->assertOk()->assertJsonMissingPath('data.conforme');
+    $this->getJson($verif.'?empreinte='.hash('sha256', $pdf))->assertOk()->assertJsonPath('data.conforme', true)->assertJsonMissing(['sha256' => $doc->sha256]);
+    $this->getJson($verif.'?empreinte='.hash('sha256', $pdf.' falsifié'))->assertOk()->assertJsonPath('data.conforme', false)->assertJsonPath('data.statut', 'authentique');
+    $this->getJson($verif.'?empreinte=pas-une-empreinte')->assertOk()->assertJsonMissingPath('data.conforme');
+});
