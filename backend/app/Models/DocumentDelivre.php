@@ -24,6 +24,11 @@ class DocumentDelivre extends Model
 
     public const AUTORISATION_DEPOT = 'autorisation_depot';
 
+    /** Documents administratifs délivrés par la scolarité (spec lot 26). */
+    public const ATTESTATION_RECHERCHE = 'attestation_recherche';
+
+    public const LETTRE_STAGE = 'lettre_stage';
+
     /** PV de délibération (lot 16a) : sans auditeur, numéroté par le numéro du PV. */
     public const PV = 'pv_deliberation';
 
@@ -33,9 +38,12 @@ class DocumentDelivre extends Model
         self::CERTIFICAT => 'Certificat de scolarité',
         self::AUTORISATION_DEPOT => 'Attestation d\'autorisation de dépôt du mémoire',
         self::PV => 'Procès-verbal de délibération',
+        self::ATTESTATION_RECHERCHE => 'Attestation de recherche',
+        self::LETTRE_STAGE => 'Lettre de stage',
     ];
 
-    public const PREFIXES = [self::RELEVE => 'RN', self::ATTESTATION => 'AR', self::CERTIFICAT => 'CS', self::AUTORISATION_DEPOT => 'AD'];
+    public const PREFIXES = [self::RELEVE => 'RN', self::ATTESTATION => 'AR', self::CERTIFICAT => 'CS', self::AUTORISATION_DEPOT => 'AD',
+        self::ATTESTATION_RECHERCHE => 'AT', self::LETTRE_STAGE => 'LS'];
 
     protected $table = 'documents_delivres';
 

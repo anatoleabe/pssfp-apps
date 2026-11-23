@@ -14,6 +14,14 @@ final class Banniere
 
     public const PSSFP = 'pssfp';
 
+    /** En-tête officiel du PSSFP (République, Ministère, Secrétariat général, logo), en image ; vide si le fichier manque. */
+    public static function entetePssfp(): ?string
+    {
+        $chemin = resource_path('images/pdf/entete.png');
+
+        return is_file($chemin) ? 'data:image/png;base64,'.base64_encode((string) file_get_contents($chemin)) : null;
+    }
+
     /** Logo de l'Université, prêt à poser dans une balise img ; vide si le fichier manque. */
     public static function logoUniversite(): ?string
     {
