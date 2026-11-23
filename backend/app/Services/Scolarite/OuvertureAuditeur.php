@@ -47,8 +47,8 @@ final class OuvertureAuditeur
     public function creerInscription(Auditeur $auditeur, ?User $auteur = null): ?InscriptionAnnuelle
     {
         if ($auteur !== null) {
-            // Le service financier en a besoin pour saisir, la scolarité pour tenir le dossier (15/11/2026).
-            abort_unless($auteur->can(RegistreVersements::PERMISSION_SAISIR) || $auteur->can(ConfirmationsVersements::PERMISSION), 403);
+            // Administration et scolarité seulement, plus le service financier (décision du 23/11/2026, spec lot 22).
+            abort_unless(ReinscriptionAuditeur::peutReinscrire($auteur), 403);
         }
         $dossier = $auditeur->candidature()->with('campagne')->firstOrFail();
         if ($auteur !== null && $dossier->withdrawn_at !== null) {

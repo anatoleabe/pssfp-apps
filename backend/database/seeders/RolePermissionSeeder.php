@@ -296,6 +296,11 @@ final class RolePermissionSeeder extends Seeder
             $roles[$name]['sensitive'] = [...$roles[$name]['sensitive'], 'scolarite.promotion_anterieure', 'scolarite.inscrire_ancien', 'scolarite.derogation_m2'];
         }
 
+        // Inscrire (lot 22, 23/11/2026) : réinscription et passage en groupe, à l'administration et à la scolarité.
+        foreach (['admin', 'scolarite_responsable', 'scolarite_agent'] as $name) {
+            $roles[$name]['sensitive'] = [...$roles[$name]['sensitive'], 'scolarite.inscrire'];
+        }
+
         foreach ($roles as $name => $definition) {
             $role = Role::findOrCreate($name, 'web');
             $role->forceFill([

@@ -449,8 +449,10 @@ it('refuse de créer une inscription sur un dossier retiré, et vérifie le droi
     $this->fiche->inscriptions()->delete();
     $this->awa->forceFill(['withdrawn_at' => now()])->save();
 
-    expect(fn () => app(OuvertureAuditeur::class)->creerInscription($this->fiche->fresh(), ($this->compte)('service_financier')))
+    expect(fn () => app(OuvertureAuditeur::class)->creerInscription($this->fiche->fresh(), ($this->compte)('scolarite_agent')))
         ->toThrow(InvalidArgumentException::class)
         ->and(fn () => app(OuvertureAuditeur::class)->creerInscription($this->fiche->fresh(), ($this->compte)('caisse')))
+        ->toThrow(HttpException::class)
+        ->and(fn () => app(OuvertureAuditeur::class)->creerInscription($this->fiche->fresh(), ($this->compte)('service_financier')))
         ->toThrow(HttpException::class);
 });

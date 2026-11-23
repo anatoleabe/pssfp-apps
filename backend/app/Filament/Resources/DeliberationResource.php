@@ -58,9 +58,9 @@ class DeliberationResource extends Resource
                         ->options(fn (Forms\Get $get): array => Parcours::query()->where('niveau', $get('niveau'))->orderBy('ordre')->get()
                             ->mapWithKeys(fn (Parcours $p): array => [$p->id => $p->libelleComplet()])->all()),
                     Forms\Components\Select::make('semestre')->label('Portée')->native(false)->placeholder('Année entière')
-                        ->helperText('Une délibération de semestre ne décide pas du passage : elle arrête les résultats du semestre.')
+                        ->helperText('Une délibération de semestre ne décide pas du passage : elle arrête les résultats du semestre. Le semestre 4, qui porte la soutenance, se délibère avec l\'année.')
                         ->options(fn (Forms\Get $get): array => NumerotationSemestres::options((string) $get('annee_academique'), match ($get('niveau')) {
-                            'M1' => [1, 2], 'M2' => [3, 4], default => [],
+                            'M1' => [1, 2], 'M2' => [3], default => [],
                         })),
                     Forms\Components\Select::make('session')->label('Session')->required()->native(false)->options(EtapeSaisie::SESSIONS)->default(EtapeSaisie::NORMALE),
                     Forms\Components\Select::make('jury_id')->label('Jury')->native(false)

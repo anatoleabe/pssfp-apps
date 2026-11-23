@@ -18,7 +18,6 @@ use App\Services\NotificationCandidatsService;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\AnneeEnCours;
 use App\Services\Scolarite\CompteAuditeur;
-use App\Services\Scolarite\ConfirmationsVersements;
 use App\Services\Scolarite\LibelleSituation;
 use App\Services\Scolarite\LiensLettreAcces;
 use App\Services\Scolarite\MessagesAuditeurs;
@@ -265,7 +264,7 @@ final class AuditeurActions
         return Action::make('creerInscription')
             ->label('Créer l\'inscription')
             ->icon('heroicon-o-plus-circle')
-            ->visible(fn (Auditeur $record): bool => (auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR) || ConfirmationsVersements::peutConfirmer(auth()->user()))
+            ->visible(fn (Auditeur $record): bool => ReinscriptionAuditeur::peutReinscrire(auth()->user())
                 && $record->inscriptionCourante === null && $record->candidature?->withdrawn_at === null
                 // Une promotion antérieure se réinscrit dans l'année en cours (« Réinscrire »), jamais dans son année.
                 && ($record->candidature === null || AnneeEnCours::estCourante($record->candidature->campagne)))

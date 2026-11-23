@@ -36,7 +36,7 @@ beforeEach(function (): void {
     BaremeScolarite::factory()->m2()->create(['annee_academique' => '2026-2027']);
     Parcours::query()->create(['code' => 'TC', 'libelle' => 'Tronc commun', 'niveau' => 'M1', 'actif' => true, 'ordre' => 1]);
     Parcours::query()->create(['code' => 'ACFP', 'libelle' => 'Audit et contrôle', 'niveau' => 'M2', 'specialite' => 'Audit et contrôle des finances publiques', 'actif' => true, 'ordre' => 2]);
-    $this->agent = ($this->compte)('service_financier');
+    $this->agent = ($this->compte)('scolarite_agent');
     $this->responsable = ($this->compte)('scolarite_responsable');
     $this->auditeurDe = function (CampagneCandidature $campagne): Auditeur {
         $c = Candidature::factory()->forCampagne($campagne)->submitted()->create([
@@ -121,7 +121,8 @@ it('refuse le M2 sans M1 admis, sauf dérogation motivée avec sa pièce par le 
 
 it('refuse un auditeur déjà inscrit cette année, de la promotion en cours, ou au dossier retiré, un parcours hors niveau et un agent sans droit', function (): void {
     expect(fn () => ($this->reinscrire)(['niveau' => 'M1', 'parcours' => 'ACFP']))->toThrow(InvalidArgumentException::class, 'Parcours inconnu')
-        ->and(fn () => ($this->reinscrire)(['niveau' => 'M1', 'parcours' => 'TC'], ($this->compte)('caisse')))->toThrow(HttpException::class);
+        ->and(fn () => ($this->reinscrire)(['niveau' => 'M1', 'parcours' => 'TC'], ($this->compte)('caisse')))->toThrow(HttpException::class)
+        ->and(fn () => ($this->reinscrire)(['niveau' => 'M1', 'parcours' => 'TC'], ($this->compte)('service_financier')))->toThrow(HttpException::class);
 
     ($this->reinscrire)(['niveau' => 'M1', 'parcours' => 'TC']);
     expect(fn () => ($this->reinscrire)(['niveau' => 'M1', 'parcours' => 'TC']))->toThrow(InvalidArgumentException::class, 'promotion antérieure');
