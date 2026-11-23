@@ -13,10 +13,6 @@
   p { margin: 0; }
   .page { page-break-after: always; }
   .page.derniere { page-break-after: auto; }
-  .entete td { vertical-align: top; font-size: 7.5pt; line-height: 1.2; text-align: center; color: #3C3C3C; }
-  .entete td.logo { width: 24%; vertical-align: middle; }
-  .entete td.cote { width: 38%; }
-  .filet { border-top: 1.5px solid #4A2E67; margin: 3mm 0 0; }
   .lieu { text-align: right; font-size: 9.5pt; color: #5C5C5C; margin: 3mm 0 0; }
   h1 { font-family: 'Source Serif 4', Georgia, serif; color: #4A2E67; font-size: 19pt; text-align: center; letter-spacing: 0.5pt; margin: 4mm 0 0; }
   .annee { text-align: center; color: #0F3A4A; font-size: 10pt; margin: 0 0 4mm; }
@@ -51,14 +47,7 @@
   @php($d = $p['dossier'])
   @php($civilite = match ($p['candidat']->civilite) { 'M.' => 'Monsieur', 'Mme' => 'Madame', 'Mlle' => 'Mademoiselle', default => '' })
   <div class="page {{ $loop->last ? 'derniere' : '' }}">
-    <table class="entete">
-      <tr>
-        <td class="cote">RÉPUBLIQUE DU CAMEROUN<br>Paix – Travail – Patrie<br>UNIVERSITÉ DE YAOUNDÉ II-SOA<br>FACULTÉ DES SCIENCES ÉCONOMIQUES ET DE GESTION<br><strong>PROGRAMME SUPÉRIEUR DE SPÉCIALISATION<br>EN FINANCES PUBLIQUES</strong></td>
-        <td class="logo">@if ($logo)<img src="{{ $logo }}" alt="" style="height:20mm;">@endif</td>
-        <td class="cote">REPUBLIC OF CAMEROON<br>Peace – Work – Fatherland<br>UNIVERSITY OF YAOUNDE II-SOA<br>FACULTY OF ECONOMICS AND MANAGEMENT<br><strong>ADVANCED PROGRAM OF SPECIALISATION<br>IN PUBLIC FINANCE</strong></td>
-      </tr>
-    </table>
-    <div class="filet"></div>
+    @include('pdf.lmd._banniere')
     <p class="lieu">Yaoundé, le {{ $d->date_soutenance->format('d/m/Y') }}</p>
 
     <h1>Procès-verbal de soutenance</h1>

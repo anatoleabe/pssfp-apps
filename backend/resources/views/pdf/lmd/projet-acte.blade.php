@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Projet d'acte — {{ $acte->objet }}</title>
-@include('pdf.lmd._entete')
+@include('pdf.lmd._entete', ['banniere' => \App\Support\Pdf\Banniere::PSSFP])
 </head>
 <body>
   <p style="font-size:9pt;color:#5C3A7E;text-align:right;">PROJET — à signer par {{ $acte->modele->signataire }}</p>
