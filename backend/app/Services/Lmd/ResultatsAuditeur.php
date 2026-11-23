@@ -34,7 +34,8 @@ final class ResultatsAuditeur
             ->whereHas('deliberation', fn ($q) => $q->where('statut', Deliberation::ARRETEE)->whereNotNull('publiee_at'))
             ->with(['deliberation.parcours', 'inscriptionAnnuelle.parcours'])
             ->get()
-            ->sortBy(fn (ResultatAnnuel $r): string => $r->deliberation->annee_academique.($r->deliberation->session === 'rattrapage' ? '2' : '1'))
+            // Par année, puis l'année entière après ses semestres, puis le rattrapage après la session normale.
+            ->sortBy(fn (ResultatAnnuel $r): string => $r->deliberation->annee_academique.($r->deliberation->semestre ?? 9).($r->deliberation->session === 'rattrapage' ? '2' : '1'))
             ->reverse()
             ->values();
     }
@@ -71,6 +72,8 @@ final class ResultatsAuditeur
                 $mode = match (true) {
                     $l->capitalisee => self::CAPITALISEE,
                     $l->acquise && $l->mesure_id !== null => self::JURY,
+                    // Acquise par mesure du jury à une délibération antérieure de l'année (lot 17a).
+                    $l->acquise && $acquis->get($l->maquetteUe->unite_enseignement_id)?->origine === 'deliberation' => self::JURY,
                     $l->acquise => self::ACQUISE,
                     default => self::NON_ACQUISE,
                 };

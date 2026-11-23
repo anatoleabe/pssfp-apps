@@ -9,11 +9,11 @@
 @include('pdf.lmd._entete')
 </head>
 <body>
-  <h1>Procès-verbal de délibération</h1>
+  <h1>Procès-verbal de délibération{{ $d->estSemestrielle() ? ' de semestre' : '' }}</h1>
   <p class="sous-titre">
     {{ $d->numero_pv ?? 'PROJET — délibération non arrêtée' }} ·
     Année académique {{ $d->annee_academique }} · {{ $d->niveau === 'M1' ? 'Master 1' : 'Master 2' }}{{ $d->parcours ? ' · '.$d->parcours->libelle : '' }} ·
-    {{ \App\Models\EtapeSaisie::SESSIONS[$d->session] ?? $d->session }}
+    {{ $d->estSemestrielle() ? $d->libelleSemestre().' · ' : '' }}{{ \App\Models\EtapeSaisie::SESSIONS[$d->session] ?? $d->session }}
   </p>
   @if ($d->rectifie_id)
     <p><strong>PV rectificatif</strong> du {{ $d->rectifiee?->numero_pv }} — acte {{ $d->acte_rectificatif }} — motif : {{ $d->motif_rectification }}.
@@ -74,9 +74,9 @@
 
   <h2>Synthèse</h2>
   <table>
-    <thead><tr><th class="n">Effectif</th><th class="n">Admis (AD)</th><th class="n">Autorisés à soutenir (AS)</th><th class="n">Ajournés (AJ)</th><th class="n">Taux de réussite</th></tr></thead>
+    <thead><tr><th class="n">Effectif</th>@if ($d->estSemestrielle())<th class="n">Semestre validé (AD)</th><th class="n">Semestre non validé (AJ)</th>@else<th class="n">Admis (AD)</th><th class="n">Autorisés à soutenir (AS)</th><th class="n">Ajournés (AJ)</th>@endif<th class="n">Taux de réussite</th></tr></thead>
     <tbody><tr>
-      <td class="n">{{ $synthese['effectif'] }}</td><td class="n">{{ $synthese['AD'] }}</td><td class="n">{{ $synthese['AS'] }}</td><td class="n">{{ $synthese['AJ'] }}</td>
+      <td class="n">{{ $synthese['effectif'] }}</td><td class="n">{{ $synthese['AD'] }}</td>@unless ($d->estSemestrielle())<td class="n">{{ $synthese['AS'] }}</td>@endunless<td class="n">{{ $synthese['AJ'] }}</td>
       <td class="n">{{ $synthese['effectif'] > 0 ? $n(100 * ($synthese['AD'] + $synthese['AS']) / $synthese['effectif'], 1).' %' : '—' }}</td>
     </tr></tbody>
   </table>

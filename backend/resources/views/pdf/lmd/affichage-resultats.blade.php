@@ -6,10 +6,10 @@
 @include('pdf.lmd._entete')
 </head>
 <body>
-  <h1>Liste des résultats</h1>
+  <h1>Liste des résultats{{ $d->estSemestrielle() ? ' du semestre' : '' }}</h1>
   <p class="sous-titre">
     Année académique {{ $d->annee_academique }} · {{ $d->niveau === 'M1' ? 'Master 1' : 'Master 2' }}{{ $d->parcours ? ' · '.$d->parcours->libelle : '' }} ·
-    {{ \App\Models\EtapeSaisie::SESSIONS[$d->session] ?? $d->session }} · {{ $d->numero_pv }}
+    {{ $d->estSemestrielle() ? $d->libelleSemestre().' · ' : '' }}{{ \App\Models\EtapeSaisie::SESSIONS[$d->session] ?? $d->session }} · {{ $d->numero_pv }}
   </p>
   <table>
     <thead><tr><th>Matricule</th><th>Nom et prénom</th><th>Décision</th></tr></thead>
@@ -19,7 +19,7 @@
         <tr>
           <td>{{ $dossier?->matricule }}</td>
           <td>{{ trim(mb_strtoupper((string) $dossier?->nom).' '.$dossier?->prenom) }}</td>
-          <td>{{ \App\Models\ResultatAnnuel::DECISIONS[$r->decision] ?? $r->decision }}</td>
+          <td>{{ $d->decisions()[$r->decision] ?? $r->decision }}</td>
         </tr>
       @endforeach
     </tbody>

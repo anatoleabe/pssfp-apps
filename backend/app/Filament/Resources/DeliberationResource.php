@@ -13,6 +13,8 @@ use App\Models\Deliberation;
 use App\Models\EtapeSaisie;
 use App\Models\Jury;
 use App\Models\Parcours;
+use App\Services\Lmd\NumerotationSemestres;
+use App\Services\Scolarite\AnneeEnCours;
 use App\Support\BelongsToModule;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -50,11 +52,16 @@ class DeliberationResource extends Resource
             Forms\Components\Section::make()->columns(3)
                 ->description('Un scénario « application stricte des règles » est créé avec la délibération.')
                 ->schema([
-                    Forms\Components\TextInput::make('annee_academique')->label('Année académique')->required()->regex('/^(\d{4})-(\d{4})$/')->default('2026-2027')->live(onBlur: true),
+                    Forms\Components\TextInput::make('annee_academique')->label('Année académique')->required()->regex('/^(\d{4})-(\d{4})$/')->default(fn (): ?string => AnneeEnCours::annee())->live(onBlur: true),
                     Forms\Components\Select::make('niveau')->label('Niveau')->required()->native(false)->options(['M1' => 'Master 1', 'M2' => 'Master 2'])->live(),
                     Forms\Components\Select::make('parcours_id')->label('Parcours (vide : tous)')->native(false)
                         ->options(fn (Forms\Get $get): array => Parcours::query()->where('niveau', $get('niveau'))->orderBy('ordre')->get()
                             ->mapWithKeys(fn (Parcours $p): array => [$p->id => $p->libelleComplet()])->all()),
+                    Forms\Components\Select::make('semestre')->label('Portée')->native(false)->placeholder('Année entière')
+                        ->helperText('Une délibération de semestre ne décide pas du passage : elle arrête les résultats du semestre.')
+                        ->options(fn (Forms\Get $get): array => NumerotationSemestres::options((string) $get('annee_academique'), match ($get('niveau')) {
+                            'M1' => [1, 2], 'M2' => [3, 4], default => [],
+                        })),
                     Forms\Components\Select::make('session')->label('Session')->required()->native(false)->options(EtapeSaisie::SESSIONS)->default(EtapeSaisie::NORMALE),
                     Forms\Components\Select::make('jury_id')->label('Jury')->native(false)
                         ->options(fn (Forms\Get $get): array => Jury::query()->where('annee_academique', $get('annee_academique'))->where('niveau', $get('niveau'))
@@ -73,6 +80,8 @@ class DeliberationResource extends Resource
                 Tables\Columns\TextColumn::make('annee_academique')->label('Année'),
                 Tables\Columns\TextColumn::make('niveau')->label('Niveau')->badge(),
                 Tables\Columns\TextColumn::make('parcours.code')->label('Parcours')->placeholder('Tous'),
+                Tables\Columns\TextColumn::make('semestre')->label('Portée')->placeholder('Année')
+                    ->formatStateUsing(fn (Deliberation $record): ?string => $record->libelleSemestre()),
                 Tables\Columns\TextColumn::make('session')->label('Session')->formatStateUsing(fn (string $state): string => EtapeSaisie::SESSIONS[$state] ?? $state),
                 Tables\Columns\TextColumn::make('numero_pv')->label('PV')->fontFamily('mono')->placeholder('—')
                     ->description(fn (Deliberation $r): ?string => $r->a_rectifier_at !== null && $r->statut === Deliberation::ARRETEE ? 'À rectifier' : null),
@@ -119,7 +128,8 @@ class DeliberationResource extends Resource
                 ->visible(fn (Deliberation $r): bool => $r->seance_ouverte_at !== null)
                 ->schema([Infolists\Components\ViewEntry::make('seance')->hiddenLabel()->view('filament.lmd.seance-deliberation')]),
             Infolists\Components\Section::make('Résultats')
-                ->description(fn (Deliberation $r): string => $r->estModifiable() ? 'Scénario retenu, ou à défaut le dernier calculé : projection, rien n\'est arrêté.' : 'Résultats arrêtés, figés.')
+                ->description(fn (Deliberation $r): string => ($r->estModifiable() ? 'Scénario retenu, ou à défaut le dernier calculé : projection, rien n\'est arrêté.' : 'Résultats arrêtés, figés.')
+                    .($r->estSemestrielle() ? ' Délibération de semestre : AD = semestre validé, AJ = semestre non validé.' : ''))
                 ->schema([Infolists\Components\ViewEntry::make('resultats')->hiddenLabel()->view('filament.lmd.resultats-deliberation')]),
         ]);
     }

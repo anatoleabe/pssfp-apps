@@ -13,6 +13,7 @@ use App\Models\MembreJury;
 use App\Models\Parcours;
 use App\Models\User;
 use App\Services\Lmd\PermissionsLmd;
+use App\Services\Scolarite\AnneeEnCours;
 use App\Support\BelongsToModule;
 use App\Support\CandidatureObjectStorage;
 use Filament\Forms;
@@ -52,7 +53,7 @@ class JuryResource extends Resource
     {
         return $form->schema(MessagesValidation::appliquer([
             Forms\Components\Section::make('Désignation')->columns(3)->schema([
-                Forms\Components\TextInput::make('annee_academique')->label('Année académique')->required()->regex('/^(\d{4})-(\d{4})$/')->default('2026-2027'),
+                Forms\Components\TextInput::make('annee_academique')->label('Année académique')->required()->regex('/^(\d{4})-(\d{4})$/')->default(fn (): ?string => AnneeEnCours::annee()),
                 Forms\Components\Select::make('niveau')->label('Niveau')->required()->native(false)->options(['M1' => 'Master 1', 'M2' => 'Master 2']),
                 Forms\Components\Select::make('parcours_id')->label('Parcours (vide : tous)')->native(false)
                     ->options(fn (): array => Parcours::query()->orderBy('ordre')->get()->mapWithKeys(fn (Parcours $p): array => [$p->id => $p->libelleComplet()])->all()),

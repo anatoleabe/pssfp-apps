@@ -1221,9 +1221,15 @@
       "aucunTitre": "No results published yet",
       "aucun": "Your results will appear here as soon as they are published, after the jury's deliberation.",
       "annee": "Year {annee} · {session}",
+      "semestre": "Year {annee} · Semester {semestre} · {session}",
       "session": {
         "normale": "regular session",
         "rattrapage": "after resit"
+      },
+      "decisionSemestre": {
+        "AD": "Semester passed",
+        "AS": "Semester passed",
+        "AJ": "Semester not passed"
       },
       "decision": {
         "AD": "Passed",
@@ -1251,6 +1257,7 @@
         "non_acquise": "Not passed"
       },
       "releve": "Transcript (PDF)",
+      "releveSemestre": "Semester transcript (PDF)",
       "attestation": "Certificate of achievement (PDF)",
       "certificatTitre": "Certificate of enrolment",
       "certificat": "Certificate of enrolment for the current year (PDF)",

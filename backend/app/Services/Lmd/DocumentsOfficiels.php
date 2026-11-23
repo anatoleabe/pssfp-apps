@@ -247,6 +247,9 @@ final class DocumentsOfficiels
             throw new InvalidArgumentException('Vos résultats ne sont pas encore publiés.');
         }
         if ($type === DocumentDelivre::ATTESTATION) {
+            if ($d->estSemestrielle()) {
+                throw new InvalidArgumentException('L\'attestation de réussite se délivre sur les résultats de l\'année, pas sur ceux d\'un semestre.');
+            }
             if (! in_array($resultat->decision, ['AD', 'AS'], true)) {
                 throw new InvalidArgumentException('L\'attestation de réussite n\'est délivrée qu\'aux admis et aux autorisés à soutenir.');
             }

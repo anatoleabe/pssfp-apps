@@ -71,7 +71,8 @@ class MesuresRelationManager extends RelationManager
                             ->visible(fn (Forms\Get $get): bool => $get('type') === MesureJury::RELEVEMENT)->required(fn (Forms\Get $get): bool => $get('type') === MesureJury::RELEVEMENT),
                         Forms\Components\TextInput::make('cible')->label('Portées à')->numeric()->minValue(0)->maxValue(20)->default(12)
                             ->visible(fn (Forms\Get $get): bool => $get('type') === MesureJury::RELEVEMENT),
-                        Forms\Components\TextInput::make('credits_min')->label('Auditeurs ayant au moins (crédits)')->integer()->minValue(0)->maxValue(60)
+                        Forms\Components\TextInput::make('credits_min')->label('Auditeurs ayant au moins (crédits)')->integer()->minValue(0)->maxValue($d->estSemestrielle() ? 30 : 60)
+                            ->helperText($d->estSemestrielle() ? 'Crédits acquis dans le semestre (30 au plus).' : null)
                             ->visible(fn (Forms\Get $get): bool => $get('type') === MesureJury::REPECHAGE)->required(fn (Forms\Get $get): bool => $get('type') === MesureJury::REPECHAGE),
                         Forms\Components\TextInput::make('ecart_max')->label('UE à moins de (points du seuil)')->numeric()->minValue(0.01)->maxValue(5)
                             ->visible(fn (Forms\Get $get): bool => $get('type') === MesureJury::REPECHAGE)->required(fn (Forms\Get $get): bool => $get('type') === MesureJury::REPECHAGE),
@@ -83,7 +84,7 @@ class MesuresRelationManager extends RelationManager
                                 ->mapWithKeys(fn ($i): array => [$i->id => $i->auditeur?->candidature?->matricule.' — '.mb_strtoupper((string) $i->auditeur?->candidature?->nom).' '.$i->auditeur?->candidature?->prenom])->all()),
                         Forms\Components\Select::make('maquette_ue_id')->label('UE')->native(false)
                             ->visible(fn (Forms\Get $get): bool => $get('type') === MesureJury::CAS_PARTICULIER)->required(fn (Forms\Get $get): bool => $get('type') === MesureJury::CAS_PARTICULIER)
-                            ->options(fn (Forms\Get $get): array => InscriptionPedagogique::query()->where('inscription_annuelle_id', (int) $get('inscription_annuelle_id'))
+                            ->options(fn (Forms\Get $get): array => CalculScenario::dansLaPortee(InscriptionPedagogique::query(), $d)->where('inscription_annuelle_id', (int) $get('inscription_annuelle_id'))
                                 ->with('maquetteUe.ue')->get()->mapWithKeys(fn ($ip): array => [$ip->maquette_ue_id => $ip->maquetteUe?->ue?->code.' — '.$ip->maquetteUe?->ue?->intitule])->all()),
                         Forms\Components\TextInput::make('note')->label('Note retenue (vide : le seuil)')->numeric()->minValue(0)->maxValue(20)
                             ->visible(fn (Forms\Get $get): bool => $get('type') === MesureJury::CAS_PARTICULIER),

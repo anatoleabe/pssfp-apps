@@ -10,6 +10,7 @@ use App\Models\Deliberation;
 use App\Models\DocumentDelivre;
 use App\Models\ResultatAnnuel;
 use App\Services\Lmd\DocumentsOfficiels;
+use App\Services\Lmd\NumerotationSemestres;
 use App\Services\Lmd\ResultatsAuditeur;
 use App\Services\Scolarite\DossierAuditeurConnecte;
 use Illuminate\Http\JsonResponse;
@@ -49,6 +50,9 @@ final class ResultatsController extends Controller
                 'niveau' => $r->inscriptionAnnuelle->niveau,
                 'parcours' => $r->inscriptionAnnuelle->parcours?->libelle,
                 'session' => $r->deliberation->session,
+                // Délibération de semestre (lot 17a) : numéro affiché selon la promotion, null pour l'année.
+                'semestre' => $r->deliberation->semestre === null ? null
+                    : NumerotationSemestres::numero($r->deliberation->semestre, NumerotationSemestres::promotionDeAuditeur($auditeur)),
                 'publie_le' => $r->deliberation->publiee_at?->timezone('Africa/Douala')->toDateString(),
                 'requetes_jusqu_au' => $r->deliberation->requetes_jusqu_au?->toDateString(),
                 'decision' => $r->decision,

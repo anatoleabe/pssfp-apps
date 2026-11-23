@@ -42,6 +42,9 @@ final class Memoires
         if ($d->statut !== Deliberation::ARRETEE) {
             throw new InvalidArgumentException('Seule une délibération arrêtée ouvre les mémoires.');
         }
+        if ($d->estSemestrielle()) {
+            throw new InvalidArgumentException('Une délibération de semestre n\'autorise pas à soutenir : choisissez la délibération annuelle.');
+        }
         $n = 0;
         foreach (ResultatAnnuel::query()->where('deliberation_id', $d->id)->where('decision', 'AS')->with('inscriptionAnnuelle')->get() as $r) {
             if ($this->ouvrir($r->inscriptionAnnuelle, $d)->wasRecentlyCreated) {

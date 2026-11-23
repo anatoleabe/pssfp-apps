@@ -8,7 +8,6 @@ use App\Models\AcquisUe;
 use App\Models\Deliberation;
 use App\Models\EtapeSaisie;
 use App\Models\InscriptionAnnuelle;
-use App\Models\InscriptionPedagogique;
 use App\Models\Jury;
 use App\Models\MaquetteEcue;
 use App\Models\MembreJury;
@@ -44,15 +43,22 @@ final class Deliberations
 
     public function __construct(private readonly CalculScenario $calcul) {}
 
-    /** @param  array{annee_academique: string, niveau: string, parcours_id?: ?int, session: string, jury_id?: ?int, date_deliberation?: ?string}  $data */
+    /** @param  array{annee_academique: string, niveau: string, parcours_id?: ?int, session: string, jury_id?: ?int, date_deliberation?: ?string, semestre?: ?int}  $data */
     public function creer(array $data, User $auteur): Deliberation
     {
         abort_unless($auteur->can(PermissionsLmd::DELIBERATION_PREPARER), 403);
+        $semestre = ($data['semestre'] ?? null) === null || $data['semestre'] === '' ? null : (int) $data['semestre'];
+        if ($semestre !== null && ($semestre < 1 || $semestre > 4 || NumerotationSemestres::niveau($semestre) !== $data['niveau'])) {
+            throw new InvalidArgumentException('Ce semestre n\'appartient pas à ce niveau : semestres 1 et 2 en Master 1, 3 et 4 en Master 2.');
+        }
+        $data['semestre'] = $semestre;
         $existe = Deliberation::query()->where('annee_academique', $data['annee_academique'])->where('niveau', $data['niveau'])
-            ->where('session', $data['session'])->where('parcours_id', $data['parcours_id'] ?? null)
+            ->where('session', $data['session'])->where('parcours_id', $data['parcours_id'] ?? null)->where('semestre', $semestre)
             ->where('statut', Deliberation::ARRETEE)->exists();
         if ($existe) {
-            throw new InvalidArgumentException('Une délibération arrêtée existe déjà pour cette année, ce niveau et cette session : rectifiez-la.');
+            throw new InvalidArgumentException($semestre === null
+                ? 'Une délibération arrêtée existe déjà pour cette année, ce niveau et cette session : rectifiez-la.'
+                : 'Une délibération arrêtée existe déjà pour ce semestre et cette session : rectifiez-la.');
         }
 
         return DB::transaction(function () use ($data, $auteur): Deliberation {
@@ -84,7 +90,8 @@ final class Deliberations
 
         $population = CalculScenario::population($d);
         if (! (clone $population)->exists()) {
-            $anomalies[] = new Anomalie(Anomalie::BLOQUANT, 'population_vide', 'Aucun auditeur inscrit à des UE pour cette année et ce niveau.');
+            $anomalies[] = new Anomalie(Anomalie::BLOQUANT, 'population_vide', $d->estSemestrielle()
+                ? 'Aucun auditeur inscrit à des UE de ce semestre.' : 'Aucun auditeur inscrit à des UE pour cette année et ce niveau.');
 
             return $anomalies;
         }
@@ -95,8 +102,7 @@ final class Deliberations
             $anomalies[] = new Anomalie(Anomalie::AVERTISSEMENT, 'sans_inscription_pedagogique', "{$sansUe} inscription(s) de l'année sans UE : hors délibération.");
         }
 
-        $ecues = MaquetteEcue::query()->whereIn('maquette_ue_id',
-            InscriptionPedagogique::query()->whereIn('inscription_annuelle_id', (clone $population)->select('id'))->select('maquette_ue_id'))
+        $ecues = MaquetteEcue::query()->whereIn('maquette_ue_id', CalculScenario::inscriptionsPedagogiques($d)->select('maquette_ue_id'))
             ->get(['id', 'code']);
         $etapesAttendues = $d->session === EtapeSaisie::RATTRAPAGE ? [EtapeSaisie::EXAMEN] : EtapeSaisie::etapesDe(EtapeSaisie::NORMALE);
         $verrouillees = EtapeSaisie::query()->whereIn('maquette_ecue_id', $ecues->pluck('id'))->where('session', $d->session)
@@ -254,11 +260,15 @@ final class Deliberations
             if ($bloquants !== []) {
                 throw new InvalidArgumentException('Préalables bloquants : '.implode(' ', array_map(fn (Anomalie $a): string => $a->message, $bloquants)));
             }
-            $derniereNote = NoteEcue::query()->whereIn('inscription_pedagogique_id',
-                InscriptionPedagogique::query()->whereIn('inscription_annuelle_id', CalculScenario::population($d)->select('id'))->select('id'))
+            $derniereNote = NoteEcue::query()->whereIn('inscription_pedagogique_id', CalculScenario::inscriptionsPedagogiques($d)->select('id'))
                 ->max('updated_at');
             if ($scenario->calcule_at === null || ($derniereNote !== null && CarbonImmutable::parse($derniereNote)->gt($scenario->calcule_at))) {
                 throw new InvalidArgumentException('Des notes ont changé après le calcul du scénario retenu : recalculez-le.');
+            }
+            // Lot 17a : les UE reprises d'une délibération arrêtée ou rectifiée depuis le calcul sont périmées.
+            $dernierAppui = $d->appuis()->where('statut', Deliberation::ARRETEE)->max('arretee_at');
+            if ($dernierAppui !== null && CarbonImmutable::parse($dernierAppui)->gt($scenario->calcule_at)) {
+                throw new InvalidArgumentException('Une délibération dont celle-ci reprend les UE acquises a été arrêtée après le calcul du scénario retenu : recalculez-le.');
             }
 
             $resultats = ResultatScenario::query()->where('scenario_id', $scenario->id)->with('inscriptionAnnuelle.auditeur.candidature')->get();
@@ -299,6 +309,9 @@ final class Deliberations
             $d->forceFill(['statut' => Deliberation::ARRETEE, 'arretee_par' => $auteur->id, 'arretee_at' => now(), 'numero_pv' => $numero, 'pv_sha256' => $sceau])->save();
             if ($d->rectifie_id !== null) {
                 app(DocumentsOfficiels::class)->revoquerPourRectification($d->rectifiee, $d);
+                // Lot 17a : la rectification remplace aussi, pour ses UE, les délibérations qu'elle reprend.
+                $d->appuis()->where('statut', Deliberation::ARRETEE)->whereNotNull('a_rectifier_at')
+                    ->update(['a_rectifier_at' => null, 'a_rectifier_motif' => null]);
             }
             // Lot 16a : le PV arrêté est archivé une fois ; tout téléchargement sert ce fichier.
             app(PvDeliberation::class)->archiver($d, $auteur);
@@ -434,9 +447,14 @@ final class Deliberations
         if (Deliberation::query()->where('rectifie_id', $d->id)->exists()) {
             throw new InvalidArgumentException('Une rectification de cette délibération est déjà en cours.');
         }
+        // Lot 17a : une délibération arrêtée reprend ses UE acquises ; la correction passe par celle-là.
+        $dependante = $d->dependantes()->where('statut', Deliberation::ARRETEE)->orderByDesc('arretee_at')->first();
+        if ($dependante !== null) {
+            throw new InvalidArgumentException('La délibération '.$dependante->numero_pv.' ('.$dependante->libelle().') est arrêtée et reprend ces résultats : la correction passe par sa rectification.');
+        }
 
         return DB::transaction(function () use ($d, $motif, $acte, $auteur): Deliberation {
-            $nouvelle = Deliberation::query()->create($d->only(['annee_academique', 'niveau', 'parcours_id', 'session', 'jury_id']));
+            $nouvelle = Deliberation::query()->create($d->only(['annee_academique', 'niveau', 'parcours_id', 'session', 'jury_id', 'semestre']));
             $nouvelle->forceFill(['rectifie_id' => $d->id, 'motif_rectification' => mb_substr(trim($motif), 0, 500),
                 'acte_rectificatif' => mb_substr(trim($acte), 0, 120), 'creee_par' => $auteur->id])->save();
             $scenario = Scenario::query()->create(['deliberation_id' => $nouvelle->id, 'libelle' => 'Rectification de '.$d->numero_pv]);
@@ -529,7 +547,8 @@ final class Deliberations
     private function parametresCasParticulier(array $p, Deliberation $d): array
     {
         $inscription = CalculScenario::population($d)->whereKey((int) ($p['inscription_annuelle_id'] ?? 0))->first();
-        $ue = $inscription?->inscriptionsPedagogiques()->where('maquette_ue_id', (int) ($p['maquette_ue_id'] ?? 0))->exists();
+        $ue = $inscription !== null && CalculScenario::dansLaPortee($inscription->inscriptionsPedagogiques()->getQuery(), $d)
+            ->where('maquette_ue_id', (int) ($p['maquette_ue_id'] ?? 0))->exists();
         if ($inscription === null || ! $ue) {
             throw new InvalidArgumentException('Auditeur ou UE hors de la délibération.');
         }

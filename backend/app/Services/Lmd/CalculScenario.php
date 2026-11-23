@@ -33,14 +33,30 @@ final class CalculScenario
 {
     public function __construct(private readonly CalculNotes $notes) {}
 
-    /** Population d'une délibération : inscriptions de l'année et du niveau (et du parcours) inscrites à des UE. */
+    /**
+     * Population d'une délibération : inscriptions de l'année et du niveau (et du parcours) inscrites
+     * à des UE ; pour une délibération de semestre, à des UE de ce semestre (spec lot 17a).
+     */
     public static function population(Deliberation $d): Builder
     {
         return InscriptionAnnuelle::query()
             ->where('annee_academique', $d->annee_academique)
             ->where('niveau', $d->niveau)
             ->when($d->parcours_id !== null, fn (Builder $q) => $q->where('parcours_id', $d->parcours_id))
-            ->whereHas('inscriptionsPedagogiques');
+            ->whereHas('inscriptionsPedagogiques', fn (Builder $q) => self::dansLaPortee($q, $d));
+    }
+
+    /** Inscriptions aux UE qui entrent dans la délibération : toutes, ou celles de son semestre. */
+    public static function inscriptionsPedagogiques(Deliberation $d): Builder
+    {
+        return self::dansLaPortee(InscriptionPedagogique::query()->whereIn('inscription_annuelle_id', self::population($d)->select('id')), $d);
+    }
+
+    /** Restreint une requête d'inscriptions pédagogiques aux UE du semestre de la délibération. */
+    public static function dansLaPortee(Builder $inscriptionsPedagogiques, Deliberation $d): Builder
+    {
+        return $inscriptionsPedagogiques->when($d->estSemestrielle(),
+            fn (Builder $q) => $q->whereHas('maquetteUe', fn (Builder $ue) => $ue->whereIn('semestre', $d->semestresEnregistres())));
     }
 
     /** @return array{effectif: int, admis: int, autorises: int, ajournes: int} */
@@ -52,15 +68,16 @@ final class CalculScenario
         $opposable = (bool) ($regle->jury['note_eliminatoire_opposable'] ?? true);
 
         $inscriptions = self::population($d)
-            ->with(['auditeur', 'parcours', 'inscriptionsPedagogiques' => fn ($q) => $q->with(['maquetteUe.ue', 'maquetteUe.ecues', 'notes', 'derogationRattrapage'])])
+            ->with(['auditeur', 'parcours', 'inscriptionsPedagogiques' => fn ($q) => self::dansLaPortee($q->getQuery(), $d)->with(['maquetteUe.ue', 'maquetteUe.ecues', 'notes', 'derogationRattrapage'])])
             ->get();
         $capitalises = $this->capitalises($inscriptions, $d);
+        $dejaAcquis = $this->dejaAcquis($inscriptions, $d);
 
         // 1-2. UE de référence, notes de la session, application stricte des règles
         $lignes = [];
         foreach ($inscriptions as $inscription) {
             foreach ($inscription->inscriptionsPedagogiques as $ip) {
-                $lignes[] = $this->ligne($inscription, $ip, $regle, $d, $capitalises);
+                $lignes[] = $this->ligne($inscription, $ip, $regle, $d, $capitalises, $dejaAcquis);
             }
         }
 
@@ -75,7 +92,7 @@ final class CalculScenario
         }
 
         // 4. Synthèse par auditeur
-        $syntheses = $this->syntheses($inscriptions, $lignes, $regle, $scenario);
+        $syntheses = $this->syntheses($inscriptions, $lignes, $regle, $scenario, $d);
 
         DB::transaction(function () use ($scenario, $lignes, $syntheses): void {
             ResultatScenarioUe::query()->where('scenario_id', $scenario->id)->delete();
@@ -117,6 +134,39 @@ final class CalculScenario
         return 'AJ';
     }
 
+    /** Décision d'un semestre (spec lot 17a) : validé (AD) quand tous ses crédits sont acquis, sinon non validé (AJ). */
+    public static function decisionSemestre(int $credits, int $creditsSemestre): string
+    {
+        return $creditsSemestre > 0 && $credits >= $creditsSemestre ? 'AD' : 'AJ';
+    }
+
+    /**
+     * UE déjà acquises cette année par une délibération arrêtée sur laquelle celle-ci s'appuie
+     * (ses semestres, ou la session normale avant le rattrapage) : elles restent acquises (spec
+     * lot 17a, règle 4). Une délibération de session normale ne reprend jamais un acquis du
+     * rattrapage. La délibération en cours de rectification est écartée : ses acquis sont recalculés.
+     *
+     * @param  Collection<int, InscriptionAnnuelle>  $inscriptions
+     * @return array<int, array<int, AcquisUe>> par auditeur puis par UE de maquette
+     */
+    private function dejaAcquis(Collection $inscriptions, Deliberation $d): array
+    {
+        $acquis = AcquisUe::query()
+            ->whereIn('auditeur_id', $inscriptions->pluck('auditeur_id'))
+            ->where('annee_academique', $d->annee_academique)
+            ->whereIn('deliberation_id', $d->appuis()->where('statut', Deliberation::ARRETEE)
+                ->when($d->rectifie_id !== null, fn (Builder $q) => $q->whereKeyNot($d->rectifie_id))->select('id'))
+            ->when($d->session === EtapeSaisie::NORMALE, fn (Builder $q) => $q->where('session', EtapeSaisie::NORMALE))
+            ->with('deliberation:id,numero_pv')
+            ->get();
+        $parAuditeur = [];
+        foreach ($acquis as $a) {
+            $parAuditeur[$a->auditeur_id][$a->maquette_ue_id] = $a;
+        }
+
+        return $parAuditeur;
+    }
+
     /**
      * Acquis antérieurs (même UE, même niveau, année antérieure), par auditeur puis par UE.
      *
@@ -141,9 +191,10 @@ final class CalculScenario
 
     /**
      * @param  array<int, array<int, AcquisUe>>  $capitalises
+     * @param  array<int, array<int, AcquisUe>>  $dejaAcquis
      * @return array<string, mixed>
      */
-    private function ligne(InscriptionAnnuelle $inscription, InscriptionPedagogique $ip, RegleEvaluation $regle, Deliberation $d, array $capitalises): array
+    private function ligne(InscriptionAnnuelle $inscription, InscriptionPedagogique $ip, RegleEvaluation $regle, Deliberation $d, array $capitalises, array $dejaAcquis): array
     {
         /** @var MaquetteUe $ue */
         $ue = $ip->maquetteUe;
@@ -153,6 +204,10 @@ final class CalculScenario
         $r = $this->notes->ue($ue, $regle, $normales, $rattrapages, $ip->derogationRattrapage !== null);
         $capitalisee = $acquis !== null || $ip->statut === InscriptionPedagogique::CAPITALISEE;
         $note = $r->note ?? ($capitalisee ? ($acquis?->note_retenue === null ? null : (float) $acquis->note_retenue) : null);
+        $deja = $capitalisee ? null : ($dejaAcquis[$inscription->auditeur_id][$ue->id] ?? null);
+        if ($deja !== null && ! $r->acquise) {
+            $note = $deja->note_retenue === null ? $note : (float) $deja->note_retenue;
+        }
 
         return [
             'inscription_annuelle_id' => $inscription->id,
@@ -163,11 +218,12 @@ final class CalculScenario
             'note_retenue' => self::dec($r->note),
             'eliminatoire' => $r->eliminatoire,
             'capitalisee' => $capitalisee,
+            // La reprise n'est pas l'application stricte des règles : le PV montre l'écart et sa source.
             'acquise_regle' => $capitalisee || $r->acquise,
             'note_jury' => self::dec($note),
-            'acquise' => $capitalisee || $r->acquise,
+            'acquise' => $capitalisee || $r->acquise || $deja !== null,
             'mesure_id' => null,
-            '_mesure_type' => null,
+            '_mesure_type' => $deja !== null && ! $r->acquise ? 'UE acquise au '.($deja->deliberation?->numero_pv ?? 'PV antérieur') : null,
             '_auditeur' => $inscription->auditeur_id,
             '_parcours' => $inscription->parcours_id,
         ];
@@ -248,7 +304,7 @@ final class CalculScenario
      * @param  list<array<string, mixed>>  $lignes
      * @return list<array<string, mixed>>
      */
-    private function syntheses(Collection $inscriptions, array $lignes, RegleEvaluation $regle, Scenario $scenario): array
+    private function syntheses(Collection $inscriptions, array $lignes, RegleEvaluation $regle, Scenario $scenario, Deliberation $d): array
     {
         $parInscription = [];
         foreach ($lignes as $l) {
@@ -271,20 +327,25 @@ final class CalculScenario
 
             $creditsRegle = $somme(fn (array $l): bool => $l['acquise_regle']);
             $creditsAcquis = $somme(fn (array $l): bool => $l['acquise']);
-            $decision = self::decision($inscription->niveau, $creditsAcquis, $somme(fn (array $l): bool => $l['acquise'] && $l['partie'] === 'ecrite'), $regle);
+            $creditsMaquette = $somme(fn (): bool => true);
+            $decision = $d->estSemestrielle()
+                ? self::decisionSemestre($creditsAcquis, $creditsMaquette)
+                : self::decision($inscription->niveau, $creditsAcquis, $somme(fn (array $l): bool => $l['acquise'] && $l['partie'] === 'ecrite'), $regle);
             $mention = in_array($decision, ['AD', 'AS'], true) && $moyenne !== null ? ($regle->grade($moyenne)['appreciation'] ?? null) : null;
             $mesures = array_values(array_unique(array_filter(array_column($ls, '_mesure_type'))));
 
             $syntheses[] = [
                 'scenario_id' => $scenario->id,
                 'inscription_annuelle_id' => $inscription->id,
-                'credits_maquette' => $somme(fn (): bool => true),
+                'credits_maquette' => $creditsMaquette,
                 'credits_regle' => $creditsRegle,
                 'credits_acquis' => $creditsAcquis,
                 'credits_annee' => $somme(fn (array $l): bool => $l['acquise'] && ! $l['capitalisee']),
                 'moyenne' => self::dec($moyenne),
                 'mgp' => $mgp === null ? null : number_format($mgp, 2, '.', ''),
-                'decision_calculee' => self::decision($inscription->niveau, $creditsRegle, $somme(fn (array $l): bool => $l['acquise_regle'] && $l['partie'] === 'ecrite'), $regle),
+                'decision_calculee' => $d->estSemestrielle()
+                    ? self::decisionSemestre($creditsRegle, $creditsMaquette)
+                    : self::decision($inscription->niveau, $creditsRegle, $somme(fn (array $l): bool => $l['acquise_regle'] && $l['partie'] === 'ecrite'), $regle),
                 'decision' => $decision,
                 'rang' => null,
                 'mention' => $mention,
