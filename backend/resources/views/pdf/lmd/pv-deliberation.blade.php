@@ -7,6 +7,11 @@
     $n = fn ($v, int $dec = 2): string => $v === null ? '—' : number_format((float) $v, $dec, ',', ' ');
 @endphp
 @include('pdf.lmd._entete')
+<style>
+  .par-ue th, .par-ue td { padding: 1.1mm 1mm; font-size: 7.5pt; }
+  .par-ue th { font-size: 6.5pt; }
+  .par-ue tr { page-break-inside: avoid; }
+</style>
 </head>
 <body>
   <h1>{{ $d->estAdmission() ? 'Procès-verbal du jury d\'admission' : 'Procès-verbal de délibération'.($d->estSemestrielle() ? ' de semestre' : '') }}</h1>
@@ -72,12 +77,42 @@
     </tbody>
   </table>
 
+  @foreach ($tableaux as $t)
+    <h2 style="page-break-before:always;">Synthèse par UE{{ $t['parcours'] ? ' — '.$t['parcours'] : '' }}</h2>
+    <p style="font-size:7.5pt;line-height:1.45;color:#5C5C5C;margin:0 0 3mm;">
+      @foreach ($t['ues'] as $ue)<strong style="color:#0F3A4A;">{{ $ue->ue->code }}</strong> {{ $ue->ue->intitule }} ({{ $ue->credits }} cr.){{ $loop->last ? '.' : ' · ' }}@endforeach
+      Une note suivie d'un astérisque est celle d'une UE non acquise.
+    </p>
+    <table class="par-ue">
+      <thead><tr><th class="n">N°</th><th>Matricule</th><th>Nom et prénom</th>
+        @foreach ($t['ues'] as $ue)<th class="n">{{ $ue->ue->code }}</th>@endforeach
+        <th class="n">Crédits</th><th class="n">Moyenne</th><th>Déc.</th></tr></thead>
+      <tbody>
+        @foreach ($t['lignes'] as $l)
+          @php $dossier = $l['resultat']->inscriptionAnnuelle?->auditeur?->candidature; @endphp
+          <tr>
+            <td class="n">{{ $loop->iteration }}</td>
+            <td>{{ $dossier?->matricule }}</td>
+            <td>{{ trim(mb_strtoupper((string) $dossier?->nom).' '.$dossier?->prenom) }}</td>
+            @foreach ($t['ues'] as $ue)
+              @php $note = $l['notes'][$ue->id] ?? null; @endphp
+              <td class="n">{{ $n($note?->note_jury) }}{{ $note !== null && $note->note_jury !== null && ! $note->acquise ? '*' : '' }}</td>
+            @endforeach
+            <td class="n">{{ $l['resultat']->credits_acquis }}</td>
+            <td class="n"><strong>{{ $n($l['resultat']->moyenne) }}</strong></td>
+            <td><strong>{{ $l['resultat']->decision }}</strong></td>
+          </tr>
+        @endforeach
+      </tbody>
+    </table>
+  @endforeach
+
   <h2>Synthèse</h2>
   <table>
-    <thead><tr><th class="n">Effectif</th>@if ($d->estSemestrielle())<th class="n">Semestre validé (AD)</th><th class="n">Semestre non validé (AJ)</th>@else<th class="n">Admis (AD)</th><th class="n">Autorisés à soutenir (AS)</th><th class="n">Ajournés (AJ)</th>@endif<th class="n">Taux de réussite</th></tr></thead>
+    <thead><tr><th class="n">Effectif</th>@if ($d->estSemestrielle())<th class="n">Semestre validé (AD)</th><th class="n">Semestre non validé (AJ)</th>@else<th class="n">Admis (AD)</th><th class="n">Autorisés à soutenir (AS)</th><th class="n">Ajournés (AJ)</th>@endif<th class="n">{{ $d->estAdmission() ? 'Taux d\'admission' : 'Taux de réussite' }}</th></tr></thead>
     <tbody><tr>
       <td class="n">{{ $synthese['effectif'] }}</td><td class="n">{{ $synthese['AD'] }}</td>@unless ($d->estSemestrielle())<td class="n">{{ $synthese['AS'] }}</td>@endunless<td class="n">{{ $synthese['AJ'] }}</td>
-      <td class="n">{{ $synthese['effectif'] > 0 ? $n(100 * ($synthese['AD'] + $synthese['AS']) / $synthese['effectif'], 1).' %' : '—' }}</td>
+      <td class="n">{{ $synthese['effectif'] > 0 ? $n(100 * ($synthese['AD'] + ($d->estAdmission() ? 0 : $synthese['AS'])) / $synthese['effectif'], 1).' %' : '—' }}</td>
     </tr></tbody>
   </table>
 
