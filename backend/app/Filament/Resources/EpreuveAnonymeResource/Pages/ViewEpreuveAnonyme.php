@@ -10,6 +10,7 @@ use App\Models\CopieAnonyme;
 use App\Models\EpreuveAnonyme;
 use App\Models\User;
 use App\Services\Lmd\Anonymat;
+use App\Services\Lmd\DocumentsOfficiels;
 use App\Services\Lmd\PermissionsLmd;
 use App\Services\Lmd\SaisieNotes;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -109,7 +110,9 @@ class ViewEpreuveAnonyme extends ViewRecord
                     ->visible(fn (): bool => $e()->statut !== 'levee' && $gere())
                     ->action(function () use ($e): StreamedResponse {
                         $inscrits = app(SaisieNotes::class)->inscrits($e()->ecue);
-                        $pdf = Pdf::loadView('pdf.lmd.emargement-anonymat', ['e' => $e(), 'inscrits' => $inscrits])->setPaper('a4')->output();
+                        // Décision D5 (lot 19) : l'auditeur en retard de paiement, sans levée, n'est pas autorisé à composer.
+                        $nonAutorises = app(DocumentsOfficiels::class)->nonEnRegle($inscrits->pluck('inscription_annuelle_id'));
+                        $pdf = Pdf::loadView('pdf.lmd.emargement-anonymat', ['e' => $e(), 'inscrits' => $inscrits, 'nonAutorises' => $nonAutorises])->setPaper('a4')->output();
 
                         return response()->streamDownload(fn () => print ($pdf), 'emargement-'.mb_strtolower((string) $e()->ecue?->code).'.pdf', ['Content-Type' => 'application/pdf']);
                     }),

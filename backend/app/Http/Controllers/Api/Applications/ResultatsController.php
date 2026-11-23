@@ -62,7 +62,7 @@ final class ResultatsController extends Controller
                 'mention' => $r->mention,
                 'ues' => $this->resultats->ues($r),
                 'documents' => [
-                    'releve_notes' => null,
+                    'releve_notes' => $this->documents->indisponibilite(DocumentDelivre::RELEVE, $auditeur, $r->deliberation),
                     'attestation_reussite' => $this->documents->indisponibilite(DocumentDelivre::ATTESTATION, $auditeur, $r->deliberation),
                 ],
             ])->values()->all(),

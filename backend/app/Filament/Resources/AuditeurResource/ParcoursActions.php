@@ -108,11 +108,11 @@ final class ParcoursActions
     public static function leverRestriction(): Action
     {
         return Action::make('leverRestriction')
-            ->label('Lever la restriction sur les documents')
+            ->label('Lever la restriction (documents et examens)')
             ->icon('heroicon-o-lock-open')
             ->visible(fn (Auditeur $record): bool => $record->inscriptionCourante !== null
                 && (bool) auth()->user()?->can(PermissionsLmd::DOCUMENTS_LEVER))
-            ->modalDescription('Autorise l\'attestation de réussite et le certificat de scolarité malgré une échéance en retard (D9). La levée est tracée.')
+            ->modalDescription('Autorise le relevé de notes, l\'attestation de réussite, le certificat de scolarité et l\'accès aux examens malgré une échéance en retard (D5, D9). La levée vaut pour l\'inscription de l\'année et elle est tracée.')
             ->form(MessagesValidation::appliquer([
                 Forms\Components\Textarea::make('motif')->label('Motif')->required()->minLength(10)->maxLength(500),
             ]))
