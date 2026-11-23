@@ -146,8 +146,8 @@ it('prononce « admis » à 60 crédits avec la note du jury de soutenance, sans
         ->and($admis->credits_acquis)->toBe(60)
         ->and((float) $soutenance->note_jury)->toBe(17.5)
         ->and($lignes->where('maquetteUe.partie', '<>', MaquetteUe::SOUTENANCE)->every(fn ($l): bool => $l->acquise && (float) $l->note_jury === 14.0))->toBeTrue()
-        // (44 × 14 + 16 × 17,5) / 60
-        ->and(round((float) $admis->moyenne, 2))->toBe(14.93)
+        // Lot 25 : total des notes divisé par le nombre d'UE, sans pondération : (3 × 14 + 17,5) / 4
+        ->and(round((float) $admis->moyenne, 2))->toBe(14.88)
         ->and(AcquisUe::query()->where('deliberation_id', $admission->id)->where('session', Deliberation::ADMISSION)->count())->toBe(1)
         // Sans résultat de soutenance : reste autorisé à soutenir. L'ajourné ne figure pas.
         ->and(($this->resultat)($admission, $this->enAttente)->decision)->toBe('AS')
@@ -195,4 +195,20 @@ it('dresse la synthèse par UE du jury d\'admission : une colonne par UE, souten
         ->and($tableaux[0]['lignes'])->toHaveCount(2)
         ->and((float) $ligne['notes'][$soutenance->id]->note_jury)->toBe(17.5)
         ->and(str_starts_with($pv->pv($admission), '%PDF'))->toBeTrue();
+});
+
+it('sort du PV les auditeurs restés « autorisés à soutenir » quand le jury d\'admission est « admis seulement »', function (): void {
+    ($this->arreter)(($this->creer)('normale'));
+    ($this->soutenir)($this->soutenu, '17,5');
+    $admission = ($this->creer)(Deliberation::ADMISSION);
+    $admission->forceFill(['admis_seulement' => true])->save();
+    $avertissement = collect($this->deliberations->prealables($admission))->firstWhere('code', 'soutenances_manquantes');
+
+    $admission = ($this->arreter)($admission);
+
+    expect($avertissement->message)->toContain('ne figureront pas au PV')
+        ->and(($this->resultat)($admission, $this->soutenu)->decision)->toBe('AD')
+        ->and(($this->resultat)($admission, $this->soutenu)->rang)->toBe(1)
+        ->and(($this->resultat)($admission, $this->enAttente))->toBeNull()
+        ->and(app(PvDeliberation::class)->syntheseParUe($admission)[0]['lignes'])->toHaveCount(1);
 });

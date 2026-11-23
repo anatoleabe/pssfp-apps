@@ -62,9 +62,12 @@ class DeliberationResource extends Resource
                         ->options(fn (Forms\Get $get): array => NumerotationSemestres::options((string) $get('annee_academique'), match ($get('niveau')) {
                             'M1' => [1, 2], 'M2' => [3], default => [],
                         })),
-                    Forms\Components\Select::make('session')->label('Session')->required()->native(false)->default(EtapeSaisie::NORMALE)
+                    Forms\Components\Select::make('session')->label('Session')->required()->native(false)->default(EtapeSaisie::NORMALE)->live()
                         ->options(fn (Forms\Get $get): array => $get('niveau') === 'M2' ? Deliberation::SESSIONS : EtapeSaisie::SESSIONS)
                         ->helperText('Le jury d\'admission (Master 2, année entière) se tient après les soutenances : il reprend les UE acquises aux écrits et la note de soutenance.'),
+                    Forms\Components\Toggle::make('admis_seulement')->label('PV des admis seulement')
+                        ->helperText('Les auditeurs restés « autorisés à soutenir » ne figurent ni aux résultats ni au PV. Décoché : ils y figurent avec « AS ».')
+                        ->visible(fn (Forms\Get $get): bool => $get('session') === Deliberation::ADMISSION),
                     Forms\Components\Select::make('jury_id')->label('Jury')->native(false)
                         ->options(fn (Forms\Get $get): array => Jury::query()->where('annee_academique', $get('annee_academique'))->where('niveau', $get('niveau'))
                             ->orderByDesc('acte_date')->get()->mapWithKeys(fn (Jury $j): array => [$j->id => $j->libelle()])->all()),

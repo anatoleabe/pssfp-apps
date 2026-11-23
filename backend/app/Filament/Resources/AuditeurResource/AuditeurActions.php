@@ -14,6 +14,8 @@ use App\Models\RecuVersement;
 use App\Models\Versement;
 use App\Services\Acma\ReinscriptionAncien;
 use App\Services\DocumentsAuditeurs\DocumentsAuditeurs;
+use App\Services\Lmd\DocumentsOfficiels;
+use App\Services\Lmd\PermissionsLmd;
 use App\Services\NotificationCandidatsService;
 use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\AnneeEnCours;
@@ -282,6 +284,31 @@ final class AuditeurActions
                 $inscription === null
                     ? Notification::make()->danger()->title('Barème manquant')->body('Aucun barème M1 pour l\'année de cette promotion : un responsable de scolarité doit d\'abord le saisir (Vie académique > Barèmes).')->persistent()->send()
                     : Notification::make()->success()->title('Inscription créée')->send();
+            });
+    }
+
+    /** Certificat de scolarité (spec lot 25) : délivré ici par la scolarité ou l'administration, puis visible de l'auditeur. */
+    public static function certificatScolarite(): Action
+    {
+        return Action::make('certificatScolarite')
+            ->label('Certificat de scolarité')
+            ->icon('heroicon-o-academic-cap')
+            ->color('gray')
+            ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(PermissionsLmd::CERTIFICAT_DELIVRER) && $record->inscriptionCourante !== null)
+            ->requiresConfirmation()
+            ->modalDescription('Le certificat est délivré pour l\'inscription en cours et devient disponible dans l\'espace de l\'auditeur. S\'il a déjà été délivré, le même document est servi.')
+            ->action(function (Auditeur $record) {
+                try {
+                    $documents = app(DocumentsOfficiels::class);
+                    $document = $documents->delivrerCertificat($record, auth()->user());
+                    $pdf = $documents->contenu($document);
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title('Certificat non délivré')->body($e->getMessage())->send();
+
+                    return null;
+                }
+
+                return response()->streamDownload(fn () => print ($pdf), mb_strtolower($document->numero).'.pdf', ['Content-Type' => 'application/pdf']);
             });
     }
 
