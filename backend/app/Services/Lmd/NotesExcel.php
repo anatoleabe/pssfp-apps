@@ -67,11 +67,13 @@ final class NotesExcel
     }
 
     /**
-     * Lit un modèle rempli et le saisit (ou le contrôle seulement).
+     * Lit un modèle rempli et le saisit (ou le contrôle seulement). Tout le fichier est contrôlé
+     * avant d'écrire : une seule ligne en erreur et rien n'est enregistré (spec lot 20).
      *
      * @return int notes modifiées (à modifier en essai à blanc)
      *
-     * @throws InvalidArgumentException fichier illisible, matricule inconnu, note invalide, motif manquant
+     * @throws ImportRefuse lignes en erreur (matricule non inscrit ou en double, note invalide, motif manquant), avec leur numéro
+     * @throws InvalidArgumentException fichier illisible, modèle modifié, étape non ouverte
      */
     public function importer(EtapeSaisie $etape, string $chemin, User $auteur, bool $appliquer): int
     {
@@ -90,7 +92,8 @@ final class NotesExcel
         $presences = array_flip(array_map(fn (string $l): string => mb_strtolower($l), NoteEcue::PRESENCES));
 
         $lignes = [];
-        $inconnus = [];
+        $numeros = [];
+        $refus = [];
         $max = $feuille->getHighestDataRow();
         for ($n = self::LIGNE_ENTETE + 1; $n <= $max; $n++) {
             [$matricule, , , $note, $presence, $motif] = $feuille->rangeToArray("A{$n}:F{$n}", null, true, false)[0];
@@ -100,10 +103,16 @@ final class NotesExcel
             }
             $id = $parMatricule[$matricule] ?? null;
             if ($id === null) {
-                $inconnus[] = $matricule;
+                $refus[] = ['ligne' => $n, 'matricule' => $matricule, 'message' => 'matricule non inscrit à cette UE'];
 
                 continue;
             }
+            if (isset($numeros[$id])) {
+                $refus[] = ['ligne' => $n, 'matricule' => $matricule, 'message' => 'matricule déjà présent à la ligne '.$numeros[$id]];
+
+                continue;
+            }
+            $numeros[$id] = $n;
             $libellePresence = mb_strtolower(trim((string) $presence));
             $lignes[$id] = [
                 'note' => is_string($note) ? trim($note) : $note,
@@ -111,10 +120,53 @@ final class NotesExcel
                 'motif' => trim((string) $motif),
             ];
         }
-        if ($inconnus !== []) {
-            throw new InvalidArgumentException('Matricules non inscrits à cette UE : '.implode(', ', array_slice($inconnus, 0, 10)).(count($inconnus) > 10 ? '…' : '').'. Rien n\'a été enregistré.');
+
+        try {
+            // Avec des lignes déjà refusées, les autres sont seulement contrôlées, pour un rapport complet.
+            $modifiees = $this->saisie->saisir($etape, $lignes, $auteur, $appliquer && $refus === []);
+        } catch (SaisieRefusee $e) {
+            foreach ($e->erreurs as $erreur) {
+                $refus[] = ['ligne' => $numeros[$erreur['id']] ?? 0, 'matricule' => $erreur['matricule'], 'message' => $erreur['message']];
+            }
+        }
+        if ($refus !== []) {
+            usort($refus, fn (array $a, array $b): int => $a['ligne'] <=> $b['ligne']);
+
+            throw new ImportRefuse($refus);
         }
 
-        return $this->saisie->saisir($etape, $lignes, $auteur, $appliquer);
+        return $modifiees;
+    }
+
+    /**
+     * Rapport d'un import refusé : une ligne par problème, avec le numéro de ligne du fichier déposé.
+     *
+     * @param  list<array{ligne: int, matricule: string, message: string}>  $lignes
+     */
+    public function rapport(EtapeSaisie $etape, array $lignes): string
+    {
+        $etape->loadMissing('ecue');
+        $classeur = new Spreadsheet;
+        $feuille = $classeur->getActiveSheet();
+        $feuille->setTitle('Lignes en erreur');
+        $feuille->setCellValue('A1', 'Import refusé — '.$etape->ecue->code.' · '.EtapeSaisie::SESSIONS[$etape->session].' · '.EtapeSaisie::ETAPES[$etape->etape]);
+        $feuille->setCellValue('A2', count($lignes).' ligne(s) en erreur. Rien n\'a été enregistré : corrigez le fichier puis déposez-le de nouveau.');
+        $feuille->fromArray(['Ligne du fichier', 'Matricule', 'Problème'], null, 'A4');
+        $feuille->getStyle('A4:C4')->getFont()->setBold(true);
+        $n = 5;
+        foreach ($lignes as $ligne) {
+            $feuille->setCellValue('A'.$n, $ligne['ligne']);
+            $feuille->setCellValueExplicit('B'.$n, $ligne['matricule'], DataType::TYPE_STRING);
+            $feuille->setCellValueExplicit('C'.$n, $ligne['message'], DataType::TYPE_STRING);
+            $n++;
+        }
+        foreach (['A', 'B', 'C'] as $col) {
+            $feuille->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        ob_start();
+        (new Xlsx($classeur))->save('php://output');
+
+        return (string) ob_get_clean();
     }
 }
