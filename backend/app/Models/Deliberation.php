@@ -34,6 +34,11 @@ class Deliberation extends Model
     /** Décisions d'une délibération de semestre : mêmes codes que l'année, autre sens. */
     public const DECISIONS_SEMESTRE = ['AD' => 'Semestre validé', 'AJ' => 'Semestre non validé'];
 
+    /** Jury d'admission du Master 2 (spec lot 24c) : après les soutenances, sur les 60 crédits. */
+    public const ADMISSION = 'admission';
+
+    public const SESSIONS = [...EtapeSaisie::SESSIONS, self::ADMISSION => 'Jury d\'admission'];
+
     /** Le semestre 4 porte la soutenance : il ne se délibère pas seul (spec lot 22). */
     public const SEMESTRE_SOUTENANCE = 4;
 
@@ -121,7 +126,27 @@ class Deliberation extends Model
     {
         return sprintf('%s · %s%s%s · %s', $this->annee_academique, $this->niveau,
             $this->parcours ? ' '.$this->parcours->code : '', $this->estSemestrielle() ? ' · '.$this->libelleSemestre() : '',
-            EtapeSaisie::SESSIONS[$this->session] ?? $this->session);
+            $this->libelleSession());
+    }
+
+    public function estAdmission(): bool
+    {
+        return $this->session === self::ADMISSION;
+    }
+
+    public function libelleSession(): string
+    {
+        return self::SESSIONS[$this->session] ?? (string) $this->session;
+    }
+
+    /**
+     * Délibérations annuelles des écrits que le jury d'admission prolonge : elles prononcent « autorisé à soutenir ».
+     *
+     * @return Builder<self>
+     */
+    public function ecrits(): Builder
+    {
+        return $this->voisines()->whereNull('semestre')->where('session', '<>', self::ADMISSION);
     }
 
     public function estSemestrielle(): bool
@@ -148,12 +173,16 @@ class Deliberation extends Model
 
     /**
      * Délibérations sur lesquelles celle-ci s'appuie (spec lot 17a, règle 4) : elle reprend leurs UE
-     * acquises. L'année s'appuie sur ses semestres ; le rattrapage, sur la session normale de même portée.
+     * acquises. L'année s'appuie sur ses semestres ; le rattrapage, sur la session normale de même portée ;
+     * le jury d'admission, sur toutes les délibérations des écrits de l'année (spec lot 24c).
      *
      * @return Builder<self>
      */
     public function appuis(): Builder
     {
+        if ($this->estAdmission()) {
+            return $this->voisines()->where('session', '<>', self::ADMISSION);
+        }
         $annee = $this->semestre === null;
         $rattrapage = $this->session === EtapeSaisie::RATTRAPAGE;
         if (! $annee && ! $rattrapage) {
@@ -177,15 +206,17 @@ class Deliberation extends Model
      */
     public function dependantes(): Builder
     {
-        $semestre = $this->semestre !== null;
-        $normale = $this->session === EtapeSaisie::NORMALE;
-        if (! $semestre && ! $normale) {
+        if ($this->estAdmission()) {
             return $this->voisines()->whereKey([]);
         }
+        $semestre = $this->semestre !== null;
+        $normale = $this->session === EtapeSaisie::NORMALE;
 
         return $this->voisines()->where(function (Builder $q) use ($semestre, $normale): void {
+            // Le jury d'admission reprend toutes les délibérations des écrits (spec lot 24c).
+            $q->where('session', self::ADMISSION);
             if ($semestre) {
-                $q->whereNull('semestre');
+                $q->orWhereNull('semestre');
             }
             if ($normale) {
                 $q->orWhere(fn (Builder $q) => $q->where('session', EtapeSaisie::RATTRAPAGE)->where('semestre', $this->semestre));

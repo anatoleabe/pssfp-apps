@@ -62,7 +62,9 @@ class DeliberationResource extends Resource
                         ->options(fn (Forms\Get $get): array => NumerotationSemestres::options((string) $get('annee_academique'), match ($get('niveau')) {
                             'M1' => [1, 2], 'M2' => [3], default => [],
                         })),
-                    Forms\Components\Select::make('session')->label('Session')->required()->native(false)->options(EtapeSaisie::SESSIONS)->default(EtapeSaisie::NORMALE),
+                    Forms\Components\Select::make('session')->label('Session')->required()->native(false)->default(EtapeSaisie::NORMALE)
+                        ->options(fn (Forms\Get $get): array => $get('niveau') === 'M2' ? Deliberation::SESSIONS : EtapeSaisie::SESSIONS)
+                        ->helperText('Le jury d\'admission (Master 2, année entière) se tient après les soutenances : il reprend les UE acquises aux écrits et la note de soutenance.'),
                     Forms\Components\Select::make('jury_id')->label('Jury')->native(false)
                         ->options(fn (Forms\Get $get): array => Jury::query()->where('annee_academique', $get('annee_academique'))->where('niveau', $get('niveau'))
                             ->orderByDesc('acte_date')->get()->mapWithKeys(fn (Jury $j): array => [$j->id => $j->libelle()])->all()),
@@ -82,7 +84,7 @@ class DeliberationResource extends Resource
                 Tables\Columns\TextColumn::make('parcours.code')->label('Parcours')->placeholder('Tous'),
                 Tables\Columns\TextColumn::make('semestre')->label('Portée')->placeholder('Année')
                     ->formatStateUsing(fn (Deliberation $record): ?string => $record->libelleSemestre()),
-                Tables\Columns\TextColumn::make('session')->label('Session')->formatStateUsing(fn (string $state): string => EtapeSaisie::SESSIONS[$state] ?? $state),
+                Tables\Columns\TextColumn::make('session')->label('Session')->formatStateUsing(fn (string $state): string => Deliberation::SESSIONS[$state] ?? $state),
                 Tables\Columns\TextColumn::make('numero_pv')->label('PV')->fontFamily('mono')->placeholder('—')
                     ->description(fn (Deliberation $r): ?string => $r->a_rectifier_at !== null && $r->statut === Deliberation::ARRETEE ? 'À rectifier' : null),
                 Tables\Columns\TextColumn::make('statut')->label('Statut')->badge()

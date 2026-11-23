@@ -9,11 +9,11 @@
 @include('pdf.lmd._entete')
 </head>
 <body>
-  <h1>Procès-verbal de délibération{{ $d->estSemestrielle() ? ' de semestre' : '' }}</h1>
+  <h1>{{ $d->estAdmission() ? 'Procès-verbal du jury d\'admission' : 'Procès-verbal de délibération'.($d->estSemestrielle() ? ' de semestre' : '') }}</h1>
   <p class="sous-titre">
     {{ $d->numero_pv ?? 'PROJET — délibération non arrêtée' }} ·
     Année académique {{ $d->annee_academique }} · {{ $d->niveau === 'M1' ? 'Master 1' : 'Master 2' }}{{ $d->parcours ? ' · '.$d->parcours->libelle : '' }} ·
-    {{ $d->estSemestrielle() ? $d->libelleSemestre().' · ' : '' }}{{ \App\Models\EtapeSaisie::SESSIONS[$d->session] ?? $d->session }}
+    {{ $d->estSemestrielle() ? $d->libelleSemestre().' · ' : '' }}{{ $d->libelleSession() }}
   </p>
   @if ($d->rectifie_id)
     <p><strong>PV rectificatif</strong> du {{ $d->rectifiee?->numero_pv }} — acte {{ $d->acte_rectificatif }} — motif : {{ $d->motif_rectification }}.
