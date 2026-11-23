@@ -6,11 +6,13 @@ namespace App\Services\Lmd;
 
 use App\Models\AcquisUe;
 use App\Models\Deliberation;
+use App\Models\DossierMemoire;
 use App\Models\EtapeSaisie;
 use App\Models\InscriptionAnnuelle;
 use App\Models\InscriptionPedagogique;
 use App\Models\Jury;
 use App\Models\MaquetteEcue;
+use App\Models\MaquetteUe;
 use App\Models\MembreJury;
 use App\Models\MesureJury;
 use App\Models\NoteEcue;
@@ -55,6 +57,9 @@ final class Deliberations
         if ($semestre === Deliberation::SEMESTRE_SOUTENANCE) {
             throw new InvalidArgumentException('Le semestre 4 porte la soutenance : il se délibère avec l\'année, qui prononce « autorisé à soutenir ».');
         }
+        if (($data['session'] ?? null) === Deliberation::ADMISSION && ($data['niveau'] !== 'M2' || $semestre !== null)) {
+            throw new InvalidArgumentException('Le jury d\'admission se tient en Master 2, sur l\'année entière, après les soutenances.');
+        }
         $data['semestre'] = $semestre;
         $existe = Deliberation::query()->where('annee_academique', $data['annee_academique'])->where('niveau', $data['niveau'])
             ->where('session', $data['session'])->where('parcours_id', $data['parcours_id'] ?? null)->where('semestre', $semestre)
@@ -94,8 +99,11 @@ final class Deliberations
 
         $population = CalculScenario::population($d);
         if (! (clone $population)->exists()) {
-            $anomalies[] = new Anomalie(Anomalie::BLOQUANT, 'population_vide', $d->estSemestrielle()
-                ? 'Aucun auditeur inscrit à des UE de ce semestre.' : 'Aucun auditeur inscrit à des UE pour cette année et ce niveau.');
+            $anomalies[] = new Anomalie(Anomalie::BLOQUANT, 'population_vide', match (true) {
+                $d->estAdmission() => 'Aucun auditeur autorisé à soutenir : arrêtez d\'abord la délibération annuelle des écrits.',
+                $d->estSemestrielle() => 'Aucun auditeur inscrit à des UE de ce semestre.',
+                default => 'Aucun auditeur inscrit à des UE pour cette année et ce niveau.',
+            });
 
             return $anomalies;
         }
@@ -106,7 +114,13 @@ final class Deliberations
             $anomalies[] = new Anomalie(Anomalie::AVERTISSEMENT, 'sans_inscription_pedagogique', "{$sansUe} inscription(s) de l'année sans UE : hors délibération.");
         }
 
+        if ($d->estAdmission()) {
+            return [...$anomalies, ...$this->prealablesAdmission($d)];
+        }
+
+        // L'UE de soutenance n'a pas de saisie de notes : sa note vient du jury de soutenance (spec lot 24c).
         $ecues = MaquetteEcue::query()->whereIn('maquette_ue_id', CalculScenario::inscriptionsPedagogiques($d)->select('maquette_ue_id'))
+            ->whereHas('maquetteUe', fn ($q) => $q->where('partie', '<>', MaquetteUe::SOUTENANCE))
             ->get(['id', 'code']);
         $etapesAttendues = $d->session === EtapeSaisie::RATTRAPAGE ? [EtapeSaisie::EXAMEN] : EtapeSaisie::etapesDe(EtapeSaisie::NORMALE);
         $verrouillees = EtapeSaisie::query()->whereIn('maquette_ecue_id', $ecues->pluck('id'))->where('session', $d->session)
@@ -118,6 +132,24 @@ final class Deliberations
         }
 
         return $anomalies;
+    }
+
+    /**
+     * Préalables du jury d'admission (spec lot 24c) : les notes des écrits sont déjà arrêtées ;
+     * on signale les autorisés à soutenir dont le résultat de soutenance manque.
+     *
+     * @return list<Anomalie>
+     */
+    private function prealablesAdmission(Deliberation $d): array
+    {
+        $inscriptions = CalculScenario::population($d)->pluck('id');
+        $soutenus = DossierMemoire::query()->whereIn('inscription_annuelle_id', $inscriptions)
+            ->whereNotIn('statut', ['suspendu', 'abandon'])->with('etapes')->get()
+            ->filter(fn (DossierMemoire $dossier): bool => PvSoutenance::note($dossier) !== null)->count();
+        $sans = $inscriptions->count() - $soutenus;
+
+        return $sans === 0 ? [] : [new Anomalie(Anomalie::AVERTISSEMENT, 'soutenances_manquantes',
+            "{$sans} autorisé(s) à soutenir sans résultat de soutenance enregistré : ils resteront « autorisés à soutenir ».")];
     }
 
     public function dupliquer(Scenario $source, string $libelle, User $auteur): Scenario

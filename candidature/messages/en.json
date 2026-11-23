@@ -1224,7 +1224,8 @@
       "semestre": "Year {annee} · Semester {semestre} · {session}",
       "session": {
         "normale": "regular session",
-        "rattrapage": "after resit"
+        "rattrapage": "after resit",
+        "admission": "admission board"
       },
       "decisionSemestre": {
         "AD": "Semester passed",

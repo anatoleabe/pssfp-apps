@@ -9,7 +9,7 @@
   <h1>Liste des résultats{{ $d->estSemestrielle() ? ' du semestre' : '' }}</h1>
   <p class="sous-titre">
     Année académique {{ $d->annee_academique }} · {{ $d->niveau === 'M1' ? 'Master 1' : 'Master 2' }}{{ $d->parcours ? ' · '.$d->parcours->libelle : '' }} ·
-    {{ $d->estSemestrielle() ? $d->libelleSemestre().' · ' : '' }}{{ \App\Models\EtapeSaisie::SESSIONS[$d->session] ?? $d->session }} · {{ $d->numero_pv }}
+    {{ $d->estSemestrielle() ? $d->libelleSemestre().' · ' : '' }}{{ $d->libelleSession() }} · {{ $d->numero_pv }}
   </p>
   <table>
     <thead><tr><th>Matricule</th><th>Nom et prénom</th><th>Décision</th></tr></thead>

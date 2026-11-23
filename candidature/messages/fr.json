@@ -1224,7 +1224,8 @@
       "semestre": "Année {annee} · Semestre {semestre} · {session}",
       "session": {
         "normale": "session normale",
-        "rattrapage": "après rattrapage"
+        "rattrapage": "après rattrapage",
+        "admission": "jury d'admission"
       },
       "decisionSemestre": {
         "AD": "Semestre validé",

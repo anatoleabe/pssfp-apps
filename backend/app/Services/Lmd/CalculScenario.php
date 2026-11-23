@@ -7,12 +7,14 @@ namespace App\Services\Lmd;
 use App\Models\AcquisUe;
 use App\Models\Auditeur;
 use App\Models\Deliberation;
+use App\Models\DossierMemoire;
 use App\Models\EtapeSaisie;
 use App\Models\InscriptionAnnuelle;
 use App\Models\InscriptionPedagogique;
 use App\Models\MaquetteUe;
 use App\Models\MesureJury;
 use App\Models\RegleEvaluation;
+use App\Models\ResultatAnnuel;
 use App\Models\ResultatScenario;
 use App\Models\ResultatScenarioUe;
 use App\Models\Scenario;
@@ -45,6 +47,9 @@ final class CalculScenario
             ->where('niveau', $d->niveau)
             ->when($d->parcours_id !== null, fn (Builder $q) => $q->where('parcours_id', $d->parcours_id))
             ->whereHas('auditeur', fn (Builder $q) => $q->whereNotIn('statut', Auditeur::STATUTS_SORTIS))
+            // Jury d'admission (spec lot 24c) : les autorisés à soutenir des délibérations arrêtées des écrits.
+            ->when($d->estAdmission(), fn (Builder $q) => $q->whereIn('id', ResultatAnnuel::query()->where('decision', 'AS')
+                ->whereIn('deliberation_id', $d->ecrits()->where('statut', Deliberation::ARRETEE)->select('id'))->select('inscription_annuelle_id')))
             ->whereHas('inscriptionsPedagogiques', fn (Builder $q) => self::dansLaPortee($q, $d));
     }
 
@@ -74,12 +79,15 @@ final class CalculScenario
             ->get();
         $capitalises = $this->capitalises($inscriptions, $d);
         $dejaAcquis = $this->dejaAcquis($inscriptions, $d);
+        $soutenances = $d->estAdmission() ? $this->soutenances($inscriptions) : [];
 
         // 1-2. UE de référence, notes de la session, application stricte des règles
         $lignes = [];
         foreach ($inscriptions as $inscription) {
             foreach ($inscription->inscriptionsPedagogiques as $ip) {
-                $lignes[] = $this->ligne($inscription, $ip, $regle, $d, $capitalises, $dejaAcquis);
+                $lignes[] = $d->estAdmission() && $ip->maquetteUe->partie === MaquetteUe::SOUTENANCE
+                    ? $this->ligneSoutenance($inscription, $ip, $soutenances[$inscription->id] ?? null, $seuil)
+                    : $this->ligne($inscription, $ip, $regle, $d, $capitalises, $dejaAcquis);
             }
         }
 
@@ -227,6 +235,55 @@ final class CalculScenario
             'acquise' => $capitalisee || $r->acquise || $deja !== null,
             'mesure_id' => null,
             '_mesure_type' => $deja !== null && ! $r->acquise ? 'UE acquise au '.($deja->deliberation?->numero_pv ?? 'PV antérieur') : null,
+            '_auditeur' => $inscription->auditeur_id,
+            '_parcours' => $inscription->parcours_id,
+        ];
+    }
+
+    /**
+     * Notes de soutenance enregistrées aux dossiers de mémoire, par inscription (spec lot 24c, règle 5).
+     *
+     * @param  Collection<int, InscriptionAnnuelle>  $inscriptions
+     * @return array<int, float>
+     */
+    private function soutenances(Collection $inscriptions): array
+    {
+        $notes = [];
+        $dossiers = DossierMemoire::query()->whereIn('inscription_annuelle_id', $inscriptions->pluck('id'))
+            ->whereNotIn('statut', ['suspendu', 'abandon'])->with('etapes')->get();
+        foreach ($dossiers as $dossier) {
+            $note = PvSoutenance::note($dossier);
+            if ($note !== null) {
+                $notes[$dossier->inscription_annuelle_id] = $note;
+            }
+        }
+
+        return $notes;
+    }
+
+    /**
+     * UE de soutenance au jury d'admission : la note est celle du jury de soutenance, sans autre calcul.
+     *
+     * @return array<string, mixed>
+     */
+    private function ligneSoutenance(InscriptionAnnuelle $inscription, InscriptionPedagogique $ip, ?float $note, float $seuil): array
+    {
+        $acquise = $note !== null && $note >= $seuil;
+
+        return [
+            'inscription_annuelle_id' => $inscription->id,
+            'maquette_ue_id' => $ip->maquetteUe->id,
+            'credits' => $ip->maquetteUe->credits,
+            'partie' => $ip->maquetteUe->partie,
+            'note_normale' => self::dec($note),
+            'note_retenue' => self::dec($note),
+            'eliminatoire' => false,
+            'capitalisee' => false,
+            'acquise_regle' => $acquise,
+            'note_jury' => self::dec($note),
+            'acquise' => $acquise,
+            'mesure_id' => null,
+            '_mesure_type' => null,
             '_auditeur' => $inscription->auditeur_id,
             '_parcours' => $inscription->parcours_id,
         ];

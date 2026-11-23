@@ -45,6 +45,9 @@ final class Memoires
         if ($d->estSemestrielle()) {
             throw new InvalidArgumentException('Une délibération de semestre n\'autorise pas à soutenir : choisissez la délibération annuelle.');
         }
+        if ($d->estAdmission()) {
+            throw new InvalidArgumentException('Le jury d\'admission se tient après les soutenances : choisissez la délibération annuelle des écrits.');
+        }
         $n = 0;
         foreach (ResultatAnnuel::query()->where('deliberation_id', $d->id)->where('decision', 'AS')->with('inscriptionAnnuelle')->get() as $r) {
             if ($this->ouvrir($r->inscriptionAnnuelle, $d)->wasRecentlyCreated) {
@@ -141,6 +144,12 @@ final class Memoires
     public function enregistrerSoutenance(DossierMemoire $dossier, ?string $note, ?string $observations, User $auteur): void
     {
         abort_unless($auteur->can(PermissionsLmd::MEMOIRES_SUIVRE), 403);
+        // Spec lot 24c, règle 7 : le jury d'admission arrêté fige le résultat de soutenance.
+        $admission = GelNotes::gelantes()->where('session', Deliberation::ADMISSION)
+            ->whereHas('resultats', fn ($q) => $q->where('inscription_annuelle_id', $dossier->inscription_annuelle_id))->first();
+        if ($admission !== null) {
+            throw new InvalidArgumentException('Résultat figé par le jury d\'admission '.$admission->numero_pv.' : une correction passe par sa rectification.');
+        }
         $manques = PvSoutenance::manques($dossier);
         if ($manques !== []) {
             throw new InvalidArgumentException('Résultat impossible : il manque '.implode(', ', $manques).'.');
