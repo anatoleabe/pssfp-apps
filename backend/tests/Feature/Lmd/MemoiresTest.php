@@ -9,9 +9,11 @@ use App\Models\Deliberation;
 use App\Models\DocumentDelivre;
 use App\Models\DossierMemoire;
 use App\Models\InscriptionAnnuelle;
+use App\Models\RegleEvaluation;
 use App\Models\User;
 use App\Services\Lmd\DocumentsOfficiels;
 use App\Services\Lmd\Memoires;
+use App\Services\Lmd\PvSoutenance;
 use App\Support\CandidatureObjectStorage;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
@@ -185,4 +187,36 @@ it('ouvre les mémoires à la scolarité, pas à la bibliothèque, et affiche la
     $this->actingAs($this->responsable)->get(DossierMemoireResource::getUrl('view', ['record' => $this->dossier]))->assertOk()
         ->assertSee('Attestation d\'autorisation de dépôt', false)->assertSee('Thème enregistré');
     $this->actingAs(($this->compte)('librarian'))->get(DossierMemoireResource::getUrl('index'))->assertForbidden();
+});
+
+it('refuse le PV de soutenance sans thème, date ou jury, puis le produit vierge', function (): void {
+    $pv = app(PvSoutenance::class);
+    expect(PvSoutenance::manques($this->dossier))->toBe(['thème', 'date de soutenance', 'président du jury', 'rapporteur'])
+        ->and(fn () => $pv->pdf(collect([$this->dossier]), $this->agent))->toThrow(InvalidArgumentException::class, 'il manque thème');
+
+    $this->dossier->forceFill(['theme' => 'La budgétisation par programmes dans les collectivités', 'date_soutenance' => '2027-04-10',
+        'jury_president' => 'Pr Président', 'jury_rapporteur' => 'Pr Rapporteur', 'jury_examinateur' => 'Dr Examinateur'])->save();
+
+    expect(str_starts_with($pv->pdf(collect([$this->dossier->refresh()]), $this->agent), '%PDF'))->toBeTrue()
+        ->and(PvSoutenance::note($this->dossier->load('etapes')))->toBeNull()
+        ->and(fn () => $pv->pdf(collect([$this->dossier]), ($this->compte)('enseignant')))->toThrow(HttpException::class);
+});
+
+it('enregistre le résultat de la soutenance : étape validée, dossier soutenu, mention de la grille', function (): void {
+    expect(fn () => $this->service->enregistrerSoutenance($this->dossier, '17,5', null, $this->agent))->toThrow(InvalidArgumentException::class, 'il manque');
+
+    $this->dossier->forceFill(['theme' => 'La budgétisation par programmes dans les collectivités', 'date_soutenance' => '2027-04-10',
+        'jury_president' => 'Pr Président', 'jury_rapporteur' => 'Pr Rapporteur'])->save();
+    expect(fn () => $this->service->enregistrerSoutenance($this->dossier->refresh(), '21', null, $this->agent))->toThrow(InvalidArgumentException::class, 'entre 0 et 20')
+        ->and(fn () => $this->service->enregistrerSoutenance($this->dossier, ' ', null, $this->agent))->toThrow(InvalidArgumentException::class, 'obligatoire');
+
+    $this->service->enregistrerSoutenance($this->dossier, '17,5', 'Thème d\'actualité traité avec rigueur', $this->agent);
+    $dossier = $this->dossier->refresh()->load('etapes');
+    $regle = RegleEvaluation::pourAnnee('2026-2027');
+
+    expect($dossier->statut)->toBe('soutenu')
+        ->and(PvSoutenance::note($dossier))->toBe(17.5)
+        ->and(PvSoutenance::mention(17.5, $regle))->toBe('Très bien')
+        ->and(PvSoutenance::mention(11.0, $regle))->toBeNull()
+        ->and(str_starts_with(app(PvSoutenance::class)->pdf(collect([$dossier]), $this->agent), '%PDF'))->toBeTrue();
 });

@@ -12,12 +12,14 @@ use App\Models\User;
 use App\Services\Lmd\DocumentsOfficiels;
 use App\Services\Lmd\Memoires;
 use App\Services\Lmd\PermissionsLmd;
+use App\Services\Lmd\PvSoutenance;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Database\Eloquent\Collection;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -49,6 +51,32 @@ class ViewDossierMemoire extends ViewRecord
 
                     return 'Étape enregistrée.';
                 })),
+            ActionGroup::make([
+                Action::make('pvSoutenance')->label('Procès-verbal de soutenance')->icon('heroicon-o-document-text')
+                    ->action(function () use ($d, $u): ?StreamedResponse {
+                        try {
+                            $pdf = app(PvSoutenance::class)->pdf(Collection::make([$d()]), $u());
+                        } catch (InvalidArgumentException $ex) {
+                            Notification::make()->danger()->title('Édition refusée')->body($ex->getMessage())->persistent()->send();
+
+                            return null;
+                        }
+
+                        return response()->streamDownload(fn () => print ($pdf), 'pv-soutenance-'.mb_strtolower((string) $d()->auditeur?->candidature?->matricule).'.pdf', ['Content-Type' => 'application/pdf']);
+                    }),
+                Action::make('resultatSoutenance')->label('Résultat de la soutenance')->icon('heroicon-o-academic-cap')
+                    ->modalDescription('Note attribuée par le jury de soutenance et ses observations, telles que portées sur le procès-verbal signé.')
+                    ->fillForm(fn (): array => ['note' => PvSoutenance::note($d()->load('etapes')), 'observations' => $d()->etapes->firstWhere('etape', 'soutenance')?->appreciation])
+                    ->form(MessagesValidation::appliquer([
+                        Forms\Components\TextInput::make('note')->label('Note sur 20')->required()->maxLength(6),
+                        Forms\Components\Textarea::make('observations')->label('Observations du jury')->maxLength(1000),
+                    ]))
+                    ->action(fn (array $data) => $this->executer(function () use ($m, $d, $u, $data): string {
+                        $m()->enregistrerSoutenance($d(), (string) $data['note'], $data['observations'] ?? null, $u());
+
+                        return 'Résultat de la soutenance enregistré.';
+                    })),
+            ])->label('Soutenance')->button()->color('info')->icon('heroicon-o-academic-cap')->visible($suivre),
             ActionGroup::make([
                 EditAction::make()->label('Modifier le dossier'),
                 Action::make('planifier')->label('Dates prévues des étapes')->icon('heroicon-o-calendar')->visible($suivre)

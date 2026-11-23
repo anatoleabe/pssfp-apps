@@ -11,15 +11,21 @@ use App\Filament\Resources\DossierMemoireResource\Pages;
 use App\Models\DossierMemoire;
 use App\Models\EtapeMemoire;
 use App\Models\Parcours;
+use App\Models\RegleEvaluation;
+use App\Services\Lmd\PermissionsLmd;
+use App\Services\Lmd\PvSoutenance;
 use App\Support\BelongsToModule;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use InvalidArgumentException;
 
 /** Mémoires des autorisés à soutenir et attestation d'autorisation de dépôt (spec module 4, lot 11 ; D32 à D34). */
 #[BelongsToModule('lmd')]
@@ -61,6 +67,14 @@ class DossierMemoireResource extends Resource
                     Forms\Components\DatePicker::make('date_soutenance')->label('Date de soutenance')->native(false)->displayFormat('d/m/Y'),
                 ]),
             ]),
+            Forms\Components\Section::make('Jury de soutenance')->columns(3)
+                ->description('Repris sur le procès-verbal de soutenance, avec l\'encadreur professionnel. Le rapporteur est le directeur de recherche.')
+                ->schema([
+                    Forms\Components\TextInput::make('jury_president')->label('Président')->maxLength(255),
+                    Forms\Components\TextInput::make('jury_rapporteur')->label('Rapporteur')->maxLength(255)
+                        ->placeholder(fn (?DossierMemoire $record): ?string => $record?->encadreur_academique),
+                    Forms\Components\TextInput::make('jury_examinateur')->label('Examinateur')->maxLength(255),
+                ]),
         ], ['after_or_equal' => 'La fin du stage doit suivre son début.']));
     }
 
@@ -94,7 +108,23 @@ class DossierMemoireResource extends Resource
                     ->query(fn (Builder $query, array $data): Builder => blank($data['value'] ?? null) ? $query
                         : $query->whereHas('inscriptionAnnuelle', fn ($q) => $q->where('parcours_id', $data['value']))),
             ])
-            ->actions([Tables\Actions\ViewAction::make()]);
+            ->actions([Tables\Actions\ViewAction::make()])
+            ->bulkActions([
+                Tables\Actions\BulkAction::make('pvSoutenance')->label('Procès-verbaux de soutenance')->icon('heroicon-o-document-text')
+                    ->visible(fn (): bool => (bool) auth()->user()?->can(PermissionsLmd::MEMOIRES_SUIVRE))
+                    ->deselectRecordsAfterCompletion()
+                    ->action(function (Collection $records) {
+                        try {
+                            $pdf = app(PvSoutenance::class)->pdf($records, auth()->user());
+                        } catch (InvalidArgumentException $e) {
+                            Notification::make()->danger()->title('Édition refusée')->body($e->getMessage())->persistent()->send();
+
+                            return null;
+                        }
+
+                        return response()->streamDownload(fn () => print ($pdf), 'pv-soutenance-'.now()->format('Ymd-Hi').'.pdf', ['Content-Type' => 'application/pdf']);
+                    }),
+            ]);
     }
 
     public static function infolist(Infolist $infolist): Infolist
@@ -114,6 +144,21 @@ class DossierMemoireResource extends Resource
                     ->getStateUsing(fn (DossierMemoire $d): ?string => $d->stage_debut ? 'du '.$d->stage_debut->format('d/m/Y').($d->stage_fin ? ' au '.$d->stage_fin->format('d/m/Y') : '') : null),
                 Infolists\Components\TextEntry::make('vague')->label('Vague')->placeholder('—'),
                 Infolists\Components\TextEntry::make('date_soutenance')->label('Soutenance')->date('d/m/Y')->placeholder('—'),
+            ]),
+            Infolists\Components\Section::make('Jury de soutenance')->columns(4)->schema([
+                Infolists\Components\TextEntry::make('jury_president')->label('Président')->placeholder('À désigner'),
+                Infolists\Components\TextEntry::make('jury_rapporteur')->label('Rapporteur (directeur de recherche)')->placeholder('À désigner'),
+                Infolists\Components\TextEntry::make('jury_examinateur')->label('Examinateur')->placeholder('—'),
+                Infolists\Components\TextEntry::make('resultat_soutenance')->label('Résultat')->placeholder('Non saisi')
+                    ->getStateUsing(function (DossierMemoire $d): ?string {
+                        $note = PvSoutenance::note($d);
+                        if ($note === null) {
+                            return null;
+                        }
+                        $mention = PvSoutenance::mention($note, RegleEvaluation::pourAnnee((string) $d->inscriptionAnnuelle?->annee_academique));
+
+                        return number_format($note, 2, ',', ' ').' / 20'.($mention === null ? '' : ' — '.$mention);
+                    }),
             ]),
             Infolists\Components\Section::make('Suivi du mémoire')->schema([
                 Infolists\Components\ViewEntry::make('etapes')->hiddenLabel()->view('filament.lmd.memoire'),
