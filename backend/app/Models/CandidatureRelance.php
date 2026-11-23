@@ -35,8 +35,11 @@ class CandidatureRelance extends Model
     /** Avis d'une correction de versement (ADR-0015, R-C10) : reçu remplacé, ou versement annulé ; réaffiché dans l'espace. */
     public const CAUSE_CORRECTION = 'correction';
 
+    /** Relance automatique d'une tranche échue (spec lot 23) : réaffichée dans l'espace de l'auditeur. */
+    public const CAUSE_TRANCHE = 'tranche';
+
     /** Messages réaffichés dans l'espace du candidat ou de l'auditeur. */
-    public const CAUSES_AFFICHEES = [self::CAUSE_MANUELLE, self::CAUSE_DEBLOCAGE, self::CAUSE_RECU, self::CAUSE_CONFIRMATION, self::CAUSE_CORRECTION];
+    public const CAUSES_AFFICHEES = [self::CAUSE_MANUELLE, self::CAUSE_DEBLOCAGE, self::CAUSE_RECU, self::CAUSE_CONFIRMATION, self::CAUSE_CORRECTION, self::CAUSE_TRANCHE];
 
     public const CANAL_SMS = 'sms';
 

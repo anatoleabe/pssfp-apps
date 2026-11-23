@@ -54,6 +54,9 @@ Schedule::command('scolarite:relancer-deblocages')->dailyAt('08:00')->timezone('
 // Versements non confirmés par la scolarité depuis 7 jours (décision du 15/11/2026) : relance de l'auditeur, à 08:00 heure de Yaoundé.
 Schedule::command('scolarite:relancer-confirmations')->dailyAt('08:00')->timezone('Africa/Douala')->withoutOverlapping();
 
+// Tranches échues (spec lot 23) : relance des auditeurs en retard, à 08:30 heure de Yaoundé, si le réglage est allumé dans Paramètres.
+Schedule::command('scolarite:relancer-tranches')->dailyAt('08:30')->timezone('Africa/Douala')->withoutOverlapping();
+
 // Messagerie interne (lot 14b-1, D31) : copies externes (courriel, SMS) des messages, trois tentatives au plus.
 Schedule::command('messagerie:envoyer')->everyFiveMinutes()->withoutOverlapping();
 
