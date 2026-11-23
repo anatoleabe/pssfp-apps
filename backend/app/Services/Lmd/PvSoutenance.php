@@ -92,14 +92,7 @@ final class PvSoutenance
         activity('lmd')->causedBy($auteur)->event('pv_soutenance_edite')
             ->withProperties(['dossiers' => $dossiers->count()])->log('Procès-verbaux de soutenance édités');
 
-        return Pdf::loadView('pdf.lmd.pv-soutenance', ['pages' => $pages, 'logo' => self::image('uy2.png'), 'edite_le' => now()->timezone('Africa/Douala')])
+        return Pdf::loadView('pdf.lmd.pv-soutenance', ['pages' => $pages, 'edite_le' => now()->timezone('Africa/Douala')])
             ->setPaper('a4', 'portrait')->output();
-    }
-
-    private static function image(string $fichier): ?string
-    {
-        $chemin = resource_path('images/pdf/'.$fichier);
-
-        return is_file($chemin) ? 'data:image/png;base64,'.base64_encode((string) file_get_contents($chemin)) : null;
     }
 }
