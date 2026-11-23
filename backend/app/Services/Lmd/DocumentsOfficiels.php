@@ -251,6 +251,9 @@ final class DocumentsOfficiels
         if (! array_key_exists($type, DocumentDelivre::TYPES) || $type === DocumentDelivre::PV) {
             throw new InvalidArgumentException('Document inconnu.');
         }
+        if (in_array($auditeur->statut, Auditeur::STATUTS_SORTIS, true)) {
+            throw new InvalidArgumentException('Aucun document n\'est délivré à un auditeur sorti de la formation (abandon ou exclusion).');
+        }
         if ($type === DocumentDelivre::CERTIFICAT) {
             $inscription = $auditeur->inscriptionCourante()->first() ?? throw new InvalidArgumentException('Aucune inscription en cours.');
             if (! $this->enRegle($inscription)) {

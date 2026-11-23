@@ -52,6 +52,9 @@ final class Deliberations
         if ($semestre !== null && ($semestre < 1 || $semestre > 4 || NumerotationSemestres::niveau($semestre) !== $data['niveau'])) {
             throw new InvalidArgumentException('Ce semestre n\'appartient pas à ce niveau : semestres 1 et 2 en Master 1, 3 et 4 en Master 2.');
         }
+        if ($semestre === Deliberation::SEMESTRE_SOUTENANCE) {
+            throw new InvalidArgumentException('Le semestre 4 porte la soutenance : il se délibère avec l\'année, qui prononce « autorisé à soutenir ».');
+        }
         $data['semestre'] = $semestre;
         $existe = Deliberation::query()->where('annee_academique', $data['annee_academique'])->where('niveau', $data['niveau'])
             ->where('session', $data['session'])->where('parcours_id', $data['parcours_id'] ?? null)->where('semestre', $semestre)

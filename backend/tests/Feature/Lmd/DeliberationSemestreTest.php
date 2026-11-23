@@ -265,3 +265,23 @@ it('expose le semestre dans les résultats de l\'espace auditeur', function (): 
         ->assertJsonPath('data.resultats.0.credits', 30)
         ->assertJsonCount(3, 'data.resultats.0.ues');
 });
+
+it('écarte du calcul un auditeur en abandon, lui refuse tout document, et le garde inscrit', function (): void {
+    $this->limite->auditeur->forceFill(['statut' => Auditeur::STATUT_ABANDON])->save();
+    $d = ($this->arreter)(($this->creer)(1));
+    ($this->publier)($d);
+
+    expect(ResultatAnnuel::query()->where('deliberation_id', $d->id)->pluck('inscription_annuelle_id')->all())->toBe([$this->fort->id])
+        ->and(InscriptionAnnuelle::query()->whereKey($this->limite->id)->exists())->toBeTrue();
+
+    // Sorti après la publication : ses résultats existent, ses documents ne sortent plus.
+    $this->fort->auditeur->forceFill(['statut' => Auditeur::STATUT_EXCLU])->save();
+    expect(app(DocumentsOfficiels::class)->indisponibilite(DocumentDelivre::RELEVE, $this->fort->auditeur->refresh(), $d->refresh()))->toContain('sorti de la formation');
+});
+
+it('refuse de délibérer le semestre 4 seul, et accepte le semestre 3', function (): void {
+    $m2 = fn (int $semestre): array => ['annee_academique' => '2026-2027', 'niveau' => 'M2', 'session' => 'normale', 'semestre' => $semestre];
+
+    expect(fn () => $this->deliberations->creer($m2(4), $this->agent))->toThrow(InvalidArgumentException::class, 'soutenance')
+        ->and(fn () => $this->deliberations->creer($m2(3), $this->agent))->not->toThrow(InvalidArgumentException::class, 'soutenance');
+});

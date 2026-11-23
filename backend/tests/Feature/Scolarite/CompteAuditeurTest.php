@@ -50,6 +50,7 @@ beforeEach(function (): void {
     $compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole($role));
     // Depuis le 15/11/2026, le service financier enregistre l'argent (spec encaissement-confirmation §2.1).
     $this->agent = $compte('service_financier');
+    $this->scolarite = $compte('scolarite_agent');
     $this->responsable = $compte('scolarite_responsable');
     $this->financier = $compte('service_financier');
     $this->admin = $compte('admin');
@@ -255,7 +256,7 @@ it('crée l\'inscription sous le verrou de l\'auditeur et y impute l\'avance exi
     BaremeScolarite::factory()->create(['annee_academique' => '2031-2032', 'niveau' => 'M1']);
     $this->sms = [];
 
-    $nouvelle = app(OuvertureAuditeur::class)->creerInscription($auditeur->fresh(), $this->agent);
+    $nouvelle = app(OuvertureAuditeur::class)->creerInscription($auditeur->fresh(), $this->scolarite);
 
     expect(ImputationVersement::query()->where('inscription_annuelle_id', $nouvelle->id)->sole()->only(['montant', 'origine']))->toBe(['montant' => 200000, 'origine' => 'avance'])
         ->and(Activity::query()->where('event', 'avance_imputee')->sole()->properties['declencheur'])->toBe('ouverture')
@@ -374,7 +375,7 @@ it('traduit le refus de la base pour toute écriture sous le verrou, la créatio
     $auditeur = Auditeur::query()->create(['candidature_id' => $c->id]);
     BaremeScolarite::factory()->create(['annee_academique' => '2033-2034', 'niveau' => 'M1']);
 
-    expect(fn () => app(OuvertureAuditeur::class)->creerInscription($auditeur, $this->agent))
+    expect(fn () => app(OuvertureAuditeur::class)->creerInscription($auditeur, $this->scolarite))
         ->toThrow(InvalidArgumentException::class, 'Le compte de l\'auditeur n\'a pas pu être mis à jour')
         ->and(InscriptionAnnuelle::query()->where('auditeur_id', $auditeur->id)->count())->toBe(0);
 });

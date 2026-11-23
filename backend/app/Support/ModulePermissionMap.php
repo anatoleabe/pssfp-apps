@@ -135,6 +135,7 @@ final class ModulePermissionMap
                     'scolarite.promotion' => 'Modifier les réglages d\'une promotion (lettres, rentrée, consignes)',
                     'scolarite.promotion_anterieure' => 'Créer une promotion antérieure (rattachement d\'un ancien auditeur réinscrit depuis l\'archive ACMA)',
                     'scolarite.derogation_m2' => 'Accorder, à la réinscription d\'un ancien, une dérogation au M1 admis pour l\'inscrire en M2 (avec sa pièce)',
+                    'scolarite.inscrire' => 'Réinscrire un auditeur dans l\'année en cours depuis sa fiche et lancer le passage en groupe du M1 au M2 (administration et scolarité)',
                     'scolarite.inscrire_ancien' => 'Réinscrire un ancien auditeur depuis son dossier d\'archive ACMA dans l\'année en cours (matricule ACMA conservé), dérogation M2 comprise',
                     'scolarite.statut' => 'Changer le statut d\'un auditeur (abandon, exclu, diplômé, retour à actif)',
                     'scolarite.suspension' => 'Suspendre un auditeur pour l\'année en cours sur sa demande écrite (jointe), et lever la suspension : compte eCampus suspendu, reste de l\'année non réclamé (administrateurs)',

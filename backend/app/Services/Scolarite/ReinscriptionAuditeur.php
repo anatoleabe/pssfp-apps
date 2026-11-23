@@ -35,13 +35,16 @@ final class ReinscriptionAuditeur
 
     public const DECLENCHEUR = 'reinscription';
 
+    /** Réinscrire un auditeur et lancer le passage en groupe : administration et scolarité (spec lot 22). */
+    public const PERMISSION = 'scolarite.inscrire';
+
     public const PIECE_MAXIMUM = 100;
 
     public function __construct(private readonly InscriptionAnneeEnCours $inscriptions) {}
 
     public static function peutReinscrire(?User $user): bool
     {
-        return $user !== null && ($user->can(RegistreVersements::PERMISSION_SAISIR) || ConfirmationsVersements::peutConfirmer($user));
+        return (bool) $user?->can(self::PERMISSION);
     }
 
     /** Auditeur d'une promotion antérieure, dossier actif, pas encore inscrit dans l'année en cours. */

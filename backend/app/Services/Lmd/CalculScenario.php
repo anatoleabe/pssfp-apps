@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Lmd;
 
 use App\Models\AcquisUe;
+use App\Models\Auditeur;
 use App\Models\Deliberation;
 use App\Models\EtapeSaisie;
 use App\Models\InscriptionAnnuelle;
@@ -43,6 +44,7 @@ final class CalculScenario
             ->where('annee_academique', $d->annee_academique)
             ->where('niveau', $d->niveau)
             ->when($d->parcours_id !== null, fn (Builder $q) => $q->where('parcours_id', $d->parcours_id))
+            ->whereHas('auditeur', fn (Builder $q) => $q->whereNotIn('statut', Auditeur::STATUTS_SORTIS))
             ->whereHas('inscriptionsPedagogiques', fn (Builder $q) => self::dansLaPortee($q, $d));
     }
 

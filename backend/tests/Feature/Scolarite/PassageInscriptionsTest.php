@@ -34,7 +34,7 @@ beforeEach(function (): void {
     BaremeScolarite::factory()->m2()->create(['annee_academique' => '2026-2027']);
     Parcours::query()->create(['code' => 'TC', 'libelle' => 'Tronc commun', 'niveau' => 'M1', 'actif' => true, 'ordre' => 1]);
     Parcours::query()->create(['code' => 'ACFP', 'libelle' => 'Audit et contrôle', 'niveau' => 'M2', 'specialite' => 'Audit et contrôle des finances publiques', 'actif' => true, 'ordre' => 2]);
-    $this->agent = ($this->compte)('service_financier');
+    $this->agent = ($this->compte)('scolarite_agent');
     $this->responsable = ($this->compte)('scolarite_responsable');
 
     $this->deliberation = Deliberation::query()->create(['annee_academique' => '2025-2026', 'niveau' => 'M1', 'session' => 'normale']);
@@ -89,7 +89,10 @@ it('inscrit en M2 les admis du M1 de l\'année précédente, dans l\'option de l
 it('refuse le passage en groupe à un compte sans le droit de réinscrire', function (): void {
     ($this->m1)('AD');
 
-    expect(fn () => $this->passage->executer(($this->compte)('enseignant')))->toThrow(HttpException::class);
+    expect(fn () => $this->passage->executer(($this->compte)('enseignant')))->toThrow(HttpException::class)
+        ->and(fn () => $this->passage->executer(($this->compte)('service_financier')))->toThrow(HttpException::class)
+        ->and(PassageEnGroupe::peutPasser(($this->compte)('caisse')))->toBeFalse()
+        ->and(PassageEnGroupe::peutPasser(($this->compte)('admin')))->toBeTrue();
     expect(InscriptionAnnuelle::query()->where('annee_academique', '2026-2027')->exists())->toBeFalse();
 });
 

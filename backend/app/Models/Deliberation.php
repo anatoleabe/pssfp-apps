@@ -34,6 +34,9 @@ class Deliberation extends Model
     /** Décisions d'une délibération de semestre : mêmes codes que l'année, autre sens. */
     public const DECISIONS_SEMESTRE = ['AD' => 'Semestre validé', 'AJ' => 'Semestre non validé'];
 
+    /** Le semestre 4 porte la soutenance : il ne se délibère pas seul (spec lot 22). */
+    public const SEMESTRE_SOUTENANCE = 4;
+
     protected $fillable = ['annee_academique', 'niveau', 'parcours_id', 'session', 'jury_id', 'date_deliberation', 'semestre'];
 
     protected $attributes = ['statut' => self::SIMULATION];

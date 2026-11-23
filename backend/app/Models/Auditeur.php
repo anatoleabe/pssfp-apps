@@ -35,6 +35,9 @@ class Auditeur extends Model
 
     public const STATUT_EXCLU = 'exclu';
 
+    /** Sortis de la formation : absents des PV, des relevés et des autres documents (spec lot 22). */
+    public const STATUTS_SORTIS = [self::STATUT_ABANDON, self::STATUT_EXCLU];
+
     public const STATUT_DIPLOME = 'diplome';
 
     public const STATUTS = [
