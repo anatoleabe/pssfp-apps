@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses()->group('lmd', 'applications');
 
@@ -167,9 +168,23 @@ it('révoque les relevés de la délibération rectifiée', function (): void {
     expect($doc->refresh()->estRevoque())->toBeTrue()->and($doc->revoque_motif)->toContain('PVD-2026-2027-0002');
 });
 
-it('délivre le certificat de scolarité de l\'année en cours', function (): void {
-    $this->withToken(($this->jeton)($this->admis))->get('/v1/applications/me/documents-officiels/certificat_scolarite')->assertOk();
-    expect(DocumentDelivre::query()->where('type', 'certificat_scolarite')->value('numero'))->toBe('CS-2026-000001');
+it('ne sert le certificat de scolarité à l\'auditeur qu\'une fois délivré par la scolarité', function (): void {
+    $jeton = ($this->jeton)($this->admis);
+    // Lot 25 : l'auditeur ne le produit plus lui-même.
+    $this->withToken($jeton)->get('/v1/applications/me/documents-officiels/certificat_scolarite')->assertStatus(409);
+    $this->withToken($jeton)->getJson('/v1/applications/me/resultats')->assertOk()->assertJsonPath('data.certificat_scolarite', fn (?string $m): bool => str_contains((string) $m, 'délivré par la scolarité'));
+    expect(DocumentDelivre::query()->where('type', 'certificat_scolarite')->exists())->toBeFalse();
+
+    $documents = app(DocumentsOfficiels::class);
+    $financier = tap(User::factory()->create(['email' => 'fin-'.Str::random(5).'@pssfp.local']), fn (User $u) => $u->assignRole('service_financier'));
+    expect(fn () => $documents->delivrerCertificat($this->admis->auditeur, $financier))->toThrow(HttpException::class);
+    $document = $documents->delivrerCertificat($this->admis->auditeur, $this->responsable);
+
+    app('auth')->forgetGuards();
+    $this->withToken($jeton)->get('/v1/applications/me/documents-officiels/certificat_scolarite')->assertOk();
+    $this->withToken($jeton)->getJson('/v1/applications/me/resultats')->assertOk()->assertJsonPath('data.certificat_scolarite', null);
+    expect($document->numero)->toBe('CS-2026-000001')
+        ->and($documents->delivrerCertificat($this->admis->auditeur, $this->responsable)->id)->toBe($document->id);
 });
 
 it('constate sur le PV papier la signature d\'un membre sans compte, de façon tracée', function (): void {

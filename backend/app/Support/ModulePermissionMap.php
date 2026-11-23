@@ -181,6 +181,7 @@ final class ModulePermissionMap
                     'lmd.deliberation_publier' => 'Publier les résultats d\'une délibération',
                     'lmd.jury_signer' => 'Consulter les délibérations de ses jurys et signer leur PV (membre de jury)',
                     'lmd.documents_revoquer' => 'Révoquer un document officiel délivré (relevé, attestation, certificat)',
+                    'lmd.certificat_delivrer' => 'Délivrer le certificat de scolarité d\'un auditeur depuis sa fiche (il ne le produit pas lui-même)',
                     'lmd.documents_lever' => 'Lever la restriction « en règle » sur les documents d\'un auditeur',
                     'lmd.requetes_coter' => 'Coter les requêtes, les déclarer irrecevables',
                     'lmd.requetes_jury' => 'Tenir les séances du jury des requêtes (mentions, clôture du PV)',

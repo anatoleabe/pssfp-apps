@@ -44,6 +44,9 @@ final class PermissionsLmd
 
     public const DOCUMENTS_LEVER = 'lmd.documents_lever';
 
+    /** Délivrer le certificat de scolarité depuis la fiche de l'auditeur (spec lot 25). */
+    public const CERTIFICAT_DELIVRER = 'lmd.certificat_delivrer';
+
     public const REQUETES_TRAITER = 'lmd.requetes_traiter';
 
     public const REQUETES_COTER = 'lmd.requetes_coter';

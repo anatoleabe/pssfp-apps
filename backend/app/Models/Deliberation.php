@@ -42,12 +42,13 @@ class Deliberation extends Model
     /** Le semestre 4 porte la soutenance : il ne se délibère pas seul (spec lot 22). */
     public const SEMESTRE_SOUTENANCE = 4;
 
-    protected $fillable = ['annee_academique', 'niveau', 'parcours_id', 'session', 'jury_id', 'date_deliberation', 'semestre'];
+    protected $fillable = ['annee_academique', 'niveau', 'parcours_id', 'session', 'jury_id', 'date_deliberation', 'semestre', 'admis_seulement'];
 
     protected $attributes = ['statut' => self::SIMULATION];
 
     protected $casts = [
         'semestre' => 'integer',
+        'admis_seulement' => 'boolean',
         'date_deliberation' => 'immutable_date',
         'seance_ouverte_at' => 'datetime',
         'quorum_atteint' => 'boolean',

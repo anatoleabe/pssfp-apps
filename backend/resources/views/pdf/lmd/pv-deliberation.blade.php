@@ -86,7 +86,7 @@
     <table class="par-ue">
       <thead><tr><th class="n">N°</th><th>Matricule</th><th>Nom et prénom</th>
         @foreach ($t['ues'] as $ue)<th class="n">{{ $ue->ue->code }}</th>@endforeach
-        <th class="n">Crédits</th><th class="n">Moyenne</th><th>Déc.</th></tr></thead>
+        <th class="n">T. points</th><th class="n">Crédits</th><th class="n">Moyenne</th><th>Déc.</th></tr></thead>
       <tbody>
         @foreach ($t['lignes'] as $l)
           @php $dossier = $l['resultat']->inscriptionAnnuelle?->auditeur?->candidature; @endphp
@@ -98,6 +98,7 @@
               @php $note = $l['notes'][$ue->id] ?? null; @endphp
               <td class="n">{{ $n($note?->note_jury) }}{{ $note !== null && $note->note_jury !== null && ! $note->acquise ? '*' : '' }}</td>
             @endforeach
+            <td class="n">{{ $n(collect($l['notes'])->sum(fn ($note): float => (float) $note->note_jury)) }}</td>
             <td class="n">{{ $l['resultat']->credits_acquis }}</td>
             <td class="n"><strong>{{ $n($l['resultat']->moyenne) }}</strong></td>
             <td><strong>{{ $l['resultat']->decision }}</strong></td>

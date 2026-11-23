@@ -103,6 +103,13 @@ final class CalculScenario
 
         // 4. Synthèse par auditeur
         $syntheses = $this->syntheses($inscriptions, $lignes, $regle, $scenario, $d);
+        // Jury d'admission « admis seulement » (spec lot 25) : les auditeurs restés AS sortent des résultats et du PV.
+        if ($d->estAdmission() && $d->admis_seulement) {
+            $admis = array_column(array_filter($syntheses, fn (array $s): bool => $s['decision'] === 'AD'), 'inscription_annuelle_id');
+            $inscriptions = $inscriptions->whereIn('id', $admis)->values();
+            $lignes = array_values(array_filter($lignes, fn (array $l): bool => in_array($l['inscription_annuelle_id'], $admis, true)));
+            $syntheses = $this->syntheses($inscriptions, $lignes, $regle, $scenario, $d);
+        }
 
         DB::transaction(function () use ($scenario, $lignes, $syntheses): void {
             ResultatScenarioUe::query()->where('scenario_id', $scenario->id)->delete();
@@ -377,8 +384,8 @@ final class CalculScenario
             $ls = $parInscription[$inscription->id] ?? [];
             $somme = fn (callable $filtre): int => array_sum(array_map(fn (array $l): int => $filtre($l) ? $l['credits'] : 0, $ls));
             $avecNote = array_filter($ls, fn (array $l): bool => $l['note_jury'] !== null);
-            $creditsNotes = array_sum(array_column($avecNote, 'credits'));
-            $moyenne = CalculNotes::publiee($creditsNotes > 0 ? array_sum(array_map(fn (array $l): float => (float) $l['note_jury'] * $l['credits'], $avecNote)) / $creditsNotes : null);
+            // Spec lot 25 : total des notes d'UE divisé par le nombre d'UE notées, sans pondération par les crédits.
+            $moyenne = CalculNotes::publiee($avecNote === [] ? null : array_sum(array_map(fn (array $l): float => (float) $l['note_jury'], $avecNote)) / count($avecNote));
             $acquises = array_filter($ls, fn (array $l): bool => $l['acquise'] && $l['note_jury'] !== null);
             $creditsAcquisNotes = array_sum(array_column($acquises, 'credits'));
             $mgp = $creditsAcquisNotes > 0

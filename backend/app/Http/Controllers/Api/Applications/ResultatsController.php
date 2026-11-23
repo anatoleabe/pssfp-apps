@@ -41,7 +41,8 @@ final class ResultatsController extends Controller
             return $this->absent();
         }
 
-        $certificat = $this->documents->indisponibilite(DocumentDelivre::CERTIFICAT, $auditeur, null);
+        // Spec lot 25 : le certificat est délivré par la scolarité ; l'auditeur ne retrouve que celui qui l'a été.
+        $certificat = $this->documents->certificatDelivre($auditeur) === null ? self::CERTIFICAT_SUR_DEMANDE : null;
 
         return response()->json(['data' => [
             'resultats' => $this->resultats->publies($auditeur)->map(fn (ResultatAnnuel $r): array => [
@@ -71,6 +72,8 @@ final class ResultatsController extends Controller
     }
 
     /** PDF d'un document officiel : délivré à la première demande, puis toujours le même fichier. */
+    private const CERTIFICAT_SUR_DEMANDE = 'Le certificat de scolarité est délivré par la scolarité : faites-en la demande, il apparaîtra ici.';
+
     public function document(Request $request, string $type): HttpResponse|JsonResponse
     {
         $auditeur = $this->auditeur($request);
@@ -81,7 +84,9 @@ final class ResultatsController extends Controller
             : Deliberation::query()->where('uuid', (string) $request->query('deliberation'))->first();
 
         try {
-            $document = $this->documents->obtenir($type, $auditeur, $d);
+            $document = $type === DocumentDelivre::CERTIFICAT
+                ? ($this->documents->certificatDelivre($auditeur) ?? throw new InvalidArgumentException(self::CERTIFICAT_SUR_DEMANDE))
+                : $this->documents->obtenir($type, $auditeur, $d);
             $pdf = $this->documents->contenu($document);
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage(), 'code' => 'document_indisponible'], Response::HTTP_CONFLICT, self::SANS_CACHE);

@@ -301,6 +301,11 @@ final class RolePermissionSeeder extends Seeder
             $roles[$name]['sensitive'] = [...$roles[$name]['sensitive'], 'scolarite.inscrire'];
         }
 
+        // Certificat de scolarité (lot 25, 23/11/2026) : délivré par la scolarité ou l'administration.
+        foreach (['admin', 'scolarite_responsable', 'scolarite_agent'] as $name) {
+            $roles[$name]['sensitive'] = [...$roles[$name]['sensitive'], 'lmd.certificat_delivrer'];
+        }
+
         foreach ($roles as $name => $definition) {
             $role = Role::findOrCreate($name, 'web');
             $role->forceFill([

@@ -149,7 +149,7 @@ final class Deliberations
         $sans = $inscriptions->count() - $soutenus;
 
         return $sans === 0 ? [] : [new Anomalie(Anomalie::AVERTISSEMENT, 'soutenances_manquantes',
-            "{$sans} autorisé(s) à soutenir sans résultat de soutenance enregistré : ils resteront « autorisés à soutenir ».")];
+            "{$sans} autorisé(s) à soutenir sans résultat de soutenance enregistré : ".($d->admis_seulement ? 'ils ne figureront pas au PV (admis seulement).' : 'ils resteront « autorisés à soutenir ».'))];
     }
 
     public function dupliquer(Scenario $source, string $libelle, User $auteur): Scenario
@@ -519,7 +519,7 @@ final class Deliberations
         }
 
         return DB::transaction(function () use ($d, $motif, $acte, $auteur): Deliberation {
-            $nouvelle = Deliberation::query()->create($d->only(['annee_academique', 'niveau', 'parcours_id', 'session', 'jury_id', 'semestre']));
+            $nouvelle = Deliberation::query()->create($d->only(['annee_academique', 'niveau', 'parcours_id', 'session', 'jury_id', 'semestre', 'admis_seulement']));
             $nouvelle->forceFill(['rectifie_id' => $d->id, 'motif_rectification' => mb_substr(trim($motif), 0, 500),
                 'acte_rectificatif' => mb_substr(trim($acte), 0, 120), 'creee_par' => $auteur->id])->save();
             $scenario = Scenario::query()->create(['deliberation_id' => $nouvelle->id, 'libelle' => 'Rectification de '.$d->numero_pv]);

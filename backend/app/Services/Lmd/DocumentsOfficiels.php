@@ -50,6 +50,27 @@ final class DocumentsOfficiels
     }
 
     /**
+     * Certificat de scolarité (spec lot 25) : délivré par la scolarité ou l'administration, jamais par l'auditeur.
+     *
+     * @throws InvalidArgumentException aucune inscription en cours, auditeur sorti ou en retard
+     */
+    public function delivrerCertificat(Auditeur $auditeur, User $auteur): DocumentDelivre
+    {
+        abort_unless($auteur->can(PermissionsLmd::CERTIFICAT_DELIVRER), 403);
+
+        return $this->obtenir(DocumentDelivre::CERTIFICAT, $auditeur, null, $auteur);
+    }
+
+    /** Certificat de scolarité valide de l'inscription en cours, s'il a été délivré. */
+    public function certificatDelivre(Auditeur $auditeur): ?DocumentDelivre
+    {
+        $inscription = $auditeur->inscriptionCourante()->first();
+
+        return $inscription === null ? null : DocumentDelivre::query()->where('type', DocumentDelivre::CERTIFICAT)
+            ->where('inscription_annuelle_id', $inscription->id)->whereNull('revoque_at')->latest('id')->first();
+    }
+
+    /**
      * Attestation d'autorisation de dépôt du mémoire (D33, D34) : les conditions sont vérifiées par
      * App\Services\Lmd\Memoires ; une seule attestation valide par mémoire.
      *

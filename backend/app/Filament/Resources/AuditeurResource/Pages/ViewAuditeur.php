@@ -80,6 +80,7 @@ class ViewAuditeur extends ViewRecord
             AuditeurActions::creerInscription(),
             AuditeurActions::reinscrire(),
             AuditeurActions::extraitCompte(),
+            AuditeurActions::certificatScolarite(),
             EtiquettesActions::gerer(),
             ActionGroup::make([
                 AccesAnticipe::debloquer(),
