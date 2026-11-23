@@ -33,7 +33,7 @@ class DossierMemoire extends Model
     protected $table = 'dossiers_memoire';
 
     protected $fillable = ['theme', 'structure_accueil', 'stage_debut', 'stage_fin', 'encadreur_academique', 'encadreur_academique_id',
-        'encadreur_professionnel', 'vague', 'date_soutenance'];
+        'encadreur_professionnel', 'vague', 'date_soutenance', 'jury_president', 'jury_rapporteur', 'jury_examinateur'];
 
     protected $attributes = ['statut' => 'en_redaction'];
 

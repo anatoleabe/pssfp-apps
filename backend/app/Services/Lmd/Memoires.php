@@ -133,6 +133,24 @@ final class Memoires
         });
     }
 
+    /**
+     * Résultat de la soutenance (spec lot 24a) : note du jury et observations ; l'étape « Soutenance » est validée.
+     *
+     * @throws InvalidArgumentException jury ou date absents, note absente ou hors bornes
+     */
+    public function enregistrerSoutenance(DossierMemoire $dossier, ?string $note, ?string $observations, User $auteur): void
+    {
+        abort_unless($auteur->can(PermissionsLmd::MEMOIRES_SUIVRE), 403);
+        $manques = PvSoutenance::manques($dossier);
+        if ($manques !== []) {
+            throw new InvalidArgumentException('Résultat impossible : il manque '.implode(', ', $manques).'.');
+        }
+        if ($note === null || trim($note) === '') {
+            throw new InvalidArgumentException('La note du jury est obligatoire.');
+        }
+        $this->evaluer($dossier, 'soutenance', 'valide', $note, $observations, $auteur);
+    }
+
     /** Dates prévues des étapes (calendrier du mémoire). @param  array<string, ?string>  $dates  étape → date (Y-m-d) */
     public function planifier(DossierMemoire $dossier, array $dates, User $auteur): void
     {
