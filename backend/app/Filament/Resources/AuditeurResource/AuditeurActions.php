@@ -321,9 +321,9 @@ final class AuditeurActions
                 Forms\Components\Select::make('parcours')->label('Parcours')->required()->native(false)
                     ->options(fn (Forms\Get $get): array => Parcours::query()->where('niveau', (string) $get('niveau'))->where('actif', true)
                         ->orderBy('ordre')->pluck('libelle', 'code')->all()),
-                Forms\Components\Checkbox::make('derogation_m2')->label('Dérogation : inscrire en M2 sans M1 suivi')->live()
-                    ->helperText('Aucun M1 sur la plateforme ni dans l\'archive ACMA liée. Réservé au droit « dérogation M2 ».')
-                    ->visible(fn (Forms\Get $get): bool => $get('niveau') === BaremeScolarite::NIVEAU_M2 && ! ReinscriptionAuditeur::aSuiviLeM1($record)),
+                Forms\Components\Checkbox::make('derogation_m2')->label('Dérogation : inscrire en M2 sans M1 admis')->live()
+                    ->helperText('Aucun M1 admis sur la plateforme ni dans l\'archive ACMA liée. Réservé au droit « dérogation M2 ».')
+                    ->visible(fn (Forms\Get $get): bool => $get('niveau') === BaremeScolarite::NIVEAU_M2 && ! ReinscriptionAuditeur::estAdmisEnM1($record)),
                 Forms\Components\TextInput::make('derogation_piece')->label('Référence de la pièce')->maxLength(ReinscriptionAuditeur::PIECE_MAXIMUM)
                     ->visible(fn (Forms\Get $get): bool => (bool) $get('derogation_m2'))->required(fn (Forms\Get $get): bool => (bool) $get('derogation_m2')),
                 Forms\Components\Textarea::make('motif')->label('Motif')->rows(3)

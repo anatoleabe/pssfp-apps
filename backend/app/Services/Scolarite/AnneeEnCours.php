@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Scolarite;
 
+use App\Models\BaremeScolarite;
 use App\Models\CampagneCandidature;
+use App\Models\InscriptionAnnuelle;
+use App\Models\User;
 use App\Support\AppSettings;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -30,6 +33,42 @@ final class AnneeEnCours
         $annee = AppSettings::get(self::REGLAGE) ?? config('scolarite.annee_en_cours');
 
         return is_string($annee) && self::valide($annee) ? $annee : null;
+    }
+
+    public static function peutChanger(?User $user): bool
+    {
+        return (bool) $user?->can(RegistreVersements::PERMISSION_BAREME);
+    }
+
+    /**
+     * Change l'année en cours (spec lot 18, règle 5) : d'un an seulement, vers une année qui a son barème de M1.
+     * Journalisé ; aucune inscription n'est touchée.
+     *
+     * @throws InvalidArgumentException message destiné au responsable ; rien n'est écrit
+     */
+    public static function changer(string $annee, User $auteur): void
+    {
+        abort_unless(self::peutChanger($auteur), 403);
+        $actuelle = self::annee();
+        if (! self::valide($annee)) {
+            throw new InvalidArgumentException('Année attendue sous la forme 2027-2028.');
+        }
+        if ($annee === $actuelle) {
+            throw new InvalidArgumentException($annee.' est déjà l\'année en cours.');
+        }
+        if ($actuelle !== null && abs(self::debut($annee) - self::debut($actuelle)) !== 1) {
+            throw new InvalidArgumentException('L\'année en cours ne change que d\'un an à la fois : '.self::suivante($actuelle, 1).' ou '.self::suivante($actuelle, -1).'.');
+        }
+        if ($actuelle !== null && self::debut($annee) < self::debut($actuelle)
+            && InscriptionAnnuelle::query()->where('annee_academique', $actuelle)->exists()) {
+            throw new InvalidArgumentException("Des auditeurs sont déjà inscrits en {$actuelle} : le retour à {$annee} n'est plus possible.");
+        }
+        if (! BaremeScolarite::query()->where('annee_academique', $annee)->where('niveau', BaremeScolarite::NIVEAU_M1)->exists()) {
+            throw new InvalidArgumentException("Aucun barème de M1 pour {$annee} : saisissez-le d'abord (Scolarité > Barèmes).");
+        }
+        AppSettings::set(self::REGLAGE, $annee, (int) $auteur->id);
+        activity('scolarite')->causedBy($auteur)->event('annee_en_cours_changee')
+            ->withProperties(['avant' => $actuelle, 'apres' => $annee])->log('Année en cours changée');
     }
 
     public static function valide(string $annee): bool

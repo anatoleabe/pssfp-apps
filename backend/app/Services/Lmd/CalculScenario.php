@@ -202,7 +202,8 @@ final class CalculScenario
         $normales = $ip->notes->where('session', EtapeSaisie::NORMALE)->keyBy('maquette_ecue_id')->all();
         $rattrapages = $d->session === EtapeSaisie::RATTRAPAGE ? $ip->notes->where('session', EtapeSaisie::RATTRAPAGE)->keyBy('maquette_ecue_id')->all() : [];
         $r = $this->notes->ue($ue, $regle, $normales, $rattrapages, $ip->derogationRattrapage !== null);
-        $capitalisee = $acquis !== null || $ip->statut === InscriptionPedagogique::CAPITALISEE;
+        // Seul l'acquis fait foi : le statut « capitalisée » de l'inscription n'en est que le reflet (lot 18).
+        $capitalisee = $acquis !== null;
         $note = $r->note ?? ($capitalisee ? ($acquis?->note_retenue === null ? null : (float) $acquis->note_retenue) : null);
         $deja = $capitalisee ? null : ($dejaAcquis[$inscription->auditeur_id][$ue->id] ?? null);
         if ($deja !== null && ! $r->acquise) {

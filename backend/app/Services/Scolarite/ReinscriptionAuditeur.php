@@ -5,12 +5,17 @@ declare(strict_types=1);
 namespace App\Services\Scolarite;
 
 use App\Models\AcmaDossier;
+use App\Models\AcmaInscription;
 use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
+use App\Models\Deliberation;
 use App\Models\InscriptionAnnuelle;
 use App\Models\Parcours;
+use App\Models\ResultatAnnuel;
 use App\Models\User;
+use App\Services\Acma\ArchivesAcma;
 use App\Services\Acma\ReinscriptionAncien;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -20,8 +25,9 @@ use InvalidArgumentException;
  * L'auditeur reste dans sa promotion : seule une inscription annuelle est créée, dans l'année en cours, au niveau
  * choisi (`InscriptionAnneeEnCours`). « Créer l'inscription » reste le geste de la promotion de l'année.
  *
- * Le M2 suppose un M1 déjà suivi (inscription M1 sur la plateforme, ou M1 dans l'archive ACMA liée) ; à défaut,
- * une dérogation motivée, avec la référence de sa pièce, par un titulaire du droit « dérogation M2 ».
+ * Le M2 suppose un M1 admis (spec lot 18) : décision « Admis » d'une délibération annuelle arrêtée du M1 sur la
+ * plateforme, ou M1 admis dans l'archive ACMA liée ; à défaut, une dérogation motivée, avec la référence de sa
+ * pièce, par un titulaire du droit « dérogation M2 ». Avoir seulement suivi le M1 ne suffit pas.
  */
 final class ReinscriptionAuditeur
 {
@@ -51,13 +57,31 @@ final class ReinscriptionAuditeur
             && $auditeur->inscriptionCourante?->annee_academique !== $annee;
     }
 
-    /** M1 déjà suivi : inscription M1 sur la plateforme, ou M1 dans l'archive ACMA liée à cet auditeur. */
-    public static function aSuiviLeM1(Auditeur $auditeur): bool
+    /**
+     * M1 admis : « Admis » à une délibération annuelle arrêtée du M1 sur la plateforme (une délibération de semestre
+     * ne vaut pas admission), ou M1 admis dans l'archive ACMA liée (décision enregistrée ou transcrite d'un PV).
+     */
+    public static function estAdmisEnM1(Auditeur $auditeur): bool
     {
-        return InscriptionAnnuelle::query()->where('auditeur_id', $auditeur->id)->where('niveau', BaremeScolarite::NIVEAU_M1)->exists()
-            || AcmaDossier::query()->where('auditeur_id', $auditeur->id)
-                ->whereHas('inscriptions', fn ($q) => $q->whereNull('retire_de_la_source_at')->where('niveau', BaremeScolarite::NIVEAU_M1))
-                ->exists();
+        return self::admisSurLaPlateforme()->where('auditeur_id', $auditeur->id)->exists()
+            || AcmaDossier::query()->where('auditeur_id', $auditeur->id)->with('inscriptions')->get()
+                ->contains(fn (AcmaDossier $d): bool => $d->inscriptions
+                    ->where('retire_de_la_source_at', null)->where('niveau', BaremeScolarite::NIVEAU_M1)
+                    ->contains(fn (AcmaInscription $i): bool => ArchivesAcma::decision($i->setRelation('dossier', $d))['code'] === 'admis'));
+    }
+
+    /**
+     * Inscriptions de M1 dont l'auditeur est admis par une délibération annuelle arrêtée.
+     *
+     * @return Builder<InscriptionAnnuelle>
+     */
+    public static function admisSurLaPlateforme(?string $annee = null): Builder
+    {
+        return InscriptionAnnuelle::query()->where('niveau', BaremeScolarite::NIVEAU_M1)
+            ->when($annee !== null, fn (Builder $q) => $q->where('annee_academique', $annee))
+            ->whereIn('id', ResultatAnnuel::query()->where('decision', 'AD')
+                ->whereHas('deliberation', fn (Builder $q) => $q->annuelles()->where('statut', Deliberation::ARRETEE)->where('niveau', BaremeScolarite::NIVEAU_M1))
+                ->select('inscription_annuelle_id'));
     }
 
     /**
@@ -108,11 +132,11 @@ final class ReinscriptionAuditeur
         if (! in_array($niveau, [BaremeScolarite::NIVEAU_M1, BaremeScolarite::NIVEAU_M2], true)) {
             throw new InvalidArgumentException('Niveau inconnu : M1 ou M2.');
         }
-        if ($niveau === BaremeScolarite::NIVEAU_M1 || self::aSuiviLeM1($auditeur)) {
+        if ($niveau === BaremeScolarite::NIVEAU_M1 || self::estAdmisEnM1($auditeur)) {
             return null;
         }
         if (! (bool) ($saisie['derogation_m2'] ?? false)) {
-            throw new InvalidArgumentException('Aucun M1 suivi (plateforme ou archive ACMA liée) : le M2 demande une dérogation motivée, avec la référence de sa pièce.');
+            throw new InvalidArgumentException('Aucun M1 admis (délibération annuelle arrêtée sur la plateforme, ou archive ACMA liée) : le M2 demande une dérogation motivée, avec la référence de sa pièce.');
         }
         if (! $auteur->can(ReinscriptionAncien::PERMISSION_DEROGATION)) {
             throw new InvalidArgumentException('La dérogation au M1 demande le droit « dérogation M2 » (responsable de la scolarité).');

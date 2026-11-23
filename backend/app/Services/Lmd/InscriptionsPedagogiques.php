@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Lmd;
 
+use App\Models\AcquisUe;
 use App\Models\InscriptionAnnuelle;
 use App\Models\InscriptionPedagogique;
 use App\Models\Maquette;
@@ -14,7 +15,8 @@ use InvalidArgumentException;
 
 /**
  * Inscription pédagogique (spec lot 4, § 3.5) : une ligne par UE de la maquette
- * de référence (parcours et année de l'inscription), validée seulement.
+ * de référence (parcours et année de l'inscription), validée seulement. Une UE déjà acquise
+ * une année antérieure au même niveau est posée « capitalisée » (lot 18).
  * Rejouable sans doublon.
  */
 final class InscriptionsPedagogiques
@@ -49,13 +51,17 @@ final class InscriptionsPedagogiques
             if ($inscription->parcours_id === null) {
                 $inscription->forceFill(['parcours_id' => $parcours->id])->save();
             }
-            $lignes = $maquette->ues()->pluck('id')->map(fn (int $id): array => [
+            // Lot 18 : le redoublant garde ses UE acquises une année antérieure au même niveau.
+            $acquises = AcquisUe::query()->where('auditeur_id', $inscription->auditeur_id)->where('niveau', $inscription->niveau)
+                ->where('annee_academique', '<', $inscription->annee_academique)->orderBy('annee_academique')->pluck('annee_academique', 'unite_enseignement_id');
+            $lignes = $maquette->ues()->pluck('unite_enseignement_id', 'id')->map(fn (int $ue, int $id): array => [
                 'inscription_annuelle_id' => $inscription->id,
                 'maquette_ue_id' => $id,
-                'statut' => InscriptionPedagogique::INSCRIT,
+                'statut' => $acquises->has($ue) ? InscriptionPedagogique::CAPITALISEE : InscriptionPedagogique::INSCRIT,
+                'motif' => $acquises->has($ue) ? 'UE acquise en '.$acquises->get($ue) : null,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ])->all();
+            ])->values()->all();
             $creees = InscriptionPedagogique::query()->insertOrIgnore($lignes);
             if ($creees > 0) {
                 activity('lmd')->causedBy($auteur)->performedOn($inscription)->event('inscription_pedagogique')
