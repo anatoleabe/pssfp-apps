@@ -5,19 +5,18 @@
 
 ## 1. Règle
 
-1. **Académiques, bannière de l'Université de Yaoundé II-Soa** (République, Université, Faculté des sciences économiques et de gestion, PSSFP, logo de l'Université au centre) : PV de délibération, liste d'affichage des résultats, relevé de notes, attestation de réussite, PV des requêtes, bordereau et émargement d'anonymat, autorisation de dépôt du mémoire, PV de soutenance, certificat de scolarité.
-2. **Administratifs, en-tête inchangé** (Ministère des finances, PSSFP) : projets d'acte, états et bordereaux de paie, reçus, extraits de compte, listes de la scolarité, lettres.
+1. **Académiques, bannière de l'Université de Yaoundé II-Soa** (République, Université, Faculté des sciences économiques et de gestion, PSSFP, logo de l'Université au centre) : PV de délibération, liste d'affichage des résultats, relevé de notes, attestation de réussite, PV des requêtes, bordereau et émargement d'anonymat, autorisation de dépôt du mémoire, PV de soutenance.
+2. **Administratifs, en-tête inchangé** (Ministère des finances, PSSFP) : certificat de scolarité, projets d'acte, états et bordereaux de paie, reçus, extraits de compte, listes de la scolarité, lettres.
 
 ## 2. Réalisation
 
-Une bannière unique (`pdf/lmd/_banniere`) pour tous les documents du LMD ; le projet d'acte demande explicitement celle du Ministère. Aucune migration, aucun changement de contenu.
+Une bannière unique (`pdf/lmd/_banniere`) pour tous les documents du LMD ; le projet d'acte et le certificat de scolarité demandent explicitement celle du Ministère. Aucune migration, aucun changement de contenu.
 
 ## 3. Tests
 
 - L'en-tête par défaut porte l'Université et son logo, pas le Ministère.
-- Le projet d'acte est le seul gabarit du LMD sous la bannière du Ministère.
+- Le projet d'acte et le certificat de scolarité sont les seuls gabarits du LMD sous la bannière du Ministère.
 
 ## 4. À confirmer
 
-- Certificat de scolarité : rangé parmi les documents académiques.
 - Les documents déjà archivés (PV arrêtés) gardent leur en-tête d'origine.

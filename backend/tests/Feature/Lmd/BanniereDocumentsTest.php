@@ -24,10 +24,10 @@ it('garde les documents administratifs sous la bannière du Ministère', functio
     expect($html)->toContain('MINISTÈRE DES FINANCES')->not->toContain('UNIVERSITÉ DE YAOUNDÉ');
 });
 
-it('ne laisse que le projet d\'acte sous la bannière du Ministère', function (): void {
+it('ne laisse que le projet d\'acte et le certificat de scolarité sous la bannière du Ministère', function (): void {
     $administratifs = collect(glob(resource_path('views/pdf/lmd/*.blade.php')) ?: [])
         ->filter(fn (string $f): bool => str_contains((string) file_get_contents($f), 'Banniere::PSSFP'))
-        ->map(fn (string $f): string => basename($f))->values()->all();
+        ->map(fn (string $f): string => basename($f))->sort()->values()->all();
 
-    expect($administratifs)->toBe(['projet-acte.blade.php']);
+    expect($administratifs)->toBe(['certificat-scolarite.blade.php', 'projet-acte.blade.php']);
 });

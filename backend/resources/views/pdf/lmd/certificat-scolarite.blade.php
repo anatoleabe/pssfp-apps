@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Certificat de scolarité {{ $numero }}</title>
-@include('pdf.lmd._entete')
+@include('pdf.lmd._entete', ['banniere' => \App\Support\Pdf\Banniere::PSSFP])
 </head>
 <body>
   <h1>Certificat de scolarité</h1>
