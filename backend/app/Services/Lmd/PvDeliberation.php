@@ -6,8 +6,11 @@ namespace App\Services\Lmd;
 
 use App\Models\Deliberation;
 use App\Models\DocumentDelivre;
+use App\Models\MaquetteUe;
+use App\Models\Parcours;
 use App\Models\ResultatAnnuel;
 use App\Models\ResultatScenario;
+use App\Models\ResultatScenarioUe;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Collection;
@@ -60,6 +63,7 @@ final class PvDeliberation
             'resultats' => $resultats,
             'mesures' => $mesures,
             'participations' => $participations,
+            'tableaux' => $this->syntheseParUe($d),
             'ecarts' => $d->rectifie_id !== null ? $this->deliberations->ecartsRectification($d) : ['favorables' => 0, 'defavorables' => 0],
             'synthese' => [
                 'effectif' => $resultats->count(),
@@ -68,6 +72,35 @@ final class PvDeliberation
                 'AJ' => $resultats->where('decision', 'AJ')->count(),
             ],
         ])->setPaper('a4', 'landscape')->output();
+    }
+
+    /**
+     * Synthèse par UE (spec lot 24d) : par parcours, une colonne par UE et la note retenue par le jury.
+     *
+     * @return list<array{parcours: ?string, ues: list<MaquetteUe>, lignes: list<array{resultat: ResultatAnnuel|ResultatScenario, notes: array<int, ResultatScenarioUe>}>}>
+     */
+    public function syntheseParUe(Deliberation $d): array
+    {
+        $scenario = $d->scenarioRetenu()->first();
+        $resultats = $this->resultats($d, $d->statut !== Deliberation::SIMULATION);
+        if ($scenario === null) {
+            return [];
+        }
+        $notes = $scenario->resultatsUe()->with('maquetteUe.ue')->get()->groupBy('inscription_annuelle_id');
+        $parcours = Parcours::query()->whereIn('id', $resultats->pluck('inscriptionAnnuelle.parcours_id')->filter()->unique())->orderBy('ordre')->get();
+        $tableaux = [];
+        foreach ([...$parcours->all(), null] as $p) {
+            $lignes = $resultats->filter(fn ($r): bool => $r->inscriptionAnnuelle?->parcours_id === $p?->id)
+                ->map(fn ($r): array => ['resultat' => $r, 'notes' => $notes->get($r->inscription_annuelle_id, collect())->keyBy('maquette_ue_id')->all()])->values()->all();
+            if ($lignes === []) {
+                continue;
+            }
+            $ues = collect($lignes)->flatMap(fn (array $l): array => array_map(fn (ResultatScenarioUe $n): MaquetteUe => $n->maquetteUe, $l['notes']))
+                ->unique('id')->sortBy(fn (MaquetteUe $ue): array => [$ue->semestre, $ue->ordre, $ue->id])->values()->all();
+            $tableaux[] = ['parcours' => $p?->libelleComplet(), 'ues' => $ues, 'lignes' => $lignes];
+        }
+
+        return $tableaux;
     }
 
     /** Liste d'affichage sans notes (ENF-12), seulement pour une délibération arrêtée. */

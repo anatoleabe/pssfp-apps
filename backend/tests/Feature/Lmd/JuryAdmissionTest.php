@@ -23,6 +23,7 @@ use App\Services\Lmd\Deliberations;
 use App\Services\Lmd\ImportMaquettes;
 use App\Services\Lmd\InscriptionsPedagogiques;
 use App\Services\Lmd\Memoires;
+use App\Services\Lmd\PvDeliberation;
 use App\Support\CandidatureObjectStorage;
 use Database\Seeders\DepartementsCamerounSeeder;
 use Database\Seeders\PaysSeeder;
@@ -176,4 +177,22 @@ it('fige le résultat de soutenance et la délibération des écrits une fois le
     $this->deliberations->rectifier($admission, 'Note de soutenance mal reportée', 'NS 27/011', $this->responsable);
     $this->memoires->enregistrerSoutenance($dossier->refresh(), '18', null, $this->agent);
     expect((float) $dossier->refresh()->etapes->firstWhere('etape', 'soutenance')->note)->toBe(18.0);
+});
+
+it('dresse la synthèse par UE du jury d\'admission : une colonne par UE, soutenance comprise', function (): void {
+    ($this->arreter)(($this->creer)('normale'));
+    ($this->soutenir)($this->soutenu, '17,5');
+    $admission = ($this->arreter)(($this->creer)(Deliberation::ADMISSION));
+    $pv = app(PvDeliberation::class);
+
+    $tableaux = $pv->syntheseParUe($admission);
+    $ligne = collect($tableaux[0]['lignes'])->first(fn (array $l): bool => $l['resultat']->inscription_annuelle_id === $this->soutenu->id);
+    $soutenance = collect($tableaux[0]['ues'])->first(fn (MaquetteUe $ue): bool => $ue->partie === MaquetteUe::SOUTENANCE);
+
+    expect($tableaux)->toHaveCount(1)
+        ->and($tableaux[0]['parcours'])->toContain('FFCP')
+        ->and(collect($tableaux[0]['ues'])->sum('credits'))->toBe(60)
+        ->and($tableaux[0]['lignes'])->toHaveCount(2)
+        ->and((float) $ligne['notes'][$soutenance->id]->note_jury)->toBe(17.5)
+        ->and(str_starts_with($pv->pv($admission), '%PDF'))->toBeTrue();
 });
