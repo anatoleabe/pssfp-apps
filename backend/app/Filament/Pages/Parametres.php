@@ -8,6 +8,7 @@ use App\Filament\Concerns\ChecksModuleAccess;
 use App\Filament\Navigation\GroupeNavigation;
 use App\Models\User;
 use App\Services\EnvoiTestService;
+use App\Services\Scolarite\RelancesTranches;
 use App\Services\Sms\ChecksConnectivity;
 use App\Services\Sms\DescribesConfiguration;
 use App\Services\Sms\SmsConfigurationSummary;
@@ -22,6 +23,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
@@ -69,6 +71,8 @@ class Parametres extends Page implements HasForms
     {
         $this->form->fill([
             'notification_bcc' => AppSettings::candidatureNotificationBcc(),
+            'relances_tranches_actif' => RelancesTranches::reglages()['actif'],
+            'relances_tranches_intervalle' => RelancesTranches::reglages()['intervalle_jours'],
         ]);
     }
 
@@ -85,6 +89,14 @@ class Parametres extends Page implements HasForms
                             ->nestedRecursiveRules(['email:rfc', 'max:150'])
                             ->helperText('Saisissez une adresse puis validez avec Entrée. Copie cachée : aucun destinataire ne voit les adresses des autres. Laisser vide pour n\'envoyer qu\'au service des admissions.'),
                     ]),
+
+                Section::make('Relance des tranches')
+                    ->description('Chaque matin, les auditeurs actifs dont une tranche de scolarité a dépassé son échéance reçoivent un SMS et un e-mail. Chaque SMS est facturé. Éteinte, la relance n\'envoie rien.')
+                    ->schema([
+                        Toggle::make('relances_tranches_actif')->label('Relancer automatiquement les tranches échues'),
+                        TextInput::make('relances_tranches_intervalle')->label('Jours entre deux relances d\'un même auditeur')
+                            ->integer()->required()->minValue(RelancesTranches::INTERVALLE_MIN)->maxValue(RelancesTranches::INTERVALLE_MAX),
+                    ])->columns(2),
 
                 Section::make('Envois')
                     ->description('Configuration des passerelles SMS et e-mail. Elle vit dans le fichier .env du serveur et n\'est pas modifiable ici — seuls les deux champs de test ci-dessous sont saisissables.')
@@ -156,6 +168,8 @@ class Parametres extends Page implements HasForms
             array_values(array_filter((array) ($state['notification_bcc'] ?? []))),
             auth()->id(),
         );
+
+        RelancesTranches::regler((bool) ($state['relances_tranches_actif'] ?? false), (int) ($state['relances_tranches_intervalle'] ?? RelancesTranches::INTERVALLE_DEFAUT), auth()->user());
 
         activity('parametres')
             ->causedBy(auth()->user())
