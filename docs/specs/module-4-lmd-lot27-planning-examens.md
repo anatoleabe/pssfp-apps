@@ -1,7 +1,7 @@
 # Module 4 — LMD, lot 27 : planning d'examens
 
 > Étape 7 de l'audit `docs/audits/lmd-gestion-academique-2026-11.md`. Choix validés par M. ABE le 24/11/2026.
-> Les notifications (publication, report) font l'objet du lot 28 ; la page « Mes examens » du portail, du lot 27b.
+> Les notifications (publication, report) font l'objet du lot 28.
 
 ## 1. Besoin
 
@@ -42,11 +42,12 @@ connaît déjà les sessions d'examens du calendrier, les salles, les inscrits e
 - Écran « Planning d'examens » (Planification) : liste, fiche avec conflits et répartition, épreuves.
 - PDF : planning de la session ; listes d'émargement, une page par salle (surveillants en pied).
 - API `GET /v1/applications/me/examens` : épreuves publiées de l'auditeur connecté, avec sa salle.
+- Portail : section « Mes examens » en tête de la page « Mon emploi du temps » (affichée dès qu'une épreuve
+  publiée le concerne), avec l'avertissement « non autorisé à composer » le cas échéant.
 
 ## 4. Hors périmètre
 
-Placement numéroté dans la salle, convocation individuelle, surveillants sans compte, notifications (lot 28),
-page du portail (lot 27b).
+Placement numéroté dans la salle, convocation individuelle, surveillants sans compte, notifications (lot 28).
 
 ## 5. Tests
 
