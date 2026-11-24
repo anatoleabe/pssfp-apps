@@ -232,7 +232,7 @@ class SaisieNotes extends Page implements HasForms
                 }),
             Action::make('importer')->label('Importer')->icon('heroicon-o-arrow-up-tray')->color('gray')
                 ->visible(fn (): bool => $statut() === EtapeSaisie::OUVERTE)
-                ->modalDescription('Déposez le modèle rempli. Rien n\'est enregistré si une ligne est invalide : un rapport donne alors chaque ligne en erreur, avec son numéro dans le fichier.')
+                ->modalDescription('Déposez le modèle rempli. L\'essai à blanc rend un rapport ligne à ligne (note actuelle, note du fichier, résultat) sans rien enregistrer. À l\'import, rien n\'est enregistré si une ligne est invalide.')
                 ->form(MessagesValidation::appliquer([
                     Forms\Components\FileUpload::make('fichier')->label('Modèle rempli (.xlsx)')->required()->storeFiles(false)
                         ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])->maxSize(2048),
@@ -246,7 +246,19 @@ class SaisieNotes extends Page implements HasForms
                     $fichier = $data['fichier'];
                     $chemin = is_object($fichier) && method_exists($fichier, 'getRealPath') ? (string) $fichier->getRealPath() : '';
                     try {
-                        $n = app(NotesExcel::class)->importer($etape, $chemin, $this->utilisateur(), ! (bool) $data['simulation']);
+                        if ((bool) $data['simulation']) {
+                            // Essai à blanc : le sort de chaque ligne, erreurs comprises, dans un rapport téléchargé.
+                            $essai = app(NotesExcel::class)->essai($etape, $chemin, $this->utilisateur());
+                            $erreurs = $essai['comptes'][ServiceSaisie::ERREUR];
+                            Notification::make()->title($erreurs > 0 ? 'Essai à blanc : fichier à corriger' : 'Essai à blanc : fichier valide')
+                                ->body(NotesExcel::resume($essai['comptes']).' Rien n\'a été enregistré ; le rapport ligne à ligne se télécharge.')
+                                ->status($erreurs > 0 ? 'danger' : 'success')->persistent($erreurs > 0)->send();
+                            $rapportEssai = app(NotesExcel::class)->rapportEssai($etape, $essai);
+
+                            return response()->streamDownload(fn () => print ($rapportEssai),
+                                sprintf('essai-import-%s-%s-%s.xlsx', mb_strtolower($etape->ecue->code), $etape->session, $etape->etape));
+                        }
+                        $n = app(NotesExcel::class)->importer($etape, $chemin, $this->utilisateur(), true);
                     } catch (ImportRefuse $e) {
                         Notification::make()->danger()->title('Import refusé')->body($e->getMessage().' Le rapport complet se télécharge.')->persistent()->send();
                         $rapport = app(NotesExcel::class)->rapport($etape, $e->lignes);
@@ -258,8 +270,7 @@ class SaisieNotes extends Page implements HasForms
 
                         return null;
                     }
-                    Notification::make()->success()
-                        ->title($data['simulation'] ? "Fichier valide : {$n} note(s) à enregistrer" : "{$n} note(s) importée(s)")->send();
+                    Notification::make()->success()->title("{$n} note(s) importée(s)")->send();
                     $this->charger();
 
                     return null;
