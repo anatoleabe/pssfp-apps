@@ -91,6 +91,7 @@ final class RolePermissionSeeder extends Seeder
                     'scolarite.suspension',
                     'scolarite.lettre_acces',
                     'candidature.ajouter_retenu',
+                    'candidature.dossier_corriger',
                     'candidature.lettres_signees',
                     'candidature.espace_candidat',
                     'scolarite.export',

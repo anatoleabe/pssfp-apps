@@ -108,6 +108,7 @@ final class ModulePermissionMap
                     'candidature.matricules_moodle' => 'Attribuer les matricules, créer les comptes sur eCampus, exporter les comptes Moodle, voir et envoyer le mot de passe Moodle d\'un auditeur',
                     'candidature.ecampus_mot_de_passe' => 'Vérifier le compte eCampus d\'un auditeur, en réinitialiser le mot de passe à sa demande et ouvrir sa fiche sur eCampus',
                     'candidature.ajouter_retenu' => 'Ajouter un retenu depuis l\'admin, sans dossier déposé sur le portail de candidature, et corriger son téléphone',
+                    'candidature.dossier_corriger' => 'Corriger les informations personnelles d\'un dossier décidé, auditeur compris (identité, naissance, e-mail, adresse), et son téléphone de connexion, avec un motif ; eCampus suit (administrateurs)',
                     'candidature.lettres_signees' => 'Déposer, remplacer, consulter et retirer les lettres d\'admission signées des auditeurs',
                     'candidature.espace_candidat' => 'Donner un nouveau code de connexion à un candidat et voir son espace (lecture seule)',
                 ],

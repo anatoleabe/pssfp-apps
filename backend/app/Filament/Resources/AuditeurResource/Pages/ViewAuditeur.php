@@ -15,6 +15,7 @@ use App\Filament\Resources\AuditeurResource\SuspensionActions;
 use App\Filament\Resources\CandidatureResource;
 use App\Filament\Resources\CandidatureResource\AjoutRetenuActions;
 use App\Filament\Resources\CandidatureResource\ComptesEcampusActions;
+use App\Filament\Resources\CandidatureResource\CorrectionDossierActions;
 use App\Filament\Resources\CandidatureResource\DocumentsAuditeursActions;
 use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
 use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
@@ -39,7 +40,7 @@ class ViewAuditeur extends ViewRecord
     private const ACTIONS_DU_DOSSIER = [
         'creerCompteEcampus', 'identifiantsMoodle', 'envoyerIdentifiantsMoodle', 'voirEspace', 'nouveauCode',
         'lettreAccesFoad', 'lettreAdmission', 'deposerLettreSignee', 'voirLettreSignee', 'retirerLettreSignee',
-        'corrigerTelephone',
+        'corrigerTelephone', 'corrigerDossier',
     ];
 
     public function getTitle(): string
@@ -118,6 +119,7 @@ class ViewAuditeur extends ViewRecord
                 SuspensionActions::lever(),
                 SuspensionActions::reessayerEcampus(),
                 SuspensionActions::voirDemande(),
+                CorrectionDossierActions::corriger(Action::make('corrigerDossier')),
                 AjoutRetenuActions::corrigerTelephone(Action::make('corrigerTelephone')),
                 Action::make('dossier')
                     ->label('Dossier de candidature')

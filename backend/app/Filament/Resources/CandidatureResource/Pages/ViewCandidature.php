@@ -6,6 +6,8 @@ namespace App\Filament\Resources\CandidatureResource\Pages;
 
 use App\Filament\Resources\AuditeurResource;
 use App\Filament\Resources\CandidatureResource;
+use App\Filament\Resources\CandidatureResource\AjoutRetenuActions;
+use App\Filament\Resources\CandidatureResource\CorrectionDossierActions;
 use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
 use App\Models\Candidature;
 use Filament\Actions\Action;
@@ -29,6 +31,8 @@ class ViewCandidature extends ViewRecord
                 ->color('gray')
                 ->visible(fn (Candidature $record): bool => $record->auditeur !== null && AuditeurResource::canView($record->auditeur))
                 ->url(fn (Candidature $record): string => AuditeurResource::getUrl('view', ['record' => $record->auditeur])),
+            CorrectionDossierActions::corriger(Action::make('corrigerDossier')),
+            AjoutRetenuActions::corrigerTelephone(Action::make('corrigerTelephone')),
             EditAction::make(),
         ];
     }

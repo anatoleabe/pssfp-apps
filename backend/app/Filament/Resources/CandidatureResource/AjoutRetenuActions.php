@@ -10,6 +10,7 @@ use App\Models\DepartementCameroun;
 use App\Models\Pays;
 use App\Models\RegionCameroun;
 use App\Services\AjoutRetenu\AjoutRetenu;
+use App\Services\CorrectionDossier\CorrectionDossier;
 use App\Services\Scolarite\AnneeEnCours;
 use App\Support\PhoneMasker;
 use Filament\Actions\Action;
@@ -84,7 +85,9 @@ final class AjoutRetenuActions
             ->label('Corriger le téléphone')
             ->icon('heroicon-o-phone')
             ->color('gray')
-            ->visible(fn (Candidature $record): bool => auth()->user()?->can(AjoutRetenu::PERMISSION) === true && $record->ajoute_par !== null)
+            // Retenu ajouté depuis l'admin, ou tout dossier pour l'administrateur (correction du dossier, 24/11/2026).
+            ->visible(fn (Candidature $record): bool => (auth()->user()?->can(AjoutRetenu::PERMISSION) === true && $record->ajoute_par !== null)
+                || auth()->user()?->can(CorrectionDossier::PERMISSION) === true)
             ->modalHeading('Corriger le téléphone')
             ->modalDescription(fn (Candidature $record): string => "Dossier {$record->numero_dossier}, téléphone actuel : ".PhoneMasker::mask((string) $record->phone_e164)
                 .'. L\'ancien numéro perd l\'accès à l\'espace : code et sessions annulés. Le matricule et le mot de passe FOAD ne changent pas. Aucun message n\'est envoyé.')
