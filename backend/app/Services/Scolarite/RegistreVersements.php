@@ -6,12 +6,15 @@ namespace App\Services\Scolarite;
 
 use App\Models\AnnulationRecu;
 use App\Models\InscriptionAnnuelle;
+use App\Models\RecuVersement;
 use App\Models\ReglementOrganisme;
 use App\Models\User;
 use App\Models\Versement;
+use App\Models\VirementAnnonce;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use LogicException;
@@ -183,6 +186,11 @@ final class RegistreVersements
             return $this->ecrire((int) $inscription->auditeur_id, function (ImputationsCompte $compte) use ($inscription, $montant, $date, $mode, $reference, $payeur, $justificatif, $auteur, $reglement): Versement {
                 if (Versement::query()->where('mode', $mode)->where('reference', $reference)->whereNull('annule_at')->exists()) {
                     throw new InvalidArgumentException(self::messageDoublon($reference));
+                }
+                // Une référence portée par un virement annoncé en attente n'encaisse que par sa validation (spec virements-bordereaux §2.5).
+                if ($mode === 'virement' && VirementAnnonce::query()->where('statut', VirementAnnonce::EN_ATTENTE)->where('reference', $reference)
+                    ->when($this->annonceEnValidation !== null, fn ($q) => $q->whereKeyNot($this->annonceEnValidation))->exists()) {
+                    throw new InvalidArgumentException('Un virement annoncé porte la référence '.$reference.' : validez-le depuis Finances › Virements à valider.');
                 }
                 // L'argent d'un organisme saisi en règlement ne se ressaisit pas en versement (lot A2).
                 if ($reglement === null && ReglementOrganisme::query()->where('mode', $mode)->where('reference', $reference)->whereNull('annule_at')->exists()) {
@@ -408,6 +416,94 @@ final class RegistreVersements
 
         activity('scolarite')->causedBy($auteur)->performedOn($versement)
             ->event('justificatif_joint')->log('Bordereau joint au versement');
+    }
+
+    public const PERMISSION_REMPLACER_JUSTIFICATIF = 'scolarite.justificatif_remplacer';
+
+    /**
+     * Remplace le bordereau d'un versement (administrateur, spec virements-bordereaux §3). L'ancien fichier est conservé
+     * et le remplacement enregistré dans la même transaction : le déclencheur des versements n'admet le changement qu'à
+     * cette condition. La confirmation de la scolarité reste valable (elle garde la pièce qu'elle a vérifiée).
+     */
+    public function remplacerJustificatif(Versement $versement, string $chemin, string $motif, User $auteur): void
+    {
+        abort_unless($auteur->can(self::PERMISSION_REMPLACER_JUSTIFICATIF), 403);
+        $motif = trim($motif);
+        if (mb_strlen($motif) < 10 || mb_strlen($motif) > 500) {
+            throw new InvalidArgumentException('Indiquez le motif du remplacement (de 10 à 500 caractères).');
+        }
+        self::verifierScan($chemin);
+        $this->refuserDossierRetire($versement->inscription()->firstOrFail());
+
+        DB::transaction(function () use ($versement, $chemin, $motif, $auteur): void {
+            $v = Versement::query()->whereKey($versement->id)->lockForUpdate()->firstOrFail();
+            if ($v->annule_at !== null) {
+                throw new InvalidArgumentException('Ce versement est annulé : son bordereau ne se remplace plus.');
+            }
+            if (blank($v->justificatif_path)) {
+                throw new InvalidArgumentException('Ce versement n\'a pas de bordereau : joignez-le plutôt.');
+            }
+            $ancien = (string) $v->justificatif_path;
+            // Date de la base (now() = début de la transaction) : c'est elle que le déclencheur compare.
+            DB::table('remplacements_justificatifs')->insert([
+                'versement_id' => $v->id, 'ancien_path' => $ancien, 'nouveau_path' => $chemin, 'motif' => $motif,
+                'remplace_par' => $auteur->id, 'remplace_le' => DB::raw('now()'),
+            ]);
+            Versement::query()->whereKey($v->id)->update(['justificatif_path' => $chemin]);
+            activity('scolarite')->causedBy($auteur)->performedOn($v)->event('justificatif_remplace')
+                ->withProperties(['motif' => $motif])->log('Bordereau du versement remplacé');
+        });
+    }
+
+    /**
+     * Valide un virement annoncé à sa date de paiement (spec virements-bordereaux §2.3) : le versement est créé à cette
+     * date, avec le scan de l'annonce, et son reçu émis, dans la même opération et sous le verrou du compte.
+     */
+    public function encaisserVirementAnnonce(VirementAnnonce $annonce, string $datePaiement, User $auteur): ResultatOperation
+    {
+        abort_unless($auteur->can(self::PERMISSION_SAISIR) && $auteur->can(RecusVersements::PERMISSION_EMETTRE), 403);
+        $inscription = InscriptionAnnuelle::query()->findOrFail($annonce->inscription_annuelle_id);
+        [$montant, $date, $mode, $reference, $payeur] = $this->validerSaisie($inscription, [
+            'montant' => $annonce->montant, 'date_versement' => $datePaiement, 'mode' => 'virement',
+            'reference' => $annonce->reference, 'payeur' => $annonce->payeur,
+        ]);
+        if ($date->lessThan($annonce->date_ordre)) {
+            throw new InvalidArgumentException('La date de paiement ne peut pas précéder la date de l\'ordre de virement ('.$annonce->date_ordre->format('d/m/Y').').');
+        }
+
+        $this->annonceEnValidation = $annonce->id;
+        try {
+            [$versement, $recu] = $this->ecrireVirementValide($annonce, $inscription, $montant, $date, $mode, $reference, $payeur, $auteur);
+        } finally {
+            $this->annonceEnValidation = null;
+        }
+        $this->auteurCourant = $auteur;
+
+        return new ResultatOperation($versement, $this->notifier($inscription), $recu);
+    }
+
+    /** Annonce en cours de validation : sa propre référence ne compte pas comme un doublon. */
+    private ?int $annonceEnValidation = null;
+
+    /** @return array{Versement, RecuVersement} */
+    private function ecrireVirementValide(VirementAnnonce $annonce, InscriptionAnnuelle $inscription, int $montant, CarbonImmutable $date, string $mode,
+        string $reference, string $payeur, User $auteur): array
+    {
+        return $this->ecrire((int) $inscription->auditeur_id, function () use ($annonce, $inscription, $montant, $date, $mode, $reference, $payeur, $auteur): array {
+            $a = VirementAnnonce::query()->whereKey($annonce->id)->lockForUpdate()->firstOrFail();
+            if ($a->statut !== VirementAnnonce::EN_ATTENTE) {
+                throw new InvalidArgumentException('Ce virement est déjà '.mb_strtolower(VirementAnnonce::STATUTS[$a->statut] ?? $a->statut).'.');
+            }
+            $versement = $this->ecrireVersement($inscription, $montant, $date, $mode, $reference, $payeur, (string) $a->justificatif_path, $auteur, null);
+            $recu = $this->recus->emettre($versement, $auteur);
+            $a->forceFill(['statut' => VirementAnnonce::VALIDE, 'date_paiement' => $date->toDateString(), 'versement_id' => $versement->id,
+                'traite_par' => $auteur->id, 'traite_le' => now()])->save();
+            activity('scolarite')->causedBy($auteur)->performedOn($versement)->event('virement_valide')
+                ->withProperties(['virement' => $a->uuid, 'date_ordre' => $a->date_ordre->toDateString(), 'date_paiement' => $date->toDateString()])
+                ->log('Virement validé à sa date de paiement ; versement et reçu émis');
+
+            return [$versement, $recu];
+        });
     }
 
     /**

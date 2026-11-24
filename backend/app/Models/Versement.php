@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Versement d'un auditeur, rattaché à son compte (`auditeur_id`, ADR-0013). Jamais
@@ -142,7 +143,9 @@ class Versement extends Model
             || ConfirmationVersement::query()->where('justificatif_path', $chemin)->exists()
             || DeblocageAcces::query()->where('justificatif_path', $chemin)->exists()
             || EngagementPriseEnCharge::query()->where('lettre_path', $chemin)->exists()
-            || ReglementOrganisme::query()->where('piece_path', $chemin)->exists();
+            || ReglementOrganisme::query()->where('piece_path', $chemin)->exists()
+            || VirementAnnonce::query()->where('justificatif_path', $chemin)->exists()
+            || DB::table('remplacements_justificatifs')->where('ancien_path', $chemin)->exists();
     }
 
     public static function normaliserReference(string $reference): string

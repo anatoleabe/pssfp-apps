@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\AuditeurResource;
 
+use App\Filament\Resources\VirementAnnonceResource;
 use App\Http\Controllers\Admin\ImprimerRecuController;
 use App\Models\Auditeur;
 use App\Models\BaremeScolarite;
@@ -30,7 +31,9 @@ use App\Services\Scolarite\RegistreVersements;
 use App\Services\Scolarite\ReinscriptionAuditeur;
 use App\Services\Scolarite\ResultatOperation;
 use App\Services\Scolarite\StatutAuditeur;
+use App\Services\Scolarite\VirementsAnnonces;
 use App\Support\CandidatureObjectStorage;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Notifications\Actions\Action as NotificationAction;
@@ -39,8 +42,10 @@ use Filament\Tables\Actions\Action as TableAction;
 use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Contracts\HasTable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -109,7 +114,12 @@ final class AuditeurActions
     {
         return [
             Forms\Components\TextInput::make('montant')->label('Montant (FCFA)')->required()->integer()->minValue(1)->maxValue(RegistreVersements::MONTANT_MAX)->live(onBlur: true),
-            Forms\Components\DatePicker::make('date_versement')->label('Date du versement')->required()->native(false)
+            Forms\Components\DatePicker::make('date_versement')
+                ->label(fn (Forms\Get $get): string => $get('mode') === 'virement' ? 'Date de l\'ordre de virement' : 'Date du versement')
+                ->helperText(fn (Forms\Get $get): ?string => $get('mode') === 'virement'
+                    ? 'Un virement s\'enregistre en attente de crédit, sans reçu, et ne compte pas encore. Validez-le à sa date de paiement dans Finances › Virements à valider : le reçu sera émis à ce moment.'
+                    : null)
+                ->required()->native(false)
                 ->displayFormat('d/m/Y')->default(InscriptionAnnuelle::aujourdhui()->toDateString())
                 // Fin de journée : le sélecteur du navigateur renvoie une heure, et une
                 // borne à minuit refusait la date du jour (constaté au navigateur).
@@ -141,6 +151,17 @@ final class AuditeurActions
     {
         try {
             self::exigerScanDepose($data['justificatif_path'] ?? null);
+            // Virement en deux temps (spec virements-bordereaux §2) : annoncé ici, hors compte, validé à sa date de paiement.
+            if (($data['mode'] ?? null) === 'virement') {
+                $annonce = app(VirementsAnnonces::class)->annoncer($record->inscriptionCourante, $data, auth()->user());
+                Notification::make()->success()->title('Virement enregistré, en attente de crédit')
+                    ->body('Montant '.LibelleSituation::fcfa($annonce->montant).', référence '.$annonce->reference.'. Il ne compte pas encore : '
+                        .'validez-le à sa date de paiement dans Finances › Virements à valider, ce qui émettra le reçu.')
+                    ->actions([NotificationAction::make('voir')->label('Virements à valider')->url(VirementAnnonceResource::getUrl('index'))])
+                    ->send();
+
+                return;
+            }
             $registre = app(RegistreVersements::class);
             $resultat = self::encaisseAvecRecu()
                 ? $registre->encaisser($record->inscriptionCourante, $data, auth()->user())
@@ -478,6 +499,67 @@ final class AuditeurActions
                     now()->addMinutes(30),
                     ['ResponseContentDisposition' => 'inline; filename="bordereau.'.$extension.'"'],
                 ));
+            });
+    }
+
+    /** Remplacement du bordereau par un administrateur (spec virements-bordereaux §3) : l'ancien est conservé. */
+    public static function remplacerJustificatif(): TableAction
+    {
+        return TableAction::make('remplacerJustificatif')
+            ->label('Remplacer le bordereau')
+            ->icon('heroicon-o-arrow-path-rounded-square')
+            ->color('warning')
+            ->visible(fn (Versement $record): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_REMPLACER_JUSTIFICATIF)
+                && filled($record->justificatif_path) && ! $record->estAnnule())
+            ->modalDescription('Le nouveau scan remplace l\'actuel. L\'ancien fichier est conservé dans l\'historique, et la confirmation de la scolarité reste valable.')
+            ->form(MessagesValidation::appliquer([
+                self::champJustificatif()->label('Nouveau scan du bordereau')->required(),
+                Forms\Components\Textarea::make('motif')->label('Motif du remplacement')->required()->minLength(10)->maxLength(500)->rows(3),
+            ]))
+            ->action(function (Versement $record, array $data, TableAction $action): void {
+                $chemin = $data['justificatif_path'] ?? null;
+                try {
+                    self::exigerScanDepose(is_string($chemin) ? $chemin : null);
+                    if (! is_string($chemin)) {
+                        throw new InvalidArgumentException('Le fichier n\'a pas pu être enregistré. Réessayez.');
+                    }
+                    app(RegistreVersements::class)->remplacerJustificatif($record, $chemin, (string) ($data['motif'] ?? ''), auth()->user());
+                } catch (InvalidArgumentException $e) {
+                    self::supprimerScanOrphelin(is_string($chemin) ? $chemin : null);
+                    Notification::make()->danger()->title('Bordereau non remplacé')->body($e->getMessage())->send();
+                    $action->halt();
+
+                    return;
+                }
+                Notification::make()->success()->title('Bordereau remplacé')->body('L\'ancien scan reste consultable dans « Anciens bordereaux ».')->send();
+            });
+    }
+
+    /** Anciens bordereaux d'un versement, conservés à chaque remplacement : liens signés 30 min. */
+    public static function anciensJustificatifs(): TableAction
+    {
+        return TableAction::make('anciensJustificatifs')
+            ->label('Anciens bordereaux')
+            ->icon('heroicon-o-clock')
+            ->color('gray')
+            ->visible(fn (Versement $record): bool => auth()->user()?->can('view_auditeur') === true
+                && DB::table('remplacements_justificatifs')->where('versement_id', $record->id)->exists())
+            ->modalSubmitAction(false)->modalCancelActionLabel('Fermer')
+            ->modalContent(function (Versement $record): HtmlString {
+                abort_unless(auth()->user()?->can('view_auditeur'), 403);
+                $lignes = DB::table('remplacements_justificatifs as r')->leftJoin('users as u', 'u.id', '=', 'r.remplace_par')
+                    ->where('r.versement_id', $record->id)->orderByDesc('r.remplace_le')->get(['r.ancien_path', 'r.motif', 'r.remplace_le', 'u.name']);
+                $html = '<ul class="space-y-3 text-sm">';
+                foreach ($lignes as $l) {
+                    $lien = Versement::cheminJustificatifValide($l->ancien_path)
+                        ? Storage::disk(CandidatureObjectStorage::DISK)->temporaryUrl($l->ancien_path, now()->addMinutes(30), ['ResponseContentDisposition' => 'inline'])
+                        : null;
+                    $html .= '<li><strong>'.e(CarbonImmutable::parse($l->remplace_le)->setTimezone('Africa/Douala')->format('d/m/Y à H:i')).'</strong>, par '.e($l->name ?? 'compte supprimé')
+                        .' : '.e($l->motif).($lien !== null ? ' — <a class="text-primary-600 underline" target="_blank" rel="noopener" href="'.e($lien).'">ancien scan</a>' : '').'</li>';
+                }
+                activity('scolarite')->causedBy(auth()->user())->performedOn($record)->event('justificatif_consulte')->log('Anciens bordereaux consultés');
+
+                return new HtmlString($html.'</ul>');
             });
     }
 

@@ -97,6 +97,8 @@ class VersementsRelationManager extends RelationManager
                 Tables\Actions\ActionGroup::make([
                     ConfirmationActions::confirmer(),
                     AuditeurActions::voirJustificatif(),
+                    AuditeurActions::anciensJustificatifs(),
+                    AuditeurActions::remplacerJustificatif(),
                     AuditeurActions::ajouterJustificatif(),
                     CorrectionActions::rectifier(),
                     CorrectionActions::corriger(),

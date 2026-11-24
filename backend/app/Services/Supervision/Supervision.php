@@ -23,6 +23,7 @@ use App\Services\Supervision\Controles\SysControles;
 use App\Services\Supervision\Controles\SysDestinataires;
 use App\Services\Supervision\Controles\VerCorrections;
 use App\Services\Supervision\Controles\VerNonConfirmes;
+use App\Services\Supervision\Controles\VirAttente;
 use App\Support\Journaux;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -48,7 +49,7 @@ final class Supervision
     public const CATALOGUE = [
         PaiRapprochement::class, PaieEtatsBloques::class, ReqRetard::class, ReqNonCotees::class, DemAttente::class, DebEchus::class, VerNonConfirmes::class,
         VerCorrections::class, RcptContinuite::class, NotApresArret::class,
-        CptCoherence::class, SecSeparation::class, SecComptes::class, SecConnexions::class, SecJournal::class, SysDestinataires::class, SysControles::class,
+        CptCoherence::class, SecSeparation::class, SecComptes::class, SecConnexions::class, SecJournal::class, SysDestinataires::class, VirAttente::class, SysControles::class,
     ];
 
     public static function peutConsulter(?User $user): bool

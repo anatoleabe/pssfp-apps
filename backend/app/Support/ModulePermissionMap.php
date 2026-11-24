@@ -129,6 +129,7 @@ final class ModulePermissionMap
                     'finances.rubriques_gerer' => 'Modifier les rubriques de frais des reçus (libellé, code d\'imputation, montant, ordre) et le compte de scolarité de chaque promotion (administrateurs)',
                     'scolarite.versement_annuler' => 'Annuler un versement ; décider les demandes de correction du service financier',
                     'scolarite.versement_corriger' => 'Demander la correction ou l\'annulation d\'un versement (service financier) : décidée par un titulaire de l\'annulation, jamais par le demandeur',
+                    'scolarite.justificatif_remplacer' => 'Remplacer le bordereau joint à un versement (administrateur) : l\'ancien fichier est conservé, la confirmation reste valable',
                     'scolarite.versement_confirmer' => 'Confirmer un versement sur présentation du reçu bancaire original (scolarité) : scan du bordereau et attestation, jamais un versement que l\'on a saisi',
                     'scolarite.recu_emettre' => 'Émettre les reçus des versements et passer leurs écritures d\'annulation (service financier)',
                     'scolarite.remise' => 'Accorder une remise',

@@ -162,6 +162,8 @@ class VersementResource extends Resource
                     ->visible(fn (Versement $v): bool => $v->recuEnVigueur() !== null)
                     ->action(fn (Versement $v): StreamedResponse => RecuActions::reponse($v->recuEnVigueur())),
                 AuditeurActions::voirJustificatif(),
+                AuditeurActions::anciensJustificatifs(),
+                AuditeurActions::remplacerJustificatif(),
                 CorrectionActions::rectifier(),
                 CorrectionActions::corriger(),
                 CorrectionActions::annuler(),

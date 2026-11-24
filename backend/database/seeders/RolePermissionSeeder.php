@@ -90,6 +90,8 @@ final class RolePermissionSeeder extends Seeder
                     'candidature.ecampus_mot_de_passe',
                     'scolarite.suspension',
                     'scolarite.lettre_acces',
+                    // Remplacer un bordereau joint (24/11/2026) : réservé à l'administration.
+                    'scolarite.justificatif_remplacer',
                     'candidature.ajouter_retenu',
                     'candidature.dossier_corriger',
                     'candidature.lettres_signees',
