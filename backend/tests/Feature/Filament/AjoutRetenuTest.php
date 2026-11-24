@@ -442,9 +442,12 @@ it('refuse la correction d\'un numéro identique ou mal formé', function (strin
     expect(fn () => corrigerTelephone(ajouterRetenu(), $nouveau))->toThrow(InvalidArgumentException::class, 'téléphone');
 })->with(['+237 699 00 00 71', '699000072']);
 
-it('réserve la correction aux retenus ajoutés et à la permission', function (): void {
+it('réserve la correction aux retenus ajoutés et à la permission, sauf pour l\'administrateur', function (): void {
     $portail = Candidature::factory()->forCampagne($this->campagne)->submitted()->create();
-    expect(fn () => corrigerTelephone($portail))->toThrow(InvalidArgumentException::class, 'portail');
+    // Le seul droit d'ajouter un retenu ne corrige pas un dossier du portail ; l'administrateur, si (24/11/2026).
+    $ajouteur = tap(User::factory()->create(), fn (User $u) => $u->givePermissionTo(AjoutRetenu::PERMISSION));
+    expect(fn () => app(AjoutRetenu::class)->corrigerTelephone($portail, '+237699000072', 'Motif', $ajouteur))->toThrow(InvalidArgumentException::class, 'portail');
+    expect(corrigerTelephone($portail)->phone_e164)->toBe('+237699000072');
     expect(fn () => app(AjoutRetenu::class)->corrigerTelephone(ajouterRetenu(), '+237699000072', 'Motif', $this->comite))
         ->toThrow(HttpException::class);
 });
@@ -460,7 +463,7 @@ it('journalise la correction avec des numéros masqués', function (): void {
         ->and(json_encode($journal->properties))->not->toContain('699000071');
 });
 
-it('propose la correction depuis la liste, seulement sur un retenu ajouté, et demande confirmation', function (): void {
+it('propose la correction depuis la liste et demande confirmation', function (): void {
     $ajoute = ajouterRetenu();
     $portail = Candidature::factory()->forCampagne($this->campagne)->submitted()->create();
     $donnees = ['telephone' => '+237699000072', 'telephone_confirmation' => '+237699000072', 'motif' => 'Erreur de saisie'];
@@ -468,7 +471,8 @@ it('propose la correction depuis la liste, seulement sur un retenu ajouté, et d
     $this->actingAs($this->admin);
     $page = $this->livewire(ListCandidatures::class)
         ->assertTableActionVisible('corrigerTelephone', $ajoute)
-        ->assertTableActionHidden('corrigerTelephone', $portail);
+        // L'administrateur corrige aussi le téléphone d'un dossier du portail (24/11/2026).
+        ->assertTableActionVisible('corrigerTelephone', $portail);
     $page->callTableAction('corrigerTelephone', $ajoute, array_merge($donnees, ['telephone_confirmation' => '+237699000079']))
         ->assertHasTableActionErrors(['telephone_confirmation' => 'same']);
     expect($ajoute->fresh()->phone_e164)->toBe('+237699000071');

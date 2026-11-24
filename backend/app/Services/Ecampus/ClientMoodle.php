@@ -71,6 +71,21 @@ final class ClientMoodle
         }
     }
 
+    /**
+     * Corrige l'identité d'un compte (nom, prénom, e-mail) par core_user_update_users ; même lecture de la réponse
+     * que pour le mot de passe.
+     *
+     * @param  array{firstname?: string, lastname?: string, email?: string}  $champs
+     */
+    public function modifierCompte(int $idCompte, array $champs): void
+    {
+        $reponse = $this->appeler('core_user_update_users', ['users' => [['id' => $idCompte] + $champs]]);
+
+        if (! array_key_exists('warnings', $reponse) || $reponse['warnings'] !== []) {
+            throw new EchecEcampus('eCampus n\'a pas confirmé la correction du compte.');
+        }
+    }
+
     public function ajouterACohorte(string $cohorte, string $identifiant): void
     {
         $reponse = $this->appeler('core_cohort_add_cohort_members', ['members' => [[

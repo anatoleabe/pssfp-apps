@@ -8,6 +8,7 @@ use App\Models\CampagneCandidature;
 use App\Models\Candidature;
 use App\Models\User;
 use App\Services\CandidatUserService;
+use App\Services\CorrectionDossier\CorrectionDossier;
 use App\Services\ResultatsSelection\DetecteurDoublons;
 use App\Services\Scolarite\AnneeEnCours;
 use App\Support\PhoneMasker;
@@ -132,9 +133,12 @@ final class AjoutRetenu
      */
     public function corrigerTelephone(Candidature $dossier, string $nouveau, string $motif, User $auteur): Candidature
     {
-        abort_unless($auteur->can(self::PERMISSION), 403);
+        // Depuis le 24/11/2026, l'administrateur (`candidature.dossier_corriger`) corrige aussi le téléphone d'un dossier
+        // déposé sur le portail ; sans ce droit, seul celui d'un retenu ajouté depuis l'admin se corrige.
+        $correctionDossier = $auteur->can(CorrectionDossier::PERMISSION);
+        abort_unless($auteur->can(self::PERMISSION) || $correctionDossier, 403);
 
-        if ($dossier->ajoute_par === null) {
+        if ($dossier->ajoute_par === null && ! $correctionDossier) {
             throw new InvalidArgumentException('Ce dossier a été déposé sur le portail : son téléphone appartient au candidat.');
         }
         $telephone = CompteRetenu::telephone($nouveau);
@@ -188,7 +192,7 @@ final class AjoutRetenu
                         'ancien' => PhoneMasker::mask($ancienTelephone),
                         'nouveau' => PhoneMasker::mask($telephone),
                     ])
-                    ->log('Téléphone d\'un retenu ajouté corrigé');
+                    ->log($dossier->ajoute_par === null ? 'Téléphone de connexion du dossier corrigé' : 'Téléphone d\'un retenu ajouté corrigé');
 
                 return $dossier->refresh();
             });

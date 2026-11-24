@@ -332,6 +332,7 @@ final class ActionsLigne
                             ->log('Frais marqués comme payés');
                     }),
                 // Reste ici : un retenu ajouté se corrige souvent avant son matricule, donc avant sa fiche.
+                CorrectionDossierActions::corriger(Tables\Actions\Action::make('corrigerDossier')),
                 AjoutRetenuActions::corrigerTelephone(Tables\Actions\Action::make('corrigerTelephone')),
                 Tables\Actions\Action::make('withdraw')
                     ->label('Retirer (administratif)')
