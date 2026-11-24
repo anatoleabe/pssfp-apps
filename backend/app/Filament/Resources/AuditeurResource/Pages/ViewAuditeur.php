@@ -9,6 +9,7 @@ use App\Filament\Resources\AuditeurResource\AccesAnticipe;
 use App\Filament\Resources\AuditeurResource\AuditeurActions;
 use App\Filament\Resources\AuditeurResource\CompteEcampusActions;
 use App\Filament\Resources\AuditeurResource\DemandeMoratoireActions;
+use App\Filament\Resources\AuditeurResource\DocumentsAdministratifsActions;
 use App\Filament\Resources\AuditeurResource\EtiquettesActions;
 use App\Filament\Resources\AuditeurResource\ParcoursActions;
 use App\Filament\Resources\AuditeurResource\SuspensionActions;
@@ -81,7 +82,11 @@ class ViewAuditeur extends ViewRecord
             AuditeurActions::creerInscription(),
             AuditeurActions::reinscrire(),
             AuditeurActions::extraitCompte(),
-            AuditeurActions::certificatScolarite(),
+            ActionGroup::make([
+                AuditeurActions::certificatScolarite(),
+                DocumentsAdministratifsActions::attestationRecherche(),
+                DocumentsAdministratifsActions::lettreStage(),
+            ])->label('Documents administratifs')->icon('heroicon-o-academic-cap')->color('gray')->button(),
             EtiquettesActions::gerer(),
             ActionGroup::make([
                 AccesAnticipe::debloquer(),

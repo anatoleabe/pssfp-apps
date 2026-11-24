@@ -3,19 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <title>Certificat de scolarité {{ $numero }}</title>
-@include('pdf.lmd._entete', ['banniere' => \App\Support\Pdf\Banniere::PSSFP])
+@include('pdf.lmd._administratif')
 </head>
 <body>
-  <h1>Certificat de scolarité</h1>
-  <p class="sous-titre"><em>Certificate of enrolment</em></p>
-  <p style="font-size:11pt;line-height:1.7;margin-top:10mm;">
-    Le Chef de la scolarité du Programme Supérieur de Spécialisation en Finances Publiques certifie que
-    <strong>{{ mb_strtoupper((string) $dossier?->nom) }} {{ $dossier?->prenom }}</strong>, matricule {{ $dossier?->matricule }},
-    est régulièrement inscrit(e) en <strong>{{ $inscription->niveau === 'M1' ? 'Master 1' : 'Master 2' }} professionnel en finances publiques</strong>{{ $inscription->parcours && $inscription->niveau === 'M2' ? ', option '.$inscription->parcours->libelle : '' }}
-    pour l'année académique {{ $inscription->annee_academique }}.
+  @php
+    $e = match ($dossier?->genre) { 'F' => 'e', 'M' => '', default => '(e)' };
+    $date = $dossier?->date_naissance?->locale('fr')->translatedFormat('j F Y');
+    $lieu = $dossier?->lieu_naissance ? ' à <strong>'.e(mb_strtoupper((string) $dossier->lieu_naissance)).'</strong>' : '';
+    $naissance = $date ? ', né'.$e.' le <strong>'.e($date).'</strong>'.$lieu : '';
+  @endphp
+  <h1 class="acte">CERTIFICAT DE SCOLARITÉ</h1>
+  <p class="corps">
+    Je soussigné, le Président du Comité de Pilotage du <strong>Programme Supérieur de Spécialisation en Finances Publiques (PSSFP)</strong>
+    du Ministère des Finances, certifie que l'étudiant{{ $e }} :
+    <strong>{{ mb_strtoupper((string) $dossier?->nom) }} {{ $dossier?->prenom }}</strong>, matricule <strong>{{ $dossier?->matricule }}</strong>{!! $naissance !!},
+    est régulièrement inscrit{{ $e }} au <strong>Programme Supérieur de Spécialisation en Finances Publiques (PSSFP)</strong>,
+    au titre de l'année académique <strong>{{ $inscription->annee_academique }}</strong>, cycle <strong>MASTER EN FINANCES PUBLIQUES</strong>,
+    niveau {{ $inscription->niveau === 'M1' ? '1' : '2' }}{{ $inscription->parcours && $inscription->niveau === 'M2' ? ', option '.$inscription->parcours->libelle : '' }}.
   </p>
-  <p style="font-size:11pt;">En foi de quoi le présent certificat lui est délivré pour servir et valoir ce que de droit.</p>
-  <table class="signatures"><tr><td>Fait à Yaoundé, le {{ $edite_le->format('d/m/Y') }}</td><td style="text-align:right;">Le Chef de la scolarité</td></tr></table>
+  <p class="corps">En foi de quoi le présent certificat de scolarité lui est délivré pour servir et valoir ce que de droit. /-</p>
+  <p class="signataire">Le Président du Comité de Pilotage</p>
   @include('pdf.lmd._verification')
 </body>
 </html>

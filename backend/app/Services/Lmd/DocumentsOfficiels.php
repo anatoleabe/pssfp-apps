@@ -71,6 +71,47 @@ final class DocumentsOfficiels
     }
 
     /**
+     * Attestation de recherche (spec lot 26) : thème du mémoire et encadreur ; une seule valide par inscription.
+     *
+     * @param  array{theme?: ?string, encadreur?: ?string}  $data
+     *
+     * @throws InvalidArgumentException champ manquant, attestation déjà valide, auditeur sorti ou en retard
+     */
+    public function delivrerAttestationRecherche(Auditeur $auditeur, array $data, User $auteur): DocumentDelivre
+    {
+        abort_unless($auteur->can(PermissionsLmd::CERTIFICAT_DELIVRER), 403);
+        $inscription = $this->inscriptionEnRegle($auditeur);
+        $champs = ['theme' => $this->texte($data, 'theme', 'le thème du mémoire'), 'encadreur' => $this->texte($data, 'encadreur', 'l\'encadreur')];
+        $existant = DocumentDelivre::query()->where('type', DocumentDelivre::ATTESTATION_RECHERCHE)->where('inscription_annuelle_id', $inscription->id)
+            ->whereNull('revoque_at')->first();
+        if ($existant !== null) {
+            throw new InvalidArgumentException('Une attestation de recherche valide existe déjà ('.$existant->numero.') : révoquez-la avant d\'en délivrer une autre.');
+        }
+
+        return $this->emettreAdministratif(DocumentDelivre::ATTESTATION_RECHERCHE, 'pdf.lmd.attestation-recherche', $auditeur, $inscription, $champs, $auteur);
+    }
+
+    /**
+     * Lettre de stage (spec lot 26) : une par structure d'accueil, autant que nécessaire.
+     *
+     * @param  array{destinataire?: ?string, appel?: ?string, nature?: ?string, duree?: ?string, theme?: ?string}  $data
+     *
+     * @throws InvalidArgumentException champ manquant, auditeur sorti ou en retard
+     */
+    public function delivrerLettreStage(Auditeur $auditeur, array $data, User $auteur): DocumentDelivre
+    {
+        abort_unless($auteur->can(PermissionsLmd::CERTIFICAT_DELIVRER), 403);
+        $inscription = $this->inscriptionEnRegle($auditeur);
+        $champs = [
+            'destinataire' => $this->texte($data, 'destinataire', 'le destinataire'), 'appel' => $this->texte($data, 'appel', 'la formule d\'appel'),
+            'nature' => $this->texte($data, 'nature', 'la nature du stage'), 'duree' => $this->texte($data, 'duree', 'la durée du stage'),
+            'theme' => trim((string) ($data['theme'] ?? '')) ?: null,
+        ];
+
+        return $this->emettreAdministratif(DocumentDelivre::LETTRE_STAGE, 'pdf.lmd.lettre-stage', $auditeur, $inscription, $champs, $auteur);
+    }
+
+    /**
      * Attestation d'autorisation de dépôt du mémoire (D33, D34) : les conditions sont vérifiées par
      * App\Services\Lmd\Memoires ; une seule attestation valide par mémoire.
      *
@@ -95,6 +136,49 @@ final class DocumentsOfficiels
                     'dossier' => $dossier, 'candidat' => $dossier->auditeur->candidature, 'conditions' => $conditions, 'edite_le' => now('Africa/Douala'),
                 ])->setPaper('a4', 'portrait')->output();
             }, $auteur);
+    }
+
+    /** @param  array<string, ?string>  $champs */
+    private function emettreAdministratif(string $type, string $vue, Auditeur $auditeur, InscriptionAnnuelle $inscription, array $champs, User $auteur): DocumentDelivre
+    {
+        return $this->emettre($type, $auditeur, $inscription, null, function (string $numero, string $code) use ($vue, $auditeur, $inscription, $champs): string {
+            $url = config('pssfp.candidature_app_url').'/verifier/'.$code;
+
+            return Pdf::loadView($vue, [
+                'numero' => $numero, 'code' => $code, 'url' => $url,
+                'qr' => 'data:image/svg+xml;base64,'.base64_encode((string) QrCode::format('svg')->size(110)->margin(0)->generate($url)),
+                'dossier' => $auditeur->candidature, 'inscription' => $inscription->loadMissing('parcours'), 'champs' => $champs, 'edite_le' => now('Africa/Douala'),
+            ])->setPaper('a4', 'portrait')->output();
+        }, $auteur);
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private function texte(array $data, string $champ, string $libelle): string
+    {
+        $valeur = trim((string) ($data[$champ] ?? ''));
+        if (mb_strlen($valeur) < 3) {
+            throw new InvalidArgumentException('Indiquez '.$libelle.'.');
+        }
+
+        return mb_substr($valeur, 0, 500);
+    }
+
+    /**
+     * Inscription en cours d'un auditeur présent et en règle : condition des documents administratifs.
+     *
+     * @throws InvalidArgumentException
+     */
+    private function inscriptionEnRegle(Auditeur $auditeur): InscriptionAnnuelle
+    {
+        if (in_array($auditeur->statut, Auditeur::STATUTS_SORTIS, true)) {
+            throw new InvalidArgumentException('Aucun document n\'est délivré à un auditeur sorti de la formation (abandon ou exclusion).');
+        }
+        $inscription = $auditeur->inscriptionCourante()->first() ?? throw new InvalidArgumentException('Aucune inscription en cours.');
+        if (! $this->enRegle($inscription)) {
+            throw new InvalidArgumentException('Une échéance de vos frais de scolarité est en retard : rapprochez-vous de la scolarité.');
+        }
+
+        return $inscription;
     }
 
     /**
@@ -269,19 +353,14 @@ final class DocumentsOfficiels
      */
     private function verifier(string $type, Auditeur $auditeur, ?Deliberation $d): array
     {
-        if (! array_key_exists($type, DocumentDelivre::TYPES) || $type === DocumentDelivre::PV) {
+        if (! in_array($type, [DocumentDelivre::RELEVE, DocumentDelivre::ATTESTATION, DocumentDelivre::CERTIFICAT], true)) {
             throw new InvalidArgumentException('Document inconnu.');
+        }
+        if ($type === DocumentDelivre::CERTIFICAT) {
+            return [$this->inscriptionEnRegle($auditeur), null];
         }
         if (in_array($auditeur->statut, Auditeur::STATUTS_SORTIS, true)) {
             throw new InvalidArgumentException('Aucun document n\'est délivré à un auditeur sorti de la formation (abandon ou exclusion).');
-        }
-        if ($type === DocumentDelivre::CERTIFICAT) {
-            $inscription = $auditeur->inscriptionCourante()->first() ?? throw new InvalidArgumentException('Aucune inscription en cours.');
-            if (! $this->enRegle($inscription)) {
-                throw new InvalidArgumentException('Une échéance de vos frais de scolarité est en retard : rapprochez-vous de la scolarité.');
-            }
-
-            return [$inscription, null];
         }
 
         $resultat = $d === null ? null : $this->resultats->publie($auditeur, $d);
