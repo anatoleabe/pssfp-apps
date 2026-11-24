@@ -8,6 +8,7 @@ use App\Filament\Concerns\ChecksModuleAccess;
 use App\Filament\Navigation\GroupeNavigation;
 use App\Models\User;
 use App\Services\EnvoiTestService;
+use App\Services\Lmd\NotificationsPlanning;
 use App\Services\Scolarite\RelancesTranches;
 use App\Services\Sms\ChecksConnectivity;
 use App\Services\Sms\DescribesConfiguration;
@@ -71,6 +72,8 @@ class Parametres extends Page implements HasForms
     {
         $this->form->fill([
             'notification_bcc' => AppSettings::candidatureNotificationBcc(),
+            'notifications_planning_email' => NotificationsPlanning::reglages()['email'],
+            'notifications_planning_sms' => NotificationsPlanning::reglages()['sms'],
             'relances_tranches_actif' => RelancesTranches::reglages()['actif'],
             'relances_tranches_intervalle' => RelancesTranches::reglages()['intervalle_jours'],
         ]);
@@ -96,6 +99,13 @@ class Parametres extends Page implements HasForms
                         Toggle::make('relances_tranches_actif')->label('Relancer automatiquement les tranches échues'),
                         TextInput::make('relances_tranches_intervalle')->label('Jours entre deux relances d\'un même auditeur')
                             ->integer()->required()->minValue(RelancesTranches::INTERVALLE_MIN)->maxValue(RelancesTranches::INTERVALLE_MAX),
+                    ])->columns(2),
+
+                Section::make('Emplois du temps et examens')
+                    ->description('Les auditeurs concernés sont prévenus quand un emploi du temps ou un planning d\'examens est publié, quand une séance est reportée ou annulée, et quand une épreuve change de date. Chaque SMS est facturé.')
+                    ->schema([
+                        Toggle::make('notifications_planning_email')->label('Prévenir les auditeurs par e-mail'),
+                        Toggle::make('notifications_planning_sms')->label('Prévenir aussi par SMS'),
                     ])->columns(2),
 
                 Section::make('Envois')
@@ -169,6 +179,7 @@ class Parametres extends Page implements HasForms
             auth()->id(),
         );
 
+        NotificationsPlanning::regler((bool) ($state['notifications_planning_email'] ?? true), (bool) ($state['notifications_planning_sms'] ?? false), auth()->user());
         RelancesTranches::regler((bool) ($state['relances_tranches_actif'] ?? false), (int) ($state['relances_tranches_intervalle'] ?? RelancesTranches::INTERVALLE_DEFAUT), auth()->user());
 
         activity('parametres')

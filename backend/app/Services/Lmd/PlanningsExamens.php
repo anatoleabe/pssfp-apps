@@ -22,7 +22,8 @@ use InvalidArgumentException;
  */
 final class PlanningsExamens
 {
-    public function __construct(private readonly CandidatsExamen $candidats, private readonly ConflitsPlanningExamens $conflits) {}
+    public function __construct(private readonly CandidatsExamen $candidats, private readonly ConflitsPlanningExamens $conflits,
+        private readonly NotificationsPlanning $notifications) {}
 
     public function creer(EvenementCalendrier $session, User $auteur): PlanningExamens
     {
@@ -62,8 +63,10 @@ final class PlanningsExamens
         $this->autoriser($auteur);
         $champs = $this->champs($p, $data, $epreuve);
         $salles = $this->salles($data['salles'] ?? []);
+        $horaire = fn (EpreuveExamen $x): string => $x->date_epreuve->toDateString().' '.$x->heures();
+        $avant = $epreuve === null ? null : $horaire($epreuve);
 
-        return DB::transaction(function () use ($p, $champs, $salles, $auteur, $epreuve): EpreuveExamen {
+        $e = DB::transaction(function () use ($p, $champs, $salles, $auteur, $epreuve): EpreuveExamen {
             $e = $epreuve ?? (new EpreuveExamen)->forceFill(['planning_examens_id' => $p->id, 'cree_par' => $auteur->id]);
             $e->forceFill($champs)->save();
             $e->salles()->sync(collect($salles)->keys()->mapWithKeys(fn (int $id, int $ordre): array => [$id => ['ordre' => $ordre + 1]])->all());
@@ -82,6 +85,11 @@ final class PlanningsExamens
 
             return $e;
         });
+        if ($avant !== null && $avant !== $horaire($e->refresh())) {
+            $this->notifications->epreuveDeplacee($e);
+        }
+
+        return $e;
     }
 
     /** Une épreuve ne se supprime que dans un brouillon. */
@@ -108,6 +116,7 @@ final class PlanningsExamens
             throw new InvalidArgumentException('Publication refusée : '.count($bloquants).' conflit(s). '.$this->resume($bloquants));
         }
         $p->forceFill(['statut' => PlanningExamens::PUBLIE, 'publie_par' => $auteur->id, 'publie_at' => now()])->save();
+        $this->notifications->planningPublie($p);
     }
 
     /**
