@@ -225,7 +225,7 @@ Plan d'ensemble validé par le chef de projet le 22/11/2026. Chaque étape fait 
 4. Passage M1 → M2 en groupe sur « admis », gestion des redoublants et des statuts abandon / exclu (B4).
 5. Dérogation financière unique, blocage des relevés et des listes d'examen (D5), relance des tranches.
 6. Écrans enseignant et rapport d'import ligne à ligne.
-7. Planning d'examens, listes d'émargement, notifications (emploi du temps, requêtes).
+7. Planning d'examens, listes d'émargement, notifications (emploi du temps, requêtes). **Fait le 24/11/2026** : lot 27 (planning, répartition en salles, émargement par salle, « Mes examens ») et lot 28 (notifications par e-mail, SMS activable). Les notifications des requêtes restent à faire.
 8. Tableau de bord académique et registre des documents délivrés.
 
 ## 8. Questions encore ouvertes
@@ -235,5 +235,5 @@ Plan d'ensemble validé par le chef de projet le 22/11/2026. Chaque étape fait 
 
 - Absence justifiée : compte-t-elle 0, ou neutralise-t-elle l'épreuve jusqu'à un examen de remplacement ?
 - Signature des documents : image de signature et cachet, ou signature manuscrite sur un tirage numéroté ?
-- Diplôme et annexe descriptive : produits par la plateforme ou par la tutelle ?
+- Diplôme et annexe descriptive : **tranché le 23/11/2026, produits par la plateforme** (lot à cadrer).
 - Équivalences et transferts : cas réels à prévoir, ou hors périmètre pour un institut à recrutement sur concours ?

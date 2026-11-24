@@ -38,8 +38,11 @@ class CandidatureRelance extends Model
     /** Relance automatique d'une tranche échue (spec lot 23) : réaffichée dans l'espace de l'auditeur. */
     public const CAUSE_TRANCHE = 'tranche';
 
+    /** Avis d'emploi du temps ou de planning d'examens (spec LMD lot 28) : réaffiché dans l'espace de l'auditeur. */
+    public const CAUSE_PLANNING = 'planning';
+
     /** Messages réaffichés dans l'espace du candidat ou de l'auditeur. */
-    public const CAUSES_AFFICHEES = [self::CAUSE_MANUELLE, self::CAUSE_DEBLOCAGE, self::CAUSE_RECU, self::CAUSE_CONFIRMATION, self::CAUSE_CORRECTION, self::CAUSE_TRANCHE];
+    public const CAUSES_AFFICHEES = [self::CAUSE_MANUELLE, self::CAUSE_DEBLOCAGE, self::CAUSE_RECU, self::CAUSE_CONFIRMATION, self::CAUSE_CORRECTION, self::CAUSE_TRANCHE, self::CAUSE_PLANNING];
 
     public const CANAL_SMS = 'sms';
 
