@@ -1370,6 +1370,15 @@
         "distanciel": "À distance",
         "hybride": "Hybride"
       }
+    },
+    "examens": {
+      "eyebrow": "Mes examens",
+      "titre": "Épreuves auxquelles vous êtes convoqué",
+      "intro": "Planning publié par la scolarité. Présentez-vous dans la salle indiquée, muni de votre carte d'auditeur.",
+      "nonAutorise": "Une échéance de vos frais de scolarité est en retard : vous n'êtes pas autorisé à composer tant que votre situation n'est pas régularisée. Rapprochez-vous du service financier.",
+      "rattrapage": "Rattrapage",
+      "salle": "Salle : {salle}",
+      "salleAVenir": "Salle communiquée ultérieurement"
     }
   },
   "verification": {
