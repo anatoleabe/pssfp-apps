@@ -6,6 +6,7 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Concerns\ChecksModuleAccess;
 use App\Filament\Navigation\GroupeNavigation;
+use App\Models\User;
 use App\Support\BelongsToModule;
 use App\Support\ModuleAccess;
 use Filament\Facades\Filament;
@@ -32,16 +33,24 @@ final class ATraiterWidget extends StatsOverviewWidget
 
     protected static ?string $pollingInterval = null;
 
+    /** En tête de l'accueil : rendu avec la page, sans apparaître après coup (lot 34). */
+    protected static bool $isLazy = false;
+
     protected ?string $heading = 'À traiter';
 
     public static function canView(): bool
     {
-        // Socle commun : chaque écran lu filtre ensuite ses propres droits.
-        return self::moduleAllows() && self::elements() !== [];
+        // Socle commun : chaque écran lu filtre ensuite ses propres droits. Lot 34 : toujours visible, même vide.
+        return self::moduleAllows();
     }
 
     protected function getStats(): array
     {
+        if (self::elements() === []) {
+            return [Stat::make('Rien à traiter', 'À jour')->color('success')->descriptionIcon('heroicon-m-check-circle')
+                ->description('Demandes, versements à confirmer, notes à saisir : ce qui vous attend apparaîtra ici.')];
+        }
+
         return array_map(
             fn (array $e): Stat => Stat::make($e['libelle'], $e['nombre'])
                 ->description($e['groupe'])
@@ -80,7 +89,7 @@ final class ATraiterWidget extends StatsOverviewWidget
                 'icone' => (string) $ecran::getNavigationIcon(),
                 'couleur' => is_string($couleur = $ecran::getNavigationBadgeColor()) ? $couleur : 'primary',
                 'url' => is_subclass_of($ecran, Page::class) ? $ecran::getUrl() : $ecran::getUrl('index'),
-                'ordre' => [(int) array_search($ecran::getNavigationGroup(), GroupeNavigation::ORDRE, true), (int) $ecran::getNavigationSort()],
+                'ordre' => [(int) array_search($ecran::getNavigationGroup(), GroupeNavigation::ordrePour(auth()->user() instanceof User ? auth()->user() : null), true), (int) $ecran::getNavigationSort()],
             ];
         }
 
