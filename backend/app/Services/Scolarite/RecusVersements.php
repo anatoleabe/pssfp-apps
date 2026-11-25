@@ -7,6 +7,7 @@ namespace App\Services\Scolarite;
 use App\Models\AnnulationRecu;
 use App\Models\ConfirmationVersement;
 use App\Models\CorrectionVersement;
+use App\Models\DemandeAutorisation;
 use App\Models\ImputationVersement;
 use App\Models\InscriptionAnnuelle;
 use App\Models\RecuVersement;
@@ -162,12 +163,38 @@ final class RecusVersements
         });
     }
 
-    /** Écriture d'annulation d'un reçu (le reçu reste intact). */
+    /**
+     * Écriture d'annulation d'un reçu seul (le reçu reste intact). Règle du 25/11/2026 : réservée à un administrateur
+     * (`scolarite.versement_annuler`) ; les écrans passent par reemettre(), qui ne laisse jamais un versement sans reçu.
+     */
     public function annuler(RecuVersement $recu, string $motif, User $auteur): AnnulationRecu
     {
-        abort_unless($auteur->can(self::PERMISSION_EMETTRE), 403);
+        abort_unless($auteur->can(RegistreVersements::PERMISSION_ANNULER), 403);
 
         return $this->ecrireAnnulation($recu, $motif, $auteur);
+    }
+
+    /**
+     * Annule un reçu et en émet aussitôt un nouveau pour le même versement, en une transaction (règle du 25/11/2026) :
+     * l'annulation au nom de l'administrateur qui décide, le nouveau reçu au nom de l'émetteur (le demandeur, ou
+     * l'administrateur lui-même s'il émet). Si le nouveau reçu ne peut pas être émis, rien n'est annulé.
+     *
+     * @throws InvalidArgumentException motif trop court, reçu déjà annulé, versement qui ne reçoit plus de reçu
+     */
+    public function reemettre(RecuVersement $recu, string $motif, User $decideur, User $emetteur): RecuVersement
+    {
+        abort_unless($decideur->can(RegistreVersements::PERMISSION_ANNULER), 403);
+        abort_unless($emetteur->can(self::PERMISSION_EMETTRE), 403);
+        $motif = trim($motif);
+        if (mb_strlen($motif) < DemandeAutorisation::MOTIF_MIN) {
+            throw new InvalidArgumentException('La réémission d\'un reçu exige un motif de '.DemandeAutorisation::MOTIF_MIN.' caractères au moins.');
+        }
+
+        return DB::transaction(function () use ($recu, $motif, $decideur, $emetteur): RecuVersement {
+            $this->ecrireAnnulation($recu, 'Réémission : '.$motif, $decideur);
+
+            return $this->emettre(Versement::query()->findOrFail($recu->versement_id), $emetteur, $recu->fresh());
+        });
     }
 
     /**

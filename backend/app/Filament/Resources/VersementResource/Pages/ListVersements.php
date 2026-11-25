@@ -69,7 +69,7 @@ class ListVersements extends ListRecords
             ->icon('heroicon-o-banknotes')
             ->visible(fn (): bool => (bool) auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR))
             ->modalHeading(fn (): string => AuditeurActions::encaisseAvecRecu() ? 'Enregistrer le versement et émettre son reçu' : 'Enregistrer un versement')
-            ->modalDescription('Choisissez l\'auditeur par son matricule ou son nom. Le versement compte aussitôt sur son inscription courante ; seul le responsable de scolarité peut l\'annuler.')
+            ->modalDescription('Choisissez l\'auditeur par son matricule ou son nom. Le versement compte aussitôt sur son inscription courante ; seul un administrateur peut l\'annuler ou le corriger.')
             ->modalSubmitActionLabel(fn (): string => AuditeurActions::encaisseAvecRecu() ? 'Enregistrer et émettre le reçu' : 'Enregistrer')
             ->form(fn (): array => MessagesValidation::appliquer([
                 Forms\Components\Select::make('auditeur_id')->label('Auditeur')->required()->searchable()->live()

@@ -44,6 +44,8 @@ class ViewDemande extends ViewRecord
                 ->modalDescription(fn (): string => match ($this->demande()->type) {
                     TypesDemande::ACCORDER_MORATOIRE => DemandeMoratoire::avertissement($this->demande()->parametres),
                     TypesDemande::CORRIGER_VERSEMENT => 'L\'approbation exécute aussitôt la correction : le versement est annulé avec son reçu, puis remplacé au nom du demandeur. Rien n\'est supprimé.',
+                    TypesDemande::REEMETTRE_RECU => 'L\'approbation annule le reçu à votre nom et émet aussitôt un nouveau reçu, au nom du demandeur, pour le même versement ; l\'auditeur en est prévenu. '
+                        .'Si le motif décrit une erreur sur le versement (montant, date, référence, doublon), rejetez et demandez « Corriger ce versement ».',
                     default => 'L\'approbation finale exécute l\'opération demandée, sous l\'identité du responsable qui l\'a approuvée.',
                 })
                 ->form(fn (): array => [

@@ -14,7 +14,6 @@ use App\Services\Messagerie\Demandes;
 use App\Services\Messagerie\TypesDemande;
 use App\Services\Scolarite\CorrectionsVersements;
 use App\Services\Scolarite\LibelleSituation;
-use App\Services\Scolarite\RecusVersements;
 use App\Services\Scolarite\RegistreVersements;
 use Filament\Forms;
 use Filament\Notifications\Actions\Action;
@@ -45,7 +44,7 @@ final class CorrectionActions
             ->modalHeading('Corriger ce versement')
             ->modalDescription(fn (Versement $record): string => self::direct()
                 ? 'Le versement de '.LibelleSituation::fcfa($record->montant).' (référence '.$record->reference.') sera annulé avec son reçu, puis remplacé si vous le demandez. Rien n\'est supprimé : une pièce de correction numérotée relie le tout.'
-                : 'Votre demande part au responsable de scolarité ou à un administrateur. À sa décision, le versement de '.LibelleSituation::fcfa($record->montant)
+                : 'Votre demande part à un administrateur. À sa décision, le versement de '.LibelleSituation::fcfa($record->montant)
                     .' (référence '.$record->reference.') est annulé avec son reçu, puis remplacé si vous le demandez, et l\'auditeur reçoit le nouveau reçu. Rien n\'est supprimé.')
             ->modalSubmitActionLabel(fn (): string => self::direct() ? 'Corriger' : 'Envoyer la demande')
             ->mountUsing(function (Versement $record, Forms\Form $form, TableAction $action): void {
@@ -105,15 +104,16 @@ final class CorrectionActions
                     return;
                 }
                 Notification::make()->success()->title('Demande '.$d->numero.' transmise')
-                    ->body('Le responsable de scolarité ou un administrateur la décide. Le versement reste en l\'état d\'ici là ; sa confirmation est suspendue.')
+                    ->body('Un administrateur la décide. Le versement reste en l\'état d\'ici là ; sa confirmation est suspendue.')
                     ->actions([Action::make('voir')->label('Voir la demande')->url(DemandeAutorisationResource::getUrl('view', ['record' => $d]))])
                     ->send();
             });
     }
 
     /**
-     * Rectification immédiate par le service financier seul (décision Q2, sous-lot F5) : référence, date, mode ou payeur,
-     * sur un versement non confirmé enregistré depuis moins de 48 heures. Le reste passe par « Corriger ce versement ».
+     * Rectification immédiate (décision Q2, sous-lot F5) : référence, date, mode ou payeur, sur un versement non confirmé
+     * enregistré depuis moins de 48 heures. Réservée à l'administrateur depuis la règle du 25/11/2026 ; le service financier
+     * passe par « Corriger ce versement ».
      */
     public static function rectifier(): TableAction
     {
@@ -122,8 +122,8 @@ final class CorrectionActions
             ->icon('heroicon-o-pencil')
             ->color('gray')
             // Tests bon marché seulement ; confirmation et demande en cours se vérifient à l'ouverture.
-            ->visible(fn (Versement $record): bool => CorrectionsVersements::peutDemander(auth()->user())
-                && (bool) auth()->user()?->can(RegistreVersements::PERMISSION_SAISIR) && (bool) auth()->user()?->can(RecusVersements::PERMISSION_EMETTRE)
+            // Règle du 25/11/2026 : l'administrateur qui détient tous les droits du geste ; le service financier demande la correction.
+            ->visible(fn (Versement $record): bool => CorrectionsVersements::agitDirectement(auth()->user())
                 && ! $record->estAnnule() && $record->reglement_organisme_id === null
                 && $record->created_at?->greaterThanOrEqualTo(now()->subHours(CorrectionsVersements::fenetreRectification())))
             ->modalHeading('Rectifier ce versement')
@@ -164,7 +164,8 @@ final class CorrectionActions
     }
 
     /**
-     * Annulation directe par le responsable (décision Q11) : catégorie de motif et pièce de correction « annulation ».
+     * Annulation directe par un administrateur (décision Q11, restreinte par la règle du 25/11/2026 : le responsable de
+     * scolarité n'annule plus) : catégorie de motif et pièce de correction « annulation ».
      * Remplace l'ancienne annulation libre de la fiche, avec le même nom d'action.
      */
     public static function annuler(): TableAction

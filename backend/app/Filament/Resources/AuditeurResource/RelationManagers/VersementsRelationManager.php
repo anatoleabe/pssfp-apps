@@ -106,7 +106,8 @@ class VersementsRelationManager extends RelationManager
                     RecuActions::emettre(),
                     RecuActions::imprimer(fn (Versement $v): ?RecuVersement => $v->recuEnVigueur()),
                     RecuActions::telechargerDepuisVersement(),
-                    RecuActions::annulerDepuisVersement(),
+                    RecuActions::renvoyer(fn (Versement $v): ?RecuVersement => $v->recuEnVigueur()),
+                    RecuActions::reemettre(fn (Versement $v): ?RecuVersement => $v->estAnnule() ? null : $v->recuEnVigueur()),
                 ])->tooltip('Actions sur ce versement'),
             ])
             ->bulkActions([]);

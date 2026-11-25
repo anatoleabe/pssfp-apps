@@ -48,6 +48,7 @@ beforeEach(function (): void {
         });
     });
     $this->compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local', 'name' => 'Agent '.$role]), fn (User $u) => $u->assignRole($role));
+    $this->administrateur = ($this->compte)('admin');
     $this->financier = ($this->compte)('service_financier');
     $this->responsable = ($this->compte)('scolarite_responsable');
     $this->travelTo(now('Africa/Douala')->setDate(2026, 11, 10)->setTime(9, 0));
@@ -70,7 +71,7 @@ beforeEach(function (): void {
     ], $this->financier)->versement;
     $this->corriger = function (Versement $v, array $parametres, array $options = []): CorrectionVersement {
         $d = app(Demandes::class)->soumettre($this->financier, TypesDemande::CORRIGER_VERSEMENT, $v->id, 'Erreur de saisie au guichet du service financier', null, $parametres);
-        app(Demandes::class)->decider($this->responsable, $d, true, null, null, $options);
+        app(Demandes::class)->decider($this->administrateur, $d, true, null, null, $options);
 
         return CorrectionVersement::query()->latest('id')->firstOrFail();
     };
@@ -104,7 +105,7 @@ describe('avis à l\'auditeur (R-C10)', function (): void {
         $sansRecu = app(RegistreVersements::class)->enregistrer($this->b->auditeur->inscriptionCourante, [
             'montant' => 60000, 'date_versement' => '2026-11-08', 'mode' => 'virement', 'reference' => 'VIR-1', 'payeur' => 'auditeur',
         ], $this->financier)->versement;
-        app(CorrectionsVersements::class)->annulerDirectement($sansRecu, 'rejet_banque', 'Virement rejeté par la banque émettrice', $this->responsable);
+        app(CorrectionsVersements::class)->annulerDirectement($sansRecu, 'rejet_banque', 'Virement rejeté par la banque émettrice', $this->administrateur);
         expect(($this->smsB)())->toBe(['PSSFP : votre versement du 08/11/2026 de 60000 FCFA a ete annule par le service financier. Votre situation est dans votre espace https://apply.pssfp.org']);
     });
 
@@ -135,8 +136,8 @@ describe('avis à l\'auditeur (R-C10)', function (): void {
         $this->sms = [];
         $d = app(Demandes::class)->soumettre($this->financier, TypesDemande::CORRIGER_VERSEMENT, $v->id, 'Erreur de saisie au guichet du service financier', null,
             ['nature' => 'remplacement', 'categorie' => 'reference', 'reference' => 'BOR-AUTRE']);
-        app(RecusVersements::class)->annuler($v->recuEnVigueur(), 'Reçu annulé entre-temps', $this->financier);
-        app(Demandes::class)->decider($this->responsable, $d, true);
+        app(RecusVersements::class)->annuler($v->recuEnVigueur(), 'Reçu annulé entre-temps', $this->administrateur);
+        app(Demandes::class)->decider($this->administrateur, $d, true);
 
         expect($d->refresh()->statut)->toBe(DemandeAutorisation::ECHEC)->and($this->sms)->toBe([]);
     });
@@ -148,7 +149,7 @@ describe('espace de l\'auditeur (R-C11)', function (): void {
         $ancien = $v->recuEnVigueur();
         $c = ($this->corriger)($v, ['nature' => 'remplacement', 'categorie' => 'reference', 'reference' => 'BOR-DEUX']);
         $doublon = ($this->encaisser)($this->a, ['reference' => 'BOR-DOUBLON']);
-        app(CorrectionsVersements::class)->annulerDirectement($doublon, 'doublon', 'Doublon constaté au guichet de la scolarité', $this->responsable);
+        app(CorrectionsVersements::class)->annulerDirectement($doublon, 'doublon', 'Doublon constaté au guichet de la scolarité', $this->administrateur);
 
         $versements = $this->withToken(($this->jeton)($this->a))->getJson('/v1/applications/me/scolarite')->assertOk()->json('data.versements');
         expect($versements)->toHaveCount(1)

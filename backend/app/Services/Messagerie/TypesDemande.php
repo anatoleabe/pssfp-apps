@@ -13,6 +13,7 @@ use App\Models\InscriptionAnnuelle;
 use App\Models\Maquette;
 use App\Models\PointageEnseignant;
 use App\Models\QuotaHoraire;
+use App\Models\RecuVersement;
 use App\Models\User;
 use App\Models\Versement;
 use App\Services\Audit\VerrouillageComptes;
@@ -28,6 +29,7 @@ use App\Services\Scolarite\CorrectionsVersements;
 use App\Services\Scolarite\DeblocagesAcces;
 use App\Services\Scolarite\DemandeMoratoire;
 use App\Services\Scolarite\LibelleSituation;
+use App\Services\Scolarite\RecusVersements;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
@@ -62,6 +64,9 @@ final class TypesDemande
     /** Espace Finances (ADR-0015) : le service financier demande la correction ou l'annulation d'un versement. */
     public const CORRIGER_VERSEMENT = DemandeAutorisation::TYPE_CORRIGER_VERSEMENT;
 
+    /** Règle du 25/11/2026 : le service financier demande l'annulation d'un reçu, toujours suivie de sa réémission. */
+    public const REEMETTRE_RECU = DemandeAutorisation::TYPE_REEMETTRE_RECU;
+
     public const LEVEE_VERROU = 'levee_verrou';
 
     public const VALIDATION = 'validation';
@@ -81,8 +86,10 @@ final class TypesDemande
         self::REJETER_ETAT_PAIE => ['libelle' => 'Rejet d\'un état de paie vérifié, visé ou transmis', 'famille' => self::ANNULATION, 'permission' => PermissionsLmd::PAIE_VERIFIER, 'visa' => true, 'heures' => 48],
         self::DEVERROUILLER_COMPTE => ['libelle' => 'Déverrouillage d\'un compte', 'famille' => self::LEVEE_VERROU, 'permission' => VerrouillageComptes::PERMISSION_DEVERROUILLER, 'visa' => false, 'heures' => 8],
         self::ACCORDER_MORATOIRE => ['libelle' => 'Accord d\'un moratoire sur les droits d\'inscription', 'famille' => self::LEVEE_VERROU, 'permission' => DeblocagesAcces::PERMISSION_EXCEPTIONNEL, 'visa' => false, 'heures' => 48],
-        // Second regard du responsable ou d'un administrateur, sans visa du contrôle interne (décision Q1 du 16/11/2026).
+        // Second regard d'un administrateur, sans visa du contrôle interne (décision Q1 du 16/11/2026 ; le responsable de
+        // scolarité ne décide plus depuis la règle du 25/11/2026).
         self::CORRIGER_VERSEMENT => ['libelle' => 'Correction ou annulation d\'un versement', 'famille' => self::ANNULATION, 'permission' => CorrectionsVersements::PERMISSION_DECIDER, 'visa' => false, 'heures' => 24],
+        self::REEMETTRE_RECU => ['libelle' => 'Annulation et réémission d\'un reçu', 'famille' => self::ANNULATION, 'permission' => CorrectionsVersements::PERMISSION_DECIDER, 'visa' => false, 'heures' => 24],
     ];
 
     /**
@@ -105,6 +112,7 @@ final class TypesDemande
         self::ACCORDER_MORATOIRE => [DeblocagesAcces::PERMISSION],
         // Le service financier, qui encaisse mais n'annule pas.
         self::CORRIGER_VERSEMENT => [CorrectionsVersements::PERMISSION],
+        self::REEMETTRE_RECU => [RecusVersements::PERMISSION_EMETTRE],
     ];
 
     /** @var array<string, class-string<Model>> */
@@ -112,11 +120,11 @@ final class TypesDemande
         self::ROUVRIR_ETAPE => EtapeSaisie::class, self::VALIDER_QUOTA => QuotaHoraire::class, self::VALIDER_MAQUETTE => Maquette::class,
         self::ANNULER_POINTAGE => PointageEnseignant::class, self::REVOQUER_DOCUMENT => DocumentDelivre::class, self::REJETER_ETAT_PAIE => EtatPaie::class,
         self::DEVERROUILLER_COMPTE => User::class, self::ACCORDER_MORATOIRE => InscriptionAnnuelle::class,
-        self::CORRIGER_VERSEMENT => Versement::class,
+        self::CORRIGER_VERSEMENT => Versement::class, self::REEMETTRE_RECU => RecuVersement::class,
     ];
 
     /** Types soumis depuis l'écran de leur objet, qui saisit leurs paramètres : absents de l'écran général « Nouvelle demande ». */
-    public const DEPUIS_LEUR_ECRAN = [self::ACCORDER_MORATOIRE, self::CORRIGER_VERSEMENT];
+    public const DEPUIS_LEUR_ECRAN = [self::ACCORDER_MORATOIRE, self::CORRIGER_VERSEMENT, self::REEMETTRE_RECU];
 
     public const ETATS_PAIE_REJETABLES = [EtatPaie::VERIFIE, EtatPaie::VISE, EtatPaie::TRANSMIS];
 
@@ -279,6 +287,12 @@ final class TypesDemande
                 'recu' => $m->recus()->whereDoesntHave('annulation')->value('id'),
             ]));
         }
+        // Reçu : la ligne et son annulation éventuelle (une annulation passée entre-temps fait échouer l'exécution).
+        if ($m instanceof RecuVersement) {
+            return hash('sha256', (string) json_encode(Arr::except($m->getAttributes(), ['updated_at']) + [
+                'annulation' => $m->annulation()->value('id'),
+            ]));
+        }
         $sans = fn (Model $x): array => Arr::except($x->getAttributes(), ['updated_at']);
         // Un compte change sans cesse (connexions, échecs comptés pendant le verrouillage) : seul son verrouillage compte ici.
         $donnees = $m instanceof User ? ['id' => $m->id, 'verrouille_le' => $m->getAttributes()['verrouille_le'] ?? null] : $sans($m);
@@ -316,6 +330,7 @@ final class TypesDemande
             self::DEVERROUILLER_COMPTE => $this->faire(fn () => app(VerrouillageComptes::class)->deverrouiller($objet(User::class), $auteur, $motif), 'Compte déverrouillé'),
             self::ACCORDER_MORATOIRE => DemandeMoratoire::executer($objet(InscriptionAnnuelle::class), $parametres, $auteur, $motif),
             self::CORRIGER_VERSEMENT => $this->corriger($objet(Versement::class), $parametres, $auteur, $demande, $options),
+            self::REEMETTRE_RECU => $this->reemettre($objet(RecuVersement::class), $auteur, $demande),
             default => throw new InvalidArgumentException('Type de demande inconnu.'),
         };
     }
@@ -335,6 +350,19 @@ final class TypesDemande
             User::query()->findOrFail($demande->demandeur_id), $decideur, $options, $demande);
 
         return 'Correction '.$correction->numero.' exécutée'.($correction->recuRemplacant !== null ? ' : reçu '.$correction->recuRemplacant->numero.' émis' : '');
+    }
+
+    /**
+     * Réémission approuvée (règle du 25/11/2026) : l'annulation au nom du décideur, le nouveau reçu au nom du demandeur.
+     */
+    private function reemettre(Model $recu, User $decideur, ?DemandeAutorisation $demande): string
+    {
+        if ($demande === null || ! $recu instanceof RecuVersement) {
+            throw new InvalidArgumentException('Une réémission s\'exécute depuis sa demande.');
+        }
+        $nouveau = app(RecusVersements::class)->reemettre($recu, $demande->motif, $decideur, User::query()->findOrFail($demande->demandeur_id));
+
+        return 'Reçu '.$recu->numero.' annulé ; reçu '.$nouveau->numero.' émis';
     }
 
     /**
@@ -387,6 +415,7 @@ final class TypesDemande
             self::DEVERROUILLER_COMPTE => VerrouillageComptes::verrouilles(),
             self::ACCORDER_MORATOIRE => InscriptionAnnuelle::query()->whereHas('auditeur.candidature')->with('auditeur.candidature'),
             self::CORRIGER_VERSEMENT => Versement::query()->whereNull('annule_at')->whereNull('reglement_organisme_id')->with('auditeur.candidature:id,matricule'),
+            self::REEMETTRE_RECU => RecuVersement::query()->whereDoesntHave('annulation')->whereHas('versement', fn (Builder $q) => $q->whereNull('annule_at')),
             default => throw new InvalidArgumentException('Ce type de demande ne vise pas d\'objet.'),
         };
     }
@@ -406,6 +435,7 @@ final class TypesDemande
             self::ACCORDER_MORATOIRE => DemandeMoratoire::libelle($m),
             self::CORRIGER_VERSEMENT => 'Versement '.$m->reference.' de '.LibelleSituation::fcfa((int) $m->montant).' du '.$m->date_versement->format('d/m/Y')
                 .' — '.($m->auditeur?->candidature?->matricule ?? 'sans matricule'),
+            self::REEMETTRE_RECU => 'Reçu '.$m->numero.' de '.LibelleSituation::fcfa((int) $m->montant).' — '.($m->matricule ?? 'sans matricule'),
             default => (string) $m->getKey(),
         }, 290);
     }

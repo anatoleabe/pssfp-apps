@@ -36,6 +36,7 @@ beforeEach(function (): void {
     $this->mock(SmsServiceInterface::class, fn ($mock) => $mock->shouldReceive('send')->andReturnNull());
     $this->compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local', 'name' => 'Agent '.$role]), fn (User $u) => $u->assignRole($role));
     $this->financier = ($this->compte)('service_financier');
+    $this->superAdmin = tap(User::factory()->create(['email' => 'sa-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole('super_admin'));
     $this->travelTo(now('Africa/Douala')->setDate(2026, 11, 10)->setTime(9, 0));
     AppSettings::set(RecusVersements::CLE_DEPUIS, now()->subDay()->toIso8601String());
     // Ventilation par palier : sans rubriques de frais (R2), le reçu retombe sur les paliers.
@@ -119,7 +120,7 @@ describe('rendu A4', function (): void {
     it('garde les mentions d\'un reçu annulé et remplacé, et rend l\'écriture d\'annulation en A4', function (): void {
         $recu = ($this->encaisser)($this->droits, 'BOR-AVANT');
         $c = app(CorrectionsVersements::class)->rectifier(Versement::query()->findOrFail($recu->versement_id),
-            ['categorie' => 'reference', 'reference' => 'BOR-APRES'], 'Faute de frappe sur la référence du bordereau', $this->financier);
+            ['categorie' => 'reference', 'reference' => 'BOR-APRES'], 'Faute de frappe sur la référence du bordereau', $this->superAdmin);
         $recus = app(RecusVersements::class);
 
         $annule = view('pdf.recu-versement', $recus->donneesPdf($recu->fresh()))->render();
@@ -152,7 +153,7 @@ describe('page publique de vérification', function (): void {
     it('dit qu\'un reçu est annulé et par quoi il est remplacé', function (): void {
         $recu = ($this->encaisser)($this->droits, 'BOR-AV');
         $c = app(CorrectionsVersements::class)->rectifier(Versement::query()->findOrFail($recu->versement_id),
-            ['categorie' => 'reference', 'reference' => 'BOR-AP'], 'Faute de frappe sur la référence du bordereau', $this->financier);
+            ['categorie' => 'reference', 'reference' => 'BOR-AP'], 'Faute de frappe sur la référence du bordereau', $this->superAdmin);
 
         $this->get('/recus/verifier/'.$recu->uuid)->assertOk()->assertSee('Reçu annulé le 10/11/2026')->assertSee('remplacé par le reçu '.$c->recuRemplacant->numero);
     });

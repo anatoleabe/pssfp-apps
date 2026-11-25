@@ -73,6 +73,8 @@ beforeEach(function (): void {
     });
 
     $this->compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local', 'name' => 'Agent '.$role]), fn (User $u) => $u->assignRole($role));
+
+    $this->administrateur = ($this->compte)('admin');
     $this->financier = ($this->compte)('service_financier');
     $this->agent = ($this->compte)('scolarite_agent');
     $this->responsable = ($this->compte)('scolarite_responsable');
@@ -142,7 +144,7 @@ describe('confirmation', function (): void {
         ($this->confirmer)($sien, scan: $deja);
         expect(fn () => ($this->confirmer)($v, scan: $deja))->toThrow(InvalidArgumentException::class, 'déjà joint');
 
-        app(RegistreVersements::class)->annuler($v, 'Bordereau rejeté par la banque', $this->responsable);
+        app(RegistreVersements::class)->annuler($v, 'Bordereau rejeté par la banque', $this->administrateur);
         expect(fn () => ($this->confirmer)($v->fresh()))->toThrow(InvalidArgumentException::class, 'annulé')
             ->and(ConfirmationVersement::query()->where('versement_id', $v->id)->exists())->toBeFalse();
     });
@@ -458,7 +460,7 @@ describe('reçu', function (): void {
 
         ($this->confirmer)($v);
         $recus = app(RecusVersements::class);
-        $recus->annuler($premier, 'Erreur sur le payeur', $this->financier);
+        $recus->annuler($premier, 'Erreur sur le payeur', $this->administrateur);
         $nouveau = $recus->emettre($v->fresh(), $this->financier);
 
         $html = view('pdf.recu-versement', ['recu' => $nouveau->loadMissing('annulation'), 'lettres' => $recus->enLettres($nouveau->montant)])->render();
