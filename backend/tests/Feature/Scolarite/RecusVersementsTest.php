@@ -36,6 +36,7 @@ beforeEach(function (): void {
     $this->seed([PaysSeeder::class, RegionsCamerounSeeder::class, DepartementsCamerounSeeder::class, RolePermissionSeeder::class]);
     $this->mock(SmsServiceInterface::class)->shouldReceive('send')->andReturnNull();
     $this->compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local', 'name' => 'Agent '.$role]), fn (User $u) => $u->assignRole($role));
+    $this->administrateur = ($this->compte)('admin');
     $this->agent = ($this->compte)('scolarite_agent');
     $this->responsable = ($this->compte)('scolarite_responsable');
     $this->financier = ($this->compte)('service_financier');
@@ -156,7 +157,7 @@ it('ne touche jamais un reçu émis : une remise ou une annulation après coup l
     $avant = (array) DB::table('recus_versements')->where('id', $r->id)->first();
 
     app(RegistreVersements::class)->accorderRemise($this->inscription->fresh(), 300000, 'Bourse partielle', $this->responsable);
-    app(RegistreVersements::class)->annuler($v->refresh(), 'Virement rejeté par la banque', $this->responsable);
+    app(RegistreVersements::class)->annuler($v->refresh(), 'Virement rejeté par la banque', $this->administrateur);
 
     expect((array) DB::table('recus_versements')->where('id', $r->id)->first())->toBe($avant)
         ->and($r->fresh()->estAnnule())->toBeTrue();
@@ -190,7 +191,7 @@ it('refuse le reçu d\'un versement annulé, déjà couvert ou antérieur à la 
     expect(fn () => $this->service->emettre($v, $this->financier))->toThrow(InvalidArgumentException::class, 'déjà un reçu');
 
     $annule = ($this->verser)(50000);
-    app(RegistreVersements::class)->annuler($annule, 'Doublon de saisie', $this->responsable);
+    app(RegistreVersements::class)->annuler($annule, 'Doublon de saisie', $this->administrateur);
     expect(fn () => $this->service->emettre($annule->refresh(), $this->financier))->toThrow(InvalidArgumentException::class, 'annulé');
 
     // Séparation levée le 15/11/2026 : qui enregistre le versement en émet le reçu (le contrôle passe à la scolarité).
@@ -209,21 +210,21 @@ it('annule un reçu par une écriture distincte, sans le modifier, puis en émet
     $v = ($this->verser)(185000);
     $r = $this->service->emettre($v, $this->financier);
 
-    expect(fn () => $this->service->annuler($r, 'non', $this->financier))->toThrow(InvalidArgumentException::class, 'motif')
+    expect(fn () => $this->service->annuler($r, 'non', $this->administrateur))->toThrow(InvalidArgumentException::class, 'motif')
         ->and(fn () => $this->service->annuler($r, 'Erreur sur le payeur', $this->agent))->toThrow(HttpException::class);
-    $a = $this->service->annuler($r, 'Erreur sur le payeur', $this->financier);
+    $a = $this->service->annuler($r, 'Erreur sur le payeur', $this->administrateur);
 
     expect($a->numero)->toBe('RCPT-2026-000001-A')
         ->and($r->fresh()->updated_at->equalTo($r->updated_at))->toBeTrue()
         ->and(fn () => $r->forceFill(['montant' => 1])->save())->toThrow(LogicException::class)
-        ->and(fn () => $this->service->annuler($r->fresh(), 'Erreur sur le payeur', $this->financier))->toThrow(InvalidArgumentException::class, 'déjà annulé')
+        ->and(fn () => $this->service->annuler($r->fresh(), 'Erreur sur le payeur', $this->administrateur))->toThrow(InvalidArgumentException::class, 'déjà annulé')
         ->and(substr($this->service->pdfAnnulation($a), 0, 4))->toBe('%PDF');
 
     $nouveau = $this->service->emettre($v->refresh(), $this->financier);
     expect($nouveau->numero)->toBe('RCPT-2026-000002');
 
     // L'annulation du versement passe une écriture d'annulation sur son reçu en vigueur.
-    app(RegistreVersements::class)->annuler($v->refresh(), 'Bordereau rejeté par la banque', $this->responsable);
+    app(RegistreVersements::class)->annuler($v->refresh(), 'Bordereau rejeté par la banque', $this->administrateur);
     expect(AnnulationRecu::query()->where('recu_id', $nouveau->id)->value('motif'))->toBe('Versement annulé : Bordereau rejeté par la banque');
 });
 
@@ -255,8 +256,8 @@ it('réserve l\'émission au service financier dans la fiche de l\'auditeur et l
     $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $fiche, 'pageClass' => ViewAuditeur::class])
         ->assertCanSeeTableRecords([$v])
         ->callTableAction('emettreRecu', $v)->assertHasNoTableActionErrors()
-        ->assertTableActionVisible('annulerRecu', $v->refresh())
-        ->callTableAction('annulerRecu', $v, data: ['motif' => 'non'])->assertHasTableActionErrors(['motif']);
+        ->assertTableActionVisible('reemettreRecu', $v->refresh())
+        ->callTableAction('reemettreRecu', $v, data: ['motif' => 'non'])->assertHasTableActionErrors(['motif']);
     expect(RecuVersement::query()->where('versement_id', $v->id)->value('numero'))->toBe('RCPT-2026-000001');
 
     $this->get(RecuVersementResource::getUrl('index'))->assertOk()->assertSee('RCPT-2026-000001')->assertSee('ABENA Essai');
@@ -270,7 +271,7 @@ it('réserve l\'émission au service financier dans la fiche de l\'auditeur et l
 it('rend les reçus et leurs annulations immuables jusque dans la base', function (): void {
     // Chaque tentative dans son point de sauvegarde : l'erreur PostgreSQL n'interrompt pas la transaction du test.
     $r = $this->service->emettre(($this->verser)(185000), $this->financier);
-    $a = $this->service->annuler($r, 'Erreur sur le payeur', $this->financier);
+    $a = $this->service->annuler($r, 'Erreur sur le payeur', $this->administrateur);
 
     expect(fn () => DB::transaction(fn () => RecuVersement::query()->whereKey($r->id)->update(['montant' => 1])))->toThrow(QueryException::class, 'immuable');
     expect(fn () => DB::transaction(fn () => DB::table('recus_versements')->where('id', $r->id)->delete()))->toThrow(QueryException::class, 'immuable');
@@ -291,7 +292,7 @@ it('refuse le reçu sans date de mise en service ou pour un dossier retiré', fu
 
 it('sert à l\'auditeur son reçu annulé, journalise le téléchargement, et répond 404 sans scolarité', function (): void {
     $r = $this->service->emettre(($this->verser)(185000), $this->financier);
-    $this->service->annuler($r, 'Erreur sur le payeur', $this->financier);
+    $this->service->annuler($r, 'Erreur sur le payeur', $this->administrateur);
 
     $this->withToken(($this->jeton)($this->awa))->get('/v1/applications/me/scolarite/recus/'.$r->uuid)->assertOk();
     expect(Activity::query()->where('event', 'recu_telecharge')->where('subject_id', $r->id)->exists())->toBeTrue();

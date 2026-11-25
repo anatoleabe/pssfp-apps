@@ -40,6 +40,7 @@ beforeEach(function (): void {
     Mail::fake();
     $this->mock(SmsServiceInterface::class, fn ($mock) => $mock->shouldReceive('send')->andReturnNull());
     $this->compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole($role));
+    $this->administrateur = ($this->compte)('admin');
     $this->financier = ($this->compte)('service_financier');
     $this->admin = ($this->compte)('admin');
     $this->travelTo(now('Africa/Douala')->setDate(2026, 11, 24)->setTime(9, 0));
@@ -151,7 +152,7 @@ it('laisse l\'administrateur seul remplacer un bordereau, garde l\'ancien et la 
 it('refuse de remplacer le bordereau d\'un versement annulé', function (): void {
     $v = app(RegistreVersements::class)->encaisser($this->inscription, ['montant' => 185000, 'date_versement' => '2026-11-20', 'mode' => 'cremincam_agence',
         'reference' => 'BOR-'.Str::random(6), 'payeur' => 'auditeur', 'justificatif_path' => ($this->scan)()], $this->financier)->versement;
-    app(RegistreVersements::class)->annuler($v, 'Saisie en double à annuler', ($this->compte)('scolarite_responsable'));
+    app(RegistreVersements::class)->annuler($v, 'Saisie en double à annuler', ($this->compte)('admin'));
 
     expect(fn () => app(RegistreVersements::class)->remplacerJustificatif($v->refresh(), ($this->scan)(), 'Scan illisible remplacé', $this->admin))
         ->toThrow(InvalidArgumentException::class, 'annulé');

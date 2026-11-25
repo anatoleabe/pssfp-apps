@@ -35,6 +35,7 @@ use Spatie\Activitylog\Models\Activity;
 uses()->group('scolarite');
 
 beforeEach(function (): void {
+    $this->administrateur = tap(User::factory()->create(['email' => 'admin-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole('admin'));
     config()->set('pssfp.filament.require_2fa', false);
     config()->set('pssfp.candidature_app_url', 'https://apply.pssfp.org');
     Mail::fake();
@@ -274,7 +275,7 @@ describe('avis à l\'auditeur', function (): void {
         $r = ($this->service)()->emettre($v, $this->financier);
         $avant = CandidatureRelance::query()->where('cause', CandidatureRelance::CAUSE_RECU)->count();
 
-        ($this->service)()->annuler($r, 'Erreur sur le payeur', $this->financier);
+        ($this->service)()->annuler($r, 'Erreur sur le payeur', $this->administrateur);
         expect(($this->smsRecus)())->toHaveCount(1)
             ->and(($this->mailsRecus)())->toHaveCount(1)
             ->and(CandidatureRelance::query()->where('cause', CandidatureRelance::CAUSE_RECU)->count())->toBe($avant);
@@ -283,7 +284,7 @@ describe('avis à l\'auditeur', function (): void {
         expect(($this->smsRecus)())->toHaveCount(2)
             ->and(($this->smsRecus)()[1]['texte'])->toContain($nouveau->numero);
 
-        app(RegistreVersements::class)->annuler($v->refresh(), 'Bordereau rejeté par la banque', $this->responsable);
+        app(RegistreVersements::class)->annuler($v->refresh(), 'Bordereau rejeté par la banque', $this->administrateur);
         expect($nouveau->fresh()->annulation)->not->toBeNull()
             ->and(($this->smsRecus)())->toHaveCount(2)
             ->and(($this->mailsRecus)())->toHaveCount(2)

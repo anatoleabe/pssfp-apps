@@ -58,6 +58,7 @@ beforeEach(function (): void {
     $this->seed([PaysSeeder::class, RegionsCamerounSeeder::class, DepartementsCamerounSeeder::class, RolePermissionSeeder::class]);
     $this->travelTo(now('Africa/Douala')->setDate(2026, 11, 16)->setTime(9, 0));
     $this->compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole($role));
+    $this->administrateur = ($this->compte)('admin');
     $this->agent = ($this->compte)('scolarite_agent');
     $this->encaisseur = ($this->compte)('service_financier');
     $this->responsable = ($this->compte)('scolarite_responsable');
@@ -159,7 +160,7 @@ describe('règle d\'accès', function (): void {
     it('ne rouvre pas un déblocage clos : on en accorde un nouveau', function (): void {
         $d = ($this->virement)()->deblocage;
         $v = ($this->verser)()->versement;
-        app(RegistreVersements::class)->annuler($v, 'Erreur de saisie', $this->responsable);
+        app(RegistreVersements::class)->annuler($v, 'Erreur de saisie', $this->administrateur);
 
         expect($d->fresh()->statut)->toBe(DeblocageAcces::REGULARISE)
             ->and(($this->etat)())->toBe(AccesEcampus::BLOQUE);

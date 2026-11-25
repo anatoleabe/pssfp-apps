@@ -161,7 +161,7 @@ it('annonce dans la fenêtre d\'annulation qu\'un versement imputé sur deux ann
     InscriptionAnnuelle::factory()->create(['auditeur_id' => $this->fiche->id,
         'bareme_id' => BaremeScolarite::factory()->m2()->create(['annee_academique' => '2027-2028'])->id]);
     app(ImputationsCompte::class)->sousVerrou($this->fiche->id, fn (ImputationsCompte $c) => $c->imputerAvance($this->fiche->id, 'ouverture', null));
-    $this->actingAs(($this->compte)('scolarite_responsable'));
+    $this->actingAs(($this->compte)('admin'));
 
     $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
         ->mountTableAction('annuler', $v)
@@ -205,7 +205,7 @@ it('refuse une date future et un montant nul dans le formulaire', function (): v
         ->assertHasActionErrors(['montant', 'date_versement']);
 });
 
-it('réserve l\'annulation et la remise au responsable', function (): void {
+it('réserve l\'annulation à l\'administrateur et la remise au responsable', function (): void {
     $v = Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id, 'reference' => 'BOR-9']);
 
     $this->actingAs(($this->compte)('service_financier'));
@@ -213,15 +213,22 @@ it('réserve l\'annulation et la remise au responsable', function (): void {
     $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
         ->assertTableActionHidden('annuler', $v);
 
-    $this->actingAs(($this->compte)('scolarite_responsable'));
+    // Règle du 25/11/2026 : le responsable de scolarité n'annule plus ; l'administrateur, si.
+    $responsable = ($this->compte)('scolarite_responsable');
+    $this->actingAs($responsable);
     $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
         ->assertCanSeeTableRecords([$v])
+        ->assertTableActionHidden('annuler', $v);
+
+    $this->actingAs(($this->compte)('admin'));
+    $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
         ->callTableAction('annuler', $v, data: ['categorie' => 'doublon', 'motif' => 'Doublon de saisie', 'fermeture' => true])
         ->assertHasNoTableActionErrors();
     // Annulation directe avec sa pièce de correction (décision Q11 du 16/11/2026).
     expect($v->fresh()->annule_motif)->toEndWith('Doublon de saisie')
         ->and($v->fresh()->correction?->categorie)->toBe('doublon');
 
+    $this->actingAs($responsable);
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
         ->callAction('accorderRemise', data: ['montant' => 200000, 'motif' => 'Bourse'])
         ->assertHasNoActionErrors();

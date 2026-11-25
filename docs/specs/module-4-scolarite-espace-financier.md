@@ -269,6 +269,8 @@ Tous les versements, ceux de la plateforme comme ceux de la reprise. Une ligne p
 
 ## 7. Corriger ou annuler un versement
 
+> **Mise à jour du 25/11/2026** : toute modification ou annulation est désormais validée par un administrateur (fin de la rectification par le service financier seul, Q2, et de l'annulation directe par le responsable, Q11). Voir `module-4-scolarite-validation-admin.md`.
+
 ### 7.1 Les cas à couvrir
 
 | Cas | Exemple | Ce qu'il faut faire |

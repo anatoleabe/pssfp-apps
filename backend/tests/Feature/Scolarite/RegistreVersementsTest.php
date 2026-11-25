@@ -24,6 +24,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 uses()->group('scolarite');
 
 beforeEach(function (): void {
+    $this->administrateur = tap(User::factory()->create(['email' => 'admin-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole('admin'));
     $this->seed([PaysSeeder::class, RegionsCamerounSeeder::class, DepartementsCamerounSeeder::class, RolePermissionSeeder::class]);
     $agent = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole($role));
     // Depuis le 15/11/2026, le service financier enregistre l'argent (spec encaissement-confirmation §2.1).
@@ -112,7 +113,7 @@ it('refuse une référence déjà saisie, avec un message clair', function (): v
 
 it('accepte de nouveau la référence d\'un versement annulé', function (): void {
     $r = ($this->registre)()->enregistrer($this->inscription, ($this->saisie)(['reference' => 'BOR-2']), $this->agent);
-    ($this->registre)()->annuler($r->versement, 'Erreur de montant', $this->responsable);
+    ($this->registre)()->annuler($r->versement, 'Erreur de montant', $this->administrateur);
 
     $nouveau = ($this->registre)()->enregistrer($this->inscription, ($this->saisie)(['reference' => 'BOR-2', 'montant' => 90000]), $this->agent);
 
@@ -153,20 +154,20 @@ it('applique les droits sur chaque opération', function (): void {
 it('garde la ligne annulée, avec son motif, hors du cumul', function (): void {
     $v = ($this->registre)()->enregistrer($this->inscription, ($this->saisie)(), $this->agent)->versement;
 
-    ($this->registre)()->annuler($v, 'Doublon banque', $this->responsable);
+    ($this->registre)()->annuler($v, 'Doublon banque', $this->administrateur);
 
     $v->refresh();
     expect($v->annule_motif)->toBe('Doublon banque')
-        ->and($v->annule_par)->toBe($this->responsable->id)
+        ->and($v->annule_par)->toBe($this->administrateur->id)
         ->and(Versement::query()->count())->toBe(1)
         ->and($this->inscription->fresh()->situation()->verse)->toBe(0)
-        ->and(fn () => ($this->registre)()->annuler($v, 'Encore', $this->responsable))->toThrow(InvalidArgumentException::class);
+        ->and(fn () => ($this->registre)()->annuler($v, 'Encore', $this->administrateur))->toThrow(InvalidArgumentException::class);
 });
 
 it('exige un motif pour annuler et pour accorder une remise', function (): void {
     $v = ($this->registre)()->enregistrer($this->inscription, ($this->saisie)(), $this->agent)->versement;
 
-    expect(fn () => ($this->registre)()->annuler($v, '  ', $this->responsable))->toThrow(InvalidArgumentException::class, 'motif')
+    expect(fn () => ($this->registre)()->annuler($v, '  ', $this->administrateur))->toThrow(InvalidArgumentException::class, 'motif')
         ->and(fn () => ($this->registre)()->accorderRemise($this->inscription, 1000, ' ', $this->responsable))->toThrow(InvalidArgumentException::class, 'motif');
 });
 

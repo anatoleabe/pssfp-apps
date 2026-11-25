@@ -37,6 +37,9 @@ class DemandeAutorisation extends Model
     /** Type du circuit pour la correction d'un versement (ADR-0015) ; repris par TypesDemande::CORRIGER_VERSEMENT. */
     public const TYPE_CORRIGER_VERSEMENT = 'corriger_versement';
 
+    /** Annulation et réémission d'un reçu, décidée par un administrateur (règle du 25/11/2026). */
+    public const TYPE_REEMETTRE_RECU = 'reemettre_recu';
+
     public const MOTIF_MIN = 10;
 
     public $timestamps = false;

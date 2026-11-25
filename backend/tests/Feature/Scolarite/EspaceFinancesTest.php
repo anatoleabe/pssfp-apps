@@ -52,6 +52,8 @@ beforeEach(function (): void {
     $this->mock(SmsServiceInterface::class, fn ($mock) => $mock->shouldReceive('send')->andReturnNull());
 
     $this->compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local', 'name' => 'Agent '.$role]), fn (User $u) => $u->assignRole($role));
+
+    $this->administrateur = ($this->compte)('admin');
     $this->financier = ($this->compte)('service_financier');
     $this->travelTo(now('Africa/Douala')->setDate(2026, 11, 10)->setTime(9, 0));
     AppSettings::set(RecusVersements::CLE_DEPUIS, now()->subDay()->toIso8601String());
@@ -139,7 +141,7 @@ describe('statut d\'un versement', function (): void {
         $confirme = ($this->encaisser)($this->a);
         confirmerVersement($confirme);
         $annule = ($this->encaisser)($this->b);
-        app(RegistreVersements::class)->annuler($annule, 'Doublon de saisie', ($this->compte)('scolarite_responsable'));
+        app(RegistreVersements::class)->annuler($annule, 'Doublon de saisie', ($this->compte)('admin'));
 
         expect($enregistre->refresh()->statut())->toBe(Versement::STATUT_ENREGISTRE)
             ->and($confirme->refresh()->statut())->toBe(Versement::STATUT_CONFIRME)
@@ -155,7 +157,7 @@ describe('liste des versements', function (): void {
         $va = ($this->encaisser)($this->a, ['reference' => 'BOR-A1']);
         $vb = ($this->encaisser)($this->b, ['reference' => 'BOR-B1']);
         $annule = ($this->encaisser)($this->b, ['reference' => 'BOR-B2']);
-        app(RegistreVersements::class)->annuler($annule, 'Doublon de saisie', ($this->compte)('scolarite_responsable'));
+        app(RegistreVersements::class)->annuler($annule, 'Doublon de saisie', ($this->compte)('admin'));
 
         $this->actingAs($this->financier);
         $this->livewire(ListVersements::class)

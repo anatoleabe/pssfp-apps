@@ -15,7 +15,6 @@ use App\Services\Scolarite\EspaceFinances;
 use App\Services\Scolarite\RecusVersements;
 use App\Support\BelongsToModule;
 use Filament\Forms;
-use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -132,14 +131,8 @@ class RecuVersementResource extends Resource
                             echo $pdf;
                         }, mb_strtolower($r->annulation->numero).'.pdf', ['Content-Type' => 'application/pdf']);
                     }),
-                Tables\Actions\Action::make('annuler')->label('Annuler le reçu')->icon('heroicon-o-x-circle')->color('danger')
-                    ->visible(fn (RecuVersement $r): bool => RecuActions::peutEmettre() && $r->annulation === null)
-                    ->modalDescription('Le reçu n\'est pas modifié : une écriture d\'annulation numérotée est passée à votre nom. Un nouveau reçu peut ensuite être émis depuis la fiche de l\'auditeur.')
-                    ->form(RecuActions::formulaireMotif())
-                    ->action(function (RecuVersement $r, array $data): void {
-                        $a = RecuActions::executer(fn () => app(RecusVersements::class)->annuler($r, (string) $data['motif'], auth()->user()));
-                        Notification::make()->success()->title('Écriture '.$a->numero.' passée')->send();
-                    }),
+                RecuActions::renvoyer(fn (RecuVersement $r): ?RecuVersement => $r->annulation === null ? $r : null),
+                RecuActions::reemettre(fn (RecuVersement $r): ?RecuVersement => $r->annulation === null ? $r : null, 'reemettre'),
             ])->label('Actions')->icon('heroicon-o-ellipsis-vertical')]);
     }
 

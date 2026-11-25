@@ -226,7 +226,7 @@ it('ne propose plus de rattacher sur un engagement échu', function (): void {
     ($this->fiche)()->assertActionHidden('rattacher');
 });
 
-it('réserve l\'annulation d\'un règlement au responsable, depuis l\'onglet des règlements', function (): void {
+it('réserve l\'annulation d\'un règlement à l\'administrateur, depuis l\'onglet des règlements', function (): void {
     ($this->rattacher)([$this->awa]);
     $r = app(ReglementsOrganismes::class)->enregistrer($this->engagement, [
         'montant' => 185000, 'date_reglement' => '2026-11-16', 'mode' => 'virement', 'reference' => 'OV-1',
@@ -237,7 +237,11 @@ it('réserve l\'annulation d\'un règlement au responsable, depuis l\'onglet des
     $this->actingAs($this->agent);
     $onglet()->assertCanSeeTableRecords([$r])->assertTableActionHidden('annuler', $r);
 
+    // Règle du 25/11/2026 : plus le responsable de scolarité.
     $this->actingAs(($this->compte)('scolarite_responsable'));
+    $onglet()->assertTableActionHidden('annuler', $r);
+
+    $this->actingAs(($this->compte)('admin'));
     $onglet()->callTableAction('annuler', $r, data: ['motif' => 'Virement rejeté par la banque'])->assertHasNoTableActionErrors();
     expect($r->fresh()->annule_at)->not->toBeNull();
 });
