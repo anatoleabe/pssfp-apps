@@ -56,9 +56,9 @@ class PromotionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $navigationGroup = GroupeNavigation::SCOLARITE;
+    protected static ?string $navigationGroup = GroupeNavigation::REGLAGES;
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 15;
 
     public static function canViewAny(): bool
     {

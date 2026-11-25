@@ -29,6 +29,9 @@ class LibraryRedirectResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Anciennes adresses';
 
+    /** Libellé tel quel dans le menu : « Prises en charge », pas « Prises En Charge » (lot 33). */
+    protected static bool $hasTitleCaseModelLabel = false;
+
     protected static ?string $navigationIcon = 'heroicon-o-arrow-uturn-right';
 
     protected static ?string $navigationGroup = GroupeNavigation::BIBLIOTHEQUE;

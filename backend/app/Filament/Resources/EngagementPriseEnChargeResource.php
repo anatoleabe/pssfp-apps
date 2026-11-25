@@ -39,6 +39,9 @@ class EngagementPriseEnChargeResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Prises en charge';
 
+    /** Libellé tel quel dans le menu : « Prises en charge », pas « Prises En Charge » (lot 33). */
+    protected static bool $hasTitleCaseModelLabel = false;
+
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
 
     protected static ?string $navigationGroup = GroupeNavigation::SCOLARITE;

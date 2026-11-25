@@ -39,6 +39,9 @@ class DocumentDelivreResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Registre des documents';
 
+    /** Libellé tel quel dans le menu : « Prises en charge », pas « Prises En Charge » (lot 33). */
+    protected static bool $hasTitleCaseModelLabel = false;
+
     protected static ?string $navigationIcon = 'heroicon-o-document-check';
 
     protected static ?string $navigationGroup = GroupeNavigation::EVALUATIONS;

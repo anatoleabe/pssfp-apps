@@ -33,7 +33,7 @@ class CalendrierAcademiqueResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
 
-    protected static ?string $navigationGroup = GroupeNavigation::PLANIFICATION;
+    protected static ?string $navigationGroup = GroupeNavigation::REGLAGES;
 
     protected static ?int $navigationSort = 10;
 

@@ -38,9 +38,9 @@ class EtiquetteResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-tag';
 
-    protected static ?string $navigationGroup = GroupeNavigation::SCOLARITE;
+    protected static ?string $navigationGroup = GroupeNavigation::REGLAGES;
 
-    protected static ?int $navigationSort = 50;
+    protected static ?int $navigationSort = 85;
 
     /**
      * Nom et couleur, à la création (depuis la fiche ou la liste des auditeurs)

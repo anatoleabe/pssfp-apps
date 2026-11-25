@@ -32,9 +32,9 @@ class JourNonOuvreResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-no-symbol';
 
-    protected static ?string $navigationGroup = GroupeNavigation::PLANIFICATION;
+    protected static ?string $navigationGroup = GroupeNavigation::REGLAGES;
 
-    protected static ?int $navigationSort = 120;
+    protected static ?int $navigationSort = 65;
 
     public static function form(Form $form): Form
     {

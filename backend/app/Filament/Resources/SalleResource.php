@@ -32,9 +32,9 @@ class SalleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office';
 
-    protected static ?string $navigationGroup = GroupeNavigation::PLANIFICATION;
+    protected static ?string $navigationGroup = GroupeNavigation::REGLAGES;
 
-    protected static ?int $navigationSort = 100;
+    protected static ?int $navigationSort = 55;
 
     public static function form(Form $form): Form
     {

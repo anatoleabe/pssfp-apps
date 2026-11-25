@@ -32,9 +32,9 @@ class PlageHoraireResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clock';
 
-    protected static ?string $navigationGroup = GroupeNavigation::PLANIFICATION;
+    protected static ?string $navigationGroup = GroupeNavigation::REGLAGES;
 
-    protected static ?int $navigationSort = 110;
+    protected static ?int $navigationSort = 60;
 
     public static function form(Form $form): Form
     {
