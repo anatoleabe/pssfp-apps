@@ -22,11 +22,16 @@ use App\Filament\Resources\CandidatureResource\EspaceCandidatActions;
 use App\Filament\Resources\CandidatureResource\IdentifiantsMoodleActions;
 use App\Filament\Resources\CandidatureResource\LettresSigneesActions;
 use App\Models\Auditeur;
+use App\Models\BaremeScolarite;
 use App\Services\DocumentsAuditeurs\DocumentsAuditeurs;
 use App\Services\DocumentsAuditeurs\ParametresLettres;
+use App\Services\Scolarite\CompteAuditeur;
+use App\Services\Scolarite\LibelleSituation;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Support\Enums\IconPosition;
+use Throwable;
 
 /**
  * Fiche auditeur (spec module 4, lots 1 et 2). Les gestes sur le dossier (accès
@@ -72,66 +77,103 @@ class ViewAuditeur extends ViewRecord
         }
     }
 
+    /**
+     * Bandeau résumé sous le nom (lot 32) : année et niveau, parcours, statut, reste à payer, accès eCampus.
+     */
+    public function getSubheading(): ?string
+    {
+        /** @var Auditeur $auditeur */
+        $auditeur = $this->getRecord();
+        $inscription = $auditeur->inscriptionCourante;
+        $parts = [];
+        if ($inscription !== null) {
+            $parts[] = $inscription->annee_academique.' · '.(BaremeScolarite::NIVEAUX[$inscription->niveau] ?? $inscription->niveau)
+                .($inscription->parcours !== null ? ' · '.$inscription->parcours->libelle : '');
+        }
+        $parts[] = Auditeur::STATUTS[$auditeur->statut] ?? $auditeur->statut;
+        try {
+            $parts[] = 'Reste à payer : '.LibelleSituation::fcfa(CompteAuditeur::pour($auditeur)->resteParcours());
+        } catch (Throwable $e) {
+            report($e);
+        }
+        $parts[] = 'eCampus : '.AuditeurResource::libelleAccesCourt($auditeur);
+
+        return implode(' · ', $parts);
+    }
+
+    /** La liste des versements est dans l'onglet « Finances » de la fiche, plus sous la fiche (lot 32). */
+    public function getRelationManagers(): array
+    {
+        return [];
+    }
+
+    /**
+     * Lot 32 (choix du Chef de projet du 25/11/2026) : le geste principal du rôle, puis un seul menu « Actions »,
+     * rangé par rubrique (finances, documents, scolarité, accès et messages, dossier). Les noms des gestes ne changent
+     * pas : leurs contrôles et leurs journaux restent ceux d'avant.
+     */
     protected function getHeaderActions(): array
     {
         return [
             AuditeurActions::enregistrerVersement(),
-            AuditeurActions::accorderRemise(),
-            AuditeurActions::renvoyerSms(),
-            AuditeurActions::envoyerLienLettre(),
-            AuditeurActions::creerInscription(),
-            AuditeurActions::reinscrire(),
-            AuditeurActions::extraitCompte(),
             ActionGroup::make([
-                AuditeurActions::certificatScolarite(),
-                DocumentsAdministratifsActions::attestationRecherche(),
-                DocumentsAdministratifsActions::lettreStage(),
-            ])->label('Documents administratifs')->icon('heroicon-o-academic-cap')->color('gray')->button(),
-            EtiquettesActions::gerer(),
-            ActionGroup::make([
-                AccesAnticipe::debloquer(),
-                DemandeMoratoireActions::demander(),
-                DemandeMoratoireActions::enAttenteAction(),
-                AccesAnticipe::prolonger(),
-                AccesAnticipe::revoquer(),
-                AccesAnticipe::voirPiece(),
-                ComptesEcampusActions::creer(Action::make('creerCompteEcampus')),
-                IdentifiantsMoodleActions::consulter(Action::make('identifiantsMoodle')),
-                IdentifiantsMoodleActions::envoyer(Action::make('envoyerIdentifiantsMoodle')),
-                CompteEcampusActions::verifier(),
-                CompteEcampusActions::reinitialiser(),
-                CompteEcampusActions::ouvrir(),
-                EspaceCandidatActions::voirEspace(Action::make('voirEspace')),
-                EspaceCandidatActions::nouveauCode(Action::make('nouveauCode')),
-            ])->label('Accès eCampus')->icon('heroicon-o-key')->button()->color('gray'),
-            ActionGroup::make([
-                DocumentsAuditeursActions::dossier(Action::make('lettreAdmission'), ParametresLettres::DOCUMENT_ADMISSION),
-                DocumentsAuditeursActions::dossier(Action::make('lettreAccesFoad'), ParametresLettres::DOCUMENT_ACCES),
-                LettresSigneesActions::deposer(Action::make('deposerLettreSignee')),
-                LettresSigneesActions::voir(Action::make('voirLettreSignee')),
-                LettresSigneesActions::retirer(Action::make('retirerLettreSignee')),
-            ])->label('Documents')->icon('heroicon-o-document-text')->button()->color('gray'),
-            ActionGroup::make([
-                ParcoursActions::inscrire(),
-                ParcoursActions::changerParcours(),
-                ParcoursActions::derogationRattrapage(),
-                ParcoursActions::leverRestriction(),
-                ParcoursActions::revoquerDocument(),
-            ])->label('Parcours')->icon('heroicon-o-academic-cap')->button()->color('gray'),
-            ActionGroup::make([
-                AuditeurActions::changerStatut(),
-                SuspensionActions::suspendre(),
-                SuspensionActions::lever(),
-                SuspensionActions::reessayerEcampus(),
-                SuspensionActions::voirDemande(),
-                CorrectionDossierActions::corriger(Action::make('corrigerDossier')),
-                AjoutRetenuActions::corrigerTelephone(Action::make('corrigerTelephone')),
-                Action::make('dossier')
-                    ->label('Dossier de candidature')
-                    ->icon('heroicon-o-document-magnifying-glass')
-                    ->visible(fn (Auditeur $record): bool => $record->candidature !== null && CandidatureResource::canView($record->candidature))
-                    ->url(fn (Auditeur $record): string => CandidatureResource::getUrl('view', ['record' => $record->candidature])),
-            ])->label('Dossier')->icon('heroicon-o-ellipsis-vertical')->button()->color('gray'),
+                ActionGroup::make([
+                    AuditeurActions::accorderRemise(),
+                    AuditeurActions::extraitCompte(),
+                    DemandeMoratoireActions::demander(),
+                    DemandeMoratoireActions::enAttenteAction(),
+                    AccesAnticipe::debloquer(),
+                    AccesAnticipe::prolonger(),
+                    AccesAnticipe::revoquer(),
+                    AccesAnticipe::voirPiece(),
+                ])->dropdown(false),
+                ActionGroup::make([
+                    AuditeurActions::certificatScolarite(),
+                    DocumentsAdministratifsActions::attestationRecherche(),
+                    DocumentsAdministratifsActions::lettreStage(),
+                    DocumentsAuditeursActions::dossier(Action::make('lettreAdmission'), ParametresLettres::DOCUMENT_ADMISSION),
+                    DocumentsAuditeursActions::dossier(Action::make('lettreAccesFoad'), ParametresLettres::DOCUMENT_ACCES),
+                    LettresSigneesActions::deposer(Action::make('deposerLettreSignee')),
+                    LettresSigneesActions::voir(Action::make('voirLettreSignee')),
+                    LettresSigneesActions::retirer(Action::make('retirerLettreSignee')),
+                ])->dropdown(false),
+                ActionGroup::make([
+                    AuditeurActions::creerInscription(),
+                    AuditeurActions::reinscrire(),
+                    ParcoursActions::inscrire(),
+                    ParcoursActions::changerParcours(),
+                    ParcoursActions::derogationRattrapage(),
+                    ParcoursActions::leverRestriction(),
+                    ParcoursActions::revoquerDocument(),
+                ])->dropdown(false),
+                ActionGroup::make([
+                    ComptesEcampusActions::creer(Action::make('creerCompteEcampus')),
+                    IdentifiantsMoodleActions::consulter(Action::make('identifiantsMoodle')),
+                    IdentifiantsMoodleActions::envoyer(Action::make('envoyerIdentifiantsMoodle')),
+                    CompteEcampusActions::verifier(),
+                    CompteEcampusActions::reinitialiser(),
+                    CompteEcampusActions::ouvrir(),
+                    EspaceCandidatActions::voirEspace(Action::make('voirEspace')),
+                    EspaceCandidatActions::nouveauCode(Action::make('nouveauCode')),
+                    AuditeurActions::renvoyerSms(),
+                    AuditeurActions::envoyerLienLettre(),
+                ])->dropdown(false),
+                ActionGroup::make([
+                    EtiquettesActions::gerer(),
+                    AuditeurActions::changerStatut(),
+                    SuspensionActions::suspendre(),
+                    SuspensionActions::lever(),
+                    SuspensionActions::reessayerEcampus(),
+                    SuspensionActions::voirDemande(),
+                    CorrectionDossierActions::corriger(Action::make('corrigerDossier')),
+                    AjoutRetenuActions::corrigerTelephone(Action::make('corrigerTelephone')),
+                    Action::make('dossier')
+                        ->label('Dossier de candidature')
+                        ->icon('heroicon-o-document-magnifying-glass')
+                        ->visible(fn (Auditeur $record): bool => $record->candidature !== null && CandidatureResource::canView($record->candidature))
+                        ->url(fn (Auditeur $record): string => CandidatureResource::getUrl('view', ['record' => $record->candidature])),
+                ])->dropdown(false),
+            ])->label('Actions')->icon('heroicon-m-chevron-down')->iconPosition(IconPosition::After)->button()->color('gray'),
         ];
     }
 }
