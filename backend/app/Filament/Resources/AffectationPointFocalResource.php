@@ -41,9 +41,9 @@ class AffectationPointFocalResource extends Resource
 
     protected static ?string $navigationLabel = 'Points focaux';
 
-    protected static ?string $navigationGroup = GroupeNavigation::REFERENTIEL;
+    protected static ?string $navigationGroup = GroupeNavigation::REGLAGES;
 
-    protected static ?int $navigationSort = 45;
+    protected static ?int $navigationSort = 40;
 
     public static function form(Form $form): Form
     {

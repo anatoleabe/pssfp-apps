@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Filament\Concerns\ChecksModuleAccess;
+use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\MaSecurite;
 use App\Filament\Pages\Parametres;
 use App\Filament\Resources\CampagneCandidatureResource;
@@ -24,7 +25,6 @@ use App\Support\ModuleAccess;
 use App\Support\ModulePermissionMap;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
-use Filament\Pages\Dashboard;
 use Filament\Resources\RelationManagers\RelationGroup;
 use Filament\Resources\RelationManagers\RelationManagerConfiguration;
 use Filament\Widgets\Widget;

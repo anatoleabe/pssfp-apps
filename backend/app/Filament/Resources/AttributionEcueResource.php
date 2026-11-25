@@ -36,9 +36,9 @@ class AttributionEcueResource extends Resource
 
     protected static ?string $navigationLabel = 'Attributions des ECUE';
 
-    protected static ?string $navigationGroup = GroupeNavigation::REFERENTIEL;
+    protected static ?string $navigationGroup = GroupeNavigation::REGLAGES;
 
-    protected static ?int $navigationSort = 40;
+    protected static ?int $navigationSort = 35;
 
     public static function form(Form $form): Form
     {

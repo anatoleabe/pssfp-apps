@@ -41,9 +41,9 @@ class MaquetteResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
 
-    protected static ?string $navigationGroup = GroupeNavigation::REFERENTIEL;
+    protected static ?string $navigationGroup = GroupeNavigation::REGLAGES;
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 25;
 
     public static function form(Form $form): Form
     {
