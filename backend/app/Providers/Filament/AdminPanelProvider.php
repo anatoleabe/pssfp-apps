@@ -109,6 +109,8 @@ final class AdminPanelProvider extends PanelProvider
                 ExigerDoubleAuthentification::class,
             ], isPersistent: true)
             ->globalSearch(RechercheGlobale::class)
+            // Lot 32 : la recherche unique s'ouvre aussi au clavier, partout dans le panneau.
+            ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->userMenuItems([
                 'ma-securite' => MenuItem::make()->label('Ma sécurité')->icon('heroicon-o-key')
                     ->url(fn (): string => MaSecurite::getUrl()),

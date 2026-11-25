@@ -40,6 +40,9 @@ class ArticleResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'slug';
 
+    /** Hors de la recherche du haut (lot 32) : elle sert à retrouver les personnes et les dossiers ; cet écran garde sa recherche de liste. */
+    protected static bool $isGloballySearchable = false;
+
     public static function form(Form $form): Form
     {
         return $form->schema([
