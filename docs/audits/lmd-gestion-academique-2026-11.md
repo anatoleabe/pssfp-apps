@@ -224,7 +224,7 @@ Plan d'ensemble validé par le chef de projet le 22/11/2026. Chaque étape fait 
 3. Année académique, semestres, PV et relevés semestriels ; arrondi selon D2.
 4. Passage M1 → M2 en groupe sur « admis », gestion des redoublants et des statuts abandon / exclu (B4).
 5. Dérogation financière unique, blocage des relevés et des listes d'examen (D5), relance des tranches.
-6. Écrans enseignant et rapport d'import ligne à ligne. *« Mes cours » et « Mes heures » faits le 24/11/2026 (lot 29) ; restent la saisie des notes sur téléphone et le rapport d'import.*
+6. Écrans enseignant et rapport d'import ligne à ligne. *« Mes cours » et « Mes heures » faits le 24/11/2026 (lot 29) ; saisie des notes sur téléphone et essai à blanc ligne à ligne faits le 24/11/2026 (lot 30).*
 7. Planning d'examens, listes d'émargement, notifications (emploi du temps, requêtes). **Fait le 24/11/2026** : lot 27 (planning, répartition en salles, émargement par salle, « Mes examens ») et lot 28 (notifications par e-mail, SMS activable). Les notifications des requêtes restent à faire.
 8. Tableau de bord académique et registre des documents délivrés.
 

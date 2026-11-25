@@ -1,4 +1,18 @@
 <x-filament-panels::page>
+    {{-- Sur téléphone (lot 30), chaque auditeur devient une carte : plus de tableau à faire défiler de côté. --}}
+    <style>
+        @media (max-width: 640px) {
+            .notes-saisie thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+            .notes-saisie, .notes-saisie tbody, .notes-saisie tr, .notes-saisie td { display: block; width: 100%; }
+            .notes-saisie tr { padding: .75rem 0; border-bottom: 1px solid rgb(var(--gray-200)); }
+            .notes-saisie td { border-bottom: 0 !important; padding: .15rem 0 !important; text-align: left !important; white-space: normal !important; }
+            .notes-saisie td[data-libelle]::before { content: attr(data-libelle); display: block; font-size: .72rem; text-transform: uppercase; color: rgb(var(--gray-500)); }
+            .notes-saisie td.notes-nom { font-weight: 600; }
+            /* Sans note déjà saisie, ni « note actuelle » ni motif à montrer : la carte reste courte. */
+            .notes-saisie td.notes-sans-objet { display: none; }
+            .notes-saisie input, .notes-saisie select { font-size: 1rem !important; padding: .55rem .6rem !important; }
+        }
+    </style>
     <form wire:submit.prevent>{{ $this->form }}</form>
 
     @php
@@ -38,7 +52,7 @@
                 <p style="font-size:.875rem;">Aucun auditeur n'est inscrit à cette UE.</p>
             @else
                 <div style="overflow-x:auto;">
-                    <table style="width:100%;border-collapse:collapse;font-size:.875rem;">
+                    <table class="notes-saisie" style="width:100%;border-collapse:collapse;font-size:.875rem;">
                         <caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Notes de l'étape</caption>
                         <thead>
                             <tr style="text-align:left;font-size:.72rem;text-transform:uppercase;color:rgb(var(--gray-500));">
@@ -54,18 +68,19 @@
                         </thead>
                         <tbody>
                             @foreach ($lignes as $l)
+                                @php $sansObjet = $l['actuelle'] === null && $l['presence'] === null ? 'notes-sans-objet' : ''; @endphp
                                 <tr wire:key="ligne-{{ $l['id'] }}">
                                     <td style="{{ $cellule }}font-family:ui-monospace,monospace;white-space:nowrap;">{{ $l['matricule'] }}</td>
-                                    <td style="{{ $cellule }}">{{ $l['nom'] }}</td>
-                                    <td style="{{ $cellule }}text-align:right;white-space:nowrap;">
+                                    <td class="notes-nom" style="{{ $cellule }}">{{ $l['nom'] }}</td>
+                                    <td class="{{ $sansObjet }}" data-libelle="Note actuelle" style="{{ $cellule }}text-align:right;white-space:nowrap;">
                                         {{ $l['actuelle'] ?? (in_array($l['presence'], ['absent_justifie', 'absent_non_justifie'], true) ? \App\Models\NoteEcue::PRESENCES[$l['presence']] : '—') }}
                                     </td>
-                                    <td style="{{ $cellule }}">
+                                    <td data-libelle="Note / 20" style="{{ $cellule }}">
                                         <label for="note-{{ $l['id'] }}" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Note de {{ $l['matricule'] }}</label>
                                         <input id="note-{{ $l['id'] }}" type="text" inputmode="decimal" maxlength="5" wire:model="saisies.{{ $l['id'] }}.note" @disabled(! $modifiable) style="{{ $champ }}text-align:right;">
                                     </td>
                                     @if ($examen)
-                                        <td style="{{ $cellule }}">
+                                        <td data-libelle="Absence" style="{{ $cellule }}">
                                             <label for="presence-{{ $l['id'] }}" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Absence de {{ $l['matricule'] }}</label>
                                             <select id="presence-{{ $l['id'] }}" wire:model="saisies.{{ $l['id'] }}.presence" @disabled(! $modifiable) style="{{ $champ }}">
                                                 <option value="">—</option>
@@ -74,7 +89,7 @@
                                             </select>
                                         </td>
                                     @endif
-                                    <td style="{{ $cellule }}padding-right:0;">
+                                    <td class="{{ $sansObjet }}" data-libelle="Motif (si la note change)" style="{{ $cellule }}padding-right:0;">
                                         <label for="motif-{{ $l['id'] }}" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Motif pour {{ $l['matricule'] }}</label>
                                         <input id="motif-{{ $l['id'] }}" type="text" maxlength="500" wire:model="saisies.{{ $l['id'] }}.motif" @disabled(! $modifiable || $l['actuelle'] === null && $l['presence'] === null) style="{{ $champ }}">
                                     </td>

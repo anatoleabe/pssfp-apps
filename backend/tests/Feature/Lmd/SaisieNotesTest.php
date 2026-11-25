@@ -257,3 +257,58 @@ it('réserve la gestion des attributions à la préparation du référentiel', f
     $this->actingAs($this->agent);
     $this->get(AttributionEcueResource::getUrl('create'))->assertOk();
 });
+
+it('rend à l\'essai à blanc le sort de chaque ligne du fichier, sans rien enregistrer', function (): void {
+    $this->service->ouvrir($this->etapeCc, $this->responsable);
+    $excel = app(NotesExcel::class);
+    $chemin = tempnam(sys_get_temp_dir(), 'notes').'.xlsx';
+    file_put_contents($chemin, $excel->modele($this->etapeCc));
+    $classeur = IOFactory::load($chemin);
+    $feuille = $classeur->getSheet(0);
+    $feuille->setCellValue('D5', 13);
+    IOFactory::createWriter($classeur, 'Xlsx')->save($chemin);
+    $excel->importer($this->etapeCc, $chemin, $this->agent, true);                // la ligne 5 a désormais 13
+
+    file_put_contents($chemin, $excel->modele($this->etapeCc));
+    $classeur = IOFactory::load($chemin);
+    $feuille = $classeur->getSheet(0);
+    $feuille->setCellValue('D5', 13);                                             // inchangée
+    $feuille->setCellValue('D6', '14,5');                                         // nouvelle note
+    $feuille->setCellValue('A7', '99EFP999');                                     // matricule non inscrit
+    $feuille->setCellValue('D7', 10);
+    IOFactory::createWriter($classeur, 'Xlsx')->save($chemin);
+    $essai = $excel->essai($this->etapeCc, $chemin, $this->agent);
+
+    expect(array_column($essai['lignes'], 'ligne'))->toBe([5, 6, 7])
+        ->and(array_column($essai['lignes'], 'resultat'))->toBe([SaisieNotes::INCHANGEE, SaisieNotes::NOUVELLE, SaisieNotes::ERREUR])
+        ->and([$essai['lignes'][0]['avant'], $essai['lignes'][0]['apres']])->toBe(['13,00', '13,00'])
+        ->and([$essai['lignes'][1]['avant'], $essai['lignes'][1]['apres']])->toBe([null, '14,50'])
+        ->and($essai['lignes'][1]['nom'])->not->toBe('')
+        ->and($essai['lignes'][2]['message'])->toBe('matricule non inscrit à cette UE')
+        ->and($essai['comptes'])->toBe([SaisieNotes::NOUVELLE => 1, SaisieNotes::MODIFIEE => 0, SaisieNotes::INCHANGEE => 1, SaisieNotes::ERREUR => 1])
+        ->and(NotesExcel::resume($essai['comptes']))->toBe('1 nouvelle note, 1 inchangée, 1 erreur.')
+        ->and(NoteEcue::query()->whereNotNull('cc')->count())->toBe(1);           // rien de plus qu'avant l'essai
+
+    // Une note déjà saisie qui change sans motif : erreur, avec l'avant et l'après ; avec un motif : modifiée.
+    $feuille->setCellValue('D5', 15);
+    $feuille->setCellValue('A7', null);
+    $feuille->setCellValue('D7', null);
+    IOFactory::createWriter($classeur, 'Xlsx')->save($chemin);
+    $sansMotif = $excel->essai($this->etapeCc, $chemin, $this->agent)['lignes'][0];
+    $feuille->setCellValue('F5', 'Erreur de report de la copie');
+    IOFactory::createWriter($classeur, 'Xlsx')->save($chemin);
+    $avecMotif = $excel->essai($this->etapeCc, $chemin, $this->agent);
+
+    expect([$sansMotif['resultat'], $sansMotif['avant'], $sansMotif['apres']])->toBe([SaisieNotes::ERREUR, '13,00', '15,00'])
+        ->and($avecMotif['lignes'][0]['resultat'])->toBe(SaisieNotes::MODIFIEE);
+
+    $rapport = tempnam(sys_get_temp_dir(), 'essai').'.xlsx';
+    file_put_contents($rapport, $excel->rapportEssai($this->etapeCc, $avecMotif));
+    $lu = IOFactory::load($rapport)->getSheet(0);
+    @unlink($rapport);
+    @unlink($chemin);
+    expect($lu->getCell('F5')->getValue())->toBe('Note modifiée')
+        ->and($lu->getCell('D5')->getValue())->toBe('13,00')
+        ->and($lu->getCell('E6')->getValue())->toBe('14,50')
+        ->and((string) $lu->getCell('A2')->getValue())->toContain('Rien n\'a été enregistré');
+});

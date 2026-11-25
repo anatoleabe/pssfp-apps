@@ -24,6 +24,17 @@ use InvalidArgumentException;
  */
 final class SaisieNotes
 {
+    /** Sort d'une ligne à l'essai à blanc. */
+    public const NOUVELLE = 'nouvelle';
+
+    public const MODIFIEE = 'modifiee';
+
+    public const INCHANGEE = 'inchangee';
+
+    public const ERREUR = 'erreur';
+
+    public const RESULTATS = [self::NOUVELLE => 'Nouvelle note', self::MODIFIEE => 'Note modifiée', self::INCHANGEE => 'Inchangée', self::ERREUR => 'Erreur'];
+
     public const MOTIF_MIN = 5;
 
     public function __construct(private readonly CalculNotes $calcul, private readonly GelNotes $gel) {}
@@ -129,58 +140,7 @@ final class SaisieNotes
         abort_unless($this->peutSaisir($etape, $auteur), 403);
 
         return DB::transaction(function () use ($etape, $lignes, $auteur, $appliquer): int {
-            $etape = EtapeSaisie::query()->lockForUpdate()->with('ecue')->findOrFail($etape->id);
-            if ($etape->statut !== EtapeSaisie::OUVERTE) {
-                throw new InvalidArgumentException(sprintf('Saisie refusée : étape « %s » %s. Correction par requête ou réouverture motivée.',
-                    EtapeSaisie::ETAPES[$etape->etape], $etape->statut === EtapeSaisie::FERMEE ? 'fermée' : 'verrouillée'));
-            }
-            $this->gel->exiger($etape->ecue, $etape->session);
-            if ($etape->etape === EtapeSaisie::EXAMEN && Anonymat::enCours($etape->maquette_ecue_id, $etape->session)) {
-                throw new InvalidArgumentException('Saisie refusée : cet examen est sous anonymat ; les notes se saisissent sur les numéros (D36).');
-            }
-            $inscrits = $this->inscrits($etape->ecue)->keyBy('id');
-            $existantes = NoteEcue::query()->where('maquette_ecue_id', $etape->maquette_ecue_id)->where('session', $etape->session)
-                ->whereIn('inscription_pedagogique_id', array_keys($lignes))->lockForUpdate()->get()->keyBy('inscription_pedagogique_id');
-
-            $ecritures = [];
-            $erreurs = [];
-            foreach ($lignes as $id => $ligne) {
-                $inscription = $inscrits->get((int) $id);
-                if ($inscription === null) {
-                    $erreurs[] = ['id' => (int) $id, 'matricule' => '', 'message' => "Inscription {$id} : auditeur non inscrit à cette UE."];
-
-                    continue;
-                }
-                $matricule = (string) $inscription->inscriptionAnnuelle?->auditeur?->candidature?->matricule;
-                try {
-                    $valeurs = $this->valeurs($etape->etape, $ligne);
-                } catch (InvalidArgumentException $e) {
-                    $erreurs[] = ['id' => (int) $id, 'matricule' => $matricule, 'message' => $e->getMessage()];
-
-                    continue;
-                }
-                $note = $existantes->get((int) $id);
-                $changements = [];
-                foreach ($valeurs as $champ => $valeur) {
-                    $avant = $note?->getAttribute($champ);
-                    $avant = $avant === null ? null : (string) $avant;
-                    $apres = $valeur === null ? null : (is_float($valeur) ? number_format($valeur, 2, '.', '') : (string) $valeur);
-                    if ($avant !== $apres) {
-                        $changements[$champ] = [$avant, $apres];
-                    }
-                }
-                if ($changements === []) {
-                    continue;
-                }
-                $correction = array_filter($changements, fn (array $c): bool => $c[0] !== null) !== [];
-                $motif = trim((string) ($ligne['motif'] ?? ''));
-                if ($correction && mb_strlen($motif) < self::MOTIF_MIN) {
-                    $erreurs[] = ['id' => (int) $id, 'matricule' => $matricule, 'message' => 'une note déjà saisie ne change qu\'avec un motif.'];
-
-                    continue;
-                }
-                $ecritures[] = [$inscription, $note, $valeurs, $changements, $correction ? $motif : 'Saisie'];
-            }
+            [$etape, $ecritures, $erreurs] = $this->analyser($etape, $lignes);
             if ($erreurs !== []) {
                 $textes = array_map(fn (array $e): string => $e['matricule'] === '' ? $e['message'] : $e['matricule'].' : '.$e['message'], $erreurs);
 
@@ -203,6 +163,104 @@ final class SaisieNotes
 
             return count($ecritures);
         });
+    }
+
+    /**
+     * Essai à blanc détaillé (lot 30) : le sort de chaque ligne, sans rien écrire. Mêmes contrôles que saisir().
+     *
+     * @param  array<int, array{note?: float|int|string|null, presence?: string|null, motif?: string|null}>  $lignes  par id d'inscription pédagogique
+     * @return array<int, array{resultat: string, avant: ?string, apres: ?string, message: ?string}> par id d'inscription pédagogique
+     *
+     * @throws InvalidArgumentException étape non ouverte, session gelée, examen sous anonymat
+     */
+    public function examiner(EtapeSaisie $etape, array $lignes, User $auteur): array
+    {
+        abort_unless($this->peutSaisir($etape, $auteur), 403);
+
+        return DB::transaction(fn (): array => $this->analyser($etape, $lignes)[3]);
+    }
+
+    /**
+     * Contrôle d'un lot sous le verrou de l'étape : écritures à passer, erreurs, et sort de chaque ligne.
+     *
+     * @param  array<int, array<string, mixed>>  $lignes
+     * @return array{0: EtapeSaisie, 1: list<array<int, mixed>>, 2: list<array{id: int, matricule: string, message: string}>, 3: array<int, array{resultat: string, avant: ?string, apres: ?string, message: ?string}>}
+     */
+    private function analyser(EtapeSaisie $etape, array $lignes): array
+    {
+        $etape = EtapeSaisie::query()->lockForUpdate()->with('ecue')->findOrFail($etape->id);
+        if ($etape->statut !== EtapeSaisie::OUVERTE) {
+            throw new InvalidArgumentException(sprintf('Saisie refusée : étape « %s » %s. Correction par requête ou réouverture motivée.',
+                EtapeSaisie::ETAPES[$etape->etape], $etape->statut === EtapeSaisie::FERMEE ? 'fermée' : 'verrouillée'));
+        }
+        $this->gel->exiger($etape->ecue, $etape->session);
+        if ($etape->etape === EtapeSaisie::EXAMEN && Anonymat::enCours($etape->maquette_ecue_id, $etape->session)) {
+            throw new InvalidArgumentException('Saisie refusée : cet examen est sous anonymat ; les notes se saisissent sur les numéros (D36).');
+        }
+        $inscrits = $this->inscrits($etape->ecue)->keyBy('id');
+        $existantes = NoteEcue::query()->where('maquette_ecue_id', $etape->maquette_ecue_id)->where('session', $etape->session)
+            ->whereIn('inscription_pedagogique_id', array_keys($lignes))->lockForUpdate()->get()->keyBy('inscription_pedagogique_id');
+
+        $ecritures = [];
+        $erreurs = [];
+        $detail = [];
+        foreach ($lignes as $id => $ligne) {
+            $inscription = $inscrits->get((int) $id);
+            if ($inscription === null) {
+                $erreurs[] = ['id' => (int) $id, 'matricule' => '', 'message' => "Inscription {$id} : auditeur non inscrit à cette UE."];
+                $detail[(int) $id] = ['resultat' => self::ERREUR, 'avant' => null, 'apres' => null, 'message' => 'auditeur non inscrit à cette UE'];
+
+                continue;
+            }
+            $matricule = (string) $inscription->inscriptionAnnuelle?->auditeur?->candidature?->matricule;
+            try {
+                $valeurs = $this->valeurs($etape->etape, $ligne);
+            } catch (InvalidArgumentException $e) {
+                $erreurs[] = ['id' => (int) $id, 'matricule' => $matricule, 'message' => $e->getMessage()];
+                $detail[(int) $id] = ['resultat' => self::ERREUR, 'avant' => null, 'apres' => null, 'message' => $e->getMessage()];
+
+                continue;
+            }
+            $note = $existantes->get((int) $id);
+            $noteAvant = self::lisible($note?->getAttribute($etape->etape), $note?->presence_examen);
+            $noteApres = self::lisible($valeurs[$etape->etape] ?? null, $valeurs['presence_examen'] ?? null);
+            $changements = [];
+            foreach ($valeurs as $champ => $valeur) {
+                $avant = $note?->getAttribute($champ);
+                $avant = $avant === null ? null : (string) $avant;
+                $apres = $valeur === null ? null : (is_float($valeur) ? number_format($valeur, 2, '.', '') : (string) $valeur);
+                if ($avant !== $apres) {
+                    $changements[$champ] = [$avant, $apres];
+                }
+            }
+            if ($changements === []) {
+                $detail[(int) $id] = ['resultat' => self::INCHANGEE, 'avant' => $noteAvant, 'apres' => $noteApres, 'message' => null];
+
+                continue;
+            }
+            $correction = array_filter($changements, fn (array $c): bool => $c[0] !== null) !== [];
+            $motif = trim((string) ($ligne['motif'] ?? ''));
+            if ($correction && mb_strlen($motif) < self::MOTIF_MIN) {
+                $erreurs[] = ['id' => (int) $id, 'matricule' => $matricule, 'message' => 'une note déjà saisie ne change qu\'avec un motif.'];
+                $detail[(int) $id] = ['resultat' => self::ERREUR, 'avant' => $noteAvant, 'apres' => $noteApres, 'message' => 'une note déjà saisie ne change qu\'avec un motif'];
+
+                continue;
+            }
+            $ecritures[] = [$inscription, $note, $valeurs, $changements, $correction ? $motif : 'Saisie'];
+            $detail[(int) $id] = ['resultat' => $correction ? self::MODIFIEE : self::NOUVELLE, 'avant' => $noteAvant, 'apres' => $noteApres, 'message' => null];
+        }
+
+        return [$etape, $ecritures, $erreurs, $detail];
+    }
+
+    /** Note ou absence telle qu'on la lit : « 12,50 », « Absent justifié », ou null. */
+    private static function lisible(mixed $note, mixed $presence): ?string
+    {
+        if ($note !== null) {
+            return number_format((float) $note, 2, ',', '');
+        }
+
+        return $presence !== null && $presence !== NoteEcue::PRESENT ? (NoteEcue::PRESENCES[(string) $presence] ?? (string) $presence) : null;
     }
 
     /**
