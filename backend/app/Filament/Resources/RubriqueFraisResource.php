@@ -46,9 +46,9 @@ class RubriqueFraisResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-list-bullet';
 
-    protected static ?string $navigationGroup = GroupeNavigation::FINANCES;
+    protected static ?string $navigationGroup = GroupeNavigation::REGLAGES;
 
-    protected static ?int $navigationSort = 40;
+    protected static ?int $navigationSort = 75;
 
     protected static ?string $slug = 'finances/rubriques';
 

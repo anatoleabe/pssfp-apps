@@ -30,9 +30,9 @@ class ParcoursResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-map';
 
-    protected static ?string $navigationGroup = GroupeNavigation::REFERENTIEL;
+    protected static ?string $navigationGroup = GroupeNavigation::REGLAGES;
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 20;
 
     public static function form(Form $form): Form
     {

@@ -34,9 +34,9 @@ class ModeleActeResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-duplicate';
 
-    protected static ?string $navigationGroup = GroupeNavigation::PLANIFICATION;
+    protected static ?string $navigationGroup = GroupeNavigation::REGLAGES;
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 50;
 
     public static function form(Form $form): Form
     {

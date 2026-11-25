@@ -36,7 +36,7 @@ class TableauDeBordFinances extends Page
 
     protected static ?int $navigationSort = 5;
 
-    protected static ?string $navigationLabel = 'Tableau de bord';
+    protected static ?string $navigationLabel = 'Synthèse';
 
     protected static ?string $title = 'Tableau de bord financier';
 

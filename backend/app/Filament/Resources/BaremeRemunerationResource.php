@@ -36,9 +36,9 @@ class BaremeRemunerationResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
 
-    protected static ?string $navigationGroup = GroupeNavigation::ENSEIGNANTS_PAIE;
+    protected static ?string $navigationGroup = GroupeNavigation::REGLAGES;
 
-    protected static ?int $navigationSort = 40;
+    protected static ?int $navigationSort = 80;
 
     protected static ?string $slug = 'bareme-enseignants';
 

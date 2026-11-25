@@ -7,19 +7,21 @@ namespace App\Providers\Filament;
 use App\Filament\GlobalSearch\RechercheGlobale;
 use App\Filament\Navigation\GroupeNavigation;
 use App\Filament\Pages\Auth\Connexion;
+use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\MaSecurite;
 use App\Http\Controllers\Admin\ExtraitCompteController;
 use App\Http\Controllers\Admin\ImprimerRecuController;
 use App\Http\Controllers\Admin\OuvrirCompteEcampusController;
 use App\Http\Controllers\Admin\OuvrirEspaceCandidatController;
 use App\Http\Middleware\ExigerDoubleAuthentification;
+use App\Models\User;
+use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\MenuItem;
 use Filament\Navigation\NavigationGroup;
-use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -37,6 +39,29 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 final class AdminPanelProvider extends PanelProvider
 {
+    /**
+     * Rubriques du menu (lot 33). Filament fixe l'ordre à la déclaration et n'en change plus : on déclare donc des
+     * emplacements, dont le libellé est calculé pour le compte connecté (Finances en tête pour le service financier).
+     * « Réglages » est repliée par défaut.
+     *
+     * @return list<NavigationGroup>
+     */
+    private static function groupes(): array
+    {
+        $libelle = static fn (int $rang): string => GroupeNavigation::ordrePour(self::compte())[$rang];
+
+        return array_map(static fn (int $rang): NavigationGroup => NavigationGroup::make(static fn (): string => $libelle($rang))
+            ->collapsible()
+            ->collapsed(static fn (): bool => $libelle($rang) === GroupeNavigation::REGLAGES), array_keys(GroupeNavigation::ORDRE));
+    }
+
+    private static function compte(): ?User
+    {
+        $u = auth()->user();
+
+        return $u instanceof User ? $u : null;
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -78,15 +103,12 @@ final class AdminPanelProvider extends PanelProvider
             ->renderHook(PanelsRenderHook::USER_MENU_BEFORE, static fn (): View => view('filament.messagerie.enveloppe'))
             ->renderHook(PanelsRenderHook::BODY_END, static fn (): View => view('filament.saisie.champs-nombre'))
             ->maxContentWidth(MaxWidth::Full)
-            ->navigationGroups(array_map(
-                static fn (string $groupe): NavigationGroup => NavigationGroup::make($groupe)->collapsible(),
-                GroupeNavigation::ORDRE,
-            ))
+            ->navigationGroups(self::groupes())
             ->sidebarCollapsibleOnDesktop()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
-                Pages\Dashboard::class,
+                Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

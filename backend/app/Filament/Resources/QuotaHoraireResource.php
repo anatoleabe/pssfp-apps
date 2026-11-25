@@ -41,11 +41,11 @@ class QuotaHoraireResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clock';
 
-    protected static ?string $navigationGroup = GroupeNavigation::PLANIFICATION;
+    protected static ?string $navigationGroup = GroupeNavigation::REGLAGES;
 
     protected static ?string $breadcrumb = 'Quotas horaires';
 
-    protected static ?int $navigationSort = 80;
+    protected static ?int $navigationSort = 45;
 
     protected static ?string $slug = 'quotas-horaires';
 

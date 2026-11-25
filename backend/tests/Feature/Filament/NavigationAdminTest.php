@@ -3,8 +3,14 @@
 declare(strict_types=1);
 
 use App\Filament\Navigation\GroupeNavigation;
+use App\Filament\Pages\Dashboard;
+use App\Filament\Resources\BaremeScolariteResource;
+use App\Filament\Resources\MaquetteResource;
+use App\Filament\Resources\SalleResource;
+use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationGroup;
+use Illuminate\Support\Str;
 
 uses()->group('filament');
 
@@ -68,4 +74,36 @@ it('neutralise la molette et les flèches sur les champs numériques du panneau'
         ->assertSee("cible.type === 'number'", false)
         ->assertSee("addEventListener('wheel'", false)
         ->assertSee("evenement.key === 'ArrowDown'", false);
+});
+
+describe('menu par rôle (lot 33)', function (): void {
+    beforeEach(function (): void {
+        config()->set('pssfp.filament.require_2fa', false);
+        $this->compte = fn (string ...$roles): User => tap(User::factory()->create(['email' => 'nav-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole($roles));
+    });
+
+    it('range le paramétrage dans « Réglages », en bas et replié, et met l\'accueil en tête', function (): void {
+        expect(SalleResource::getNavigationGroup())->toBe(GroupeNavigation::REGLAGES)
+            ->and(MaquetteResource::getNavigationGroup())->toBe(GroupeNavigation::REGLAGES)
+            ->and(BaremeScolariteResource::getNavigationGroup())->toBe(GroupeNavigation::REGLAGES)
+            ->and(GroupeNavigation::ORDRE)->not->toContain('Référentiel pédagogique')
+            ->and(GroupeNavigation::ORDRE[array_key_last(GroupeNavigation::ORDRE)])->toBe(GroupeNavigation::REGLAGES);
+
+        $this->get(Dashboard::getUrl())->assertRedirect();
+        $this->actingAs(($this->compte)('scolarite_agent'))->get(Dashboard::getUrl())->assertOk()
+            ->assertSeeInOrder(['Accueil', 'Messagerie', 'Scolarité', 'Auditeurs', 'Planification', 'Emplois du temps', 'Réglages', 'Salles'])
+            ->assertDontSee('Référentiel pédagogique')
+            ->assertSee('Prises en charge')->assertDontSee('Prises En Charge');
+
+        $replie = collect(Filament::getPanel('admin')->getNavigationGroups())->first(fn (NavigationGroup $g): bool => $g->getLabel() === GroupeNavigation::REGLAGES);
+        expect($replie?->isCollapsed())->toBeTrue();
+    });
+
+    it('met Finances en tête pour le service financier, pas pour la scolarité', function (): void {
+        expect(GroupeNavigation::ordrePour(($this->compte)('service_financier'))[0])->toBe(GroupeNavigation::FINANCES)
+            ->and(GroupeNavigation::ordrePour(($this->compte)('scolarite_responsable'))[0])->toBe(GroupeNavigation::ADMISSIONS);
+
+        $this->actingAs(($this->compte)('service_financier'))->get(Dashboard::getUrl())->assertOk()
+            ->assertSeeInOrder(['Accueil', 'Finances', 'Synthèse', 'Versements', 'Scolarité', 'Auditeurs']);
+    });
 });
