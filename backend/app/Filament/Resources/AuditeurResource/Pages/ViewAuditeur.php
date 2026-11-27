@@ -141,7 +141,6 @@ class ViewAuditeur extends ViewRecord
                     AuditeurActions::creerInscription(),
                     AuditeurActions::reinscrire(),
                     ParcoursActions::inscrire(),
-                    ParcoursActions::changerParcours(),
                     ParcoursActions::derogationRattrapage(),
                     ParcoursActions::leverRestriction(),
                     ParcoursActions::revoquerDocument(),

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Supervision\Controles\CptCoherence;
 use App\Services\Supervision\Controles\DebEchus;
 use App\Services\Supervision\Controles\DemAttente;
+use App\Services\Supervision\Controles\LmdSpecialite;
 use App\Services\Supervision\Controles\NotApresArret;
 use App\Services\Supervision\Controles\PaieEtatsBloques;
 use App\Services\Supervision\Controles\PaiRapprochement;
@@ -48,7 +49,7 @@ final class Supervision
     /** Catalogue, dans l'ordre d'exécution ; SYS_CONTROLES en dernier (il lit les erreurs des autres). */
     public const CATALOGUE = [
         PaiRapprochement::class, PaieEtatsBloques::class, ReqRetard::class, ReqNonCotees::class, DemAttente::class, DebEchus::class, VerNonConfirmes::class,
-        VerCorrections::class, RcptContinuite::class, NotApresArret::class,
+        VerCorrections::class, RcptContinuite::class, NotApresArret::class, LmdSpecialite::class,
         CptCoherence::class, SecSeparation::class, SecComptes::class, SecConnexions::class, SecJournal::class, SysDestinataires::class, VirAttente::class, SysControles::class,
     ];
 

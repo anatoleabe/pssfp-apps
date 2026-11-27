@@ -143,7 +143,7 @@ it('montre le parcours sur la fiche auditeur et propose l\'inscription au parcou
 
     $this->livewire(ViewAuditeur::class, ['record' => $inscription->auditeur->getRouteKey()])
         ->assertSee('Pas encore inscrit à un parcours.')
-        ->assertActionHidden('changerParcours')
+        ->assertInfolistActionHidden('candidature.specialite', 'changerSpecialite')
         ->callAction('inscrirePedagogique')
         ->assertHasNoActionErrors();
 

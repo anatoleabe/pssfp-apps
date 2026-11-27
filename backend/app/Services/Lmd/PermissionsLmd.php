@@ -17,7 +17,8 @@ final class PermissionsLmd
 
     public const REGLES = 'lmd.regles';
 
-    public const CHANGER_PARCOURS = 'lmd.parcours_changer';
+    /** Changer la spécialité d'un auditeur ; en M2, son parcours suit (administrateurs, 27/11/2026). */
+    public const CHANGER_SPECIALITE = 'lmd.specialite_changer';
 
     public const NOTES_SAISIR = 'lmd.notes_saisir';
 

@@ -8,10 +8,8 @@ use App\Models\AcquisUe;
 use App\Models\InscriptionAnnuelle;
 use App\Models\InscriptionPedagogique;
 use App\Models\Maquette;
-use App\Models\Parcours;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use InvalidArgumentException;
 
 /**
  * Inscription pédagogique (spec lot 4, § 3.5) : une ligne par UE de la maquette
@@ -105,39 +103,5 @@ final class InscriptionsPedagogiques
             });
 
         return $bilan;
-    }
-
-    /**
-     * Change le parcours d'une inscription (option de M2) et refait l'inscription
-     * pédagogique. Les UE de l'ancien parcours sont retirées : sans note au lot 4.
-     *
-     * @return array{issue: string, parcours: ?string, ues: int}
-     *
-     * @throws InvalidArgumentException motif absent, niveau différent, même parcours
-     */
-    public function changerParcours(InscriptionAnnuelle $inscription, Parcours $nouveau, User $auteur, string $motif): array
-    {
-        abort_unless($auteur->can(PermissionsLmd::CHANGER_PARCOURS), 403);
-        $motif = trim($motif);
-        if (mb_strlen($motif) < 10) {
-            throw new InvalidArgumentException('Indiquez le motif du changement de parcours (10 caractères au moins).');
-        }
-        if ($nouveau->niveau !== $inscription->niveau) {
-            throw new InvalidArgumentException('Ce parcours n\'est pas du niveau de l\'inscription.');
-        }
-        if ($inscription->parcours_id === $nouveau->id) {
-            throw new InvalidArgumentException('L\'auditeur suit déjà ce parcours.');
-        }
-
-        $ancien = $inscription->parcours?->code;
-        DB::transaction(function () use ($inscription, $nouveau, $auteur, $motif, $ancien): void {
-            $inscription->inscriptionsPedagogiques()->delete();
-            $inscription->forceFill(['parcours_id' => $nouveau->id])->save();
-            activity('lmd')->causedBy($auteur)->performedOn($inscription)->event('parcours_change')
-                ->withProperties(['ancien' => $ancien, 'nouveau' => $nouveau->code, 'motif' => $motif])
-                ->log('Parcours changé');
-        });
-
-        return $this->inscrire($inscription->refresh(), null);
     }
 }

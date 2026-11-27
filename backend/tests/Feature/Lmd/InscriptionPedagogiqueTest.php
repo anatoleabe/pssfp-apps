@@ -9,7 +9,6 @@ use App\Models\InscriptionAnnuelle;
 use App\Models\InscriptionPedagogique;
 use App\Models\Maquette;
 use App\Models\MaquetteUe;
-use App\Models\Parcours;
 use App\Models\User;
 use App\Services\Lmd\ImportMaquettes;
 use App\Services\Lmd\InscriptionsPedagogiques;
@@ -20,7 +19,6 @@ use Database\Seeders\PaysSeeder;
 use Database\Seeders\RegionsCamerounSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Str;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses()->group('lmd');
 
@@ -89,26 +87,6 @@ it('inscrit les auditeurs de l\'année à la validation de la maquette de leur p
     expect($bilan['inscrites'])->toBe(1)
         ->and($a->inscriptionsPedagogiques()->count())->toBe(5)
         ->and($b->inscriptionsPedagogiques()->count())->toBe(0);
-});
-
-it('change le parcours avec un motif et la permission, et refait l\'inscription pédagogique', function (): void {
-    ($this->valider)('FFCP');
-    ($this->valider)('GTFP');
-    $inscription = inscriptionLmd('M2', 'Fiscalité, Finance et Comptabilité Publique');
-    app(InscriptionsPedagogiques::class)->inscrire($inscription);
-    $gtfp = Parcours::query()->where('code', 'GTFP')->firstOrFail();
-    $agent = tap(User::factory()->create(['email' => 'ag-'.Str::random(5).'@pssfp.local']), fn (User $u) => $u->assignRole('scolarite_agent'));
-
-    expect(fn () => app(InscriptionsPedagogiques::class)->changerParcours($inscription, $gtfp, $agent, 'Demande de l\'auditeur'))
-        ->toThrow(HttpException::class);
-    expect(fn () => app(InscriptionsPedagogiques::class)->changerParcours($inscription, Parcours::query()->where('code', 'TC')->firstOrFail(), $this->responsable, 'Demande de l\'auditeur'))
-        ->toThrow(InvalidArgumentException::class, 'niveau');
-
-    $r = app(InscriptionsPedagogiques::class)->changerParcours($inscription, $gtfp, $this->responsable, 'Demande écrite de l\'auditeur du 7/11');
-
-    expect($r['parcours'])->toBe('GTFP')->and($r['ues'])->toBe(5)
-        ->and($inscription->refresh()->parcours->code)->toBe('GTFP')
-        ->and($inscription->inscriptionsPedagogiques()->count())->toBe(5);
 });
 
 it('rend compte par matricules seulement en essai à blanc de la commande', function (): void {

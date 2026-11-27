@@ -173,7 +173,7 @@ final class ModulePermissionMap
                 'sensitive' => [
                     'lmd.maquette_valider' => 'Valider ou rouvrir une maquette',
                     'lmd.regles' => 'Modifier les règles d\'évaluation de l\'année',
-                    'lmd.parcours_changer' => 'Changer le parcours (option) d\'un auditeur',
+                    'lmd.specialite_changer' => 'Changer la spécialité d\'un auditeur, avec un motif ; en Master 2, son parcours suit et ses UE sont refaites (administrateurs)',
                     'lmd.notes_verrouiller' => 'Ouvrir et verrouiller les étapes de saisie des notes',
                     'lmd.notes_rouvrir' => 'Rouvrir une étape de saisie verrouillée (avec motif)',
                     'lmd.derogation_rattrapage' => 'Accorder une dérogation pour le rattrapage',
