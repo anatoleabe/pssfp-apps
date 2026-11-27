@@ -38,7 +38,7 @@ Contraintes en base (ADR-0011) :
    - M1 : tronc commun ;
    - M2 : l'option correspondant à la spécialité du dossier.
 
-   Un changement d'option est une action motivée, permission `lmd.parcours_changer`.
+   Un changement d'option est une action motivée, permission `lmd.specialite_changer` (administrateurs). Depuis le 27/11/2026, le geste est « Changer la spécialité » (onglet Identité de la fiche) : la spécialité du dossier et le parcours de M2 changent ensemble.
 3. **Contrôles d'une maquette** :
    - Bloquants :
      - crédits des ECUE différents de ceux de l'UE ;
@@ -74,7 +74,7 @@ Contraintes en base (ADR-0011) :
   - import du fichier de maquettes.
 - **Parcours** : codes, libellés, spécialité correspondante.
 - **Règles d'évaluation** : une fiche par année.
-- **Fiche auditeur** : parcours et nombre d'UE inscrites ; actions « Inscrire au parcours » et « Changer de parcours ».
+- **Fiche auditeur** : parcours et nombre d'UE inscrites ; action « Inscrire au parcours » ; « Changer la spécialité » sur l'onglet Identité (administrateurs, 27/11/2026).
 
 Commandes :
 - `lmd:importer-maquettes {fichier} [--appliquer]` ;
@@ -103,7 +103,7 @@ Les maquettes enregistrent le semestre comme l'université : 7 et 8 en M1, 9 et 
 - **Gestion** :
   - `lmd.referentiel` : préparer les maquettes en brouillon et les parcours ;
   - `lmd.inscrire` : inscription pédagogique.
-- **Actions sensibles** : `lmd.maquette_valider`, `lmd.regles`, `lmd.parcours_changer`.
+- **Actions sensibles** : `lmd.maquette_valider`, `lmd.regles`, `lmd.specialite_changer` (remplace `lmd.parcours_changer` le 27/11/2026).
 
 | Rôles | Droits |
 |---|---|

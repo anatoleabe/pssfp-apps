@@ -111,7 +111,8 @@ final class RolePermissionSeeder extends Seeder
                     'scolarite.etiquettes',
                     'lmd.maquette_valider',
                     'lmd.regles',
-                    'lmd.parcours_changer',
+                    // Changer la spécialité (27/11/2026) : réservé à l'administration.
+                    'lmd.specialite_changer',
                     'lmd.notes_verrouiller',
                     'lmd.notes_rouvrir',
                     'lmd.derogation_rattrapage',
@@ -195,11 +196,11 @@ final class RolePermissionSeeder extends Seeder
             ],
             'scolarite_responsable' => [
                 'label' => 'Responsable de scolarité',
-                'description' => 'Droits de l\'agent, plus l\'annulation des versements, les remises, les barèmes, les réglages de promotion, le statut des auditeurs, les messages, la validation des maquettes, les règles d\'évaluation et les changements de parcours.',
+                'description' => 'Droits de l\'agent, plus l\'annulation des versements, les remises, les barèmes, les réglages de promotion, le statut des auditeurs, les messages, la validation des maquettes et les règles d\'évaluation.',
                 'modules' => ['scolarite' => $read, 'lmd' => $manage],
                 'sensitive' => ['scolarite.export', 'finances.consulter', 'scolarite.lettre_acces', 'scolarite.etiquettes', 'scolarite.versement_annuler', 'scolarite.versement_confirmer', 'scolarite.remise', 'scolarite.bareme', 'supervision.consulter',
                     'scolarite.promotion', 'scolarite.statut', 'scolarite.messages', 'scolarite.deblocage', 'scolarite.deblocage_exceptionnel',
-                    'lmd.maquette_valider', 'lmd.regles', 'lmd.parcours_changer',
+                    'lmd.maquette_valider', 'lmd.regles',
                     'lmd.notes_verrouiller', 'lmd.notes_rouvrir', 'lmd.derogation_rattrapage',
                     'lmd.deliberation_arreter', 'lmd.deliberation_publier', 'lmd.jury_signer',
                     'lmd.documents_revoquer', 'lmd.documents_lever', 'lmd.requetes_coter', 'lmd.requetes_jury',

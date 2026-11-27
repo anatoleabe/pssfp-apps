@@ -52,4 +52,9 @@ class InscriptionPedagogique extends Model
     {
         return $this->hasOne(DerogationRattrapage::class);
     }
+
+    public function pointages(): HasMany
+    {
+        return $this->hasMany(Pointage::class);
+    }
 }

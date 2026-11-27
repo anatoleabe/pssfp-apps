@@ -113,7 +113,6 @@ class ViewAuditeur extends ViewRecord
             ])->label('Documents')->icon('heroicon-o-document-text')->button()->color('gray'),
             ActionGroup::make([
                 ParcoursActions::inscrire(),
-                ParcoursActions::changerParcours(),
                 ParcoursActions::derogationRattrapage(),
                 ParcoursActions::leverRestriction(),
                 ParcoursActions::revoquerDocument(),
