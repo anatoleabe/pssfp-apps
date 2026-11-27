@@ -25,7 +25,8 @@ use InvalidArgumentException;
  */
 final class EmploisDuTemps
 {
-    public function __construct(private readonly ConflitsEmploiDuTemps $conflits, private readonly Programmations $programmations) {}
+    public function __construct(private readonly ConflitsEmploiDuTemps $conflits, private readonly Programmations $programmations,
+        private readonly NotificationsPlanning $notifications) {}
 
     public function creer(EvenementCalendrier $periode, Parcours $parcours, User $auteur): EmploiDuTemps
     {
@@ -126,6 +127,7 @@ final class EmploisDuTemps
             return $r;
         });
         $this->programmations->rattacher($s->emploiDuTemps->periode);
+        $this->notifications->seanceReportee($s, $r);
 
         return $r->refresh();
     }
@@ -140,6 +142,7 @@ final class EmploisDuTemps
             throw new InvalidArgumentException('Indiquez le motif de l\'annulation.');
         }
         $s->forceFill(['statut' => 'annulee', 'motif_annulation' => mb_substr(trim($motif), 0, 500)])->save();
+        $this->notifications->seanceAnnulee($s);
     }
 
     /** Suppression d'une séance d'un brouillon (jamais pointée). */
@@ -167,6 +170,7 @@ final class EmploisDuTemps
                 .implode(' ; ', array_map(fn (array $k): string => $k['seance']->libelle().' : '.$k['detail'], array_slice($bloquants, 0, 4))));
         }
         $e->forceFill(['statut' => EmploiDuTemps::PUBLIE, 'publie_par' => $auteur->id, 'publie_at' => now()])->save();
+        $this->notifications->emploiDuTempsPublie($e);
     }
 
     /**

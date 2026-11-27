@@ -59,3 +59,13 @@ it('sert le thème de la charte sur l\'écran de connexion', function (): void {
         ->assertSee('images/pssfp-logo.png', false)
         ->assertDontSee('family=inter', false);
 });
+
+it('neutralise la molette et les flèches sur les champs numériques du panneau', function (): void {
+    // Un montant saisi à 250 000 a été enregistré à 249 999 : le champ numérique du navigateur
+    // retire une unité d'un coup de molette ou de flèche bas.
+    $this->get('/admin/login')
+        ->assertOk()
+        ->assertSee("cible.type === 'number'", false)
+        ->assertSee("addEventListener('wheel'", false)
+        ->assertSee("evenement.key === 'ArrowDown'", false);
+});

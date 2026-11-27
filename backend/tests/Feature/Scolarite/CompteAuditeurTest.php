@@ -44,6 +44,7 @@ use Spatie\Activitylog\Models\Activity;
 uses()->group('scolarite');
 
 beforeEach(function (): void {
+    $this->administrateur = tap(User::factory()->create(['email' => 'admin-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole('admin'));
     // Après tous les versements des scénarios (2026-2027), au fuseau de Yaoundé.
     $this->travelTo(CarbonImmutable::parse('2027-12-01 09:00', 'Africa/Douala'));
     $this->seed([PaysSeeder::class, RegionsCamerounSeeder::class, DepartementsCamerounSeeder::class, RolePermissionSeeder::class]);
@@ -144,12 +145,12 @@ it('annule un versement : ses imputations d\'abord, puis l\'avance d\'un autre v
     $v1 = ($this->verser)(185000, '2026-11-10');
     $v2 = ($this->verser)(1300000, '2026-11-12');
 
-    ($this->registre)()->annuler($v1, 'Bordereau rejeté par la banque', $this->responsable);
+    ($this->registre)()->annuler($v1, 'Bordereau rejeté par la banque', $this->administrateur);
 
     $annulee = ImputationVersement::query()->where('versement_id', $v1->id)->sole();
     $journal = Activity::query()->where('event', 'versement_annule')->sole();
     expect($annulee->annule_motif)->toBe('Versement annulé : Bordereau rejeté par la banque')
-        ->and($annulee->annule_par)->toBe($this->responsable->id)
+        ->and($annulee->annule_par)->toBe($this->administrateur->id)
         ->and(($this->actives)())->toBe([[$v2->id, $this->m1->id, 1000000, 'saisie'], [$v2->id, $this->m1->id, 185000, 'avance']])
         ->and(($this->compte)()->avance())->toBe(115000)
         ->and($journal->properties['imputations_annulees'])->toBe([['inscription' => $this->m1->uuid, 'annee' => '2026-2027', 'montant' => 185000]])
@@ -196,7 +197,7 @@ it('E5, E6 : réserve l\'excédent de l\'employeur, qui comble l\'année quand l
     expect(($this->compte)()->avanceReservee())->toBe(185000)
         ->and(($this->compte)()->avanceLibre())->toBe(0);
 
-    ($this->registre)()->annuler($v1, 'Chèque sans provision', $this->responsable);
+    ($this->registre)()->annuler($v1, 'Chèque sans provision', $this->administrateur);
 
     expect(($this->actives)())->toBe([[$v2->id, $this->m1->id, 1000000, 'saisie'], [$v2->id, $this->m1->id, 185000, 'avance']])
         ->and(($this->compte)()->avance())->toBe(0);
@@ -223,7 +224,7 @@ it('E11 : refuse en D1 l\'annulation d\'un versement imputé sur deux années, s
     $v = ($this->verser)(2320000);
     ($this->ouvrir)();
 
-    expect(fn () => ($this->registre)()->annuler($v, 'Virement rejeté', $this->responsable))
+    expect(fn () => ($this->registre)()->annuler($v, 'Virement rejeté', $this->administrateur))
         ->toThrow(InvalidArgumentException::class, 'Ce versement est imputé sur plusieurs années (2026-2027, 2027-2028) : son annulation passera par une demande d\'autorisation (sous-lot D4). Prévenez l\'USI.')
         ->and($v->fresh()->estAnnule())->toBeFalse()
         ->and(ImputationVersement::query()->whereNull('annule_at')->count())->toBe(2)
@@ -323,7 +324,7 @@ it('verrouille l\'auditeur en premier dans chaque écriture d\'argent, et plus j
         },
         'remise' => fn () => ($this->registre)()->accorderRemise($this->m1->fresh(), 100000, 'Bourse partielle', $this->responsable),
         'annulation' => function () use (&$v): void {
-            ($this->registre)()->annuler($v->fresh(), 'Doublon de saisie', $this->responsable);
+            ($this->registre)()->annuler($v->fresh(), 'Doublon de saisie', $this->administrateur);
         },
         'accès anticipé' => fn () => app(DeblocagesAcces::class)->accorder($this->m1->fresh(), ['type' => 'moratoire', 'motif' => 'Moratoire accordé par le responsable', 'echeance' => now()->addDays(30)->toDateString()], $this->responsable),
         'régularisation' => fn () => app(DeblocagesAcces::class)->regulariser($this->m1->fresh()),

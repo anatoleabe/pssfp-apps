@@ -43,6 +43,8 @@ beforeEach(function (): void {
     });
     $this->compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole($role));
     $this->financier = ($this->compte)('service_financier');
+    // Règle du 25/11/2026 : la rectification immédiate n'est plus ouverte au service financier seul.
+    $this->superAdmin = ($this->compte)('super_admin');
     $this->travelTo(now('Africa/Douala')->setDate(2026, 11, 10)->setTime(9, 0));
     AppSettings::set(RecusVersements::CLE_DEPUIS, now()->subDay()->toIso8601String());
     $campagne = CampagneCandidature::factory()->closed()->create(['nom' => ['fr' => 'Année académique 2026-2027'], 'promotion_numero' => 14]);
@@ -57,7 +59,7 @@ beforeEach(function (): void {
     $this->v = app(RegistreVersements::class)->encaisser($this->a->auditeur->inscriptionCourante, ['montant' => 100000, 'date_versement' => '2026-11-09',
         'mode' => 'cremincam_agence', 'reference' => 'BOR-FAUTE', 'payeur' => 'auditeur'], $this->financier)->versement;
     $this->rectifier = fn (array $saisie, ?Versement $v = null): CorrectionVersement => app(CorrectionsVersements::class)
-        ->rectifier($v ?? $this->v, $saisie, 'Faute de frappe sur la référence du bordereau', $this->financier);
+        ->rectifier($v ?? $this->v, $saisie, 'Faute de frappe sur la référence du bordereau', $this->superAdmin);
 });
 
 it('rectifie seul une erreur descriptive : même pièce que le circuit, sans demande, reçu lié et avis', function (): void {
@@ -69,8 +71,8 @@ it('rectifie seul une erreur descriptive : même pièce que le circuit, sans dem
 
     expect($c->rectification_immediate)->toBeTrue()
         ->and($c->demande_id)->toBeNull()
-        ->and($c->demandee_par)->toBe($this->financier->id)
-        ->and($c->executee_par)->toBe($this->financier->id)
+        ->and($c->demandee_par)->toBe($this->superAdmin->id)
+        ->and($c->executee_par)->toBe($this->superAdmin->id)
         ->and($c->versementRemplacant->reference)->toBe('BOR-JUSTE')
         ->and($c->recuRemplacant->remplace->numero)->toBe($ancien)
         ->and((int) ImputationVersement::query()->whereNull('annule_at')->sum('montant'))->toBe((int) $avant)
@@ -100,11 +102,17 @@ it('ferme la fenêtre après 48 heures, réglable', function (): void {
     expect(($this->rectifier)(['categorie' => 'reference', 'reference' => 'BOR-TARD'])->rectification_immediate)->toBeTrue();
 });
 
-it('n\'est ouverte qu\'au service financier, depuis la liste des versements', function (): void {
-    expect(fn () => app(CorrectionsVersements::class)->rectifier($this->v, ['categorie' => 'reference', 'reference' => 'BOR-R'], 'Faute de frappe sur la référence', ($this->compte)('scolarite_responsable')))
-        ->toThrow(HttpException::class);
+it('n\'est ouverte qu\'à l\'administrateur qui détient tous les droits, depuis la liste des versements', function (): void {
+    // Règle du 25/11/2026 : ni le responsable ni le service financier seul.
+    foreach ([($this->compte)('scolarite_responsable'), $this->financier] as $refuse) {
+        expect(fn () => app(CorrectionsVersements::class)->rectifier($this->v, ['categorie' => 'reference', 'reference' => 'BOR-R'], 'Faute de frappe sur la référence', $refuse))
+            ->toThrow(HttpException::class);
+    }
 
     $this->actingAs($this->financier);
+    $this->livewire(ListVersements::class)->assertTableActionHidden('rectifier', $this->v);
+
+    $this->actingAs($this->superAdmin);
     $this->livewire(ListVersements::class)
         ->assertTableActionVisible('rectifier', $this->v)
         ->callTableAction('rectifier', $this->v, data: ['categorie' => 'mode', 'mode' => 'virement', 'motif' => 'Mode de paiement mal choisi au guichet'])
@@ -121,7 +129,7 @@ it('compte les rectifications dans le seuil du contrôle VER_CORRECTIONS', funct
     AppSettings::set(VerCorrections::CLE_SEUIL, '1');
     ($this->rectifier)(['categorie' => 'reference', 'reference' => 'BOR-2'], CorrectionVersement::query()->sole()->versementRemplacant);
 
-    expect(app(VerCorrections::class)->cas())->toHaveKey('compte:'.$this->financier->id);
+    expect(app(VerCorrections::class)->cas())->toHaveKey('compte:'.$this->superAdmin->id);
 });
 
 it('revérifie sous le verrou : une confirmation arrivée entre-temps refuse avec un message, jamais une erreur de base', function (): void {

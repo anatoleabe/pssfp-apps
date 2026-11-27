@@ -826,6 +826,28 @@ export function getMyEmploiDuTemps(token: string, semaine?: string): Promise<Api
   return apiGet<EmploiDuTempsAuditeur>(`/applications/me/emploi-du-temps${query}`, { token, noStore: true });
 }
 
+export interface EpreuveAuditeur {
+  id: string;
+  session: string;
+  rattrapage: boolean;
+  date: string;
+  debut: string;
+  fin: string;
+  ecue: string;
+  intitule: string | null;
+  salle: string | null;
+}
+
+export interface ExamensAuditeur {
+  autorise: boolean;
+  epreuves: EpreuveAuditeur[];
+}
+
+/** GET /applications/me/examens — épreuves des plannings d'examens publiés où l'auditeur est convoqué, avec sa salle. */
+export function getMyExamens(token: string): Promise<ApiResult<ExamensAuditeur>> {
+  return apiGet<ExamensAuditeur>('/applications/me/examens', { token, noStore: true });
+}
+
 /** GET /applications/me/memoire — `data` null tant qu'aucun dossier de mémoire n'est ouvert. */
 export function getMyMemoire(token: string): Promise<ApiResult<MonMemoire | null>> {
   return apiGet<MonMemoire | null>('/applications/me/memoire', { token, noStore: true });

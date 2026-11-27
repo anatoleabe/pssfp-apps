@@ -52,7 +52,7 @@ beforeEach(function (): void {
         'reference' => 'BOR-PIRE-CAS-AVEC-UNE-REFERENCE-TRES-LONGUE-0001', 'payeur' => 'auditeur',
     ], $financier)->recu;
     // Un versement sur deux années ne se rectifie pas : son reçu s'annule seul, ce qui pose le bandeau « ANNULÉ ».
-    app(RecusVersements::class)->annuler($this->recu, 'Reçu remis par erreur à un tiers', $financier);
+    app(RecusVersements::class)->annuler($this->recu, 'Reçu remis par erreur à un tiers', tap(User::factory()->create(['email' => 'admin-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole('admin')));
 });
 
 it('tient chaque exemplaire du pire cas dans sa demi-page, sans rien couper', function (): void {

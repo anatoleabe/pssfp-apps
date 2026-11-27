@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Filament\GlobalSearch\RechercheGlobale;
 use App\Filament\Resources\AuditeurResource;
 use App\Filament\Resources\AuditeurResource\Pages\ListAuditeurs;
 use App\Filament\Resources\AuditeurResource\Pages\ViewAuditeur;
@@ -161,7 +162,7 @@ it('annonce dans la fenêtre d\'annulation qu\'un versement imputé sur deux ann
     InscriptionAnnuelle::factory()->create(['auditeur_id' => $this->fiche->id,
         'bareme_id' => BaremeScolarite::factory()->m2()->create(['annee_academique' => '2027-2028'])->id]);
     app(ImputationsCompte::class)->sousVerrou($this->fiche->id, fn (ImputationsCompte $c) => $c->imputerAvance($this->fiche->id, 'ouverture', null));
-    $this->actingAs(($this->compte)('scolarite_responsable'));
+    $this->actingAs(($this->compte)('admin'));
 
     $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
         ->mountTableAction('annuler', $v)
@@ -205,7 +206,7 @@ it('refuse une date future et un montant nul dans le formulaire', function (): v
         ->assertHasActionErrors(['montant', 'date_versement']);
 });
 
-it('réserve l\'annulation et la remise au responsable', function (): void {
+it('réserve l\'annulation à l\'administrateur et la remise au responsable', function (): void {
     $v = Versement::factory()->create(['inscription_annuelle_id' => $this->fiche->inscriptionCourante->id, 'reference' => 'BOR-9']);
 
     $this->actingAs(($this->compte)('service_financier'));
@@ -213,15 +214,22 @@ it('réserve l\'annulation et la remise au responsable', function (): void {
     $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
         ->assertTableActionHidden('annuler', $v);
 
-    $this->actingAs(($this->compte)('scolarite_responsable'));
+    // Règle du 25/11/2026 : le responsable de scolarité n'annule plus ; l'administrateur, si.
+    $responsable = ($this->compte)('scolarite_responsable');
+    $this->actingAs($responsable);
     $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
         ->assertCanSeeTableRecords([$v])
+        ->assertTableActionHidden('annuler', $v);
+
+    $this->actingAs(($this->compte)('admin'));
+    $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->fiche, 'pageClass' => ViewAuditeur::class])
         ->callTableAction('annuler', $v, data: ['categorie' => 'doublon', 'motif' => 'Doublon de saisie', 'fermeture' => true])
         ->assertHasNoTableActionErrors();
     // Annulation directe avec sa pièce de correction (décision Q11 du 16/11/2026).
     expect($v->fresh()->annule_motif)->toEndWith('Doublon de saisie')
         ->and($v->fresh()->correction?->categorie)->toBe('doublon');
 
+    $this->actingAs($responsable);
     $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()])
         ->callAction('accorderRemise', data: ['montant' => 200000, 'motif' => 'Bourse'])
         ->assertHasNoActionErrors();
@@ -455,4 +463,37 @@ it('refuse de créer une inscription sur un dossier retiré, et vérifie le droi
         ->toThrow(HttpException::class)
         ->and(fn () => app(OuvertureAuditeur::class)->creerInscription($this->fiche->fresh(), ($this->compte)('service_financier')))
         ->toThrow(HttpException::class);
+});
+
+describe('fiche en onglets et recherche unique (lot 32)', function (): void {
+    it('trouve un auditeur depuis la barre du haut par matricule, nom ou téléphone, avant les autres écrans', function (): void {
+        $this->actingAs(($this->compte)('super_admin'));
+        $matricule = $this->awa->matricule;
+
+        foreach ([$matricule, 'abena', '699001001'] as $terme) {
+            $trouves = AuditeurResource::getGlobalSearchResults($terme);
+            expect($trouves)->toHaveCount(1, $terme)
+                ->and($trouves->first()->title)->toBe($matricule.' — ABENA Essai')
+                ->and($trouves->first()->url)->toBe(ViewAuditeur::getUrl(['record' => $this->fiche->getRouteKey()]));
+        }
+
+        // « Essai » trouve aussi les dossiers de candidature : les auditeurs passent en premier.
+        $categories = array_keys(app(RechercheGlobale::class)->getResults('Essai')->getCategories()->all());
+        expect($categories[0])->toBe(AuditeurResource::getPluralModelLabel());
+    });
+
+    it('ouvre la fiche avec son bandeau résumé, ses onglets, un seul menu d\'actions et les versements dans l\'onglet Finances', function (): void {
+        app(RegistreVersements::class)->encaisser($this->fiche->inscriptionCourante, ($this->saisie)(['reference' => 'BOR-ONGLET']), ($this->compte)('service_financier'));
+        $this->actingAs(($this->compte)('scolarite_responsable'));
+
+        $this->get(ViewAuditeur::getUrl(['record' => $this->fiche->getRouteKey()]))->assertOk()
+            ->assertSee('Reste à payer : ')->assertSee('eCampus : ')
+            ->assertSeeInOrder(['Identité', 'Finances', 'Parcours et notes', 'Documents', 'Accès eCampus', 'Historique'])
+            ->assertSee('BOR-ONGLET');
+
+        $page = $this->livewire(ViewAuditeur::class, ['record' => $this->fiche->getRouteKey()]);
+        // Les gestes gardent leurs noms et leurs contrôles, rangés dans le menu « Actions ».
+        $page->assertActionVisible('accorderRemise')->assertActionHidden('enregistrerVersement');
+        expect($page->instance()->getRelationManagers())->toBe([]);
+    });
 });

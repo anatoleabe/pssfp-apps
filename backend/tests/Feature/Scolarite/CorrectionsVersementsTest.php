@@ -60,6 +60,8 @@ beforeEach(function (): void {
     });
 
     $this->compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local', 'name' => 'Agent '.$role]), fn (User $u) => $u->assignRole($role));
+
+    $this->administrateur = ($this->compte)('admin');
     $this->financier = ($this->compte)('service_financier');
     $this->responsable = ($this->compte)('scolarite_responsable');
     $this->travelTo(now('Africa/Douala')->setDate(2026, 11, 10)->setTime(9, 0));
@@ -84,7 +86,7 @@ beforeEach(function (): void {
     $this->demander = fn (Versement $v, array $parametres, string $motif = 'Erreur de saisie au guichet du service financier'): DemandeAutorisation => app(Demandes::class)
         ->soumettre($this->financier, TypesDemande::CORRIGER_VERSEMENT, $v->id, $motif, null, $parametres);
     $this->decider = fn (DemandeAutorisation $d, array $options = [], ?User $decideur = null): string => app(Demandes::class)
-        ->decider($decideur ?? $this->responsable, $d, true, null, null, $options);
+        ->decider($decideur ?? $this->administrateur, $d, true, null, null, $options);
     $this->imputations = fn (Candidature $c): array => ImputationVersement::query()->where('auditeur_id', $c->auditeur->id)->whereNull('annule_at')
         ->get()->groupBy('inscription_annuelle_id')->map(fn ($l): int => (int) $l->sum('montant'))->all();
 });
@@ -94,7 +96,9 @@ describe('permissions', function (): void {
         expect(CorrectionsVersements::peutDemander($this->financier))->toBeTrue()
             ->and(CorrectionsVersements::peutDemander($this->responsable))->toBeFalse()
             ->and(CorrectionsVersements::peutDecider($this->financier))->toBeFalse();
-        foreach (['scolarite_responsable', 'admin', 'super_admin'] as $role) {
+        // Règle du 25/11/2026 : l'administrateur seul décide ; le responsable de scolarité ne décide plus.
+        expect(CorrectionsVersements::peutDecider($this->responsable))->toBeFalse();
+        foreach (['admin', 'super_admin'] as $role) {
             expect(CorrectionsVersements::peutDecider(($this->compte)($role)))->toBeTrue($role);
         }
         expect(CorrectionsVersements::agitDirectement(($this->compte)('super_admin')))->toBeTrue()
@@ -134,10 +138,10 @@ describe('remplacement à montant égal', function (): void {
             ->and($c->numero)->toBe('COR-2026-00001')
             ->and($c->demande_id)->toBe($d->id)
             ->and($c->demandee_par)->toBe($this->financier->id)
-            ->and($c->executee_par)->toBe($this->responsable->id)
+            ->and($c->executee_par)->toBe($this->administrateur->id)
             ->and($c->champs)->toEqual(['reference' => ['avant' => 'BOR-FAUX', 'apres' => 'BOR-JUSTE']])
             ->and($v->statut())->toBe(Versement::STATUT_REMPLACE)
-            ->and($v->annule_par)->toBe($this->responsable->id)
+            ->and($v->annule_par)->toBe($this->administrateur->id)
             ->and($nouveau->reference)->toBe('BOR-JUSTE')
             ->and($nouveau->montant)->toBe($v->montant)
             ->and($nouveau->saisi_par)->toBe($this->financier->id)
@@ -197,7 +201,7 @@ describe('montant ou auditeur changé sur un versement confirmé', function (): 
         $c = CorrectionVersement::query()->sole();
         expect($c->confirmation_reportee)->toBe(CorrectionVersement::REPORT_ATTESTE)
             ->and($c->versementRemplacant->montant)->toBe(60000)
-            ->and($c->versementRemplacant->confirmation->confirme_par)->toBe($this->responsable->id);
+            ->and($c->versementRemplacant->confirmation->confirme_par)->toBe($this->administrateur->id);
     });
 
     it('annonce et fait accepter la fermeture d\'un accès par une baisse de montant', function (): void {
@@ -243,10 +247,10 @@ describe('annulation sans remplacement', function (): void {
 
     it('reste un geste direct du responsable, avec sa catégorie et sa pièce', function (): void {
         $v = ($this->encaisser)($this->a);
-        $c = app(CorrectionsVersements::class)->annulerDirectement($v, 'doublon', 'Doublon constaté au guichet de la scolarité', $this->responsable);
+        $c = app(CorrectionsVersements::class)->annulerDirectement($v, 'doublon', 'Doublon constaté au guichet de la scolarité', $this->administrateur);
 
         expect($c->demande_id)->toBeNull()
-            ->and($c->demandee_par)->toBe($this->responsable->id)
+            ->and($c->demandee_par)->toBe($this->administrateur->id)
             ->and($c->categorie)->toBe('doublon')
             ->and($v->refresh()->estAnnule())->toBeTrue()
             ->and(fn () => app(CorrectionsVersements::class)->annulerDirectement(($this->encaisser)($this->b), 'doublon', 'Doublon constaté au guichet', $this->financier))
@@ -265,7 +269,7 @@ describe('refus et garde-fous', function (): void {
         expect(fn () => ($this->demander)($v, ['nature' => 'annulation', 'categorie' => 'doublon']))->toThrow(InvalidArgumentException::class, 'déjà en cours');
 
         $annule = ($this->encaisser)($this->b);
-        app(RegistreVersements::class)->annuler($annule, 'Doublon de saisie', $this->responsable);
+        app(RegistreVersements::class)->annuler($annule, 'Doublon de saisie', $this->administrateur);
         expect(fn () => ($this->demander)($annule->refresh(), ['nature' => 'annulation', 'categorie' => 'doublon']))->toThrow(InvalidArgumentException::class);
     });
 
@@ -290,7 +294,7 @@ describe('refus et garde-fous', function (): void {
     it('fait échouer l\'exécution si le versement a changé depuis la demande', function (): void {
         $v = ($this->encaisser)($this->a);
         $d = ($this->demander)($v, ['nature' => 'remplacement', 'categorie' => 'reference', 'reference' => 'BOR-AUTRE']);
-        app(RecusVersements::class)->annuler($v->recuEnVigueur(), 'Reçu annulé entre-temps', $this->financier);
+        app(RecusVersements::class)->annuler($v->recuEnVigueur(), 'Reçu annulé entre-temps', $this->administrateur);
 
         expect(($this->decider)($d))->toContain('Échec de l\'exécution')
             ->and($d->refresh()->statut)->toBe(DemandeAutorisation::ECHEC)
@@ -313,9 +317,9 @@ describe('base de données', function (): void {
     it('rend la pièce immuable et numérote sans trou après une transaction annulée', function (): void {
         $v = ($this->encaisser)($this->a);
         DB::beginTransaction();
-        app(CorrectionsVersements::class)->annulerDirectement($v, 'doublon', 'Doublon annulé puis défait par la transaction', $this->responsable);
+        app(CorrectionsVersements::class)->annulerDirectement($v, 'doublon', 'Doublon annulé puis défait par la transaction', $this->administrateur);
         DB::rollBack();
-        $c = app(CorrectionsVersements::class)->annulerDirectement($v->refresh(), 'doublon', 'Doublon constaté au guichet de la scolarité', $this->responsable);
+        $c = app(CorrectionsVersements::class)->annulerDirectement($v->refresh(), 'doublon', 'Doublon constaté au guichet de la scolarité', $this->administrateur);
 
         expect($c->numero)->toBe('COR-2026-00001');
         foreach (['UPDATE corrections_versements SET motif = \'Modification interdite\'', 'DELETE FROM corrections_versements'] as $sql) {
@@ -335,7 +339,7 @@ describe('base de données', function (): void {
             ->and(Schema::hasColumn('recus_versements', 'remplace_recu_id'))->toBeFalse();
         $migration->up();
 
-        app(CorrectionsVersements::class)->annulerDirectement(($this->encaisser)($this->a), 'doublon', 'Doublon constaté au guichet de la scolarité', $this->responsable);
+        app(CorrectionsVersements::class)->annulerDirectement(($this->encaisser)($this->a), 'doublon', 'Doublon constaté au guichet de la scolarité', $this->administrateur);
         expect(fn () => $migration->down())->toThrow(RuntimeException::class, 'pièces');
     });
 
@@ -393,7 +397,7 @@ describe('écrans', function (): void {
         confirmerVersement($v);
         $d = ($this->demander)($v, ['nature' => 'remplacement', 'categorie' => 'montant', 'montant' => 55000]);
 
-        $this->actingAs($this->responsable);
+        $this->actingAs($this->administrateur);
         $this->livewire(ViewDemande::class, ['record' => $d->getRouteKey()])
             ->mountAction('approuver')
             ->assertSee('accès eCampus')
@@ -409,10 +413,10 @@ describe('écrans', function (): void {
             ->and(CorrectionVersement::query()->sole()->versementRemplacant->montant)->toBe(55000);
     });
 
-    it('fait annuler directement par le responsable depuis la fiche, avec une catégorie', function (): void {
+    it('fait annuler directement par l\'administrateur depuis la fiche, avec une catégorie', function (): void {
         $v = ($this->encaisser)($this->a);
 
-        $this->actingAs($this->responsable);
+        $this->actingAs($this->administrateur);
         $this->livewire(VersementsRelationManager::class, ['ownerRecord' => $this->a->auditeur, 'pageClass' => ViewAuditeur::class])
             ->callTableAction('annuler', $v, data: ['categorie' => 'doublon', 'motif' => 'Doublon de saisie au guichet'])
             ->assertHasNoTableActionErrors()
@@ -475,14 +479,14 @@ describe('suites de la relecture', function (): void {
         $this->b->forceFill(['withdrawn_at' => now()])->save();
 
         expect(fn () => app(CorrectionsVersements::class)->prevoir($v, $d->parametres))->toThrow(InvalidArgumentException::class, 'retiré');
-        $this->actingAs($this->responsable);
+        $this->actingAs($this->administrateur);
         $this->livewire(ViewDemande::class, ['record' => $d->getRouteKey()])->mountAction('approuver')->assertSee('Correction impossible en l\'état');
     });
 
     it('cite sur le nouveau reçu un reçu déjà annulé auparavant', function (): void {
         $v = ($this->encaisser)($this->a, ['reference' => 'BOR-AVANT']);
         $ancien = $v->recuEnVigueur();
-        app(RecusVersements::class)->annuler($ancien, 'Nom de l\'auditeur corrigé', $this->financier);
+        app(RecusVersements::class)->annuler($ancien, 'Nom de l\'auditeur corrigé', $this->administrateur);
         ($this->decider)(($this->demander)($v->refresh(), ['nature' => 'remplacement', 'categorie' => 'reference', 'reference' => 'BOR-APRES']));
 
         expect(CorrectionVersement::query()->sole()->recuRemplacant->remplace_recu_id)->toBe($ancien->id);
@@ -498,7 +502,7 @@ describe('suites de la relecture', function (): void {
 
     it('refuse le retour arrière dès qu\'un reçu en remplace un autre, même sans correction', function (): void {
         $v = ($this->encaisser)($this->a);
-        app(RecusVersements::class)->annuler($v->recuEnVigueur(), 'Nom de l\'auditeur corrigé', $this->financier);
+        app(RecusVersements::class)->annuler($v->recuEnVigueur(), 'Nom de l\'auditeur corrigé', $this->administrateur);
         $nouveau = app(RecusVersements::class)->emettre($v->refresh(), $this->financier);
         expect($nouveau->remplace_recu_id)->not->toBeNull();
 

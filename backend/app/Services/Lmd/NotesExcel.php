@@ -77,6 +77,35 @@ final class NotesExcel
      */
     public function importer(EtapeSaisie $etape, string $chemin, User $auteur, bool $appliquer): int
     {
+        ['lignes' => $lignes, 'numeros' => $numeros, 'refus' => $refus] = $this->lire($etape, $chemin);
+
+        try {
+            // Avec des lignes déjà refusées, les autres sont seulement contrôlées, pour un rapport complet.
+            $modifiees = $this->saisie->saisir($etape, $lignes, $auteur, $appliquer && $refus === []);
+        } catch (SaisieRefusee $e) {
+            foreach ($e->erreurs as $erreur) {
+                $refus[] = ['ligne' => $numeros[$erreur['id']] ?? 0, 'matricule' => $erreur['matricule'], 'message' => $erreur['message']];
+            }
+        }
+        if ($refus !== []) {
+            usort($refus, fn (array $a, array $b): int => $a['ligne'] <=> $b['ligne']);
+
+            throw new ImportRefuse($refus);
+        }
+
+        return $modifiees;
+    }
+
+    /**
+     * Lecture du modèle rempli : lignes à saisir par id d'inscription, numéro de ligne de chacune, lignes refusées
+     * dès la lecture (matricule non inscrit ou en double), nombre de lignes laissées sans note.
+     *
+     * @return array{lignes: array<int, array{note: mixed, presence: ?string, motif: string}>, numeros: array<int, int>, refus: list<array{ligne: int, matricule: string, message: string}>, sans_note: int}
+     *
+     * @throws InvalidArgumentException fichier illisible, modèle modifié
+     */
+    private function lire(EtapeSaisie $etape, string $chemin): array
+    {
         try {
             $feuille = IOFactory::load($chemin)->getSheet(0);
         } catch (Throwable) {
@@ -94,11 +123,17 @@ final class NotesExcel
         $lignes = [];
         $numeros = [];
         $refus = [];
+        $sansNote = 0;
         $max = $feuille->getHighestDataRow();
         for ($n = self::LIGNE_ENTETE + 1; $n <= $max; $n++) {
             [$matricule, , , $note, $presence, $motif] = $feuille->rangeToArray("A{$n}:F{$n}", null, true, false)[0];
             $matricule = mb_strtoupper(trim((string) $matricule));
-            if ($matricule === '' || (trim((string) $note) === '' && trim((string) $presence) === '')) {
+            if ($matricule === '') {
+                continue;
+            }
+            if (trim((string) $note) === '' && trim((string) $presence) === '') {
+                $sansNote++;
+
                 continue;
             }
             $id = $parMatricule[$matricule] ?? null;
@@ -121,21 +156,84 @@ final class NotesExcel
             ];
         }
 
-        try {
-            // Avec des lignes déjà refusées, les autres sont seulement contrôlées, pour un rapport complet.
-            $modifiees = $this->saisie->saisir($etape, $lignes, $auteur, $appliquer && $refus === []);
-        } catch (SaisieRefusee $e) {
-            foreach ($e->erreurs as $erreur) {
-                $refus[] = ['ligne' => $numeros[$erreur['id']] ?? 0, 'matricule' => $erreur['matricule'], 'message' => $erreur['message']];
+        return ['lignes' => $lignes, 'numeros' => $numeros, 'refus' => $refus, 'sans_note' => $sansNote];
+    }
+
+    /**
+     * Essai à blanc ligne à ligne (lot 30) : le sort de chaque ligne remplie du fichier, sans rien enregistrer.
+     *
+     * @return array{lignes: list<array{ligne: int, matricule: string, nom: string, avant: ?string, apres: ?string, resultat: string, message: ?string}>, comptes: array<string, int>, sans_note: int}
+     *
+     * @throws InvalidArgumentException fichier illisible, modèle modifié, étape non ouverte
+     */
+    public function essai(EtapeSaisie $etape, string $chemin, User $auteur): array
+    {
+        $lu = $this->lire($etape, $chemin);
+        $detail = $this->saisie->examiner($etape, $lu['lignes'], $auteur);
+        $dossiers = $this->saisie->inscrits($etape->ecue)->keyBy('id')->map(fn ($i) => $i->inscriptionAnnuelle?->auditeur?->candidature);
+
+        $lignes = array_map(fn (array $r): array => ['ligne' => $r['ligne'], 'matricule' => $r['matricule'], 'nom' => '', 'avant' => null, 'apres' => null,
+            'resultat' => SaisieNotes::ERREUR, 'message' => $r['message']], $lu['refus']);
+        foreach ($detail as $id => $d) {
+            $dossier = $dossiers->get($id);
+            $lignes[] = ['ligne' => $lu['numeros'][$id] ?? 0, 'matricule' => (string) $dossier?->matricule,
+                'nom' => trim(mb_strtoupper((string) $dossier?->nom).' '.$dossier?->prenom), ...$d];
+        }
+        usort($lignes, fn (array $x, array $y): int => $x['ligne'] <=> $y['ligne']);
+        $comptes = array_fill_keys(array_keys(SaisieNotes::RESULTATS), 0);
+        foreach ($lignes as $l) {
+            $comptes[$l['resultat']]++;
+        }
+
+        return ['lignes' => $lignes, 'comptes' => $comptes, 'sans_note' => $lu['sans_note']];
+    }
+
+    /** Résumé d'un essai à blanc, en une phrase. @param  array<string, int>  $comptes */
+    public static function resume(array $comptes): string
+    {
+        $parts = [];
+        foreach (SaisieNotes::RESULTATS as $cle => $libelle) {
+            if (($comptes[$cle] ?? 0) > 0) {
+                $parts[] = $comptes[$cle].' '.mb_strtolower($libelle).($comptes[$cle] > 1 ? 's' : '');
             }
         }
-        if ($refus !== []) {
-            usort($refus, fn (array $a, array $b): int => $a['ligne'] <=> $b['ligne']);
 
-            throw new ImportRefuse($refus);
+        return $parts === [] ? 'Aucune ligne remplie dans le fichier.' : implode(', ', $parts).'.';
+    }
+
+    /**
+     * Rapport d'un essai à blanc : une ligne par ligne remplie du fichier, avec la note actuelle, la note lue et le sort.
+     *
+     * @param  array{lignes: list<array<string, mixed>>, comptes: array<string, int>, sans_note: int}  $essai
+     */
+    public function rapportEssai(EtapeSaisie $etape, array $essai): string
+    {
+        $etape->loadMissing('ecue');
+        $classeur = new Spreadsheet;
+        $feuille = $classeur->getActiveSheet();
+        $feuille->setTitle('Essai à blanc');
+        $feuille->setCellValue('A1', 'Essai à blanc — '.$etape->ecue->code.' · '.EtapeSaisie::SESSIONS[$etape->session].' · '.EtapeSaisie::ETAPES[$etape->etape]);
+        $feuille->setCellValue('A2', 'Rien n\'a été enregistré. '.self::resume($essai['comptes'])
+            .($essai['sans_note'] > 0 ? ' '.$essai['sans_note'].' ligne(s) sans note, laissée(s) de côté.' : ''));
+        $feuille->fromArray(['Ligne du fichier', 'Matricule', 'Nom et prénom', 'Note actuelle', 'Note du fichier', 'Résultat', 'Problème'], null, 'A4');
+        $feuille->getStyle('A4:G4')->getFont()->setBold(true);
+        $n = 5;
+        foreach ($essai['lignes'] as $l) {
+            $feuille->setCellValue('A'.$n, $l['ligne']);
+            foreach (['B' => $l['matricule'], 'C' => $l['nom'], 'D' => (string) $l['avant'], 'E' => (string) $l['apres'],
+                'F' => SaisieNotes::RESULTATS[$l['resultat']] ?? $l['resultat'], 'G' => (string) $l['message']] as $col => $valeur) {
+                $feuille->setCellValueExplicit($col.$n, $valeur, DataType::TYPE_STRING);
+            }
+            $n++;
+        }
+        foreach (range('A', 'G') as $col) {
+            $feuille->getColumnDimension($col)->setAutoSize(true);
         }
 
-        return $modifiees;
+        ob_start();
+        (new Xlsx($classeur))->save('php://output');
+
+        return (string) ob_get_clean();
     }
 
     /**

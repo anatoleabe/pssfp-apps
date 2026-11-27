@@ -94,7 +94,7 @@ final class AuditeurActions
             ->modalHeading(fn (): string => self::encaisseAvecRecu() ? 'Enregistrer le versement et émettre son reçu' : 'Enregistrer un versement')
             // Reste sur le parcours (arriérés compris), égal en D1 au reste de l'année courante.
             ->modalDescription(fn (Auditeur $record): string => 'Reste à payer : '.LibelleSituation::fcfa(CompteAuditeur::pour($record)->resteParcours())
-                .'. Le versement compte aussitôt ; seul le responsable de scolarité peut l\'annuler.'
+                .'. Le versement compte aussitôt ; seul un administrateur peut l\'annuler ou le corriger.'
                 .(self::encaisseAvecRecu() ? ' Le reçu numéroté est émis à votre nom et l\'auditeur en est prévenu par SMS et par e-mail.' : ''))
             ->modalSubmitActionLabel(fn (): string => self::encaisseAvecRecu() ? 'Enregistrer et émettre le reçu' : 'Enregistrer')
             ->form(fn (Auditeur $record): array => MessagesValidation::appliquer(self::champsVersement(fn (): ?Auditeur => $record)))

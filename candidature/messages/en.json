@@ -1370,6 +1370,15 @@
         "distanciel": "Remote",
         "hybride": "Hybrid"
       }
+    },
+    "examens": {
+      "eyebrow": "My exams",
+      "titre": "Exams you are called to sit",
+      "intro": "Schedule published by the registrar's office. Go to the room shown, with your student card.",
+      "nonAutorise": "A tuition instalment is overdue: you are not allowed to sit exams until your situation is settled. Please contact the finance office.",
+      "rattrapage": "Resit",
+      "salle": "Room: {salle}",
+      "salleAVenir": "Room to be announced"
     }
   },
   "verification": {

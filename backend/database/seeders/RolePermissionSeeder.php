@@ -196,9 +196,9 @@ final class RolePermissionSeeder extends Seeder
             ],
             'scolarite_responsable' => [
                 'label' => 'Responsable de scolarité',
-                'description' => 'Droits de l\'agent, plus l\'annulation des versements, les remises, les barèmes, les réglages de promotion, le statut des auditeurs, les messages, la validation des maquettes et les règles d\'évaluation.',
+                'description' => 'Droits de l\'agent, plus les remises, les barèmes, les réglages de promotion, le statut des auditeurs, les messages, la validation des maquettes et les règles d\'évaluation ; annuler un versement revient à un administrateur.',
                 'modules' => ['scolarite' => $read, 'lmd' => $manage],
-                'sensitive' => ['scolarite.export', 'finances.consulter', 'scolarite.lettre_acces', 'scolarite.etiquettes', 'scolarite.versement_annuler', 'scolarite.versement_confirmer', 'scolarite.remise', 'scolarite.bareme', 'supervision.consulter',
+                'sensitive' => ['scolarite.export', 'finances.consulter', 'scolarite.lettre_acces', 'scolarite.etiquettes', 'scolarite.versement_confirmer', 'scolarite.remise', 'scolarite.bareme', 'supervision.consulter',
                     'scolarite.promotion', 'scolarite.statut', 'scolarite.messages', 'scolarite.deblocage', 'scolarite.deblocage_exceptionnel',
                     'lmd.maquette_valider', 'lmd.regles',
                     'lmd.notes_verrouiller', 'lmd.notes_rouvrir', 'lmd.derogation_rattrapage',

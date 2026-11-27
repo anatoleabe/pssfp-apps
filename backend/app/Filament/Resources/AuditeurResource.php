@@ -27,12 +27,14 @@ use App\Services\Scolarite\AccesEcampus;
 use App\Services\Scolarite\LibelleSituation;
 use App\Support\BelongsToModule;
 use Filament\Actions\MountableAction;
+use Filament\GlobalSearch\GlobalSearchResult;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 /**
  * Vie académique > Auditeurs (spec module 4, lot 1).
@@ -154,112 +156,135 @@ class AuditeurResource extends Resource
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
-            Infolists\Components\Section::make('Identité')->columns(3)->schema([
-                Infolists\Components\TextEntry::make('candidature.matricule')->label('Matricule')->fontFamily('mono')->copyable()
-                    // Q2 (16/11/2026) : après la reprise du matricule ACMA, l'ancien reste lisible (reçus déjà émis, identifiant eCampus).
-                    ->helperText(fn (Auditeur $record): ?string => ($ancien = $record->candidature?->reinscriptionAcma?->ancien_matricule) !== null
-                        ? 'Ancien matricule : '.$ancien.' (reçus émis avant la reprise ; identifiant eCampus inchangé)' : null),
-                Infolists\Components\TextEntry::make('nom')->label('Nom et prénom')
-                    ->getStateUsing(fn (Auditeur $record): string => trim(mb_strtoupper((string) $record->candidature?->nom).' '.$record->candidature?->prenom)),
-                Infolists\Components\TextEntry::make('candidature.phone_e164')->label('Téléphone'),
-                Infolists\Components\TextEntry::make('candidature.campagne.promotion_numero')->label('Promotion')
-                    ->formatStateUsing(fn ($state): string => $state.'e promotion'),
-                AuditeurResource\SpecialiteActions::entree(),
-                Infolists\Components\TextEntry::make('candidature.withdrawn_at')->label('Dossier de candidature')
-                    ->getStateUsing(fn (Auditeur $record): string => $record->candidature?->withdrawn_at === null ? 'En cours' : 'Retiré le '.$record->candidature->withdrawn_at->timezone('Africa/Douala')->format('d/m/Y'))
-                    ->badge()->color(fn (Auditeur $record): string => $record->candidature?->withdrawn_at === null ? 'success' : 'gray'),
-                AuditeurResource\EtiquettesActions::entree(),
-            ]),
-            Infolists\Components\Section::make('Statut')->columns(3)
-                ->visible(fn (Auditeur $record): bool => $record->statut !== Auditeur::STATUT_ACTIF || $record->statut_depuis !== null)
-                ->schema([
-                    Infolists\Components\TextEntry::make('statut')->label('Statut')->badge()
-                        ->formatStateUsing(fn (string $state): string => Auditeur::STATUTS[$state] ?? $state)
-                        ->color(fn (string $state): string => self::couleurStatut($state)),
-                    Infolists\Components\TextEntry::make('statut_depuis')->label('Depuis le')->date('d/m/Y')->placeholder('—'),
-                    Infolists\Components\TextEntry::make('statut_motif')->label('Motif')->placeholder('—'),
-                    Infolists\Components\TextEntry::make('suspension')->label('Suspension sur demande écrite')->columnSpanFull()
-                        ->getStateUsing(fn (Auditeur $record): ?string => AuditeurResource\SuspensionActions::resume($record))
-                        ->visible(fn (Auditeur $record): bool => $record->suspensions()->exists()),
-                ]),
-            Infolists\Components\Section::make('Parcours LMD')
-                ->visible(fn (): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER))
-                ->schema([
-                    Infolists\Components\TextEntry::make('parcours_lmd')->hiddenLabel()
-                        ->getStateUsing(fn (Auditeur $record): string => ParcoursActions::resume($record)),
-                ]),
-            Infolists\Components\Section::make('Résultats arrêtés')
-                ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER) && $record->inscriptionCourante !== null
-                    && ResultatAnnuel::query()->where('inscription_annuelle_id', $record->inscriptionCourante->id)->exists())
-                ->schema([
-                    Infolists\Components\TextEntry::make('resultats_lmd')->hiddenLabel()->listWithLineBreaks()
-                        ->getStateUsing(fn (Auditeur $record): array => ResultatAnnuel::query()->where('inscription_annuelle_id', $record->inscriptionCourante?->id)
-                            ->whereHas('deliberation', fn ($q) => $q->where('statut', 'arretee'))->with('deliberation')->get()
-                            ->map(fn (ResultatAnnuel $r): string => sprintf('%s (%s) : %s, %d crédits, moyenne %s%s',
-                                $r->deliberation->numero_pv, ($r->deliberation->estSemestrielle() ? mb_strtolower((string) $r->deliberation->libelleSemestre()).', ' : '')
-                                    .($r->deliberation->session === 'rattrapage' ? 'rattrapage' : 'session normale'),
-                                $r->deliberation->decisions()[$r->decision] ?? $r->decision, $r->credits_acquis,
-                                $r->moyenne === null ? '—' : number_format((float) $r->moyenne, 2, ',', ' '),
-                                $r->deliberation->publiee_at ? ' · publié' : ' · non publié'))->all()),
-                ]),
-            Infolists\Components\Section::make('Documents officiels délivrés')->collapsible()
-                ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER)
-                    && DocumentDelivre::query()->where('auditeur_id', $record->id)->exists())
-                ->schema([
-                    Infolists\Components\TextEntry::make('documents_lmd')->hiddenLabel()->listWithLineBreaks()
-                        ->getStateUsing(fn (Auditeur $record): array => DocumentDelivre::query()->where('auditeur_id', $record->id)->latest('id')->get()
-                            ->map(fn (DocumentDelivre $d): string => sprintf('%s — %s, délivré le %s%s', $d->numero, DocumentDelivre::TYPES[$d->type],
-                                $d->created_at?->timezone('Africa/Douala')->format('d/m/Y'),
-                                $d->estRevoque() ? ' · révoqué le '.$d->revoque_at->timezone('Africa/Douala')->format('d/m/Y').' ('.$d->revoque_motif.')' : ''))->all()),
-                ]),
-            // Lot 15d : années reprises d'ACMA quand un dossier d'archive est lié à cet auditeur (lecture seule).
-            Infolists\Components\Section::make('Historique ACMA')->collapsible()
-                ->description('Années reprises de l\'ancien logiciel ACMA, en lecture seule. Les décisions sont celles d\'ACMA ou transcrites d\'un PV signé.')
-                ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(ArchivesAcma::CONSULTER)
-                    && AcmaDossier::query()->where('auditeur_id', $record->id)->whereNull('retire_de_la_source_at')->exists())
-                ->schema([
-                    Infolists\Components\RepeatableEntry::make('dossiers_acma')->hiddenLabel()->columns(4)
-                        ->getStateUsing(fn (Auditeur $record) => AcmaDossier::query()->where('auditeur_id', $record->id)->whereNull('retire_de_la_source_at')
-                            ->with(['inscriptions' => fn ($q) => $q->whereNull('retire_de_la_source_at'), 'complements.auteur:id,name'])->get())
+            // Fiche en onglets (lot 32, choix du Chef de projet du 25/11/2026) : un bandeau résumé sous le nom (page), puis
+            // une rubrique par onglet ; l'onglet ouvert reste dans l'adresse (?onglet=…).
+            Infolists\Components\Tabs::make('fiche')->persistTabInQueryString('onglet')->columnSpanFull()->tabs([
+                Infolists\Components\Tabs\Tab::make('Identité')->icon('heroicon-o-identification')->schema([
+                    Infolists\Components\Section::make('Identité')->columns(3)->schema([
+                        Infolists\Components\TextEntry::make('candidature.matricule')->label('Matricule')->fontFamily('mono')->copyable()
+                            // Q2 (16/11/2026) : après la reprise du matricule ACMA, l'ancien reste lisible (reçus déjà émis, identifiant eCampus).
+                            ->helperText(fn (Auditeur $record): ?string => ($ancien = $record->candidature?->reinscriptionAcma?->ancien_matricule) !== null
+                                ? 'Ancien matricule : '.$ancien.' (reçus émis avant la reprise ; identifiant eCampus inchangé)' : null),
+                        Infolists\Components\TextEntry::make('nom')->label('Nom et prénom')
+                            ->getStateUsing(fn (Auditeur $record): string => trim(mb_strtoupper((string) $record->candidature?->nom).' '.$record->candidature?->prenom)),
+                        Infolists\Components\TextEntry::make('candidature.phone_e164')->label('Téléphone'),
+                        Infolists\Components\TextEntry::make('candidature.campagne.promotion_numero')->label('Promotion')
+                            ->formatStateUsing(fn ($state): string => $state.'e promotion'),
+                        AuditeurResource\SpecialiteActions::entree(),
+                        Infolists\Components\TextEntry::make('candidature.withdrawn_at')->label('Dossier de candidature')
+                            ->getStateUsing(fn (Auditeur $record): string => $record->candidature?->withdrawn_at === null ? 'En cours' : 'Retiré le '.$record->candidature->withdrawn_at->timezone('Africa/Douala')->format('d/m/Y'))
+                            ->badge()->color(fn (Auditeur $record): string => $record->candidature?->withdrawn_at === null ? 'success' : 'gray'),
+                        AuditeurResource\EtiquettesActions::entree(),
+                    ]),
+                    Infolists\Components\Section::make('Statut')->columns(3)
+                        ->visible(fn (Auditeur $record): bool => $record->statut !== Auditeur::STATUT_ACTIF || $record->statut_depuis !== null)
                         ->schema([
-                            Infolists\Components\TextEntry::make('matricule')->label('Dossier d\'archive')->fontFamily('mono')
-                                ->url(fn (AcmaDossier $record): ?string => ArchiveAcmaResource::canAccess() ? ArchiveAcmaResource::getUrl('view', ['record' => $record]) : null),
-                            Infolists\Components\TextEntry::make('annees_acma')->label('Années')->columnSpan(3)->listWithLineBreaks()
-                                ->getStateUsing(fn (AcmaDossier $record): array => $record->inscriptions->sortBy(['annee', 'niveau_acma'])
-                                    ->map(fn (AcmaInscription $i): string => $i->annee.' · '.$i->niveau.' ('.$i->niveau_acma.') : '.ArchivesAcma::decision($i, $record->complements)['libelle']
-                                        .($i->credits_acquis === null ? '' : ', crédits '.$i->credits_acquis.' / '.($i->credits_programme ?? '?')))
-                                    ->values()->all()),
+                            Infolists\Components\TextEntry::make('statut')->label('Statut')->badge()
+                                ->formatStateUsing(fn (string $state): string => Auditeur::STATUTS[$state] ?? $state)
+                                ->color(fn (string $state): string => self::couleurStatut($state)),
+                            Infolists\Components\TextEntry::make('statut_depuis')->label('Depuis le')->date('d/m/Y')->placeholder('—'),
+                            Infolists\Components\TextEntry::make('statut_motif')->label('Motif')->placeholder('—'),
+                            Infolists\Components\TextEntry::make('suspension')->label('Suspension sur demande écrite')->columnSpanFull()
+                                ->getStateUsing(fn (Auditeur $record): ?string => AuditeurResource\SuspensionActions::resume($record))
+                                ->visible(fn (Auditeur $record): bool => $record->suspensions()->exists()),
                         ]),
                 ]),
-            Infolists\Components\Section::make('Notes de l\'année')->collapsible()
-                ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER) && $record->inscriptionCourante?->parcours_id !== null)
-                ->schema([
-                    Infolists\Components\ViewEntry::make('notes_lmd')->hiddenLabel()->view('filament.lmd.notes-auditeur'),
+                Infolists\Components\Tabs\Tab::make('Finances')->icon('heroicon-o-banknotes')->schema([
+                    Infolists\Components\Section::make('Situation financière')
+                        ->description(fn (Auditeur $record): ?string => $record->inscriptionCourante === null ? null
+                            : $record->inscriptionCourante->annee_academique.' · '.(BaremeScolarite::NIVEAUX[$record->inscriptionCourante->niveau] ?? $record->inscriptionCourante->niveau))
+                        ->schema([
+                            Infolists\Components\ViewEntry::make('situation')->hiddenLabel()->view('filament.scolarite.situation'),
+                        ]),
+                    // La liste des versements et des reçus, avec ses gestes, dans l'onglet (auparavant sous la fiche).
+                    Infolists\Components\Livewire::make(VersementsRelationManager::class, fn (Auditeur $record): array => ['ownerRecord' => $record, 'pageClass' => Pages\ViewAuditeur::class])
+                        ->key('versements')
+                        ->visible(fn (Auditeur $record): bool => VersementsRelationManager::canViewForRecord($record, Pages\ViewAuditeur::class)),
                 ]),
-            Infolists\Components\Section::make('Situation financière')
-                ->description(fn (Auditeur $record): ?string => $record->inscriptionCourante === null ? null
-                    : $record->inscriptionCourante->annee_academique.' · '.(BaremeScolarite::NIVEAUX[$record->inscriptionCourante->niveau] ?? $record->inscriptionCourante->niveau))
-                ->schema([
-                    Infolists\Components\ViewEntry::make('situation')->hiddenLabel()->view('filament.scolarite.situation'),
+                Infolists\Components\Tabs\Tab::make('Parcours et notes')->icon('heroicon-o-academic-cap')
+                    ->visible(fn (): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER) || (bool) auth()->user()?->can(ArchivesAcma::CONSULTER))
+                    ->schema([
+                        Infolists\Components\Section::make('Parcours LMD')
+                            ->visible(fn (): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('parcours_lmd')->hiddenLabel()
+                                    ->getStateUsing(fn (Auditeur $record): string => ParcoursActions::resume($record)),
+                            ]),
+                        Infolists\Components\Section::make('Notes de l\'année')
+                            ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER) && $record->inscriptionCourante?->parcours_id !== null)
+                            ->schema([
+                                Infolists\Components\ViewEntry::make('notes_lmd')->hiddenLabel()->view('filament.lmd.notes-auditeur'),
+                            ]),
+                        Infolists\Components\Section::make('Résultats arrêtés')
+                            ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER) && $record->inscriptionCourante !== null
+                                && ResultatAnnuel::query()->where('inscription_annuelle_id', $record->inscriptionCourante->id)->exists())
+                            ->schema([
+                                Infolists\Components\TextEntry::make('resultats_lmd')->hiddenLabel()->listWithLineBreaks()
+                                    ->getStateUsing(fn (Auditeur $record): array => ResultatAnnuel::query()->where('inscription_annuelle_id', $record->inscriptionCourante?->id)
+                                        ->whereHas('deliberation', fn ($q) => $q->where('statut', 'arretee'))->with('deliberation')->get()
+                                        ->map(fn (ResultatAnnuel $r): string => sprintf('%s (%s) : %s, %d crédits, moyenne %s%s',
+                                            $r->deliberation->numero_pv, ($r->deliberation->estSemestrielle() ? mb_strtolower((string) $r->deliberation->libelleSemestre()).', ' : '')
+                                                .($r->deliberation->session === 'rattrapage' ? 'rattrapage' : 'session normale'),
+                                            $r->deliberation->decisions()[$r->decision] ?? $r->decision, $r->credits_acquis,
+                                            $r->moyenne === null ? '—' : number_format((float) $r->moyenne, 2, ',', ' '),
+                                            $r->deliberation->publiee_at ? ' · publié' : ' · non publié'))->all()),
+                            ]),
+                        // Lot 15d : années reprises d'ACMA quand un dossier d'archive est lié à cet auditeur (lecture seule).
+                        Infolists\Components\Section::make('Historique ACMA')
+                            ->description('Années reprises de l\'ancien logiciel ACMA, en lecture seule. Les décisions sont celles d\'ACMA ou transcrites d\'un PV signé.')
+                            ->visible(fn (Auditeur $record): bool => (bool) auth()->user()?->can(ArchivesAcma::CONSULTER)
+                                && AcmaDossier::query()->where('auditeur_id', $record->id)->whereNull('retire_de_la_source_at')->exists())
+                            ->schema([
+                                Infolists\Components\RepeatableEntry::make('dossiers_acma')->hiddenLabel()->columns(4)
+                                    ->getStateUsing(fn (Auditeur $record) => AcmaDossier::query()->where('auditeur_id', $record->id)->whereNull('retire_de_la_source_at')
+                                        ->with(['inscriptions' => fn ($q) => $q->whereNull('retire_de_la_source_at'), 'complements.auteur:id,name'])->get())
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('matricule')->label('Dossier d\'archive')->fontFamily('mono')
+                                            ->url(fn (AcmaDossier $record): ?string => ArchiveAcmaResource::canAccess() ? ArchiveAcmaResource::getUrl('view', ['record' => $record]) : null),
+                                        Infolists\Components\TextEntry::make('annees_acma')->label('Années')->columnSpan(3)->listWithLineBreaks()
+                                            ->getStateUsing(fn (AcmaDossier $record): array => $record->inscriptions->sortBy(['annee', 'niveau_acma'])
+                                                ->map(fn (AcmaInscription $i): string => $i->annee.' · '.$i->niveau.' ('.$i->niveau_acma.') : '.ArchivesAcma::decision($i, $record->complements)['libelle']
+                                                    .($i->credits_acquis === null ? '' : ', crédits '.$i->credits_acquis.' / '.($i->credits_programme ?? '?')))
+                                                ->values()->all()),
+                                    ]),
+                            ]),
+                    ]),
+                Infolists\Components\Tabs\Tab::make('Documents')->icon('heroicon-o-document-text')
+                    ->visible(fn (): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER))
+                    ->schema([
+                        Infolists\Components\Section::make('Documents officiels délivrés')
+                            ->visible(fn (): bool => (bool) auth()->user()?->can(PermissionsLmd::CONSULTER))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('documents_lmd')->hiddenLabel()->listWithLineBreaks()->placeholder('Aucun document officiel délivré.')
+                                    ->getStateUsing(fn (Auditeur $record): array => DocumentDelivre::query()->where('auditeur_id', $record->id)->latest('id')->get()
+                                        ->map(fn (DocumentDelivre $d): string => sprintf('%s — %s, délivré le %s%s', $d->numero, DocumentDelivre::TYPES[$d->type],
+                                            $d->created_at?->timezone('Africa/Douala')->format('d/m/Y'),
+                                            $d->estRevoque() ? ' · révoqué le '.$d->revoque_at->timezone('Africa/Douala')->format('d/m/Y').' ('.$d->revoque_motif.')' : ''))->all()),
+                            ]),
+                    ]),
+                Infolists\Components\Tabs\Tab::make('Accès eCampus')->icon('heroicon-o-key')->schema([
+                    Infolists\Components\Section::make('Accès à eCampus')->columns(2)->schema([
+                        Infolists\Components\TextEntry::make('acces')->label('État')->badge()
+                            ->getStateUsing(fn (Auditeur $record): string => self::libelleAcces($record))
+                            ->color(fn (Auditeur $record): string => match ($record->candidature === null ? null : AccesEcampus::etat($record->candidature)) {
+                                AccesEcampus::DISPONIBLE => 'success',
+                                AccesEcampus::EN_PREPARATION => 'warning',
+                                AccesEcampus::BLOQUE => 'danger',
+                                default => 'gray',
+                            }),
+                        Infolists\Components\TextEntry::make('inscriptionCourante.acces_notifie_at')->label('SMS « accès disponibles »')
+                            ->getStateUsing(fn (Auditeur $record): string => $record->inscriptionCourante?->acces_notifie_at === null ? 'Pas encore envoyé'
+                                : 'Envoyé le '.$record->inscriptionCourante->acces_notifie_at->timezone('Africa/Douala')->format('d/m/Y à H:i')),
+                        AccesAnticipe::encadre(),
+                    ]),
                 ]),
-            Infolists\Components\Section::make('Historique')->collapsible()->collapsed()
-                ->description('Les 100 dernières entrées du journal : fiche, inscriptions, versements et dossier.')
-                ->schema([
-                    Infolists\Components\ViewEntry::make('historique')->hiddenLabel()->view('filament.scolarite.historique'),
+                Infolists\Components\Tabs\Tab::make('Historique')->icon('heroicon-o-clock')->schema([
+                    Infolists\Components\Section::make('Historique')
+                        ->description('Les 100 dernières entrées du journal : fiche, inscriptions, versements et dossier.')
+                        ->schema([
+                            Infolists\Components\ViewEntry::make('historique')->hiddenLabel()->view('filament.scolarite.historique'),
+                        ]),
                 ]),
-            Infolists\Components\Section::make('Accès à eCampus')->columns(2)->schema([
-                Infolists\Components\TextEntry::make('acces')->label('État')->badge()
-                    ->getStateUsing(fn (Auditeur $record): string => self::libelleAcces($record))
-                    ->color(fn (Auditeur $record): string => match ($record->candidature === null ? null : AccesEcampus::etat($record->candidature)) {
-                        AccesEcampus::DISPONIBLE => 'success',
-                        AccesEcampus::EN_PREPARATION => 'warning',
-                        AccesEcampus::BLOQUE => 'danger',
-                        default => 'gray',
-                    }),
-                Infolists\Components\TextEntry::make('inscriptionCourante.acces_notifie_at')->label('SMS « accès disponibles »')
-                    ->getStateUsing(fn (Auditeur $record): string => $record->inscriptionCourante?->acces_notifie_at === null ? 'Pas encore envoyé'
-                        : 'Envoyé le '.$record->inscriptionCourante->acces_notifie_at->timezone('Africa/Douala')->format('d/m/Y à H:i')),
-                AccesAnticipe::encadre(),
             ]),
         ]);
     }
@@ -286,6 +311,52 @@ class AuditeurResource extends Resource
             Auditeur::STATUT_SUSPENDU => 'warning',
             default => 'danger',
         };
+    }
+
+    /** État de l'accès eCampus en quelques mots, pour le bandeau de la fiche et la recherche globale. */
+    public static function libelleAccesCourt(Auditeur $record): string
+    {
+        return match ($record->candidature === null ? null : AccesEcampus::etat($record->candidature)) {
+            AccesEcampus::DISPONIBLE => 'disponible',
+            AccesEcampus::EN_PREPARATION => 'compte à créer',
+            AccesEcampus::BLOQUE => 'bloqué',
+            default => 'dossier retiré',
+        };
+    }
+
+    /**
+     * Recherche globale (lot 32) : la barre du haut trouve les auditeurs par la même règle que la liste (matricule, nom,
+     * prénom, téléphone) et ouvre leur fiche.
+     *
+     * @return list<string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['candidature.matricule', 'candidature.nom', 'candidature.prenom', 'candidature.phone_e164'];
+    }
+
+    public static function getGlobalSearchResults(string $search): Collection
+    {
+        return self::rechercher(static::getGlobalSearchEloquentQuery()->with(['candidature', 'inscriptionCourante.parcours']), $search)
+            ->limit(static::getGlobalSearchResultsLimit())->get()
+            ->map(function (Auditeur $a): ?GlobalSearchResult {
+                $url = static::getGlobalSearchResultUrl($a);
+                if ($url === null) {
+                    return null;
+                }
+                $i = $a->inscriptionCourante;
+
+                return new GlobalSearchResult(
+                    title: trim(($a->candidature?->matricule ?? 'sans matricule').' — '.mb_strtoupper((string) $a->candidature?->nom).' '.$a->candidature?->prenom),
+                    url: $url,
+                    details: array_filter([
+                        'Année' => $i === null ? null : $i->annee_academique.' · '.(BaremeScolarite::NIVEAUX[$i->niveau] ?? $i->niveau)
+                            .($i->parcours !== null ? ' · '.$i->parcours->libelle : ''),
+                        'Statut' => Auditeur::STATUTS[$a->statut] ?? $a->statut,
+                    ]),
+                );
+            })
+            ->filter()->values();
     }
 
     public static function libelleAcces(Auditeur $record): string

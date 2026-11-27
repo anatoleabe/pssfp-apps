@@ -261,7 +261,8 @@ final class CorrectionsVersements
      * @throws InvalidArgumentException
      */
     /**
-     * Rectification immédiate par le service financier seul (décision Q2 du 16/11/2026, sous-lot F5) : une erreur
+     * Rectification immédiate (décision Q2 du 16/11/2026, sous-lot F5 ; réservée à l'administrateur depuis la règle du
+     * 25/11/2026, qui remplace « par le service financier seul ») : une erreur
      * descriptive (référence, date, mode, payeur), à montant et auditeur égaux, sur un versement non confirmé, enregistré
      * depuis moins de `finances.fenetre_rectification_heures` heures (48 par défaut). Même pièce que le circuit, marquée
      * « rectification immédiate », sans demande ; l'agent passe lui-même l'annulation. Tout le reste passe par une demande.
@@ -272,8 +273,9 @@ final class CorrectionsVersements
      */
     public function rectifier(Versement $v, array $saisie, string $motif, User $agent): CorrectionVersement
     {
-        abort_unless(self::peutDemander($agent) && $agent->can(RegistreVersements::PERMISSION_SAISIR)
-            && $agent->can(RecusVersements::PERMISSION_EMETTRE), 403);
+        // Règle du 25/11/2026 : plus de rectification par le service financier seul ; l'administrateur qui détient tous
+        // les droits du geste la passe lui-même, le service financier demande la correction.
+        abort_unless(self::agitDirectement($agent), 403);
         if (! in_array($saisie['categorie'] ?? null, self::CHAMPS_CATEGORIES_RECTIFIABLES, true)) {
             throw new InvalidArgumentException('La rectification immédiate corrige une erreur de référence, de date, de mode ou de payeur : '
                 .'toute autre erreur passe par une demande.');

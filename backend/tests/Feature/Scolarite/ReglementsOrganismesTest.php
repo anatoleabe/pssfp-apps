@@ -49,6 +49,7 @@ beforeEach(function (): void {
     $this->travelTo(now('Africa/Douala')->setDate(2026, 11, 16)->setTime(9, 0));
     AppSettings::set(RecusVersements::CLE_DEPUIS, now()->subDay()->toIso8601String());
     $this->compte = fn (string $role): User => tap(User::factory()->create(['email' => $role.'-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole($role));
+    $this->administrateur = ($this->compte)('admin');
     $this->agent = ($this->compte)('scolarite_agent');
     $this->responsable = ($this->compte)('scolarite_responsable');
     $this->financier = ($this->compte)('service_financier');
@@ -282,9 +283,9 @@ describe('annulation', function (): void {
         $versementAwa = Versement::query()->where('auditeur_id', $this->awa->fresh()->auditeur->id)->sole();
         $recu = app(RecusVersements::class)->emettre($versementAwa, $this->financier);
 
-        ($this->service)()->annuler($r, 'Virement rejeté par la banque', $this->responsable);
+        ($this->service)()->annuler($r, 'Virement rejeté par la banque', $this->administrateur);
 
-        expect($r->fresh())->annule_at->not->toBeNull()->annule_par->toBe($this->responsable->id)->annule_motif->toBe('Virement rejeté par la banque')
+        expect($r->fresh())->annule_at->not->toBeNull()->annule_par->toBe($this->administrateur->id)->annule_motif->toBe('Virement rejeté par la banque')
             ->and(Versement::query()->whereNull('annule_at')->count())->toBe(0)
             ->and(Versement::query()->pluck('annule_motif')->unique()->all())->toBe(['Règlement OV-77 annulé : Virement rejeté par la banque'])
             ->and(ImputationVersement::query()->whereNull('annule_at')->count())->toBe(0)
@@ -318,7 +319,7 @@ describe('annulation', function (): void {
             'inscription_annuelle_id' => $suivante->id, 'montant' => 115000, 'origine' => 'avance', 'created_at' => now(), 'updated_at' => now(),
         ]);
 
-        expect(fn () => ($this->service)()->annuler($r, 'Virement rejeté par la banque', $this->responsable))
+        expect(fn () => ($this->service)()->annuler($r, 'Virement rejeté par la banque', $this->administrateur))
             ->toThrow(InvalidArgumentException::class, 'Le règlement ne peut pas être annulé : le versement de '.$this->bruno->matricule.' est imputé sur plusieurs années (2026-2027, 2027-2028)')
             ->and($r->fresh()->annule_at)->toBeNull()
             ->and(Versement::query()->whereNull('annule_at')->count())->toBe(2);
@@ -328,7 +329,7 @@ describe('annulation', function (): void {
         ($this->regler)();
         $v = Versement::query()->firstOrFail();
 
-        expect(fn () => app(RegistreVersements::class)->annuler($v, 'Erreur de saisie', $this->responsable))
+        expect(fn () => app(RegistreVersements::class)->annuler($v, 'Erreur de saisie', $this->administrateur))
             ->toThrow(InvalidArgumentException::class, 'annulez le règlement entier')
             ->and($v->fresh()->annule_at)->toBeNull();
     });
@@ -336,9 +337,9 @@ describe('annulation', function (): void {
     it('refuse une seconde annulation et un motif vide', function (): void {
         $r = ($this->regler)();
 
-        expect(fn () => ($this->service)()->annuler($r, '   ', $this->responsable))->toThrow(InvalidArgumentException::class, 'motif');
-        ($this->service)()->annuler($r, 'Virement rejeté par la banque', $this->responsable);
-        expect(fn () => ($this->service)()->annuler($r, 'Virement rejeté par la banque', $this->responsable))->toThrow(InvalidArgumentException::class, 'déjà annulé');
+        expect(fn () => ($this->service)()->annuler($r, '   ', $this->administrateur))->toThrow(InvalidArgumentException::class, 'motif');
+        ($this->service)()->annuler($r, 'Virement rejeté par la banque', $this->administrateur);
+        expect(fn () => ($this->service)()->annuler($r, 'Virement rejeté par la banque', $this->administrateur))->toThrow(InvalidArgumentException::class, 'déjà annulé');
     });
 });
 

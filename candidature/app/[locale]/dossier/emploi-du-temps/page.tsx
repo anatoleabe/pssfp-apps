@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { EspaceEmploiDuTemps } from '@/components/espace/EspaceEmploiDuTemps';
+import { EspaceExamens } from '@/components/espace/EspaceExamens';
 import { EspaceGabarit } from '@/components/espace/EspaceGabarit';
-import { getMyEmploiDuTemps } from '@/lib/api/client';
+import { getMyEmploiDuTemps, getMyExamens } from '@/lib/api/client';
 import { getCandidatToken } from '@/lib/auth/session';
 import { chargerEspaceAuditeur } from '@/lib/espace/charger';
 import { redirect } from '@/navigation';
@@ -20,7 +21,8 @@ export default async function EmploiDuTempsPage({ searchParams }: { searchParams
   const { candidature, scolarite } = await chargerEspaceAuditeur();
   const token = await getCandidatToken();
   const semaine = searchParams.semaine && DATE.test(searchParams.semaine) ? searchParams.semaine : undefined;
-  const edt = token ? await getMyEmploiDuTemps(token, semaine) : null;
+  // Les épreuves s'ajoutent à la page : leur absence ne doit pas empêcher de lire l'emploi du temps.
+  const [edt, examens] = token ? await Promise.all([getMyEmploiDuTemps(token, semaine), getMyExamens(token)]) : [null, null];
   if (!edt?.ok) {
     if (edt?.status === 401) {
       redirect('/auth/session-expired');
@@ -30,6 +32,7 @@ export default async function EmploiDuTempsPage({ searchParams }: { searchParams
 
   return (
     <EspaceGabarit candidature={candidature} scolarite={scolarite} rubrique="emploi">
+      {examens?.ok && <EspaceExamens examens={examens.data} />}
       <EspaceEmploiDuTemps edt={edt.data} />
     </EspaceGabarit>
   );

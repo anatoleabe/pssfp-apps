@@ -76,6 +76,7 @@ final class AdminPanelProvider extends PanelProvider
             ->font('Source Sans 3', url: 'https://fonts.bunny.net/css?family=source-sans-3:400,500,600,700&display=swap')
             ->renderHook(PanelsRenderHook::STYLES_AFTER, static fn (): View => view('filament.theme.charte'))
             ->renderHook(PanelsRenderHook::USER_MENU_BEFORE, static fn (): View => view('filament.messagerie.enveloppe'))
+            ->renderHook(PanelsRenderHook::BODY_END, static fn (): View => view('filament.saisie.champs-nombre'))
             ->maxContentWidth(MaxWidth::Full)
             ->navigationGroups(array_map(
                 static fn (string $groupe): NavigationGroup => NavigationGroup::make($groupe)->collapsible(),
@@ -108,6 +109,8 @@ final class AdminPanelProvider extends PanelProvider
                 ExigerDoubleAuthentification::class,
             ], isPersistent: true)
             ->globalSearch(RechercheGlobale::class)
+            // Lot 32 : la recherche unique s'ouvre aussi au clavier, partout dans le panneau.
+            ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->userMenuItems([
                 'ma-securite' => MenuItem::make()->label('Ma sécurité')->icon('heroicon-o-key')
                     ->url(fn (): string => MaSecurite::getUrl()),

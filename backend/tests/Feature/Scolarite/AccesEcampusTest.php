@@ -25,6 +25,7 @@ use Illuminate\Support\Str;
 uses()->group('scolarite');
 
 beforeEach(function (): void {
+    $this->administrateur = tap(User::factory()->create(['email' => 'admin-'.Str::random(6).'@pssfp.local']), fn (User $u) => $u->assignRole('admin'));
     $this->seed([PaysSeeder::class, RegionsCamerounSeeder::class, DepartementsCamerounSeeder::class, RolePermissionSeeder::class]);
     $this->encaisseur = tap(User::factory()->create(['email' => 'sf-'.Str::random(5).'@pssfp.local']), fn (User $u) => $u->assignRole('service_financier'));
     $this->responsable = tap(User::factory()->create(['email' => 'resp-'.Str::random(5).'@pssfp.local']), fn (User $u) => $u->assignRole('scolarite_responsable'));
@@ -113,7 +114,7 @@ it('remet le code et l\'envoi manuel selon la nouvelle règle', function (): voi
     expect($frais())->toBeTrue()
         ->and(IdentifiantsMoodle::remettables($this->dossier->fresh()))->toBeTrue();
 
-    app(RegistreVersements::class)->annuler($v, 'Erreur', $this->responsable);
+    app(RegistreVersements::class)->annuler($v, 'Erreur', $this->administrateur);
     expect($frais())->toBeFalse();
 });
 
@@ -159,7 +160,7 @@ describe('SMS « accès disponibles »', function (): void {
     it('ne repart pas après annulation puis ressaisie', function (): void {
         ($this->compteCree)();
         $v = ($this->verser)()->versement;
-        app(RegistreVersements::class)->annuler($v, 'Erreur', $this->responsable);
+        app(RegistreVersements::class)->annuler($v, 'Erreur', $this->administrateur);
         ($this->verser)();
 
         expect($this->sms)->toHaveCount(1);

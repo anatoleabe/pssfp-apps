@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\Applications\CandidatureController;
 use App\Http\Controllers\Api\Applications\EmploiDuTempsController;
+use App\Http\Controllers\Api\Applications\ExamensController;
 use App\Http\Controllers\Api\Applications\LienLettreAccesController;
 use App\Http\Controllers\Api\Applications\MemoireController;
 use App\Http\Controllers\Api\Applications\ParcoursController;
@@ -170,6 +171,11 @@ Route::prefix('applications')->name('applications.')->group(function (): void {
         Route::get('/me/emploi-du-temps', [EmploiDuTempsController::class, 'show'])
             ->middleware('ability:application:read')
             ->name('me.emploi-du-temps');
+
+        // Épreuves de l'auditeur dans les plannings d'examens publiés (spec module 4, lot 27).
+        Route::get('/me/examens', [ExamensController::class, 'index'])
+            ->middleware('ability:application:read')
+            ->name('me.examens');
 
         Route::get('/me/calendrier/communiques/{uuid}', [ParcoursController::class, 'communique'])
             ->middleware(['ability:application:read', 'throttle:30,1'])

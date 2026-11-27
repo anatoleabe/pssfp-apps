@@ -127,7 +127,7 @@ final class ModulePermissionMap
                     'scolarite.export' => 'Exporter la situation financière des auditeurs',
                     'finances.consulter' => 'Consulter l\'espace Finances : listes des versements et des reçus (service financier, responsable de scolarité, administrateurs)',
                     'finances.rubriques_gerer' => 'Modifier les rubriques de frais des reçus (libellé, code d\'imputation, montant, ordre) et le compte de scolarité de chaque promotion (administrateurs)',
-                    'scolarite.versement_annuler' => 'Annuler un versement ; décider les demandes de correction du service financier',
+                    'scolarite.versement_annuler' => 'Annuler un versement ou un reçu ; décider les demandes de correction et de réémission du service financier (administrateurs, règle du 25/11/2026)',
                     'scolarite.versement_corriger' => 'Demander la correction ou l\'annulation d\'un versement (service financier) : décidée par un titulaire de l\'annulation, jamais par le demandeur',
                     'scolarite.justificatif_remplacer' => 'Remplacer le bordereau joint à un versement (administrateur) : l\'ancien fichier est conservé, la confirmation reste valable',
                     'scolarite.versement_confirmer' => 'Confirmer un versement sur présentation du reçu bancaire original (scolarité) : scan du bordereau et attestation, jamais un versement que l\'on a saisi',
